@@ -11,7 +11,6 @@ import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
 import { requestSessionToken, verifySessionToken } from '../auth';
-import { getSessionToken, setSessionToken } from '../use-session-token';
 
 const Wrapper = styled.div`
     display: flex;
@@ -147,10 +146,9 @@ function BasicAuthLogin(): JSX.Element {
         setIsError(false);
 
         try {
-            const sessionToken = await requestSessionToken({ password, username });
+            const sessionCreated = await requestSessionToken({ password, username });
 
-            if (sessionToken) {
-                setSessionToken(sessionToken);
+            if (sessionCreated) {
                 navigate(decodeURIComponent(previousLocation));
             }
         } catch {
@@ -161,19 +159,14 @@ function BasicAuthLogin(): JSX.Element {
     };
 
     useEffect(() => {
-        // If we landed on this page with a token already, verify it
-        if (getSessionToken()) {
-            verifySessionToken().then((verified) => {
-                // we already have a valid token, redirect
-                if (verified) {
-                    navigate(decodeURIComponent(previousLocation), { replace: true });
-                } else {
-                    setIsVerifyingToken(false);
-                }
-            });
-        } else {
-            setIsVerifyingToken(false);
-        }
+        // If we landed on this page with a valid session already, redirect.
+        verifySessionToken().then((verified) => {
+            if (verified) {
+                navigate(decodeURIComponent(previousLocation), { replace: true });
+            } else {
+                setIsVerifyingToken(false);
+            }
+        });
     }, []);
 
     // Don't show the form yet until we check existing token

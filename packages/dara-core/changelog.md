@@ -4,6 +4,10 @@ title: Changelog
 
 ## NEXT
 
+- Improved authentication to use cookie-based sessions with seamless token refresh and backwards compatibility for existing bearer-token integrations.
+
+# 1.25.6
+
 - Added support for passing `ClientVariable` values to `polling_interval` in `DerivedVariable` and `@py_component`, enabling dynamic polling behavior (for example via `SwitchVariable`).
 - Fixed an issue where `SwitchVariable` mapped values of `None`/`null` would incorrectly fall back to `default` instead of using the explicit mapped value.
 

@@ -20,7 +20,7 @@ from async_asgi_testclient.response import Response
 from async_asgi_testclient.websocket import WebSocketSession
 from typing_extensions import TypedDict
 
-from dara.core.auth.definitions import JWT_ALGO
+from dara.core.auth.definitions import JWT_ALGO, SESSION_TOKEN_COOKIE_NAME
 from dara.core.base_definitions import AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
@@ -371,7 +371,7 @@ async def _call_action(client: AsyncClient, action: AnnotatedAction, data: Actio
 
 @asynccontextmanager
 async def _async_ws_connect(client: AsyncClient, token: str = TEST_TOKEN):
-    async with client.websocket_connect(f'/api/core/ws?token={token}') as ws:
+    async with client.websocket_connect('/api/core/ws', cookies={SESSION_TOKEN_COOKIE_NAME: token}) as ws:
         yield ws
 
 

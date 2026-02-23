@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 import type { Snapshot } from 'recoil';
 
-import { getSessionToken, resolveReferrer, verifySessionToken } from '@/auth';
+import { resolveReferrer, verifySessionToken } from '@/auth';
 import { DefaultFallbackStatic } from '@/components/fallback/default';
 import ErrorStatusCodePage from '@/pages/error-status-code-page';
 import RouteErrorBoundary from '@/pages/route-error-boundary';
@@ -221,15 +221,13 @@ export function createRouter(config: DaraData, snapshot: () => Snapshot): Router
                                     return;
                                 }
 
-                                const token = getSessionToken();
-
-                                // if there is a token and we can verify it, we're good to go
-                                if (token && (await verifySessionToken())) {
+                                // if we can verify the current cookie/bearer session, we're good to go
+                                if (await verifySessionToken()) {
                                     verifiedToken = true;
                                     return;
                                 }
 
-                                // otherwise there is no token or it's invalid, redirect to login
+                                // otherwise there is no valid session, redirect to login
                                 const referrer = resolveReferrer();
                                 const baseUrl: string = window.dara?.base_url ?? '';
                                 const redirectUrl = new URL(`${baseUrl}/login`, window.location.origin);

@@ -21,16 +21,19 @@ import jwt
 from fastapi import Depends, HTTPException, Response
 
 from dara.core.auth.definitions import (
+    AUTH_COOKIE_KWARGS,
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
+    REFRESH_TOKEN_COOKIE_NAME,
+    SESSION_TOKEN_COOKIE_NAME,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
-from dara.core.auth.utils import sign_jwt
+from dara.core.auth.utils import get_cookie_expiration_from_token, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
-from .definitions import REFRESH_TOKEN_COOKIE_NAME, AuthCodeRequestBody
+from .definitions import AuthCodeRequestBody
 from .utils import decode_id_token, get_token_from_idp
 
 
@@ -52,7 +55,7 @@ async def sso_callback(
     :param body: Request body containing auth_code and optional state
     :param response: FastAPI response object (for setting cookies)
     :param settings: Application settings
-    :return: Token response containing the session token
+    :return: success response
     """
     from dara.core.internal.registries import auth_registry
 
@@ -123,15 +126,22 @@ async def sso_callback(
 
         # Set refresh token cookie if provided
         if oidc_tokens.refresh_token:
+            response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=oidc_tokens.refresh_token, **AUTH_COOKIE_KWARGS)
+
+        session_cookie_expiration = get_cookie_expiration_from_token(session_token)
+        if session_cookie_expiration is None:
+            response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=session_token, **AUTH_COOKIE_KWARGS)
+        else:
+            max_age, expires = session_cookie_expiration
             response.set_cookie(
-                key=REFRESH_TOKEN_COOKIE_NAME,
-                value=oidc_tokens.refresh_token,
-                secure=True,
-                httponly=True,
-                samesite='strict',
+                key=SESSION_TOKEN_COOKIE_NAME,
+                value=session_token,
+                max_age=max_age,
+                expires=expires,
+                **AUTH_COOKIE_KWARGS,
             )
 
-        return {'token': session_token}
+        return {'success': True}
 
     except jwt.ExpiredSignatureError as e:
         dev_logger.error('Expired Token Signature', error=e)

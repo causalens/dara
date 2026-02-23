@@ -27,7 +27,7 @@ import anyio
 from anyio import Event, create_memory_object_stream, create_task_group
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from exceptiongroup import catch
-from fastapi import Query, WebSocketException
+from fastapi import WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
 from pydantic import (
@@ -421,22 +421,23 @@ class WebsocketManager:
             del self.handlers[channel_id]
 
 
-async def ws_handler(websocket: WebSocket, token: str | None = Query(default=None)):
+async def ws_handler(websocket: WebSocket):
     """
     Websocket handler. Used for live_reloading in dev mode and for notifying the UI of task results.
 
     :param websocket: The websocket connection
-    :param token: The authentication token
     """
-    if token is None:
-        raise WebSocketException(code=403, reason='Token missing from websocket connection query parameter')
+    from dara.core.auth.definitions import SESSION_TOKEN_COOKIE_NAME
+
+    session_token = websocket.cookies.get(SESSION_TOKEN_COOKIE_NAME)
+    if session_token is None:
+        raise WebSocketException(code=403, reason='Token missing from websocket connection')
 
     from dara.core.auth.base import BaseAuthConfig
     from dara.core.auth.definitions import ID_TOKEN, SESSION_ID, USER, AuthError, TokenData, UserData
-    from dara.core.auth.utils import decode_token
     from dara.core.internal.registries import (
         auth_registry,
-        pending_tokens_registry,
+        session_auth_token_registry,
         sessions_registry,
         utils_registry,
         websocket_registry,
@@ -452,9 +453,9 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
         verifier = auth_config.verify_token
 
         if inspect.iscoroutinefunction(verifier):
-            token_content = await verifier(token)
+            token_content = await verifier(session_token)
         else:
-            token_content = verifier(token)
+            token_content = verifier(session_token)
 
     except DecodeError as err:
         raise WebSocketException(code=403, reason='Invalid or expired token') from err
@@ -469,9 +470,8 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
     else:
         websocket_registry.set(token_content.session_id, {channel})
 
-    # Remove from pending tokens if present
-    if pending_tokens_registry.has(token):
-        pending_tokens_registry.remove(token)
+    # Store the latest known decoded session token data for this session.
+    session_auth_token_registry.set(token_content.session_id, token_content)
 
     user_identifier = token_content.identity_id
 
@@ -494,6 +494,16 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
         )
         SESSION_ID.set(token_data.session_id)
         ID_TOKEN.set(token_data.id_token)
+
+    def refresh_context_from_registry():
+        latest_token_data = token_content
+        if session_auth_token_registry.has(token_content.session_id):
+            latest_token_data = session_auth_token_registry.get(token_content.session_id)
+
+        if latest_token_data.session_id != token_content.session_id:
+            raise ValueError('Session auth token id mismatch for websocket connection')
+
+        update_context(latest_token_data)
 
     WS_CHANNEL.set(channel)
 
@@ -533,14 +543,9 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
                         # Heartbeat to keep connection alive
                         if data['type'] == 'ping':
                             await websocket.send_json({'type': 'pong', 'message': None})
-                        elif data['type'] == 'token_update':
-                            try:
-                                # update Auth context vars for the WS connection
-                                update_context(decode_token(data['message']))
-                            except Exception as e:
-                                eng_logger.error('Error updating token data', error=e)
                         else:
                             try:
+                                refresh_context_from_registry()
                                 parsed_data = TypeAdapter(ClientMessage).validate_python(data)
                                 result = handler.process_client_message(parsed_data)
                                 # Process the resulting coroutine before moving on to next message
@@ -578,4 +583,7 @@ async def ws_handler(websocket: WebSocket, token: str | None = Query(default=Non
                 if channel in channels:
                     channels.remove(channel)
                     websocket_registry.set(token_content.session_id, channels)
+
+                    if len(channels) == 0 and session_auth_token_registry.has(token_content.session_id):
+                        session_auth_token_registry.remove(token_content.session_id)
             ws_mgr.remove_handler(channel)

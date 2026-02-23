@@ -4,12 +4,12 @@ import * as React from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
-import { setSessionToken } from '@/auth';
+import { setSessionIdentifier } from '@/auth';
 import { createRoute } from '@/router/create-router';
 import { ResponseChunk } from '@/router/fetching';
 import { clearRegistries_TEST, useVariable } from '@/shared';
-import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 import DynamicComponent, { clearCaches_TEST, preloadComponents } from '@/shared/dynamic-component/dynamic-component';
+import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 import { preloadActions } from '@/shared/interactivity/use-action';
 import {
     type AnnotatedAction,
@@ -42,7 +42,7 @@ describe('Route Loader', () => {
         await preloadActions(importers, Object.values(mockActions));
         await preloadComponents(importers, Object.values(mockComponents));
         vi.restoreAllMocks();
-        setSessionToken(TEST_TOKEN);
+        setSessionIdentifier(TEST_TOKEN);
 
         // mock successful verification
         server.use(
@@ -56,7 +56,7 @@ describe('Route Loader', () => {
         clearCaches_TEST();
         clearStreamUsage_TEST();
         act(() => {
-            setSessionToken(null);
+            setSessionIdentifier(null);
         });
     });
     afterAll(() => server.close());
@@ -970,8 +970,7 @@ describe('Route Loader', () => {
         // The key assertion is that the error was thrown and caught
         await waitFor(() => {
             // Check for any error indication - could be "Unexpected error" (prod) or "Unknown error" (dev)
-            const errorElement =
-                container.queryByText(/Unexpected error/i) || container.queryByText(/Unknown error/i);
+            const errorElement = container.queryByText(/Unexpected error/i) || container.queryByText(/Unknown error/i);
             expect(errorElement).toBeInTheDocument();
         });
 

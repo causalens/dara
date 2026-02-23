@@ -1,12 +1,12 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
-import { Outlet, redirect, useNavigate } from 'react-router';
+import { useLayoutEffect, useState } from 'react';
+import { Outlet, useNavigate } from 'react-router';
 
 import styled from '@darajs/styled-components';
 import { NotificationWrapper } from '@darajs/ui-notifications';
 
 import { WebSocketClient, setupWebsocket } from '@/api';
 import { resolveReferrer } from '@/auth/auth';
-import { getSessionToken, onTokenChange, useSessionToken } from '@/auth/use-session-token';
+import { useSessionIdentifier } from '@/auth/session-state';
 import { DevTools } from '@/devtools';
 import { WebSocketCtx } from '@/shared/context';
 import cleanSessionCache from '@/shared/utils/clean-session-cache';
@@ -61,12 +61,7 @@ export function createAuthenticatedRootLoader(daraData: DaraData) {
     return function loader() {
         // ensure ws client is set up
         if (window.dara.ws.status === 'pending') {
-            const token = getSessionToken();
-            if (!token) {
-                // eslint-disable-next-line @typescript-eslint/only-throw-error
-                throw redirect('/login');
-            }
-            window.dara.ws.resolve(setupWebsocket(token, daraData.live_reload));
+            window.dara.ws.resolve(setupWebsocket(daraData.live_reload));
         }
     };
 }
@@ -81,7 +76,7 @@ interface AuthenticatedRootProps {
  * The TemplateRoot component is rendered at the root of every authenticated application */
 function AuthenticatedRoot(props: AuthenticatedRootProps): React.ReactNode {
     const navigate = useNavigate();
-    const token = useSessionToken()!;
+    const sessionId = useSessionIdentifier();
 
     const [wsClient] = useState(() => {
         if (props.initialWebsocketClient) {
@@ -91,23 +86,13 @@ function AuthenticatedRoot(props: AuthenticatedRootProps): React.ReactNode {
     });
 
     useLayoutEffect(() => {
-        if (token) {
-            cleanSessionCache(token);
+        if (sessionId) {
+            cleanSessionCache(sessionId);
         } else {
             // if for some reason we don't have a token, redirect back to login
             navigate({ pathname: '/login', search: `?referrer=${resolveReferrer()}` });
         }
-    }, [token, navigate]);
-
-    useEffect(() => {
-        // subscribe to token changes and notify the live WS connection
-        return onTokenChange((newToken) => {
-            // it only changes to null if we're logging out
-            if (newToken) {
-                wsClient.updateToken(newToken);
-            }
-        });
-    }, [wsClient]);
+    }, [sessionId, navigate]);
 
     return (
         <WebSocketCtx.Provider value={{ client: wsClient }}>
