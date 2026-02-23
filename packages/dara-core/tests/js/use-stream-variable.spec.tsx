@@ -42,6 +42,33 @@ async function flushPendingRecoilUpdates(): Promise<void> {
 }
 
 /**
+ * Enqueue an SSE chunk safely.
+ * Returns false when the stream has already been cancelled/closed.
+ */
+function enqueueSSEChunkSafely(
+    controller: ReadableStreamDefaultController<Uint8Array>,
+    chunk: Uint8Array
+): boolean {
+    try {
+        controller.enqueue(chunk);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Close an SSE stream safely.
+ */
+function closeSSEStreamSafely(controller: ReadableStreamDefaultController<Uint8Array>): void {
+    try {
+        controller.close();
+    } catch {
+        // Stream was already closed/cancelled.
+    }
+}
+
+/**
  * Create an SSE handler using MSW.
  * Returns SSE-formatted stream with the given events.
  */
@@ -59,9 +86,12 @@ function createSSEHandler(
                     // eslint-disable-next-line no-await-in-loop
                     await new Promise((resolve) => setTimeout(resolve, delayMs));
                     const sseData = `data: ${JSON.stringify({ type: event.type, data: event.data })}\n\n`;
-                    controller.enqueue(encoder.encode(sseData));
+                    const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(sseData));
+                    if (!didEnqueue) {
+                        return;
+                    }
                 }
-                controller.close();
+                closeSSEStreamSafely(controller);
             },
         });
 
@@ -129,6 +159,8 @@ describe('useVariable with StreamVariable', () => {
     });
 
     beforeEach(() => {
+        vi.useRealTimers();
+        vi.clearAllTimers();
         window.localStorage.clear();
         vi.restoreAllMocks();
         setSessionIdentifier(SESSION_TOKEN);
@@ -243,8 +275,10 @@ describe('useVariable with StreamVariable', () => {
                             type: 'json_snapshot',
                             data: { dep: depValue, message: `data for ${String(depValue)}` },
                         })}\n\n`;
-                        controller.enqueue(encoder.encode(data));
-                        controller.close();
+                        const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(data));
+                        if (didEnqueue) {
+                            closeSSEStreamSafely(controller);
+                        }
                     },
                 });
 
@@ -293,7 +327,10 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
         // Change the dependency - this should trigger re-suspension
-        screen.getByTestId('change-dep').click();
+        await act(async () => {
+            screen.getByTestId('change-dep').click();
+            await Promise.resolve();
+        });
 
         // Should show loading again while fetching new data
         await waitFor(
@@ -346,8 +383,10 @@ describe('useVariable with StreamVariable', () => {
                             type: 'json_snapshot',
                             data: { dep: depValue, message: `data for ${String(depValue)}` },
                         })}\n\n`;
-                        controller.enqueue(encoder.encode(data));
-                        controller.close();
+                        const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(data));
+                        if (didEnqueue) {
+                            closeSSEStreamSafely(controller);
+                        }
                     },
                 });
 
@@ -434,12 +473,10 @@ describe('useVariable with StreamVariable', () => {
             const encoder = new TextEncoder();
 
             const stream = new ReadableStream({
-                async start(controller) {
-                    // Send initial data
-                    await new Promise((resolve) => setTimeout(resolve, 10));
+                start(controller) {
+                    // Send initial data immediately, then keep stream open.
                     const data = `data: ${JSON.stringify({ type: 'json_snapshot', data: { count: connectionCount } })}\n\n`;
-                    controller.enqueue(encoder.encode(data));
-                    // Keep stream open - don't close controller
+                    enqueueSSEChunkSafely(controller, encoder.encode(data));
                 },
             });
 
@@ -797,8 +834,10 @@ describe('useVariable with StreamVariable', () => {
                             sendFirstMessage = () => {
                                 if (!connectionAborted) {
                                     const data = `data: ${JSON.stringify({ type: 'json_snapshot', data: { delayed: true } })}\n\n`;
-                                    controller.enqueue(encoder.encode(data));
-                                    controller.close();
+                                    const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(data));
+                                    if (didEnqueue) {
+                                        closeSSEStreamSafely(controller);
+                                    }
                                 }
                             };
                         },
