@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import WS from 'vitest-websocket-mock';
 
 import { WebSocketClient } from '@/api';
+import { SESSION_REFRESHED_EVENT } from '@/api/events';
 
 /**
  * Helper function to convert a json message to a string for the server to send
@@ -224,6 +225,114 @@ describe('WebsocketClient', () => {
 
         // Trigger the visibility change event
         document.dispatchEvent(new Event('visibilitychange'));
+
+        // Wait for the client to reconnect
+        await serverNew.connected;
+        serverNew.send(toMsg('init', { channel: 'test_1' }));
+
+        // Check that the client has reconnected
+        expect(await client.channel).toEqual('test_1');
+    });
+
+    it('should start retrying again when the window regains focus', async () => {
+        const [server, client] = await initialize();
+
+        // Set the max attempts to 1 so it will retry once then fail
+        client.maxAttempts = 1;
+
+        // Wait for the client to connect fully
+        await client.channel;
+
+        const initializeSpy = vi.spyOn(client, 'initialize');
+
+        // Close the server connection
+        server.close();
+
+        // Wait for the reconnect attempts to hit 2
+        await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
+        initializeSpy.mockClear();
+
+        // wait until the client has reached the max attempts
+        await waitFor(() => client.maxAttemptsReached);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Create a new server to connect to
+        const serverNew = new WS('ws://localhost:1234');
+
+        // Trigger the focus event
+        window.dispatchEvent(new Event('focus'));
+
+        // Wait for the client to reconnect
+        await serverNew.connected;
+        serverNew.send(toMsg('init', { channel: 'test_1' }));
+
+        // Check that the client has reconnected
+        expect(await client.channel).toEqual('test_1');
+    });
+
+    it('should start retrying again when the browser comes back online', async () => {
+        const [server, client] = await initialize();
+
+        // Set the max attempts to 1 so it will retry once then fail
+        client.maxAttempts = 1;
+
+        // Wait for the client to connect fully
+        await client.channel;
+
+        const initializeSpy = vi.spyOn(client, 'initialize');
+
+        // Close the server connection
+        server.close();
+
+        // Wait for the reconnect attempts to hit 2
+        await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
+        initializeSpy.mockClear();
+
+        // wait until the client has reached the max attempts
+        await waitFor(() => client.maxAttemptsReached);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Create a new server to connect to
+        const serverNew = new WS('ws://localhost:1234');
+
+        // Trigger the online event
+        window.dispatchEvent(new Event('online'));
+
+        // Wait for the client to reconnect
+        await serverNew.connected;
+        serverNew.send(toMsg('init', { channel: 'test_1' }));
+
+        // Check that the client has reconnected
+        expect(await client.channel).toEqual('test_1');
+    });
+
+    it('should start retrying again when a session refresh succeeds', async () => {
+        const [server, client] = await initialize();
+
+        // Set the max attempts to 1 so it will retry once then fail
+        client.maxAttempts = 1;
+
+        // Wait for the client to connect fully
+        await client.channel;
+
+        const initializeSpy = vi.spyOn(client, 'initialize');
+
+        // Close the server connection
+        server.close();
+
+        // Wait for the reconnect attempts to hit 2
+        await waitFor(() => expect(initializeSpy).toHaveBeenCalledTimes(1));
+        initializeSpy.mockClear();
+
+        // wait until the client has reached the max attempts
+        await waitFor(() => client.maxAttemptsReached);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Create a new server to connect to
+        const serverNew = new WS('ws://localhost:1234');
+
+        // Trigger a successful refresh signal
+        window.dispatchEvent(new Event(SESSION_REFRESHED_EVENT));
 
         // Wait for the client to reconnect
         await serverNew.connected;

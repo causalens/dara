@@ -3,6 +3,7 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { request } from '@/api';
+import { SESSION_REFRESHED_EVENT } from '@/api/events';
 import { setSessionIdentifier, waitForOngoingSessionRefresh, withSessionRefreshLock } from '@/auth/session-state';
 
 const REFRESH_TOKEN_NAME = 'dara_refresh_token';
@@ -100,6 +101,21 @@ describe('HTTP Utils', () => {
         expect(res.status).toBe(200);
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
         expect(await res.json()).toEqual({ success: true });
+    });
+
+    it('emits a refresh success event when the token refresh succeeds', async () => {
+        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+
+        const refreshEventSpy = vi.fn();
+        window.addEventListener(SESSION_REFRESHED_EVENT, refreshEventSpy);
+
+        try {
+            const res = await request('/error-401');
+            expect(res.status).toBe(200);
+            expect(refreshEventSpy).toHaveBeenCalledTimes(1);
+        } finally {
+            window.removeEventListener(SESSION_REFRESHED_EVENT, refreshEventSpy);
+        }
     });
 
     it('concurrent requests only refresh the token once', async () => {

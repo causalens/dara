@@ -5,6 +5,8 @@ import { validateResponse } from '@darajs/ui-utils';
 
 import { notifySessionLoggedOut, runSessionRefresh, waitForOngoingSessionRefresh } from '@/auth/session-state';
 
+import { SESSION_REFRESHED_EVENT } from './events';
+
 /**
  * Extra options to pass to the request function.
  */
@@ -108,6 +110,7 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
                     method: 'POST',
                 });
                 if (refreshResponse.ok) {
+                    window.dispatchEvent(new Event(SESSION_REFRESHED_EVENT));
                     return;
                 }
 

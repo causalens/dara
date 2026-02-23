@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 - Improved authentication to use cookie-based sessions with seamless token refresh and backwards compatibility for existing bearer-token integrations.
+- Improved websocket reconnection resilience after inactivity by resuming capped retry bursts on visibility, focus, online, and session refresh signals.
 
 # 1.25.6
 
