@@ -660,7 +660,7 @@ function Table(props: TableProps): JSX.Element {
                 if (props.multi_select) {
                     // In multiselect mode, send selected rows
                     selectedRows = cleanIndex(await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx))));
-                } 
+                }
             } else {
                 let newSelectedIndices = [...(selectedRowIndices ?? []), row[INDEX_COL]];
 

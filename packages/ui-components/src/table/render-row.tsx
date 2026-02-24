@@ -215,9 +215,7 @@ const RenderRow = React.memo(
             cols = [rowDataIdColumn];
         }
         const rowDataId =
-            row.original && cols.length > 0
-                ? cols.map((col) => String(row.original[col] ?? '')).join('_')
-                : undefined;
+            row.original && cols.length > 0 ? cols.map((col) => String(row.original[col] ?? '')).join('_') : undefined;
         return (
             <Row
                 {...restRow}

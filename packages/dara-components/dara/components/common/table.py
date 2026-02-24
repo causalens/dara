@@ -918,8 +918,8 @@ class Table(ContentComponent):
 
     actions: list[TableAction] | None = None
     row_height: int | None = None
-    row_data_id_column: str | list[str] | None = None 
-    
+    row_data_id_column: str | list[str] | None = None
+
     TableFormatterType: ClassVar[TFormatterType] = TableFormatterType
     TableFilter: ClassVar[TFilterType] = TableFilter
 
