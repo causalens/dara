@@ -23,7 +23,6 @@ import uuid
 from collections.abc import Callable
 from contextlib import contextmanager
 from contextvars import ContextVar
-from datetime import datetime
 from typing import Any
 
 import anyio
@@ -71,7 +70,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
     from dara.core.internal.dependency_resolution import resolve_dependency
     from dara.core.internal.registries import (
         auth_registry,
-        pending_tokens_registry,
         sessions_registry,
         utils_registry,
         websocket_registry,
@@ -84,18 +82,6 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
     auth_config = auth_registry.get('auth_config')
     current_user = USER.get()
     current_session = SESSION_ID.get()
-
-    # Wait until there are no more pending tokens in the registry
-    with anyio.fail_after(10):
-        while len(pending_tokens_registry.get_all()) > 0:
-            # Clean up expired tokens
-            pending_tokens = list(pending_tokens_registry.get_all().items())
-            time_now = datetime.now()
-            for pending_token, exp in pending_tokens:
-                # If expired, remove
-                if exp < time_now:
-                    pending_tokens_registry.remove(pending_token)
-            await anyio.sleep(0.5)
 
     @contextmanager
     def restore_contexts():
@@ -116,7 +102,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
         elif isinstance(auth_config, BasicAuthConfig):
             # basic auth - assume it's the single existing user
             user_identity = list(auth_config.users.keys())[0]
-            USER.set(UserData(identity_name=user_identity))
+            USER.set(UserData(identity_name=user_identity, identity_id=user_identity))
 
         # If still couldn't find user, warn and return
         if user_identity is None:

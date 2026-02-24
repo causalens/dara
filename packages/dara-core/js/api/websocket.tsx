@@ -3,9 +3,9 @@ import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
-import globalStore from '@/shared/global-state-store';
-import { getTokenKey } from '@/shared/utils/embed';
 import type { ActionImpl, AnyVariable } from '@/types';
+
+import { SESSION_REFRESHED_EVENT } from './events';
 
 const interAttemptTimeout = 500;
 const maxDisconnectedTime = 10000;
@@ -40,11 +40,6 @@ interface InitMessage {
 interface PingPongMessage {
     message: null;
     type: 'ping' | 'pong';
-}
-
-interface TokenUpdateMessage {
-    message: string;
-    type: 'token_update';
 }
 
 export enum TaskStatus {
@@ -148,7 +143,6 @@ export interface CustomMessage {
 export type WebSocketMessage =
     | InitMessage
     | PingPongMessage
-    | TokenUpdateMessage
     | TaskNotificationMessage
     | ProgressNotificationMessage
     | ServerErrorMessage
@@ -216,7 +210,6 @@ export interface WebSocketClientInterface {
     taskStatusUpdates$: (...task_ids: string[]) => Observable<TaskStatus>;
     variableRequests$: () => Observable<VariableRequestMessage>;
     waitForTask: (task_id: string) => Promise<any>;
-    updateToken: (token: string) => void;
 }
 
 /**
@@ -229,8 +222,6 @@ export class WebSocketClient implements WebSocketClientInterface {
     messages$: Subject<WebSocketMessage>;
 
     socket: WebSocket;
-
-    token: string;
 
     liveReload: boolean;
 
@@ -246,8 +237,15 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     #reconnectCount: number;
 
-    constructor(_socketUrl: string, _token: string, _liveReload = false) {
-        this.token = _token;
+    #reconnectTimeout: NodeJS.Timeout | null;
+
+    #resumeSignalHandler: () => void;
+
+    #visibilityResumeHandler: () => void;
+
+    #resumeListenersAttached: boolean;
+
+    constructor(_socketUrl: string, _liveReload = false) {
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
         this.closeHandler = this.onClose.bind(this);
@@ -256,6 +254,10 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.#socketUrl = _socketUrl;
         this.#reconnectCount = 0;
         this.#pingInterval = null;
+        this.#reconnectTimeout = null;
+        this.#resumeSignalHandler = this.onResumeSignal.bind(this);
+        this.#visibilityResumeHandler = this.onVisibilityResumeSignal.bind(this);
+        this.#resumeListenersAttached = false;
 
         // Satisfy TSC, channel is set within initialize again
         this.channel = Promise.resolve('');
@@ -265,15 +267,8 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     initialize(isReconnect = false): WebSocket {
-        // Create the underlying socket instance from the url and token
-        const url = new URL(this.#socketUrl);
-
-        // Get the latest token from the global store to ensure it's always up to date
-        this.token = globalStore.getValueSync(getTokenKey())!;
-
-        // Set the token on the params of the request
-        url.searchParams.set('token', this.token);
-        const socket = new WebSocket(url);
+        // Create the underlying socket instance from the url.
+        const socket = new WebSocket(this.#socketUrl);
 
         // Send heartbeat to ping every few seconds and clear it on error
         this.#pingInterval = setInterval(() => {
@@ -299,6 +294,8 @@ export class WebSocketClient implements WebSocketClientInterface {
                 const msg = JSON.parse(ev.data) as WebSocketMessage;
                 if (msg.type === 'init') {
                     this.#reconnectCount = 0;
+                    this.maxAttemptsReached = false;
+                    this.removeReconnectResumeListeners();
                     this.messages$.next(msg);
 
                     // Remove the handler after the channel is received and then resolve the promise
@@ -319,6 +316,51 @@ export class WebSocketClient implements WebSocketClientInterface {
         return socket;
     }
 
+    addReconnectResumeListeners(): void {
+        if (this.#resumeListenersAttached) {
+            return;
+        }
+
+        document.addEventListener('visibilitychange', this.#visibilityResumeHandler);
+        window.addEventListener('focus', this.#resumeSignalHandler);
+        window.addEventListener('online', this.#resumeSignalHandler);
+        window.addEventListener(SESSION_REFRESHED_EVENT, this.#resumeSignalHandler);
+        this.#resumeListenersAttached = true;
+    }
+
+    removeReconnectResumeListeners(): void {
+        if (!this.#resumeListenersAttached) {
+            return;
+        }
+
+        document.removeEventListener('visibilitychange', this.#visibilityResumeHandler);
+        window.removeEventListener('focus', this.#resumeSignalHandler);
+        window.removeEventListener('online', this.#resumeSignalHandler);
+        window.removeEventListener(SESSION_REFRESHED_EVENT, this.#resumeSignalHandler);
+        this.#resumeListenersAttached = false;
+    }
+
+    resumeReconnectBurst(): void {
+        if (!this.maxAttemptsReached) {
+            return;
+        }
+
+        this.#reconnectCount = 0;
+        this.maxAttemptsReached = false;
+        this.removeReconnectResumeListeners();
+        this.socket = this.initialize(true);
+    }
+
+    onResumeSignal(): void {
+        this.resumeReconnectBurst();
+    }
+
+    onVisibilityResumeSignal(): void {
+        if (document.visibilityState === 'visible') {
+            this.resumeReconnectBurst();
+        }
+    }
+
     /**
      * Close handler to attempt to reconnect on WS closed
      */
@@ -327,23 +369,12 @@ export class WebSocketClient implements WebSocketClientInterface {
             // eslint-disable-next-line no-console
             console.error('Could not reconnect the websocket to the server');
 
-            // Add a visibility change listener to attempt the connection again when the tab becomes visible again
-            const handler = (): void => {
-                if (document.visibilityState === 'visible') {
-                    // Reset the retry loop and attempt to initialize the socket again
-                    this.#reconnectCount = 0;
-                    this.maxAttemptsReached = false;
-                    this.socket = this.initialize();
-
-                    // Remove the visibility change listener after we enter the retry loop again
-                    document.removeEventListener('visibilitychange', handler);
-                }
-            };
-            document.addEventListener('visibilitychange', handler);
             this.maxAttemptsReached = true;
+            this.addReconnectResumeListeners();
             return;
         }
-        setTimeout(() => {
+        this.#reconnectTimeout = setTimeout(() => {
+            this.#reconnectTimeout = null;
             this.#reconnectCount++;
             this.socket = this.initialize(true);
         }, interAttemptTimeout);
@@ -356,6 +387,11 @@ export class WebSocketClient implements WebSocketClientInterface {
         if (this.#pingInterval) {
             clearInterval(this.#pingInterval);
         }
+        if (this.#reconnectTimeout) {
+            clearTimeout(this.#reconnectTimeout);
+            this.#reconnectTimeout = null;
+        }
+        this.removeReconnectResumeListeners();
         this.socket.removeEventListener('close', this.closeHandler);
         this.socket.close();
     }
@@ -523,24 +559,6 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     /**
-     * Send a 'token_update' message to the backend to notify the live connection
-     * that a token for the current session has been updated (refreshed).
-     *
-     * @param newToken new session token
-     */
-    updateToken(newToken: string): void {
-        this.token = newToken;
-        if (this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(
-                JSON.stringify({
-                    message: newToken,
-                    type: 'token_update',
-                })
-            );
-        }
-    }
-
-    /**
      * Send custom message to the backend
      *
      * @param kind kind of custom message
@@ -598,10 +616,9 @@ export class WebSocketClient implements WebSocketClientInterface {
 /**
  * Set up websocket connection and handlers.
  *
- * @param sessionToken session token
  * @param liveReload whether to enable live reload
  */
-export function setupWebsocket(sessionToken: string, liveReload: boolean): WebSocketClient {
+export function setupWebsocket(liveReload: boolean): WebSocketClient {
     // Setup socket url
     let { host } = window.location;
 
@@ -618,9 +635,5 @@ export function setupWebsocket(sessionToken: string, liveReload: boolean): WebSo
 
     const socketUrl = `${window.location.protocol === 'https:' ? 'wss://' : 'ws://'}${host}/api/core/ws`;
 
-    // Append session token to the WS url for authentication
-    const url = new URL(socketUrl);
-    url.searchParams.set('token', sessionToken);
-
-    return new WebSocketClient(socketUrl, sessionToken, liveReload);
+    return new WebSocketClient(socketUrl, liveReload);
 }

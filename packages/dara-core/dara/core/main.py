@@ -59,6 +59,7 @@ from dara.core.internal.registries import (
     config_registry,
     custom_ws_handlers_registry,
     latest_value_registry,
+    session_auth_token_registry,
     sessions_registry,
     utils_registry,
     websocket_registry,
@@ -133,12 +134,16 @@ def _start_application(config: Configuration):
     latest_value_registry.replace({}, deepcopy=False)
     websocket_registry.replace({}, deepcopy=False)
     sessions_registry.replace({}, deepcopy=False)
+    session_auth_token_registry.replace({}, deepcopy=False)
     config_registry.replace({}, deepcopy=False)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # STARTUP
-        setup_signal_handlers()
+        try:
+            setup_signal_handlers()
+        except Exception as e:
+            dev_logger.warning(f'Failed to set up signal handlers: {e}')
 
         # Retrieve the existing Store instance for the application
         # Store must exist before the app starts as instantiating e.g. Variables
@@ -230,6 +235,12 @@ def _start_application(config: Configuration):
         redoc_url=None if is_production else '/redoc',
         default_response_class=CustomResponse,
     )
+
+    # Ensure session-cookie auth is reflected in Authorization header for
+    # downstream handlers still expecting bearer token transport.
+    from dara.core.auth.middleware import ensure_authorization_header_from_session_cookie
+
+    app.middleware('http')(ensure_authorization_header_from_session_cookie)
 
     # Define catch-all mechanisms
     @app.middleware('http')
@@ -409,8 +420,7 @@ def _start_application(config: Configuration):
             sys.exit(1)
 
         dev_logger.info('Registering pages:')
-        # TODO: convert this to use the logger?
-        config.router.print_route_tree()
+        config.router.print_route_tree(dev_logger.info)
 
         # Add the page data loader route
         create_loader_route(config, app)

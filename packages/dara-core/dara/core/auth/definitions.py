@@ -17,6 +17,7 @@ limitations under the License.
 
 from contextvars import ContextVar
 from datetime import datetime
+from typing import Literal
 
 from pydantic import ConfigDict
 from typing_extensions import TypedDict
@@ -127,6 +128,21 @@ def BAD_REQUEST_ERROR(msg):
 
 
 JWT_ALGO = 'HS256'
+SESSION_TOKEN_COOKIE_NAME = 'dara_session_token'
+REFRESH_TOKEN_COOKIE_NAME = 'dara_refresh_token'
+
+
+class AuthCookieKwargs(TypedDict):
+    secure: bool
+    httponly: bool
+    samesite: Literal['strict']
+
+
+AUTH_COOKIE_KWARGS: AuthCookieKwargs = {
+    'secure': True,
+    'httponly': True,
+    'samesite': 'strict',
+}
 
 # Context
 SESSION_ID: ContextVar[str | None] = ContextVar('session_id', default=None)

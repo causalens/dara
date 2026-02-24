@@ -7,10 +7,9 @@ import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
 import { requestSessionToken, verifySessionToken } from '../auth';
-import { getSessionToken, setSessionToken } from '../use-session-token';
 
 /**
- * The Login component gets a new session token from the backend and stores it in local storage
+ * The Login component requests a new server-managed session cookie and then redirects.
  */
 function DefaultAuthLogin(): JSX.Element {
     const location = useLocation();
@@ -21,30 +20,23 @@ function DefaultAuthLogin(): JSX.Element {
     const previousLocation = queryParams.get('referrer') ?? defaultPath;
 
     async function getNewToken(): Promise<void> {
-        const sessionToken = await requestSessionToken({});
+        const sessionCreated = await requestSessionToken({});
         // in default auth this always succeeds
-        if (sessionToken) {
-            setSessionToken(sessionToken);
+        if (sessionCreated) {
             navigate(decodeURIComponent(previousLocation));
         }
     }
 
     useEffect(() => {
-        // If we landed on this page with a token already, verify it
-        if (getSessionToken()) {
-            verifySessionToken().then((verified) => {
-                // we already have a valid token, redirect
-                if (verified) {
-                    navigate(decodeURIComponent(previousLocation), { replace: true });
-                } else {
-                    // Otherwise grab a new token
-                    getNewToken();
-                }
-            });
-        } else {
-            // Otherwise grab a new token
-            getNewToken();
-        }
+        // If we landed on this page with a valid session already, redirect.
+        // Otherwise, request a new session token.
+        verifySessionToken().then((verified) => {
+            if (verified) {
+                navigate(decodeURIComponent(previousLocation), { replace: true });
+            } else {
+                getNewToken();
+            }
+        });
     }, []);
 
     return (

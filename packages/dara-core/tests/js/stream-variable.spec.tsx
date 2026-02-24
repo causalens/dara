@@ -8,8 +8,9 @@
  */
 import { HttpResponse, http } from 'msw';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
+import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 import {
     type StreamAtomParams,
     type StreamEvent,
@@ -19,7 +20,6 @@ import {
     extractKey,
     getStreamValue,
 } from '@/shared/interactivity/stream-variable';
-import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 
 import { server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
@@ -36,13 +36,13 @@ describe('StreamVariable', () => {
     beforeEach(() => {
         window.localStorage.clear();
         vi.restoreAllMocks();
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
         clearRegistries_TEST();
         clearStreamUsage_TEST();
     });
 
     afterEach(() => {
-        setSessionToken(null);
+        setSessionIdentifier(null);
         vi.clearAllTimers();
         server.resetHandlers();
         clearStreamUsage_TEST();

@@ -3,21 +3,21 @@
  * Tests user-observable behavior by rendering components and asserting on the DOM.
  */
 import { act, cleanup, screen, waitFor } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { Suspense, useContext, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 
-import { setSessionToken } from '@/auth/use-session-token';
+import { setSessionIdentifier } from '@/auth/session-state';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
 import {
-    _internal as streamTrackerInternal,
     clearStreamUsage_TEST,
     getActiveConnectionCount,
     getActiveConnectionKeys,
     getConnectionController,
     registerStreamConnection,
+    _internal as streamTrackerInternal,
 } from '@/shared/interactivity/stream-usage-tracker';
+import { getOrRegisterStreamVariable } from '@/shared/interactivity/stream-variable';
 import { useStreamSubscription } from '@/shared/interactivity/use-stream-subscription';
 import { denormalize } from '@/shared/utils/normalization';
 import type { StreamVariable } from '@/types/core';
@@ -30,6 +30,43 @@ import { mockLocalStorage } from './utils/mock-storage';
 const SESSION_TOKEN = 'TEST_TOKEN';
 
 mockLocalStorage();
+
+/**
+ * Flush pending microtasks/effects between unmount and tracker teardown.
+ * This reduces races where Recoil effects react to aborted streams during cleanup.
+ */
+async function flushPendingRecoilUpdates(): Promise<void> {
+    await act(async () => {
+        await Promise.resolve();
+    });
+}
+
+/**
+ * Enqueue an SSE chunk safely.
+ * Returns false when the stream has already been cancelled/closed.
+ */
+function enqueueSSEChunkSafely(
+    controller: ReadableStreamDefaultController<Uint8Array>,
+    chunk: Uint8Array
+): boolean {
+    try {
+        controller.enqueue(chunk);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Close an SSE stream safely.
+ */
+function closeSSEStreamSafely(controller: ReadableStreamDefaultController<Uint8Array>): void {
+    try {
+        controller.close();
+    } catch {
+        // Stream was already closed/cancelled.
+    }
+}
 
 /**
  * Create an SSE handler using MSW.
@@ -49,9 +86,12 @@ function createSSEHandler(
                     // eslint-disable-next-line no-await-in-loop
                     await new Promise((resolve) => setTimeout(resolve, delayMs));
                     const sseData = `data: ${JSON.stringify({ type: event.type, data: event.data })}\n\n`;
-                    controller.enqueue(encoder.encode(sseData));
+                    const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(sseData));
+                    if (!didEnqueue) {
+                        return;
+                    }
                 }
-                controller.close();
+                closeSSEStreamSafely(controller);
             },
         });
 
@@ -81,11 +121,11 @@ function StreamDisplayDirect({ variable }: { variable: StreamVariable }): JSX.El
     const { client: wsClient } = useContext(WebSocketCtx);
     const taskContext = useTaskContext();
     const extras = useRequestExtras();
-    
+
     // Must subscribe BEFORE Recoil hooks so atom effect sees count > 0
     // Pass extras so subscriptions are keyed by uid+extras
     useStreamSubscription([variable.uid], extras);
-    
+
     const selector = getOrRegisterStreamVariable(variable, wsClient, taskContext, extras);
     const data = useRecoilValue(selector);
     return <div data-testid="stream-data">{JSON.stringify(data)}</div>;
@@ -119,19 +159,26 @@ describe('useVariable with StreamVariable', () => {
     });
 
     beforeEach(() => {
+        vi.useRealTimers();
+        vi.clearAllTimers();
         window.localStorage.clear();
         vi.restoreAllMocks();
-        setSessionToken(SESSION_TOKEN);
+        setSessionIdentifier(SESSION_TOKEN);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         // Unmount React tree BEFORE clearing streams so useEffect cleanups
         // run first and Recoil doesn't try to re-render on aborted connections
         cleanup();
-        vi.useRealTimers();
-        setSessionToken(null);
-        server.resetHandlers();
+        await flushPendingRecoilUpdates();
+
         clearStreamUsage_TEST();
+        await flushPendingRecoilUpdates();
+
+        vi.clearAllTimers();
+        vi.useRealTimers();
+        setSessionIdentifier(null);
+        server.resetHandlers();
         clearRegistries_TEST();
     });
 
@@ -155,9 +202,12 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.queryByTestId('stream-data')).not.toBeInTheDocument();
 
         // After snapshot arrives, shows data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
         expect(screen.getByTestId('stream-data')).toHaveTextContent('{"message":"hello"}');
@@ -181,9 +231,12 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.queryByTestId('stream-data')).not.toBeInTheDocument();
 
         // After snapshot arrives, shows data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
         expect(screen.getByTestId('stream-data')).toHaveTextContent('{"message":"hello"}');
@@ -210,20 +263,22 @@ describe('useVariable with StreamVariable', () => {
         server.use(
             http.post('/api/core/stream/test-suspend-deps', async ({ request }) => {
                 // Request body is in normalized format: { values: { data: [...], lookup: {...} } }
-                const body = await request.json() as { values: { data: unknown[]; lookup: Record<string, unknown> } };
+                const body = (await request.json()) as { values: { data: unknown[]; lookup: Record<string, unknown> } };
                 const denormalizedValues = denormalize(body.values.data, body.values.lookup) as unknown[];
                 const depValue = denormalizedValues[0];
-                
+
                 const encoder = new TextEncoder();
                 const stream = new ReadableStream({
                     async start(controller) {
                         await new Promise((resolve) => setTimeout(resolve, 50));
-                        const data = `data: ${JSON.stringify({ 
-                            type: 'json_snapshot', 
-                            data: { dep: depValue, message: `data for ${String(depValue)}` }
+                        const data = `data: ${JSON.stringify({
+                            type: 'json_snapshot',
+                            data: { dep: depValue, message: `data for ${String(depValue)}` },
                         })}\n\n`;
-                        controller.enqueue(encoder.encode(data));
-                        controller.close();
+                        const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(data));
+                        if (didEnqueue) {
+                            closeSSEStreamSafely(controller);
+                        }
                     },
                 });
 
@@ -241,7 +296,7 @@ describe('useVariable with StreamVariable', () => {
         function TestComponent(): JSX.Element {
             const [, setDepValue] = useVariable(dependencyVar);
             const [streamData] = useVariable(streamVar);
-            
+
             return (
                 <div>
                     <div data-testid="stream-data">{JSON.stringify(streamData)}</div>
@@ -262,25 +317,37 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('loading')).toBeInTheDocument();
 
         // Wait for initial data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
         // Change the dependency - this should trigger re-suspension
-        screen.getByTestId('change-dep').click();
+        await act(async () => {
+            screen.getByTestId('change-dep').click();
+            await Promise.resolve();
+        });
 
         // Should show loading again while fetching new data
-        await waitFor(() => {
-            expect(screen.getByTestId('loading')).toBeInTheDocument();
-        }, { timeout: 1000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('loading')).toBeInTheDocument();
+            },
+            { timeout: 1000 }
+        );
 
         // Wait for new data to arrive
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-            expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+                expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
+            },
+            { timeout: 3000 }
+        );
     });
 
     it('shows stale value instead of suspending when suspend=false', async () => {
@@ -303,7 +370,7 @@ describe('useVariable with StreamVariable', () => {
         // Handler that returns different data based on dependency value with a delay
         server.use(
             http.post('/api/core/stream/test-nosuspend', async ({ request }) => {
-                const body = await request.json() as { values: { data: unknown[]; lookup: Record<string, unknown> } };
+                const body = (await request.json()) as { values: { data: unknown[]; lookup: Record<string, unknown> } };
                 const denormalizedValues = denormalize(body.values.data, body.values.lookup) as unknown[];
                 const depValue = denormalizedValues[0];
 
@@ -314,10 +381,12 @@ describe('useVariable with StreamVariable', () => {
                         await new Promise((resolve) => setTimeout(resolve, 100));
                         const data = `data: ${JSON.stringify({
                             type: 'json_snapshot',
-                            data: { dep: depValue, message: `data for ${String(depValue)}` }
+                            data: { dep: depValue, message: `data for ${String(depValue)}` },
                         })}\n\n`;
-                        controller.enqueue(encoder.encode(data));
-                        controller.close();
+                        const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(data));
+                        if (didEnqueue) {
+                            closeSSEStreamSafely(controller);
+                        }
                     },
                 });
 
@@ -356,9 +425,12 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('loading')).toBeInTheDocument();
 
         // Wait for initial data
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
 
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
@@ -375,13 +447,15 @@ describe('useVariable with StreamVariable', () => {
         expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"initial"');
 
         // Eventually new data arrives and updates
-        await waitFor(() => {
-            expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
-        }, { timeout: 3000 });
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('stream-data')).toHaveTextContent('"dep":"changed"');
+            },
+            { timeout: 3000 }
+        );
 
         // Still no loading shown
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
-
     });
 
     /**
@@ -399,12 +473,10 @@ describe('useVariable with StreamVariable', () => {
             const encoder = new TextEncoder();
 
             const stream = new ReadableStream({
-                async start(controller) {
-                    // Send initial data
-                    await new Promise((resolve) => setTimeout(resolve, 10));
+                start(controller) {
+                    // Send initial data immediately, then keep stream open.
                     const data = `data: ${JSON.stringify({ type: 'json_snapshot', data: { count: connectionCount } })}\n\n`;
-                    controller.enqueue(encoder.encode(data));
-                    // Keep stream open - don't close controller
+                    enqueueSSEChunkSafely(controller, encoder.encode(data));
                 },
             });
 
@@ -422,15 +494,16 @@ describe('useVariable with StreamVariable', () => {
 
     describe('connection sharing and cleanup', () => {
         it('shares connection while subscribed, closes when all unmount, reopens on remount', async () => {
+            const streamUid = 'test-shared-conn-1';
             const streamVar: StreamVariable = {
                 __typename: 'StreamVariable',
-                uid: 'test-shared-conn-1',
+                uid: streamUid,
                 variables: [],
                 key_accessor: null,
                 nested: [],
             };
 
-            const { handler, getConnectionCount } = createPersistentSSEHandler('test-shared-conn-1');
+            const { handler, getConnectionCount } = createPersistentSSEHandler(streamUid);
             server.use(handler);
 
             function Subscriber({ id }: { id: string }): JSX.Element {
@@ -453,7 +526,7 @@ describe('useVariable with StreamVariable', () => {
                 );
             }
 
-            wrappedRender(<Harness />);
+            const { unmount } = wrappedRender(<Harness />);
 
             // Wait for all subscribers to render with data
             await waitFor(
@@ -524,18 +597,25 @@ describe('useVariable with StreamVariable', () => {
                 await new Promise((resolve) => setTimeout(resolve, 1600));
             });
             expect(getActiveConnectionCount()).toBe(0);
+
+            // Explicit teardown inside the test to avoid cross-test stream races.
+            unmount();
+            await flushPendingRecoilUpdates();
+            clearStreamUsage_TEST();
+            expect(getActiveConnectionCount()).toBe(0);
         });
 
         it('cleanup callback aborts SSE connection when called', async () => {
+            const streamUid = 'test-cleanup-cb-2';
             const streamVar: StreamVariable = {
                 __typename: 'StreamVariable',
-                uid: 'test-cleanup-cb-2',
+                uid: streamUid,
                 variables: [],
                 key_accessor: null,
                 nested: [],
             };
 
-            const { handler } = createPersistentSSEHandler('test-cleanup-cb-2');
+            const { handler } = createPersistentSSEHandler(streamUid);
             server.use(handler);
 
             function Subscriber(): JSX.Element {
@@ -574,6 +654,7 @@ describe('useVariable with StreamVariable', () => {
 
             // Unmount first so we don't clear stream tracker while Recoil tree is live.
             unmount();
+            await flushPendingRecoilUpdates();
 
             // Use cleanupAllStreams to properly clear tracker state
             clearStreamUsage_TEST();
@@ -583,10 +664,12 @@ describe('useVariable with StreamVariable', () => {
         });
 
         it('creates new connection for different stream variable params', async () => {
+            const streamUidA = 'test-sep-A-3';
+            const streamUidB = 'test-sep-B-3';
             // Create two stream variables with different uids
             const streamVarA: StreamVariable = {
                 __typename: 'StreamVariable',
-                uid: 'test-sep-A-3',
+                uid: streamUidA,
                 variables: [],
                 key_accessor: null,
                 nested: [],
@@ -594,16 +677,14 @@ describe('useVariable with StreamVariable', () => {
 
             const streamVarB: StreamVariable = {
                 __typename: 'StreamVariable',
-                uid: 'test-sep-B-3',
+                uid: streamUidB,
                 variables: [],
                 key_accessor: null,
                 nested: [],
             };
 
-            const { handler: handlerA, getConnectionCount: getCountA } =
-                createPersistentSSEHandler('test-sep-A-3');
-            const { handler: handlerB, getConnectionCount: getCountB } =
-                createPersistentSSEHandler('test-sep-B-3');
+            const { handler: handlerA, getConnectionCount: getCountA } = createPersistentSSEHandler(streamUidA);
+            const { handler: handlerB, getConnectionCount: getCountB } = createPersistentSSEHandler(streamUidB);
             server.use(handlerA, handlerB);
 
             function SubscriberA(): JSX.Element {
@@ -616,7 +697,7 @@ describe('useVariable with StreamVariable', () => {
                 return <div data-testid="subscriber-B">{JSON.stringify(data)}</div>;
             }
 
-            wrappedRender(
+            const { unmount } = wrappedRender(
                 <Suspense fallback={<div data-testid="loading">Loading...</div>}>
                     <SubscriberA />
                     <SubscriberB />
@@ -636,20 +717,27 @@ describe('useVariable with StreamVariable', () => {
             expect(getActiveConnectionCount()).toBe(2);
             expect(getCountA()).toBe(1);
             expect(getCountB()).toBe(1);
+
+            // Explicit teardown inside the test to avoid stream tracker races.
+            unmount();
+            await flushPendingRecoilUpdates();
+            clearStreamUsage_TEST();
+            expect(getActiveConnectionCount()).toBe(0);
         });
     });
 
     describe('edge cases', () => {
         it('handles multiple unsubscribes gracefully (count never goes negative)', async () => {
+            const streamUid = 'test-multi-unsub';
             const streamVar: StreamVariable = {
                 __typename: 'StreamVariable',
-                uid: 'test-multi-unsub',
+                uid: streamUid,
                 variables: [],
                 key_accessor: null,
                 nested: [],
             };
 
-            const { handler } = createPersistentSSEHandler('test-multi-unsub');
+            const { handler } = createPersistentSSEHandler(streamUid);
             server.use(handler);
 
             function Subscriber(): JSX.Element {
@@ -674,6 +762,7 @@ describe('useVariable with StreamVariable', () => {
 
             // Unmount triggers unsubscribe
             unmount();
+            await flushPendingRecoilUpdates();
 
             // Multiple cleanups should not cause issues
             clearStreamUsage_TEST();
@@ -721,9 +810,10 @@ describe('useVariable with StreamVariable', () => {
             // This would have failed with the old 5-second orphan timeout.
             const SLOW_FIRST_MESSAGE_DELAY_MS = 30000;
 
+            const streamUid = 'test-delayed-first-message';
             const streamVar: StreamVariable = {
                 __typename: 'StreamVariable',
-                uid: 'test-delayed-first-message',
+                uid: streamUid,
                 variables: [],
                 key_accessor: null,
                 nested: [],
@@ -735,7 +825,7 @@ describe('useVariable with StreamVariable', () => {
 
             // SSE handler that opens immediately but delays first message
             server.use(
-                http.post('/api/core/stream/test-delayed-first-message', () => {
+                http.post(`/api/core/stream/${streamUid}`, () => {
                     const encoder = new TextEncoder();
 
                     const stream = new ReadableStream({
@@ -744,8 +834,10 @@ describe('useVariable with StreamVariable', () => {
                             sendFirstMessage = () => {
                                 if (!connectionAborted) {
                                     const data = `data: ${JSON.stringify({ type: 'json_snapshot', data: { delayed: true } })}\n\n`;
-                                    controller.enqueue(encoder.encode(data));
-                                    controller.close();
+                                    const didEnqueue = enqueueSSEChunkSafely(controller, encoder.encode(data));
+                                    if (didEnqueue) {
+                                        closeSSEStreamSafely(controller);
+                                    }
                                 }
                             };
                         },
@@ -769,7 +861,7 @@ describe('useVariable with StreamVariable', () => {
                 return <div data-testid="subscriber">{JSON.stringify(data)}</div>;
             }
 
-            wrappedRender(
+            const { unmount } = wrappedRender(
                 <Suspense fallback={<div data-testid="loading">Loading...</div>}>
                     <Subscriber />
                 </Suspense>
@@ -808,6 +900,11 @@ describe('useVariable with StreamVariable', () => {
                 expect(screen.getByTestId('subscriber')).toBeInTheDocument();
             });
             expect(screen.getByTestId('subscriber')).toHaveTextContent('{"delayed":true}');
+
+            unmount();
+            await flushPendingRecoilUpdates();
+            clearStreamUsage_TEST();
+            expect(getActiveConnectionCount()).toBe(0);
 
             vi.useRealTimers();
         });

@@ -1,11 +1,13 @@
 import { type UseQueryResult, useQuery } from '@tanstack/react-query';
+import { z } from 'zod/v4';
 
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
 import { request } from '@/api/http';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
-import { getTokenKey } from '@/shared/utils/embed';
 import { type User, type UserData } from '@/types';
+
+import { notifySessionLoggedOut, setSessionIdentifier } from './session-state';
 
 enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
@@ -21,19 +23,29 @@ interface AuthenticationError {
     reason: AuthenticationErrorReason;
 }
 
+const AuthenticationErrorSchema = z.object({
+    message: z.string(),
+    reason: z.enum([
+        AuthenticationErrorReason.BAD_REQUEST,
+        AuthenticationErrorReason.EXPIRED_TOKEN,
+        AuthenticationErrorReason.INVALID_CREDENTIALS,
+        AuthenticationErrorReason.INVALID_TOKEN,
+        AuthenticationErrorReason.OTHER,
+        AuthenticationErrorReason.UNAUTHORIZED,
+    ]),
+});
+
 /**
  * Whether a message is an authentication error
  *
  * @param message message
  */
-function isAuthenticationError(message: any): message is AuthenticationError {
-    return (
-        message !== null &&
-        message !== undefined &&
-        typeof message === 'object' &&
-        'reason' in message &&
-        Object.values(AuthenticationErrorReason).includes(message.reason)
-    );
+function parseAuthenticationError(message: unknown): AuthenticationError | null {
+    const parsed = AuthenticationErrorSchema.safeParse(message);
+    if (!parsed.success) {
+        return null;
+    }
+    return parsed.data;
 }
 
 /**
@@ -94,7 +106,7 @@ export function resolveReferrer(): string {
         return encodeURIComponent(window.location.pathname + window.location.search);
     }
 
-    const base_url_path = new URL(window.dara.base_url).pathname;
+    const base_url_path = new URL(window.dara.base_url, window.location.origin).pathname;
     const referrer = window.location.pathname;
 
     // Remove the matching part of the base_url from the referrer.
@@ -128,17 +140,17 @@ export async function handleAuthErrors(
 
     const content = await res.clone().json();
 
-    if (isAuthenticationError(content?.detail) && !shouldIgnoreError(content?.detail, ignoreErrors ?? [])) {
-        localStorage.removeItem(getTokenKey());
+    const authError = parseAuthenticationError(content?.detail);
+
+    if (authError && !shouldIgnoreError(authError, ignoreErrors ?? [])) {
+        notifySessionLoggedOut();
 
         // use existing referrer if available in case we were already redirected because of e.g. missing token
         const queryParams = new URLSearchParams(window.location.search);
         const referrer = queryParams.get('referrer') ?? resolveReferrer();
 
         const path =
-            toLogin || shouldRedirectToLogin(content.detail) ?
-                `/login?referrer=${referrer}`
-            :   `/error?code=${res.status}`;
+            toLogin || shouldRedirectToLogin(authError) ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
         window.location.href = `${window.dara.base_url}${path}`;
 
         return true;
@@ -164,8 +176,8 @@ export function useUser(): UseQueryResult<UserData, RequestError> {
     });
 }
 
-/** Api call to fetch the session token from the backend */
-export async function requestSessionToken(body: User = {}): Promise<string | null> {
+/** Api call to create a session with the backend */
+export async function requestSessionToken(body: User = {}): Promise<boolean> {
     const res = await request('/api/auth/session', {
         body: JSON.stringify(body),
         method: HTTP_METHOD.POST,
@@ -175,20 +187,15 @@ export async function requestSessionToken(body: User = {}): Promise<string | nul
     const loggedOut = await handleAuthErrors(res, false, [AuthenticationErrorReason.INVALID_CREDENTIALS]);
 
     if (loggedOut) {
-        return null;
+        return false;
     }
 
-    await validateResponse(res, 'Failed to fetch the session token');
-    const parsedResponse = await res.json();
-
-    const { token } = parsedResponse;
-
-    localStorage.setItem(getTokenKey(), token);
-    return token;
+    await validateResponse(res, 'Failed to create a session');
+    return true;
 }
 
-/** Api call to fetch the session token from the backend */
-export function useSession(body: User = {}): UseQueryResult<string, RequestError> {
+/** Api call to create a session with the backend */
+export function useSession(body: User = {}): UseQueryResult<boolean, RequestError> {
     return useQuery({
         queryFn: async () => {
             return requestSessionToken(body);
@@ -203,5 +210,18 @@ export async function verifySessionToken(): Promise<boolean> {
     const res = await request('/api/auth/verify-session', {
         method: HTTP_METHOD.POST,
     });
-    return res.ok;
+
+    if (!res.ok) {
+        setSessionIdentifier(null);
+        return false;
+    }
+
+    try {
+        const sessionId = await res.json();
+        setSessionIdentifier(typeof sessionId === 'string' ? sessionId : null);
+    } catch {
+        setSessionIdentifier(null);
+    }
+
+    return true;
 }

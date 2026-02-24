@@ -3,10 +3,9 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { request } from '@/api';
-import globalStore from '@/shared/global-state-store';
-import { getTokenKey } from '@/shared/utils/embed';
+import { SESSION_REFRESHED_EVENT } from '@/api/events';
+import { setSessionIdentifier, waitForOngoingSessionRefresh, withSessionRefreshLock } from '@/auth/session-state';
 
-const VALID_TOKEN = 'VALID';
 const REFRESH_TOKEN_NAME = 'dara_refresh_token';
 const REFRESH_TOKEN = 'REFRESH';
 
@@ -15,20 +14,29 @@ const requested401 = vi.fn();
 const requested403 = vi.fn();
 
 let delay: Promise<void> | null = null;
+let hasValidSession = false;
+
+interface LockManagerMock {
+    request: <T>(name: string, callback: () => Promise<T> | T) => Promise<T>;
+}
+
+interface NavigatorWithOptionalLocks extends Navigator {
+    locks?: LockManagerMock;
+}
 
 const server = setupServer(
     // example authenticated endpoints
-    http.get('/error-401', (info) => {
+    http.get('/error-401', () => {
         requested401();
-        if (info.request.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
+        if (hasValidSession) {
             return HttpResponse.json({ success: true });
         }
 
         return HttpResponse.json({ detail: 'Authentication error' }, { status: 401 });
     }),
-    http.get('/error-403', (info) => {
+    http.get('/error-403', () => {
         requested403();
-        if (info.request.headers.get('Authorization') === `Bearer ${VALID_TOKEN}`) {
+        if (hasValidSession) {
             return HttpResponse.json({ success: true });
         }
 
@@ -44,7 +52,8 @@ const server = setupServer(
                 // simulate a delay in refreshing the token
                 await delay;
             }
-            return HttpResponse.json({ token: VALID_TOKEN });
+            hasValidSession = true;
+            return HttpResponse.json({ success: true });
         }
 
         return HttpResponse.json({}, { status: 400 });
@@ -59,13 +68,13 @@ describe('HTTP Utils', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         delay = null;
+        hasValidSession = false;
     });
 
     afterEach(() => {
         // force delete the cookie by making it expire
         document.cookie = `${REFRESH_TOKEN_NAME}=; Expires=1 Jan 1970 00:00:00 GMT`;
-        globalStore.clear();
-        globalStore.setValue(getTokenKey(), null);
+        setSessionIdentifier(null);
         vi.clearAllTimers();
         vi.useRealTimers();
         vi.clearAllMocks();
@@ -92,6 +101,21 @@ describe('HTTP Utils', () => {
         expect(res.status).toBe(200);
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
         expect(await res.json()).toEqual({ success: true });
+    });
+
+    it('emits a refresh success event when the token refresh succeeds', async () => {
+        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+
+        const refreshEventSpy = vi.fn();
+        window.addEventListener(SESSION_REFRESHED_EVENT, refreshEventSpy);
+
+        try {
+            const res = await request('/error-401');
+            expect(res.status).toBe(200);
+            expect(refreshEventSpy).toHaveBeenCalledTimes(1);
+        } finally {
+            window.removeEventListener(SESSION_REFRESHED_EVENT, refreshEventSpy);
+        }
     });
 
     it('concurrent requests only refresh the token once', async () => {
@@ -125,6 +149,86 @@ describe('HTTP Utils', () => {
 
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
         expect(requested401).toHaveBeenCalledTimes(requestCount);
+    });
+
+    it('uses the web locks api for refresh coordination when available', async () => {
+        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+
+        const nav = navigator as NavigatorWithOptionalLocks;
+        const originalLocks = nav.locks;
+        const lockRequestSpy = vi.fn();
+        const lockManager: LockManagerMock = {
+            request: (name, callback) => {
+                lockRequestSpy(name);
+                return Promise.resolve(callback());
+            },
+        };
+
+        Object.defineProperty(nav, 'locks', {
+            configurable: true,
+            value: lockManager,
+        });
+
+        try {
+            const res = await request('/error-401');
+            expect(res.status).toBe(200);
+            expect(lockRequestSpy).toHaveBeenCalled();
+        } finally {
+            Object.defineProperty(nav, 'locks', {
+                configurable: true,
+                value: originalLocks,
+            });
+        }
+    });
+
+    it('falls back to in-tab refresh coordination when web locks api is unavailable', async () => {
+        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+
+        const nav = navigator as NavigatorWithOptionalLocks;
+        const originalLocks = nav.locks;
+
+        Object.defineProperty(nav, 'locks', {
+            configurable: true,
+            value: undefined,
+        });
+
+        try {
+            const responses = await Promise.all([request('/error-401'), request('/error-401')]);
+            expect(responses.map((res) => res.status)).toEqual([200, 200]);
+            expect(refreshAttempted).toHaveBeenCalledTimes(1);
+        } finally {
+            Object.defineProperty(nav, 'locks', {
+                configurable: true,
+                value: originalLocks,
+            });
+        }
+    });
+
+    it('waitForOngoingSessionRefresh waits for async lock callbacks when web locks api is unavailable', async () => {
+        const nav = navigator as NavigatorWithOptionalLocks;
+        const originalLocks = nav.locks;
+        let refreshCompleted = false;
+
+        Object.defineProperty(nav, 'locks', {
+            configurable: true,
+            value: undefined,
+        });
+
+        try {
+            const lockPromise = withSessionRefreshLock(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 30));
+                refreshCompleted = true;
+            });
+
+            await waitForOngoingSessionRefresh();
+            expect(refreshCompleted).toBe(true);
+            await lockPromise;
+        } finally {
+            Object.defineProperty(nav, 'locks', {
+                configurable: true,
+                value: originalLocks,
+            });
+        }
     });
 
     it('request made while refresh is occuring waits for the refresh to complete', async () => {

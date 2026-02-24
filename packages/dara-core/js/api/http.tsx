@@ -3,8 +3,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import globalStore from '@/shared/global-state-store';
-import { getTokenKey } from '@/shared/utils/embed';
+import { notifySessionLoggedOut, runSessionRefresh, waitForOngoingSessionRefresh } from '@/auth/session-state';
+
+import { SESSION_REFRESHED_EVENT } from './events';
 
 /**
  * Extra options to pass to the request function.
@@ -67,11 +68,13 @@ export class RequestExtrasSerializable {
  * @param options optional fetch options. Multiple option sets can be provided, they will be merged in order with later options overriding earlier ones.
  */
 export async function request(url: string | URL, ...options: RequestInit[]): Promise<Response> {
-    // block on the token in case it's locked, i.e. being refreshed by another concurrent request
-    const sessionToken = await globalStore.getValue(getTokenKey());
+    // If another request/tab is currently refreshing the session, wait for it first
+    // so we don't send avoidable 401/403 requests with stale credentials.
+    await waitForOngoingSessionRefresh();
     const mergedOptions = options.reduce((acc, opt) => ({ ...acc, ...opt }), {});
 
-    const { headers, ...other } = mergedOptions;
+    const { headers, credentials: mergedCredentials, ...other } = mergedOptions;
+    const credentials = mergedCredentials ?? 'include';
 
     const headersInterface = new Headers(headers);
 
@@ -85,15 +88,11 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
         headersInterface.set('Content-Type', 'application/json');
     }
 
-    // default auth header if token is present
-    if (sessionToken && !headersInterface.has('Authorization')) {
-        headersInterface.set('Authorization', `Bearer ${sessionToken}`);
-    }
-
     const baseUrl: string = window.dara?.base_url ?? '';
     const urlString = url instanceof URL ? url.pathname + url.search : url;
 
     const response = await fetch(baseUrl + urlString, {
+        credentials,
         headers: headersInterface,
         ...other,
     });
@@ -101,26 +100,29 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     // in case of an auth error, attempt to refresh the token and retry the request
     if (response.status === 401 || response.status === 403) {
         try {
-            // Lock the token value while it's being replaced.
-            // If it's already being replaced, this will instead wait for the replacement to complete
-            // rather than invoking the refresh again.
-            const refreshedToken = await globalStore.replaceValue(getTokenKey(), async () => {
+            // Ensure only one tab refreshes at a time; others wait and reuse the refreshed token.
+            await runSessionRefresh(async () => {
+                const refreshHeaders = new Headers({ Accept: 'application/json' });
+
                 const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
-                    headers: headersInterface,
+                    credentials,
+                    headers: refreshHeaders,
                     method: 'POST',
                 });
                 if (refreshResponse.ok) {
-                    const { token } = await refreshResponse.json();
-                    return token;
+                    window.dispatchEvent(new Event(SESSION_REFRESHED_EVENT));
+                    return;
                 }
 
+                notifySessionLoggedOut();
                 // this will throw an error with the error content
                 await validateResponse(refreshResponse, 'Request auth error, failed to refresh the session token');
+                throw new Error('Request auth error, failed to refresh the session token');
             });
 
-            // retry the request with the new token
-            headersInterface.set('Authorization', `Bearer ${refreshedToken}`);
+            // retry the request after refresh
             return fetch(baseUrl + urlString, {
+                credentials,
                 headers: headersInterface,
                 ...other,
             });
