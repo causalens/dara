@@ -487,3 +487,47 @@ TableWithActions.args = {
     columns,
     data: sampleData,
 } as Props<any>;
+
+export const TableWithRowDataId = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+TableWithRowDataId.args = {
+    columns,
+    data: sampleData,
+    rowDataIdColumn: ['age', 'lastName'],
+} as Props<any>;
+
+TableWithRowDataId.parameters = {
+    docs: {
+        description: {
+            story: 'Rows have a `data-row-id` attribute for testing/selection. Use an array of columns; values are joined with underscores (e.g. `["age", "lastName"]` → `data-row-id="4_box"`).',
+        },
+    },
+};
+
+export const TableWithRowDataIdSingle = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+TableWithRowDataIdSingle.args = {
+    columns,
+    data: sampleData,
+    rowDataIdColumn: 'lastName',
+} as Props<any>;
+
+TableWithRowDataIdSingle.parameters = {
+    docs: {
+        description: {
+            story: 'Single column for `data-row-id` (e.g. `"age"` → `data-row-id="4"`).',
+        },
+    },
+};

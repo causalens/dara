@@ -125,6 +125,7 @@ type Props = {
         totalColumnsWidth: number;
         width: number;
         rowHeight: number;
+        rowDataIdColumn?: string | string[];
     };
     index: number;
     style: React.CSSProperties;
@@ -145,6 +146,7 @@ const RenderRow = React.memo(
             backgroundColor,
             mappedColumns,
             rowHeight,
+            rowDataIdColumn,
         },
         index,
         style: renderRowStyle,
@@ -204,10 +206,21 @@ const RenderRow = React.memo(
             }
         };
         const { style: rowStyle, ...restRow } = row.getRowProps({ style: renderRowStyle });
+        let cols: string[];
+        if (!rowDataIdColumn) {
+            cols = [];
+        } else if (Array.isArray(rowDataIdColumn)) {
+            cols = rowDataIdColumn;
+        } else {
+            cols = [rowDataIdColumn];
+        }
+        const rowDataId =
+            row.original && cols.length > 0 ? cols.map((col) => String(row.original[col] ?? '')).join('_') : undefined;
         return (
             <Row
                 {...restRow}
                 key={`row-${index}`}
+                data-row-id={rowDataId}
                 onClick={onClick}
                 onClickRow={onClickRow}
                 style={{

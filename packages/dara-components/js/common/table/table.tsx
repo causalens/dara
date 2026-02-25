@@ -109,6 +109,11 @@ interface TableProps extends StyledComponentProps {
      * Optional actions for the table
      */
     actions?: Array<ActionProps>;
+
+    /**
+     * Optional column(s) to use as the row data id. When an array, values are joined with underscores.
+     */
+    row_data_id_column?: string | string[];
 }
 
 interface ActionProps {
@@ -701,9 +706,11 @@ function Table(props: TableProps): JSX.Element {
             }
 
             // Call the on_action handler, if it doesn't exist, it is a no-op anyways
+            // Preserve original data column names on action
+            // Limitation: If there are columns with duplicate names, data from only one of them will be returned
             onActionRaw({
                 action_id: actionId,
-                data: row,
+                data: mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))),
             });
         },
         [onSelect, onActionRaw]
@@ -819,6 +826,7 @@ function Table(props: TableProps): JSX.Element {
                         rowHeight={props.row_height}
                         actions={actions}
                         style={{ padding: 0 }}
+                        rowDataIdColumn={props.row_data_id_column}
                     />
                 </div>
             )}

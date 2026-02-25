@@ -897,6 +897,7 @@ class Table(ContentComponent):
     :param suppress_click_events_for_selection: Whether to suppress click events for clicks in select boxes. Defaults to False
     :param actions: Optional list of actions to display in the table
     :param row_height: Optional row height for the table
+    :param row_data_id_column: Optional column(s) to use as the row data id. When an array, values are joined with underscores.
     """
 
     model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
@@ -917,6 +918,7 @@ class Table(ContentComponent):
 
     actions: list[TableAction] | None = None
     row_height: int | None = None
+    row_data_id_column: str | list[str] | None = None
 
     TableFormatterType: ClassVar[TFormatterType] = TableFormatterType
     TableFilter: ClassVar[TFilterType] = TableFilter
