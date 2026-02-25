@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from inspect import isawaitable, iscoroutinefunction
+from inspect import isawaitable
 from typing import Annotated, Any
 
 import jwt
@@ -202,12 +202,7 @@ async def _verify_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenDa
     """
     Verify a token for auth configs with sync or async verifier implementations.
     """
-    verifier = auth_config.verify_token
-
-    if iscoroutinefunction(verifier):
-        return await verifier(token)
-
-    verified_token = verifier(token)
+    verified_token = auth_config.verify_token(token)
     if isawaitable(verified_token):
         return await verified_token
     return verified_token
