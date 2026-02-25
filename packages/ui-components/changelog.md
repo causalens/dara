@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.2
 - Added row_data_id_column to the table to add a `data-row-id` attribute to the html item to make it easier to test
 - Fixed issue where the properties being passed when action is fired is the UI index-based property names instead of the original property names.
 

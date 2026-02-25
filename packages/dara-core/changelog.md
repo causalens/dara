@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.2
 
 - Reduced OIDC session cookie size by issuing compact Dara session tokens and caching raw OIDC `id_token` server-side per session.
 

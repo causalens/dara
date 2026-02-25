@@ -98,13 +98,13 @@ files = [
 
 [[package]]
 name = "bandit"
-version = "1.9.3"
+version = "1.9.4"
 description = "Security oriented static analyser for python code."
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "bandit-1.9.3-py3-none-any.whl", hash = "sha256:4745917c88d2246def79748bde5e08b9d5e9b92f877863d43fab70cd8814ce6a"},
-    {file = "bandit-1.9.3.tar.gz", hash = "sha256:ade4b9b7786f89ef6fc7344a52b34558caec5da74cb90373aed01de88472f774"},
+    {file = "bandit-1.9.4-py3-none-any.whl", hash = "sha256:f89ffa663767f5a0585ea075f01020207e966a9c0f2b9ef56a57c7963a3f6f8e"},
+    {file = "bandit-1.9.4.tar.gz", hash = "sha256:b589e5de2afe70bd4d53fa0c1da6199f4085af666fde00e8a034f152a52cd628"},
 ]
 
 [package.dependencies]
@@ -186,13 +186,13 @@ pandas = ">=1.0.0,<3.0.0"
 
 [[package]]
 name = "certifi"
-version = "2026.1.4"
+version = "2026.2.25"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "certifi-2026.1.4-py3-none-any.whl", hash = "sha256:9943707519e4add1115f44c2bc244f782c0249876bf51b6599fee1ffbedd685c"},
-    {file = "certifi-2026.1.4.tar.gz", hash = "sha256:ac726dd470482006e014ad384921ed6438c457018f4b3d204aea4281258b2120"},
+    {file = "certifi-2026.2.25-py3-none-any.whl", hash = "sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa"},
+    {file = "certifi-2026.2.25.tar.gz", hash = "sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7"},
 ]
 
 [[package]]
@@ -548,7 +548,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.26.1"
+version = "1.26.2"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -668,7 +668,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.26.1"
+version = "1.26.2"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -679,7 +679,7 @@ develop = true
 bokeh = "3.1.1"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.26.1"
+dara-core = "1.26.2"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -693,7 +693,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.26.1"
+version = "1.26.2"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -738,7 +738,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.26.1)"]
+all = ["dara-components (==1.26.2)"]
 
 [package.source]
 type = "directory"
@@ -757,7 +757,7 @@ files = [
 
 [[package]]
 name = "demo-app"
-version = "1.26.1"
+version = "1.26.2"
 description = "Demo App"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -765,8 +765,8 @@ files = []
 develop = true
 
 [package.dependencies]
-dara-components = "1.26.1"
-dara-core = "1.26.1"
+dara-components = "1.26.2"
+dara-core = "1.26.2"
 
 [package.source]
 type = "directory"
@@ -789,7 +789,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -2026,7 +2026,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -2844,7 +2844,7 @@ files = [
 
 [[package]]
 name = "styled-components"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -2857,7 +2857,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3067,7 +3067,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3080,7 +3080,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3093,7 +3093,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3106,7 +3106,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3119,7 +3119,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3132,7 +3132,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3145,7 +3145,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.26.1"
+version = "1.26.2"
 description = ""
 optional = false
 python-versions = "*"
@@ -3483,4 +3483,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<3.13.0"
-content-hash = "9495b550a4e259b44ff71a00784ae9fae6381db1ff4aa898394eaa658bccc622"
+content-hash = "273a49821ecfb1749bef777eaee50f01d4eb257dd919d6cba1b96c4775b4b833"

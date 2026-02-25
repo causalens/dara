@@ -5,15 +5,15 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "demo_app"
-version = "1.26.1"
+version = "1.26.2"
 description = "Demo App"
 authors = ["Author <author@example.com>"]
 source = []
 
 [tool.poetry.dependencies]
 python = ">=3.10.0, <3.13.0"
-dara-core = "1.26.1"
-dara-components = "1.26.1"
+dara-core = "1.26.2"
+dara-components = "1.26.2"
 
 [tool.poetry.dev-dependencies]
 ruff = ">=0.12.2"
