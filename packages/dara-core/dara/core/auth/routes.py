@@ -53,7 +53,9 @@ def _cache_session_auth_token(session_token: str):
     decoded_token = decode_token(session_token, options={'verify_exp': False})
 
     # Keep this registry websocket-only to avoid unbounded growth.
-    if not websocket_registry.has(decoded_token.session_id) and not session_auth_token_registry.has(decoded_token.session_id):
+    if not websocket_registry.has(decoded_token.session_id) and not session_auth_token_registry.has(
+        decoded_token.session_id
+    ):
         return
 
     if decoded_token.id_token is None and session_auth_token_registry.has(decoded_token.session_id):
@@ -220,7 +222,9 @@ async def _refresh_session(
     :return: new session token
     """
     old_token_data = decode_token(token, options={'verify_exp': False})
-    new_session_token, new_refresh_token = await cached_refresh_token(auth_config.refresh_token, old_token_data, refresh_token)
+    new_session_token, new_refresh_token = await cached_refresh_token(
+        auth_config.refresh_token, old_token_data, refresh_token
+    )
     _cache_session_auth_token(new_session_token)
 
     response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=new_refresh_token, **AUTH_COOKIE_KWARGS)
