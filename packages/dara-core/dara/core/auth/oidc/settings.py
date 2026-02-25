@@ -26,6 +26,10 @@ class OIDCSettings(BaseSettings):
     allowed_identity_id: str | None = None
     use_userinfo: bool = False
     """If True, fetch additional claims from the userinfo endpoint when an access token is available."""
+    id_token_cache_idle_ttl_seconds: int = Field(default=1800, ge=1)
+    """Sliding TTL for cached OIDC id_tokens used to hydrate compact session tokens."""
+    id_token_cache_max_entries: int = Field(default=10000, ge=1)
+    """Maximum number of cached OIDC id_tokens kept in memory."""
 
     model_config = SettingsConfigDict(env_file='.env', extra='allow', env_prefix='sso_')
 

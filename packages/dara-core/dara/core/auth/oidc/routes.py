@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import cast
+from uuid import uuid4
 
 import jwt
 from fastapi import Depends, HTTPException, Response
@@ -34,6 +34,7 @@ from dara.core.http import post
 from dara.core.logging import dev_logger
 
 from .definitions import AuthCodeRequestBody
+from .id_token_cache import oidc_id_token_cache
 from .utils import decode_id_token, get_token_from_idp
 
 
@@ -68,8 +69,6 @@ async def sso_callback(
             status_code=400,
             detail=BAD_REQUEST_ERROR('Cannot use sso-callback for non-OIDC auth configuration'),
         )
-
-    auth_config = cast(OIDCAuthConfig, auth_config)
 
     # Validate state parameter if provided (CSRF protection)
     if body.state:
@@ -114,14 +113,20 @@ async def sso_callback(
         # Verify user has access based on groups
         auth_config.verify_user_access(user_data)
 
-        # Create a Dara session token wrapping the ID token data
+        session_id = str(uuid4())
+
+        # Cache the raw OIDC ID token server-side and keep the cookie token compact.
+        await oidc_id_token_cache.set(session_id, oidc_tokens.id_token, int(claims.exp))
+
+        # Create a compact Dara session token (without embedded raw OIDC id_token)
         session_token = sign_jwt(
             identity_id=user_data.identity_id,
             identity_name=user_data.identity_name,
             identity_email=user_data.identity_email,
             groups=user_data.groups or [],
-            id_token=oidc_tokens.id_token,
+            id_token=None,
             exp=int(claims.exp),
+            session_id=session_id,
         )
 
         # Set refresh token cookie if provided

@@ -15,6 +15,7 @@ from jwt import PyJWK
 
 from dara.core.auth.definitions import (
     EXPIRED_TOKEN_ERROR,
+    INVALID_TOKEN_ERROR,
     JWT_ALGO,
     OTHER_AUTH_ERROR,
     SESSION_TOKEN_COOKIE_NAME,
@@ -23,10 +24,13 @@ from dara.core.auth.definitions import (
 )
 from dara.core.auth.oidc.config import OIDCAuthConfig
 from dara.core.auth.oidc.definitions import REFRESH_TOKEN_COOKIE_NAME, OIDCDiscoveryMetadata
+from dara.core.auth.oidc.id_token_cache import OIDCIdTokenCache, oidc_id_token_cache
 from dara.core.auth.oidc.settings import get_oidc_settings
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
+
+from tests.python.utils import _async_ws_connect
 
 os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 
@@ -133,6 +137,13 @@ def mock_discovery():
             return_value=httpx.Response(status_code=200, json=MOCK_DISCOVERY.model_dump())
         )
         yield
+
+
+@pytest.fixture(autouse=True)
+async def clear_oidc_id_token_cache():
+    await oidc_id_token_cache.clear()
+    yield
+    await oidc_id_token_cache.clear()
 
 
 async def test_config_parses_groups():
@@ -271,7 +282,7 @@ async def test_sso_callback_creates_valid_session_token():
             assert decoded_session_token.get('identity_id') == MOCK_ID_TOKEN.get('identity').get('id')
             assert decoded_session_token.get('identity_name') == MOCK_ID_TOKEN.get('identity').get('name')
             assert decoded_session_token.get('identity_email') == MOCK_ID_TOKEN.get('identity').get('email')
-            assert decoded_session_token.get('id_token') == id_token
+            assert 'id_token' not in decoded_session_token
             assert decoded_session_token.get('exp') == MOCK_ID_TOKEN.get('exp')
             assert 'session_id' in decoded_session_token
 
@@ -590,7 +601,7 @@ async def test_refresh_token_creates_valid_session_token():
             assert decoded_session_token.get('identity_id') == MOCK_ID_TOKEN.get('identity').get('id')
             assert decoded_session_token.get('identity_name') == MOCK_ID_TOKEN.get('identity').get('name')
             assert decoded_session_token.get('identity_email') == MOCK_ID_TOKEN.get('identity').get('email')
-            assert decoded_session_token.get('id_token') == id_token
+            assert 'id_token' not in decoded_session_token
             # Session ID should be transferred over
             assert decoded_session_token.get('session_id') == MOCK_DARA_TOKEN_DATA.get('session_id')
             assert decoded_session_token.get('exp') == MOCK_ID_TOKEN.get('exp')
@@ -705,7 +716,7 @@ async def test_verify_token_expired():
 
     # AuthError expected due to expired token
     with pytest.raises(AuthError):
-        auth_config.verify_token(session_token)
+        await auth_config.verify_token(session_token)
 
 
 async def test_verify_token_decodes_correctly():
@@ -714,6 +725,67 @@ async def test_verify_token_decodes_correctly():
     """
     token_data = {
         'session_id': 'SESSION_ID',
+        'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+        'identity_id': 'PERSONA_ID',
+        'identity_name': 'USERNAME',
+        'identity_email': 'username@causalens.com',
+        'groups': ['dev'],
+        'id_token': 'id_token_123',
+    }
+    session_token = jwt.encode(
+        token_data,
+        get_settings().jwt_secret,
+        algorithm=JWT_ALGO,
+    )
+
+    auth_config = make_config()
+
+    decoded_token = await auth_config.verify_token(session_token)
+
+    for k in token_data.keys():
+        if k == 'exp':
+            # For exp there might be microseconds of difference due to parsing etc so just check it's within the same second
+            assert token_data[k] - datetime.fromtimestamp(getattr(decoded_token, k), tz=timezone.utc) < timedelta(
+                seconds=1
+            )
+            continue
+
+        assert getattr(decoded_token, k) == token_data[k]
+
+
+async def test_verify_token_compact_token_uses_cached_id_token():
+    """
+    Test compact Dara OIDC token verification hydrates ID token from server cache.
+    """
+    session_id = str(uuid4())
+    token_data = {
+        'session_id': session_id,
+        'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+        'identity_id': 'PERSONA_ID',
+        'identity_name': 'USERNAME',
+        'identity_email': 'username@causalens.com',
+        'groups': ['dev'],
+    }
+    session_token = jwt.encode(
+        token_data,
+        get_settings().jwt_secret,
+        algorithm=JWT_ALGO,
+    )
+
+    await oidc_id_token_cache.set(session_id, 'id_token_from_cache', token_data['exp'])
+
+    auth_config = make_config()
+    decoded_token = await auth_config.verify_token(session_token)
+    assert decoded_token.id_token == 'id_token_from_cache'
+
+
+async def test_verify_token_compact_token_without_cached_id_token_fails():
+    """
+    Test compact Dara OIDC token verification fails when cached ID token is missing.
+    """
+    session_id = str(uuid4())
+    token_data = {
+        'session_id': session_id,
         'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
         'identity_id': 'PERSONA_ID',
         'identity_name': 'USERNAME',
@@ -728,17 +800,256 @@ async def test_verify_token_decodes_correctly():
 
     auth_config = make_config()
 
-    decoded_token = auth_config.verify_token(session_token)
+    with pytest.raises(AuthError) as error:
+        await auth_config.verify_token(session_token)
 
-    for k in token_data.keys():
-        if k == 'exp':
-            # For exp there might be microseconds of difference due to parsing etc so just check it's within the same second
-            assert token_data[k] - datetime.fromtimestamp(getattr(decoded_token, k), tz=timezone.utc) < timedelta(
-                seconds=1
+    assert error.value.code == 401
+    assert error.value.detail == INVALID_TOKEN_ERROR
+
+
+async def test_verify_token_compact_token_with_empty_cached_token_fails():
+    """
+    Test compact Dara OIDC token verification fails when cached ID token is empty.
+    """
+    session_id = str(uuid4())
+    token_data = {
+        'session_id': session_id,
+        'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+        'identity_id': 'PERSONA_ID',
+        'identity_name': 'USERNAME',
+        'identity_email': 'username@causalens.com',
+        'groups': ['dev'],
+    }
+    session_token = jwt.encode(
+        token_data,
+        get_settings().jwt_secret,
+        algorithm=JWT_ALGO,
+    )
+
+    await oidc_id_token_cache.set(session_id, '', token_data['exp'])
+
+    auth_config = make_config()
+
+    with pytest.raises(AuthError) as error:
+        await auth_config.verify_token(session_token)
+
+    assert error.value.code == 401
+    assert error.value.detail == INVALID_TOKEN_ERROR
+
+
+async def test_oidc_id_token_cache_sliding_ttl_refreshes_on_read():
+    """
+    Test OIDC ID token cache refreshes idle TTL on read access.
+    """
+    cache = OIDCIdTokenCache()
+
+    with (
+        mock.patch('dara.core.auth.oidc.id_token_cache.get_oidc_settings') as mock_settings,
+        mock.patch('dara.core.auth.oidc.id_token_cache.time.time') as mock_time,
+    ):
+        mock_settings.return_value = mock.Mock(id_token_cache_idle_ttl_seconds=2, id_token_cache_max_entries=10)
+
+        mock_time.return_value = 100.0
+        await cache.set('session-1', 'id-token-1', 200.0)
+
+        mock_time.return_value = 101.5
+        assert await cache.get('session-1') == 'id-token-1'
+
+        mock_time.return_value = 103.0
+        assert await cache.get('session-1', touch=False) == 'id-token-1'
+
+        mock_time.return_value = 103.6
+        assert await cache.get('session-1', touch=False) is None
+
+
+async def test_oidc_id_token_cache_evicts_lru_entries_when_max_size_exceeded():
+    """
+    Test OIDC ID token cache evicts the least recently used entry when full.
+    """
+    cache = OIDCIdTokenCache()
+
+    with (
+        mock.patch('dara.core.auth.oidc.id_token_cache.get_oidc_settings') as mock_settings,
+        mock.patch('dara.core.auth.oidc.id_token_cache.time.time') as mock_time,
+    ):
+        mock_settings.return_value = mock.Mock(id_token_cache_idle_ttl_seconds=60, id_token_cache_max_entries=2)
+
+        mock_time.return_value = 100.0
+        await cache.set('session-1', 'id-token-1', 200.0)
+
+        mock_time.return_value = 101.0
+        await cache.set('session-2', 'id-token-2', 200.0)
+
+        mock_time.return_value = 102.0
+        assert await cache.get('session-1') == 'id-token-1'
+
+        mock_time.return_value = 103.0
+        await cache.set('session-3', 'id-token-3', 200.0)
+
+        assert await cache.get('session-2', touch=False) is None
+        assert await cache.get('session-1', touch=False) == 'id-token-1'
+        assert await cache.get('session-3', touch=False) == 'id-token-3'
+
+
+async def test_verify_session_compact_token_without_cached_id_token_forces_relogin():
+    """
+    Test compact token verification through /verify-session returns invalid token when cache is missing.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        compact_token = jwt.encode(
+            {
+                'session_id': str(uuid4()),
+                'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+                'identity_id': 'PERSONA_ID',
+                'identity_name': 'USERNAME',
+                'identity_email': 'username@causalens.com',
+                'groups': ['dev'],
+            },
+            ENV_OVERRIDE['JWT_SECRET'],
+            algorithm=JWT_ALGO,
+        )
+
+        response = await client.post(
+            '/api/auth/verify-session',
+            headers={'Authorization': f'Bearer {compact_token}'},
+        )
+
+        assert response.status_code == 401
+        assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
+async def test_verify_session_compact_token_refreshes_server_side_when_cache_missing():
+    """
+    Test verify-session falls back to refresh token and rehydrates cache when compact token cache is missing.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            session_id = str(uuid4())
+            compact_token = jwt.encode(
+                {
+                    'session_id': session_id,
+                    'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+                    'identity_id': 'PERSONA_ID',
+                    'identity_name': 'USERNAME',
+                    'identity_email': 'username@causalens.com',
+                    'groups': ['dev'],
+                },
+                ENV_OVERRIDE['JWT_SECRET'],
+                algorithm=JWT_ALGO,
             )
-            continue
 
-        assert getattr(decoded_token, k) == token_data[k]
+            jwk = PyJWK(MOCK_JWK)
+            refreshed_id_token = jwt.encode(
+                MOCK_ID_TOKEN,
+                jwk.key,
+                algorithm=MOCK_JWK['alg'],
+                headers={'kid': MOCK_JWK['kid']},
+            )
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(
+                    status_code=200,
+                    json={
+                        'id_token': refreshed_id_token,
+                        'refresh_token': 'rotated-refresh-token',
+                    },
+                )
+            )
+
+            response = await client.post(
+                '/api/auth/verify-session',
+                headers={'Authorization': f'Bearer {compact_token}'},
+                cookies={REFRESH_TOKEN_COOKIE_NAME: 'original-refresh-token'},
+            )
+
+            assert response.status_code == 200
+            assert mock_urllib.call_count == 1
+            assert await oidc_id_token_cache.has(session_id)
+
+            assert response.cookies.get(REFRESH_TOKEN_COOKIE_NAME) == 'rotated-refresh-token'
+            assert response.cookies.get(SESSION_TOKEN_COOKIE_NAME) is not None
+
+
+async def test_verify_session_malformed_token_forces_relogin():
+    """
+    Test malformed signed Dara token through /verify-session returns invalid token instead of server error.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        malformed_token = jwt.encode(
+            {
+                'session_id': str(uuid4()),
+                'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+            },
+            ENV_OVERRIDE['JWT_SECRET'],
+            algorithm=JWT_ALGO,
+        )
+
+        response = await client.post(
+            '/api/auth/verify-session',
+            headers={'Authorization': f'Bearer {malformed_token}'},
+        )
+
+        assert response.status_code == 401
+        assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
+async def test_websocket_disconnect_preserves_compact_token_cache_for_verify_session():
+    """
+    Test that websocket disconnect does not clear compact OIDC cache needed by /verify-session.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        session_id = str(uuid4())
+        compact_token = jwt.encode(
+            {
+                'session_id': session_id,
+                'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+                'identity_id': 'PERSONA_ID',
+                'identity_name': 'USERNAME',
+                'identity_email': 'username@causalens.com',
+                'groups': ['dev'],
+            },
+            ENV_OVERRIDE['JWT_SECRET'],
+            algorithm=JWT_ALGO,
+        )
+
+        await oidc_id_token_cache.set(
+            session_id, 'cached_id_token', (datetime.now(tz=timezone.utc) + timedelta(hours=2))
+        )
+
+        async with _async_ws_connect(client, compact_token) as websocket:
+            # consume websocket init payload
+            await websocket.receive_json()
+
+        response = await client.post(
+            '/api/auth/verify-session',
+            headers={'Authorization': f'Bearer {compact_token}'},
+        )
+
+        assert response.status_code == 200
 
 
 async def test_verify_token_decodes_id_token_correctly():
@@ -756,7 +1067,7 @@ async def test_verify_token_decodes_id_token_correctly():
     auth_config = make_config()
 
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
-        decoded_token = auth_config.verify_token(id_token)
+        decoded_token = await auth_config.verify_token(id_token)
         assert decoded_token.identity_id == MOCK_ID_TOKEN.get('identity').get('id')
         assert decoded_token.identity_name == MOCK_ID_TOKEN.get('identity').get('name')
         assert decoded_token.identity_email == MOCK_ID_TOKEN.get('identity').get('email')
@@ -803,6 +1114,43 @@ async def test_revoke_session():
             assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
             assert response.headers['Set-Cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}=""; expires')
             assert 'Max-Age=0' in response.headers['Set-Cookie']
+
+
+async def test_revoke_session_compact_token_uses_cached_id_token():
+    """
+    Test revoke session resolves ID token hint from server cache for compact session tokens.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        session_id = str(uuid4())
+        id_token = 'cached_id_token'
+        compact_token = jwt.encode(
+            {
+                'session_id': session_id,
+                'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+                'identity_id': 'PERSONA_ID',
+                'identity_name': 'USERNAME',
+                'identity_email': 'joe@causalens.com',
+                'groups': [],
+            },
+            ENV_OVERRIDE['JWT_SECRET'],
+            algorithm=JWT_ALGO,
+        )
+
+        await oidc_id_token_cache.set(session_id, id_token, (datetime.now(tz=timezone.utc) + timedelta(hours=2)))
+
+        response = await client.post(
+            '/api/auth/revoke-session',
+            headers={'Authorization': f'Bearer {compact_token}'},
+        )
+
+        assert response.status_code == 200
+        assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
 
 
 async def test_revoke_session_raw_id_token():
