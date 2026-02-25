@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from typing import cast
+from uuid import uuid4
 
 import jwt
 from fastapi import Depends, HTTPException, Response
@@ -27,6 +28,7 @@ from dara.core.auth.definitions import (
     INVALID_TOKEN_ERROR,
     REFRESH_TOKEN_COOKIE_NAME,
     SESSION_TOKEN_COOKIE_NAME,
+    TokenData,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 from dara.core.auth.utils import get_cookie_expiration_from_token, sign_jwt
@@ -57,7 +59,7 @@ async def sso_callback(
     :param settings: Application settings
     :return: success response
     """
-    from dara.core.internal.registries import auth_registry
+    from dara.core.internal.registries import auth_registry, session_auth_token_registry
 
     from .config import OIDCAuthConfig
 
@@ -114,14 +116,31 @@ async def sso_callback(
         # Verify user has access based on groups
         auth_config.verify_user_access(user_data)
 
-        # Create a Dara session token wrapping the ID token data
+        session_id = str(uuid4())
+
+        # Cache full OIDC session data server-side and keep the cookie token compact.
+        session_auth_token_registry.set(
+            session_id,
+            TokenData(
+                session_id=session_id,
+                exp=int(claims.exp),
+                identity_id=user_data.identity_id,
+                identity_name=user_data.identity_name,
+                identity_email=user_data.identity_email,
+                groups=user_data.groups or [],
+                id_token=oidc_tokens.id_token,
+            ),
+        )
+
+        # Create a compact Dara session token (without embedded raw OIDC id_token)
         session_token = sign_jwt(
             identity_id=user_data.identity_id,
             identity_name=user_data.identity_name,
             identity_email=user_data.identity_email,
             groups=user_data.groups or [],
-            id_token=oidc_tokens.id_token,
+            id_token=None,
             exp=int(claims.exp),
+            session_id=session_id,
         )
 
         # Set refresh token cookie if provided

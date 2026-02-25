@@ -384,6 +384,18 @@ class OIDCAuthConfig(BaseAuthConfig):
         # Decode and verify with our jwt_secret
         token_data = decode_token(token)
 
+        if token_data.id_token is None:
+            from dara.core.internal.registries import session_auth_token_registry
+
+            if not session_auth_token_registry.has(token_data.session_id):
+                raise AuthError(code=401, detail=INVALID_TOKEN_ERROR)
+
+            cached_token_data = session_auth_token_registry.get(token_data.session_id)
+            if cached_token_data.id_token is None:
+                raise AuthError(code=401, detail=INVALID_TOKEN_ERROR)
+
+            token_data = token_data.model_copy(update={'id_token': cached_token_data.id_token})
+
         user_data = UserData.from_token_data(token_data)
 
         # Verify user has access based on groups
@@ -481,13 +493,29 @@ class OIDCAuthConfig(BaseAuthConfig):
         # Verify user still has access
         self.verify_user_access(user_data)
 
-        # Create a new Dara session token, preserving the original session_id
+        # Cache full OIDC token data server-side for compact cookie token hydration.
+        from dara.core.internal.registries import session_auth_token_registry
+
+        session_auth_token_registry.set(
+            old_token.session_id,
+            TokenData(
+                session_id=old_token.session_id,
+                exp=int(claims.exp),
+                identity_id=user_data.identity_id,
+                identity_name=user_data.identity_name,
+                identity_email=user_data.identity_email,
+                groups=user_data.groups or [],
+                id_token=oidc_tokens.id_token,
+            ),
+        )
+
+        # Create a compact Dara session token, preserving the original session_id.
         new_session_token = sign_jwt(
             identity_id=user_data.identity_id,
             identity_name=user_data.identity_name,
             identity_email=user_data.identity_email,
             groups=user_data.groups or [],
-            id_token=oidc_tokens.id_token,
+            id_token=None,
             exp=int(claims.exp),
             session_id=old_token.session_id,
         )
@@ -577,8 +605,18 @@ class OIDCAuthConfig(BaseAuthConfig):
             unverified = jwt.decode(token, options={'verify_signature': False})
 
             # Raw IDP token -> use directly as the id_token_hint
-            # Dara-issued token -> extract the embedded id_token
-            id_token = token if unverified.get('iss') == oidc_settings.issuer_url else unverified.get('id_token')
+            # Dara-issued token -> extract the embedded id_token or resolve from session cache.
+            if unverified.get('iss') == oidc_settings.issuer_url:
+                id_token = token
+            else:
+                id_token = unverified.get('id_token')
+                if not id_token:
+                    session_id = unverified.get('session_id')
+                    if isinstance(session_id, str):
+                        from dara.core.internal.registries import session_auth_token_registry
+
+                        if session_auth_token_registry.has(session_id):
+                            id_token = session_auth_token_registry.get(session_id).id_token
         except jwt.DecodeError:
             # If we can't decode the token, proceed without id_token_hint
             dev_logger.warning('Failed to decode token for logout, proceeding without id_token_hint')

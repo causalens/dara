@@ -20,6 +20,7 @@ from dara.core.auth.definitions import (
     SESSION_TOKEN_COOKIE_NAME,
     UNAUTHORIZED_ERROR,
     AuthError,
+    TokenData,
 )
 from dara.core.auth.oidc.config import OIDCAuthConfig
 from dara.core.auth.oidc.definitions import REFRESH_TOKEN_COOKIE_NAME, OIDCDiscoveryMetadata
@@ -271,7 +272,7 @@ async def test_sso_callback_creates_valid_session_token():
             assert decoded_session_token.get('identity_id') == MOCK_ID_TOKEN.get('identity').get('id')
             assert decoded_session_token.get('identity_name') == MOCK_ID_TOKEN.get('identity').get('name')
             assert decoded_session_token.get('identity_email') == MOCK_ID_TOKEN.get('identity').get('email')
-            assert decoded_session_token.get('id_token') == id_token
+            assert 'id_token' not in decoded_session_token
             assert decoded_session_token.get('exp') == MOCK_ID_TOKEN.get('exp')
             assert 'session_id' in decoded_session_token
 
@@ -590,7 +591,7 @@ async def test_refresh_token_creates_valid_session_token():
             assert decoded_session_token.get('identity_id') == MOCK_ID_TOKEN.get('identity').get('id')
             assert decoded_session_token.get('identity_name') == MOCK_ID_TOKEN.get('identity').get('name')
             assert decoded_session_token.get('identity_email') == MOCK_ID_TOKEN.get('identity').get('email')
-            assert decoded_session_token.get('id_token') == id_token
+            assert 'id_token' not in decoded_session_token
             # Session ID should be transferred over
             assert decoded_session_token.get('session_id') == MOCK_DARA_TOKEN_DATA.get('session_id')
             assert decoded_session_token.get('exp') == MOCK_ID_TOKEN.get('exp')
@@ -719,6 +720,7 @@ async def test_verify_token_decodes_correctly():
         'identity_name': 'USERNAME',
         'identity_email': 'username@causalens.com',
         'groups': ['dev'],
+        'id_token': 'id_token_123',
     }
     session_token = jwt.encode(
         token_data,
@@ -739,6 +741,70 @@ async def test_verify_token_decodes_correctly():
             continue
 
         assert getattr(decoded_token, k) == token_data[k]
+
+
+async def test_verify_token_compact_token_uses_cached_id_token():
+    """
+    Test compact Dara OIDC token verification hydrates ID token from server cache.
+    """
+    session_id = str(uuid4())
+    token_data = {
+        'session_id': session_id,
+        'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+        'identity_id': 'PERSONA_ID',
+        'identity_name': 'USERNAME',
+        'identity_email': 'username@causalens.com',
+        'groups': ['dev'],
+    }
+    session_token = jwt.encode(
+        token_data,
+        get_settings().jwt_secret,
+        algorithm=JWT_ALGO,
+    )
+
+    from dara.core.internal.registries import session_auth_token_registry
+
+    session_auth_token_registry.set(
+        session_id,
+        TokenData(
+            session_id=session_id,
+            exp=token_data['exp'],
+            identity_id=token_data['identity_id'],
+            identity_name=token_data['identity_name'],
+            identity_email=token_data['identity_email'],
+            groups=token_data['groups'],
+            id_token='id_token_from_cache',
+        ),
+    )
+
+    auth_config = make_config()
+    decoded_token = auth_config.verify_token(session_token)
+    assert decoded_token.id_token == 'id_token_from_cache'
+
+
+async def test_verify_token_compact_token_without_cached_id_token_fails():
+    """
+    Test compact Dara OIDC token verification fails when cached ID token is missing.
+    """
+    session_id = str(uuid4())
+    token_data = {
+        'session_id': session_id,
+        'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+        'identity_id': 'PERSONA_ID',
+        'identity_name': 'USERNAME',
+        'identity_email': 'username@causalens.com',
+        'groups': ['dev'],
+    }
+    session_token = jwt.encode(
+        token_data,
+        get_settings().jwt_secret,
+        algorithm=JWT_ALGO,
+    )
+
+    auth_config = make_config()
+
+    with pytest.raises(AuthError):
+        auth_config.verify_token(session_token)
 
 
 async def test_verify_token_decodes_id_token_correctly():
@@ -803,6 +869,56 @@ async def test_revoke_session():
             assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
             assert response.headers['Set-Cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}=""; expires')
             assert 'Max-Age=0' in response.headers['Set-Cookie']
+
+
+async def test_revoke_session_compact_token_uses_cached_id_token():
+    """
+    Test revoke session resolves ID token hint from server cache for compact session tokens.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        session_id = str(uuid4())
+        id_token = 'cached_id_token'
+        compact_token = jwt.encode(
+            {
+                'session_id': session_id,
+                'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+                'identity_id': 'PERSONA_ID',
+                'identity_name': 'USERNAME',
+                'identity_email': 'joe@causalens.com',
+                'groups': [],
+            },
+            ENV_OVERRIDE['JWT_SECRET'],
+            algorithm=JWT_ALGO,
+        )
+
+        from dara.core.internal.registries import session_auth_token_registry
+
+        session_auth_token_registry.set(
+            session_id,
+            TokenData(
+                session_id=session_id,
+                exp=(datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+                identity_id='PERSONA_ID',
+                identity_name='USERNAME',
+                identity_email='joe@causalens.com',
+                groups=[],
+                id_token=id_token,
+            ),
+        )
+
+        response = await client.post(
+            '/api/auth/revoke-session',
+            headers={'Authorization': f'Bearer {compact_token}'},
+        )
+
+        assert response.status_code == 200
+        assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
 
 
 async def test_revoke_session_raw_id_token():

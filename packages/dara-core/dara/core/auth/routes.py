@@ -50,6 +50,12 @@ def _cache_session_auth_token(session_token: str):
     from dara.core.internal.registries import session_auth_token_registry
 
     decoded_token = decode_token(session_token, options={'verify_exp': False})
+
+    if decoded_token.id_token is None and session_auth_token_registry.has(decoded_token.session_id):
+        cached_token = session_auth_token_registry.get(decoded_token.session_id)
+        if cached_token.id_token is not None:
+            decoded_token = decoded_token.model_copy(update={'id_token': cached_token.id_token})
+
     session_auth_token_registry.set(decoded_token.session_id, decoded_token)
 
 

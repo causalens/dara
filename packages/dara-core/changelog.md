@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Reduced OIDC session cookie size by issuing compact Dara session tokens and caching raw OIDC `id_token` server-side per session.
+
 ## 1.26.1
 
 - Fixed an issue where setting `DARA_BASE_URL` would cause UI crashes

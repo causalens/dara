@@ -105,7 +105,7 @@ def sign_jwt(
             identity_email=identity_email,
             groups=groups,
             id_token=id_token,
-        ).model_dump(),
+        ).model_dump(exclude_none=True),
         settings.jwt_secret,
         algorithm=JWT_ALGO,
     )
