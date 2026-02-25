@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import cast
 from uuid import uuid4
 
 import jwt
@@ -28,7 +27,6 @@ from dara.core.auth.definitions import (
     INVALID_TOKEN_ERROR,
     REFRESH_TOKEN_COOKIE_NAME,
     SESSION_TOKEN_COOKIE_NAME,
-    TokenData,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 from dara.core.auth.utils import get_cookie_expiration_from_token, sign_jwt
@@ -36,6 +34,7 @@ from dara.core.http import post
 from dara.core.logging import dev_logger
 
 from .definitions import AuthCodeRequestBody
+from .id_token_cache import oidc_id_token_cache
 from .utils import decode_id_token, get_token_from_idp
 
 
@@ -59,7 +58,7 @@ async def sso_callback(
     :param settings: Application settings
     :return: success response
     """
-    from dara.core.internal.registries import auth_registry, session_auth_token_registry
+    from dara.core.internal.registries import auth_registry
 
     from .config import OIDCAuthConfig
 
@@ -70,8 +69,6 @@ async def sso_callback(
             status_code=400,
             detail=BAD_REQUEST_ERROR('Cannot use sso-callback for non-OIDC auth configuration'),
         )
-
-    auth_config = cast(OIDCAuthConfig, auth_config)
 
     # Validate state parameter if provided (CSRF protection)
     if body.state:
@@ -118,19 +115,8 @@ async def sso_callback(
 
         session_id = str(uuid4())
 
-        # Cache full OIDC session data server-side and keep the cookie token compact.
-        session_auth_token_registry.set(
-            session_id,
-            TokenData(
-                session_id=session_id,
-                exp=int(claims.exp),
-                identity_id=user_data.identity_id,
-                identity_name=user_data.identity_name,
-                identity_email=user_data.identity_email,
-                groups=user_data.groups or [],
-                id_token=oidc_tokens.id_token,
-            ),
-        )
+        # Cache the raw OIDC ID token server-side and keep the cookie token compact.
+        await oidc_id_token_cache.set(session_id, oidc_tokens.id_token, int(claims.exp))
 
         # Create a compact Dara session token (without embedded raw OIDC id_token)
         session_token = sign_jwt(

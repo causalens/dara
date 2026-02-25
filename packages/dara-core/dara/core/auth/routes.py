@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from inspect import iscoroutinefunction
-from typing import Annotated, cast
+from inspect import isawaitable, iscoroutinefunction
+from typing import Annotated, Any
 
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
@@ -34,6 +34,7 @@ from dara.core.auth.definitions import (
     USER,
     AuthError,
     SessionRequestBody,
+    TokenData,
 )
 from dara.core.auth.utils import cached_refresh_token, decode_token, get_cookie_expiration_from_token
 from dara.core.logging import dev_logger
@@ -47,9 +48,13 @@ def _cache_session_auth_token(session_token: str):
 
     :param session_token: latest session token
     """
-    from dara.core.internal.registries import session_auth_token_registry
+    from dara.core.internal.registries import session_auth_token_registry, websocket_registry
 
     decoded_token = decode_token(session_token, options={'verify_exp': False})
+
+    # Keep this registry websocket-only to avoid unbounded growth.
+    if not websocket_registry.has(decoded_token.session_id) and not session_auth_token_registry.has(decoded_token.session_id):
+        return
 
     if decoded_token.id_token is None and session_auth_token_registry.has(decoded_token.session_id):
         cached_token = session_auth_token_registry.get(decoded_token.session_id)
@@ -59,12 +64,13 @@ def _cache_session_auth_token(session_token: str):
     session_auth_token_registry.set(decoded_token.session_id, decoded_token)
 
 
-def _clear_cached_session_auth_token(token: str):
+async def _clear_cached_session_auth_token(token: str):
     """
     Remove cached session token for the session associated with the provided token.
 
     :param token: session token
     """
+    from dara.core.auth.oidc.id_token_cache import oidc_id_token_cache
     from dara.core.internal.registries import session_auth_token_registry
 
     try:
@@ -78,6 +84,8 @@ def _clear_cached_session_auth_token(token: str):
 
     if session_auth_token_registry.has(decoded.session_id):
         session_auth_token_registry.remove(decoded.session_id)
+
+    await oidc_id_token_cache.remove(decoded.session_id)
 
 
 def _get_bearer_token(request: Request, *, error_message: str) -> str | None:
@@ -156,7 +164,7 @@ def _clear_auth_cookies(response: Response):
     response.delete_cookie(SESSION_TOKEN_COOKIE_NAME)
 
 
-def _build_auth_error_response(status_code: int, detail: str | dict):
+def _build_auth_error_response(status_code: int, detail: Any):
     """
     Build an auth error response and clear all auth cookies.
 
@@ -168,10 +176,69 @@ def _build_auth_error_response(status_code: int, detail: str | dict):
     return error_response
 
 
+def _should_attempt_session_refresh(
+    auth_config: BaseAuthConfig,
+    auth_error: AuthError,
+    refresh_token: str | None,
+) -> bool:
+    """
+    Determine whether verify-session should attempt a server-side refresh.
+
+    We only attempt this for OIDC configurations with a refresh token cookie
+    and invalid compact session tokens.
+    """
+    if refresh_token is None:
+        return False
+
+    if auth_error.code != 401 or auth_error.detail != INVALID_TOKEN_ERROR:
+        return False
+
+    from dara.core.auth.oidc.config import OIDCAuthConfig
+
+    return isinstance(auth_config, OIDCAuthConfig)
+
+
+async def _verify_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenData:
+    """
+    Verify a token for auth configs with sync or async verifier implementations.
+    """
+    verifier = auth_config.verify_token
+
+    if iscoroutinefunction(verifier):
+        return await verifier(token)
+
+    verified_token = verifier(token)
+    if isawaitable(verified_token):
+        return await verified_token
+    return verified_token
+
+
+async def _refresh_session(
+    auth_config: BaseAuthConfig,
+    token: str,
+    refresh_token: str,
+    response: Response,
+) -> str:
+    """
+    Refresh a session and update auth cookies.
+
+    :return: new session token
+    """
+    old_token_data = decode_token(token, options={'verify_exp': False})
+    new_session_token, new_refresh_token = await cached_refresh_token(auth_config.refresh_token, old_token_data, refresh_token)
+    _cache_session_auth_token(new_session_token)
+
+    response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=new_refresh_token, **AUTH_COOKIE_KWARGS)
+    _set_session_token_cookie(response, new_session_token)
+    return new_session_token
+
+
 @auth_router.post('/verify-session')
 async def verify_session(
     req: Request,
+    response: Response,
     dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
+    dara_refresh_token: Annotated[str | None, Cookie(alias=REFRESH_TOKEN_COOKIE_NAME)] = None,
 ):
     """
     Helper to verify whether the user has a valid session JWT in the request they made. The function should be applied
@@ -192,13 +259,17 @@ async def verify_session(
 
         auth_config: BaseAuthConfig = auth_registry.get('auth_config')
 
-        # Handle verify_token being async
-        verifier = auth_config.verify_token
+        try:
+            await _verify_auth_token(auth_config, token)
+        except AuthError as auth_error:
+            if not _should_attempt_session_refresh(auth_config, auth_error, dara_refresh_token):
+                raise
 
-        if iscoroutinefunction(verifier):
-            await verifier(token)
-        else:
-            verifier(token)
+            if dara_refresh_token is None:
+                raise
+
+            refreshed_token = await _refresh_session(auth_config, token, dara_refresh_token, response)
+            await _verify_auth_token(auth_config, refreshed_token)
 
         # Attach session_id to the request so it can be accessed in the middleware
         # Because contextvars don't work in middlewares
@@ -236,7 +307,10 @@ async def _revoke_session(
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
 
     result = auth_config.revoke_token(token, response)
-    _clear_cached_session_auth_token(token)
+    if isawaitable(result):
+        result = await result
+
+    await _clear_cached_session_auth_token(token)
     _clear_auth_cookies(response)
     return result
 
@@ -270,23 +344,13 @@ async def handle_refresh_token(
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
 
     try:
-        # decode the old token ignoring expiry date
-        old_token_data = decode_token(token, options={'verify_exp': False})
-
-        # Refresh logic up to implementation - passing in old token data so session_id can be preserved
-        session_token, refresh_token = await cached_refresh_token(
-            auth_config.refresh_token, old_token_data, dara_refresh_token
-        )
-        _cache_session_auth_token(session_token)
-
-        response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=refresh_token, **AUTH_COOKIE_KWARGS)
-        _set_session_token_cookie(response, session_token)
+        await _refresh_session(auth_config, token, dara_refresh_token, response)
         return {'success': True}
     except BaseException as e:
         # If an explicit HTTPException was raised, preserve status and error payload.
         if isinstance(e, HTTPException):
             dev_logger.error('Auth Error', error=e)
-            return _build_auth_error_response(e.status_code, cast(str | dict, e.detail))
+            return _build_auth_error_response(e.status_code, e.detail)
 
         # Explicitly handle expired signature error
         if isinstance(e, jwt.ExpiredSignatureError):
@@ -294,7 +358,7 @@ async def handle_refresh_token(
             return _build_auth_error_response(status_code=401, detail=EXPIRED_TOKEN_ERROR)
 
         # Otherwise show a generic invalid token error
-        dev_logger.error('Invalid Token', error=cast(Exception, e))
+        dev_logger.error('Invalid Token', error=e)
         return _build_auth_error_response(status_code=401, detail=INVALID_TOKEN_ERROR)
 
 

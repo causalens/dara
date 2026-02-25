@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Added server-side OIDC session refresh fallback in `/verify-session` so compact session tokens can recover from missing/expired in-memory cache without forcing a re-login.
+- Added an async-first in-memory OIDC `id_token` cache with sliding idle TTL and bounded LRU eviction, and limited websocket token registry writes to active websocket sessions.
 - Reduced OIDC session cookie size by issuing compact Dara session tokens and caching raw OIDC `id_token` server-side per session.
 
 ## 1.26.1

@@ -451,11 +451,16 @@ async def ws_handler(websocket: WebSocket):
 
         # Handle verify_token being async
         verifier = auth_config.verify_token
+        token_content: TokenData
 
         if inspect.iscoroutinefunction(verifier):
             token_content = await verifier(session_token)
         else:
-            token_content = verifier(session_token)
+            verified_token = verifier(session_token)
+            if inspect.isawaitable(verified_token):
+                token_content = await verified_token
+            else:
+                token_content = verified_token
 
     except DecodeError as err:
         raise WebSocketException(code=403, reason='Invalid or expired token') from err

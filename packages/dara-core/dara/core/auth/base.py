@@ -16,7 +16,7 @@ limitations under the License.
 """
 
 import abc
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import ClassVar
 
 from fastapi import HTTPException, Response
@@ -99,7 +99,7 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         """
 
     @abc.abstractmethod
-    def verify_token(self, token: str) -> TokenData:
+    def verify_token(self, token: str) -> TokenData | Awaitable[TokenData]:
         """
         Verify a session token.
 
@@ -122,7 +122,9 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         """
         raise HTTPException(400, f'Auth config {self.__class__.__name__} does not support token refresh')
 
-    def revoke_token(self, token: str, response: Response) -> SuccessResponse | RedirectResponse:
+    def revoke_token(
+        self, token: str, response: Response
+    ) -> SuccessResponse | RedirectResponse | Awaitable[SuccessResponse | RedirectResponse]:
         """
         Revoke a session token.
 
