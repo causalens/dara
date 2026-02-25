@@ -43,7 +43,7 @@
     "@darajs/styled-components": "1.26.2",
     "@darajs/ui-icons": "1.26.2",
     "@darajs/ui-utils": "1.26.2",
-    "lodash": "4.17.21",
+    "lodash": "4.17.23",
     "polished": "^4.1.1",
     "react": "^18.0",
     "rxjs": "^7.0.0"
