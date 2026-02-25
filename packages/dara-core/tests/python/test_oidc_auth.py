@@ -15,6 +15,7 @@ from jwt import PyJWK
 
 from dara.core.auth.definitions import (
     EXPIRED_TOKEN_ERROR,
+    INVALID_TOKEN_ERROR,
     JWT_ALGO,
     OTHER_AUTH_ERROR,
     SESSION_TOKEN_COOKIE_NAME,
@@ -803,8 +804,116 @@ async def test_verify_token_compact_token_without_cached_id_token_fails():
 
     auth_config = make_config()
 
-    with pytest.raises(AuthError):
+    with pytest.raises(AuthError) as error:
         auth_config.verify_token(session_token)
+
+    assert error.value.code == 401
+    assert error.value.detail == INVALID_TOKEN_ERROR
+
+
+async def test_verify_token_compact_token_with_malformed_cached_token_fails():
+    """
+    Test compact Dara OIDC token verification fails when cached token data is malformed.
+    """
+    session_id = str(uuid4())
+    token_data = {
+        'session_id': session_id,
+        'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+        'identity_id': 'PERSONA_ID',
+        'identity_name': 'USERNAME',
+        'identity_email': 'username@causalens.com',
+        'groups': ['dev'],
+    }
+    session_token = jwt.encode(
+        token_data,
+        get_settings().jwt_secret,
+        algorithm=JWT_ALGO,
+    )
+
+    from dara.core.internal.registries import session_auth_token_registry
+
+    session_auth_token_registry.set(
+        session_id,
+        TokenData(
+            session_id=session_id,
+            exp=token_data['exp'],
+            identity_id=token_data['identity_id'],
+            identity_name=token_data['identity_name'],
+            identity_email=token_data['identity_email'],
+            groups=token_data['groups'],
+            id_token=None,
+        ),
+    )
+
+    auth_config = make_config()
+
+    with pytest.raises(AuthError) as error:
+        auth_config.verify_token(session_token)
+
+    assert error.value.code == 401
+    assert error.value.detail == INVALID_TOKEN_ERROR
+
+
+async def test_verify_session_compact_token_without_cached_id_token_forces_relogin():
+    """
+    Test compact token verification through /verify-session returns invalid token when cache is missing.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        compact_token = jwt.encode(
+            {
+                'session_id': str(uuid4()),
+                'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+                'identity_id': 'PERSONA_ID',
+                'identity_name': 'USERNAME',
+                'identity_email': 'username@causalens.com',
+                'groups': ['dev'],
+            },
+            ENV_OVERRIDE['JWT_SECRET'],
+            algorithm=JWT_ALGO,
+        )
+
+        response = await client.post(
+            '/api/auth/verify-session',
+            headers={'Authorization': f'Bearer {compact_token}'},
+        )
+
+        assert response.status_code == 401
+        assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
+async def test_verify_session_malformed_token_forces_relogin():
+    """
+    Test malformed signed Dara token through /verify-session returns invalid token instead of server error.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        malformed_token = jwt.encode(
+            {
+                'session_id': str(uuid4()),
+                'exp': (datetime.now(tz=timezone.utc) + timedelta(hours=2)),
+            },
+            ENV_OVERRIDE['JWT_SECRET'],
+            algorithm=JWT_ALGO,
+        )
+
+        response = await client.post(
+            '/api/auth/verify-session',
+            headers={'Authorization': f'Bearer {malformed_token}'},
+        )
+
+        assert response.status_code == 401
+        assert response.json()['detail'] == INVALID_TOKEN_ERROR
 
 
 async def test_verify_token_decodes_id_token_correctly():

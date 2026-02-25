@@ -22,6 +22,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
+from pydantic import ValidationError
 
 from dara.core.auth.definitions import (
     EXPIRED_TOKEN_ERROR,
@@ -73,6 +74,8 @@ def decode_token(token: str, **kwargs) -> TokenData:
     except jwt.ExpiredSignatureError as e:
         raise AuthError(code=401, detail=EXPIRED_TOKEN_ERROR) from e
     except jwt.DecodeError as e:
+        raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from e
+    except ValidationError as e:
         raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from e
 
 
