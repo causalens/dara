@@ -13,7 +13,7 @@
     "postcss-styled-syntax": "^0.6.4",
     "stylelint": "^15.0.0",
     "stylelint-config-clean-order": "^5.0.0",
-    "stylelint-config-standard": "^34.0.0",
+    "stylelint-config-standard": "^40.0.0",
     "stylelint-order": "^6.0.3"
   },
   "publishConfig": {
