@@ -193,9 +193,9 @@ const Tag = styled.span<TagProps>`
 
 const TagText = styled.span<{ size?: number }>`
     overflow: hidden;
+    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
 `;
 
 export interface MultiSelectProps extends InteractiveComponentProps<Array<Item>> {

@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed auth recovery when stale session cookies are present by clearing both auth cookies on `/auth/refresh-token` requests with missing refresh token.
+- Added a client-side warning banner for insecure non-local origins (`http` on hosts like `0.0.0.0`) to explain that secure auth cookies may not work and recommend `https` or `localhost`.
+
 ## 1.26.2
 
 - Reduced OIDC session cookie size by issuing compact Dara session tokens and caching raw OIDC `id_token` server-side per session.

@@ -268,6 +268,62 @@ async def test_refresh_token_missing():
         )
         assert response.status_code == 400
         assert response.json()['detail']['message'] == 'No refresh token provided'
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith('dara_refresh_token="";') for cookie in cleared_cookies)
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+
+async def test_refresh_token_missing_with_stale_session_cookie_clears_auth_cookies():
+    config = ConfigurationBuilder()
+    config.add_auth(BasicAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={SESSION_TOKEN_COOKIE_NAME: 'stale-token'},
+        )
+        assert response.status_code == 400
+        assert response.json()['detail']['message'] == 'No refresh token provided'
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith('dara_refresh_token="";') for cookie in cleared_cookies)
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+
+async def test_stale_session_cookie_recovers_after_refresh_attempt():
+    """
+    Regression test for stale/non-JWT session cookie recovery:
+    verify-session fails, then refresh-token clears auth cookies.
+    """
+    config = ConfigurationBuilder()
+    config.add_auth(BasicAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        stale_cookie = 'stale-token'
+
+        verify_response = await client.post(
+            '/api/auth/verify-session',
+            cookies={SESSION_TOKEN_COOKIE_NAME: stale_cookie},
+        )
+        assert verify_response.status_code == 401
+
+        refresh_response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={SESSION_TOKEN_COOKIE_NAME: stale_cookie},
+        )
+        assert refresh_response.status_code == 400
+        assert refresh_response.json()['detail']['message'] == 'No refresh token provided'
+        cleared_cookies = refresh_response.headers.getall('set-cookie')
+        assert any(cookie.startswith('dara_refresh_token="";') for cookie in cleared_cookies)
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+        # Cookie jar should no longer contain stale auth cookies after refresh response.
+        followup_verify_response = await client.post('/api/auth/verify-session')
+        assert followup_verify_response.status_code == 400
+        assert followup_verify_response.json()['detail']['message'] == 'No auth credentials passed'
 
 
 async def test_refresh_token_unsupported():
