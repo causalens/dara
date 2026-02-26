@@ -2,7 +2,7 @@ import { transparentize } from 'polished';
 
 import styled from '@darajs/styled-components';
 
-import { shouldWarnAboutInsecureAuthOrigin } from '@/auth/origin-security';
+import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthOrigin } from '@/auth/origin-security';
 
 const Banner = styled.div`
     padding: 0.75rem 1rem;
@@ -29,11 +29,12 @@ function InsecureOriginBanner(): JSX.Element | null {
         return null;
     }
 
+    const recommendedOrigin = getAuthOriginRecommendation(window.location);
+
     return (
         <Banner role="alert">
             This app is running on <InlineCode>{window.location.origin}</InlineCode> which may prevent core Dara
-            features from working reliably. Use <InlineCode>https://...</InlineCode> or{' '}
-            <InlineCode>http://localhost:...</InlineCode> for local development.
+            features from working reliably. Open it at <InlineCode>{recommendedOrigin}</InlineCode>.
         </Banner>
     );
 }
