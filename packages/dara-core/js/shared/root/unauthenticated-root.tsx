@@ -10,6 +10,7 @@ import { GlobalStyle } from '@/global-styles';
 import { useConfig } from '../context/config-context';
 import { useVariable } from '../interactivity';
 import { PathParamSync, RouteMatchSync } from '../interactivity/persistence';
+import InsecureOriginBanner from './insecure-origin-banner';
 import { resolveTheme } from '../utils';
 import useUrlSync from '../utils/use-url-sync';
 
@@ -62,6 +63,7 @@ function UnauthenticatedRoot(): JSX.Element {
             <RouteMatchSync>
                 <RecoilURLSync {...syncOptions}>
                     <StyleRoot>
+                        <InsecureOriginBanner />
                         <Outlet />
                     </StyleRoot>
                 </RecoilURLSync>

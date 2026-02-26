@@ -1,4 +1,5 @@
 import { resolveReferrer } from '@/auth/auth';
+import { shouldWarnAboutInsecureAuthOrigin } from '@/auth/origin-security';
 
 describe('resolve_referrer', () => {
     const originalWindowLocation = window.location;
@@ -33,5 +34,43 @@ describe('resolve_referrer', () => {
         };
 
         expect(resolveReferrer()).toBe('%2Froute');
+    });
+});
+
+describe('shouldWarnAboutInsecureAuthOrigin', () => {
+    it('returns false for https origins', () => {
+        expect(
+            shouldWarnAboutInsecureAuthOrigin({
+                hostname: 'example.com',
+                protocol: 'https:',
+            })
+        ).toBe(false);
+    });
+
+    it('returns false for localhost over http', () => {
+        expect(
+            shouldWarnAboutInsecureAuthOrigin({
+                hostname: 'localhost',
+                protocol: 'http:',
+            })
+        ).toBe(false);
+    });
+
+    it('returns false for loopback over http', () => {
+        expect(
+            shouldWarnAboutInsecureAuthOrigin({
+                hostname: '127.0.0.1',
+                protocol: 'http:',
+            })
+        ).toBe(false);
+    });
+
+    it('returns true for non-localhost http origins', () => {
+        expect(
+            shouldWarnAboutInsecureAuthOrigin({
+                hostname: '0.0.0.0',
+                protocol: 'http:',
+            })
+        ).toBe(true);
     });
 });
