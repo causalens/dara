@@ -79,26 +79,33 @@ describe('getAuthOriginRecommendation', () => {
     it('recommends localhost when served from 0.0.0.0', () => {
         expect(
             getAuthOriginRecommendation({
-                hash: '#abc',
                 host: '0.0.0.0:8001',
                 hostname: '0.0.0.0',
                 pathname: '/app',
                 protocol: 'http:',
-                search: '?a=1',
             })
-        ).toBe('http://localhost:8001/app?a=1#abc');
+        ).toBe('http://localhost:8001/app');
     });
 
     it('recommends https for non-localhost origins', () => {
         expect(
             getAuthOriginRecommendation({
-                hash: '#section',
                 host: 'example.com:8080',
                 hostname: 'example.com',
                 pathname: '/auth',
                 protocol: 'http:',
-                search: '?next=%2Fdashboard',
             })
-        ).toBe('https://example.com:8080/auth?next=%2Fdashboard#section');
+        ).toBe('https://example.com:8080/auth');
+    });
+
+    it('does not append query params or hash fragments', () => {
+        expect(
+            getAuthOriginRecommendation({
+                host: '0.0.0.0:8001',
+                hostname: '0.0.0.0',
+                pathname: '/login',
+                protocol: 'http:',
+            })
+        ).toBe('http://localhost:8001/login');
     });
 });

@@ -1,10 +1,8 @@
 interface LocationLike {
-    hash?: string;
     host?: string;
     protocol: string;
     hostname: string;
     pathname?: string;
-    search?: string;
 }
 
 function isLoopbackHostname(hostname: string): boolean {
@@ -33,17 +31,14 @@ export function shouldWarnAboutInsecureAuthOrigin(location: LocationLike): boole
     return !isLoopbackHostname(location.hostname);
 }
 
-function getLocationSuffix(location: LocationLike): string {
-    return `${location.pathname || ''}${location.search || ''}${location.hash || ''}`;
-}
-
 export function getAuthOriginRecommendation(location: LocationLike): string {
     const host = location.host || location.hostname;
+    const pathname = location.pathname || '';
 
     if (location.hostname.toLowerCase() === '0.0.0.0') {
         const localhostHost = host.replace(/^0\.0\.0\.0/i, 'localhost');
-        return `http://${localhostHost}${getLocationSuffix(location)}`;
+        return `http://${localhostHost}${pathname}`;
     }
 
-    return `https://${host}${getLocationSuffix(location)}`;
+    return `https://${host}${pathname}`;
 }
