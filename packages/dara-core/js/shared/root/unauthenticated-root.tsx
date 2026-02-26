@@ -10,9 +10,9 @@ import { GlobalStyle } from '@/global-styles';
 import { useConfig } from '../context/config-context';
 import { useVariable } from '../interactivity';
 import { PathParamSync, RouteMatchSync } from '../interactivity/persistence';
-import InsecureOriginBanner from './insecure-origin-banner';
 import { resolveTheme } from '../utils';
 import useUrlSync from '../utils/use-url-sync';
+import InsecureOriginBanner from './insecure-origin-banner';
 
 function StyleRoot(props: { children: ReactNode }): JSX.Element {
     const config = useConfig();
