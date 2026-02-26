@@ -31,12 +31,11 @@ function InsecureOriginBanner(): JSX.Element | null {
 
     return (
         <Banner role="alert">
-            Authentication cookies are marked <InlineCode>Secure</InlineCode> and may be blocked on{' '}
-            <InlineCode>{window.location.origin}</InlineCode>. Use <InlineCode>https://...</InlineCode> or{' '}
+            This app is running on <InlineCode>{window.location.origin}</InlineCode> which may prevent core Dara
+            features from working reliably. Use <InlineCode>https://...</InlineCode> or{' '}
             <InlineCode>http://localhost:...</InlineCode> for local development.
         </Banner>
     );
 }
 
 export default InsecureOriginBanner;
-
