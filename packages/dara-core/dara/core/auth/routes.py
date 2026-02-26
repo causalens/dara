@@ -328,21 +328,21 @@ async def handle_refresh_token(
     :param dara_refresh_token: refresh token cookie
     :param settings: env settings object
     """
-    if dara_refresh_token is None:
-        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No refresh token provided'))
-
-    token = _get_auth_token(
-        request,
-        dara_session_token,
-        missing_message='No session token provided',
-        invalid_scheme_message='Invalid authentication scheme, previous Bearer token must be included in the refresh request',
-    )
-
-    from dara.core.internal.registries import auth_registry
-
-    auth_config: BaseAuthConfig = auth_registry.get('auth_config')
-
     try:
+        if dara_refresh_token is None:
+            raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('No refresh token provided'))
+
+        token = _get_auth_token(
+            request,
+            dara_session_token,
+            missing_message='No session token provided',
+            invalid_scheme_message='Invalid authentication scheme, previous Bearer token must be included in the refresh request',
+        )
+
+        from dara.core.internal.registries import auth_registry
+
+        auth_config: BaseAuthConfig = auth_registry.get('auth_config')
+
         await _refresh_session(auth_config, token, dara_refresh_token, response)
         return {'success': True}
     except BaseException as e:

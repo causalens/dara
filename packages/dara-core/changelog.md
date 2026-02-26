@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed auth recovery when stale session cookies are present by clearing both auth cookies on `/auth/refresh-token` requests with missing refresh token.
+
 ## 1.26.2
 
 - Reduced OIDC session cookie size by issuing compact Dara session tokens and caching raw OIDC `id_token` server-side per session.
