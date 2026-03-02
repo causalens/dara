@@ -5,7 +5,7 @@ title: Changelog
 ## NEXT
 
 - Fixed auth recovery when stale session cookies are present by clearing both auth cookies on `/auth/refresh-token` requests with missing refresh token.
-- Added a client-side warning banner for insecure non-local origins (`http` on hosts like `0.0.0.0`) to explain that secure auth cookies may not work and recommend `https` or `localhost`.
+- Added a client-side warning banner when the browser reports an insecure context (`window.isSecureContext === false`) and recommend opening the app at `localhost` (for `0.0.0.0`) or `https`.
 
 ## 1.26.2
 

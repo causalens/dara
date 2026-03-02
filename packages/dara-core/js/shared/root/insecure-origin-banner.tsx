@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 
 import styled from '@darajs/styled-components';
 
-import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthOrigin } from '@/auth/origin-security';
+import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '@/auth/origin-security';
 
 const Banner = styled.div`
     position: fixed;
@@ -42,7 +42,7 @@ function InsecureOriginBanner(): JSX.Element | null {
         return null;
     }
 
-    if (!shouldWarnAboutInsecureAuthOrigin(window.location)) {
+    if (!shouldWarnAboutInsecureAuthContext(window)) {
         return null;
     }
 

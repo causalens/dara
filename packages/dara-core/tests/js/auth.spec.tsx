@@ -1,5 +1,5 @@
 import { resolveReferrer } from '@/auth/auth';
-import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthOrigin } from '@/auth/origin-security';
+import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '@/auth/origin-security';
 
 describe('resolve_referrer', () => {
     const originalWindowLocation = window.location;
@@ -37,39 +37,19 @@ describe('resolve_referrer', () => {
     });
 });
 
-describe('shouldWarnAboutInsecureAuthOrigin', () => {
-    it('returns false for https origins', () => {
+describe('shouldWarnAboutInsecureAuthContext', () => {
+    it('returns false for secure contexts', () => {
         expect(
-            shouldWarnAboutInsecureAuthOrigin({
-                hostname: 'example.com',
-                protocol: 'https:',
+            shouldWarnAboutInsecureAuthContext({
+                isSecureContext: true,
             })
         ).toBe(false);
     });
 
-    it('returns false for localhost over http', () => {
+    it('returns true for insecure contexts', () => {
         expect(
-            shouldWarnAboutInsecureAuthOrigin({
-                hostname: 'localhost',
-                protocol: 'http:',
-            })
-        ).toBe(false);
-    });
-
-    it('returns false for loopback over http', () => {
-        expect(
-            shouldWarnAboutInsecureAuthOrigin({
-                hostname: '127.0.0.1',
-                protocol: 'http:',
-            })
-        ).toBe(false);
-    });
-
-    it('returns true for non-localhost http origins', () => {
-        expect(
-            shouldWarnAboutInsecureAuthOrigin({
-                hostname: '0.0.0.0',
-                protocol: 'http:',
+            shouldWarnAboutInsecureAuthContext({
+                isSecureContext: false,
             })
         ).toBe(true);
     });
@@ -82,7 +62,6 @@ describe('getAuthOriginRecommendation', () => {
                 host: '0.0.0.0:8001',
                 hostname: '0.0.0.0',
                 pathname: '/app',
-                protocol: 'http:',
             })
         ).toBe('http://localhost:8001/app');
     });
@@ -93,7 +72,6 @@ describe('getAuthOriginRecommendation', () => {
                 host: 'example.com:8080',
                 hostname: 'example.com',
                 pathname: '/auth',
-                protocol: 'http:',
             })
         ).toBe('https://example.com:8080/auth');
     });
@@ -104,7 +82,6 @@ describe('getAuthOriginRecommendation', () => {
                 host: '0.0.0.0:8001',
                 hostname: '0.0.0.0',
                 pathname: '/login',
-                protocol: 'http:',
             })
         ).toBe('http://localhost:8001/login');
     });
