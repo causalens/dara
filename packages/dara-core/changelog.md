@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.3
 
 - Fixed auth recovery when stale session cookies are present by clearing both auth cookies on `/auth/refresh-token` requests with missing refresh token.
 - Added a client-side warning banner when the browser reports an insecure context (`window.isSecureContext === false`) and recommend opening the app at `localhost` (for `0.0.0.0`) or `https`.
