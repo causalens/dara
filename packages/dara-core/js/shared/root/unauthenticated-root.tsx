@@ -12,6 +12,7 @@ import { useVariable } from '../interactivity';
 import { PathParamSync, RouteMatchSync } from '../interactivity/persistence';
 import { resolveTheme } from '../utils';
 import useUrlSync from '../utils/use-url-sync';
+import InsecureOriginBanner from './insecure-origin-banner';
 
 function StyleRoot(props: { children: ReactNode }): JSX.Element {
     const config = useConfig();
@@ -62,6 +63,7 @@ function UnauthenticatedRoot(): JSX.Element {
             <RouteMatchSync>
                 <RecoilURLSync {...syncOptions}>
                     <StyleRoot>
+                        <InsecureOriginBanner />
                         <Outlet />
                     </StyleRoot>
                 </RecoilURLSync>

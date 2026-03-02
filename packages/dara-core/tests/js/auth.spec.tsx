@@ -1,4 +1,5 @@
 import { resolveReferrer } from '@/auth/auth';
+import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '@/auth/origin-security';
 
 describe('resolve_referrer', () => {
     const originalWindowLocation = window.location;
@@ -33,5 +34,55 @@ describe('resolve_referrer', () => {
         };
 
         expect(resolveReferrer()).toBe('%2Froute');
+    });
+});
+
+describe('shouldWarnAboutInsecureAuthContext', () => {
+    it('returns false for secure contexts', () => {
+        expect(
+            shouldWarnAboutInsecureAuthContext({
+                isSecureContext: true,
+            })
+        ).toBe(false);
+    });
+
+    it('returns true for insecure contexts', () => {
+        expect(
+            shouldWarnAboutInsecureAuthContext({
+                isSecureContext: false,
+            })
+        ).toBe(true);
+    });
+});
+
+describe('getAuthOriginRecommendation', () => {
+    it('recommends localhost when served from 0.0.0.0', () => {
+        expect(
+            getAuthOriginRecommendation({
+                host: '0.0.0.0:8001',
+                hostname: '0.0.0.0',
+                pathname: '/app',
+            })
+        ).toBe('http://localhost:8001/app');
+    });
+
+    it('recommends https for non-localhost origins', () => {
+        expect(
+            getAuthOriginRecommendation({
+                host: 'example.com:8080',
+                hostname: 'example.com',
+                pathname: '/auth',
+            })
+        ).toBe('https://example.com:8080/auth');
+    });
+
+    it('does not append query params or hash fragments', () => {
+        expect(
+            getAuthOriginRecommendation({
+                host: '0.0.0.0:8001',
+                hostname: '0.0.0.0',
+                pathname: '/login',
+            })
+        ).toBe('http://localhost:8001/login');
     });
 });

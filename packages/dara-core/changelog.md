@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed auth recovery when stale session cookies are present by clearing both auth cookies on `/auth/refresh-token` requests with missing refresh token.
+- Added a client-side warning banner when the browser reports an insecure context (`window.isSecureContext === false`) and recommend opening the app at `localhost` (for `0.0.0.0`) or `https`.
+
 ## 1.26.2
 
 - Reduced OIDC session cookie size by issuing compact Dara session tokens and caching raw OIDC `id_token` server-side per session.
