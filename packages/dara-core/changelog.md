@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.4
 
 - Added recovery mechanism for persistent store when sequence number mismatch is detected
 

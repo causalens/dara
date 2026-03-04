@@ -158,13 +158,13 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "cachetools"
-version = "7.0.1"
+version = "7.0.2"
 description = "Extensible memoizing collections and decorators"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "cachetools-7.0.1-py3-none-any.whl", hash = "sha256:8f086515c254d5664ae2146d14fc7f65c9a4bce75152eb247e5a9c5e6d7b2ecf"},
-    {file = "cachetools-7.0.1.tar.gz", hash = "sha256:e31e579d2c5b6e2944177a0397150d312888ddf4e16e12f1016068f0c03b8341"},
+    {file = "cachetools-7.0.2-py3-none-any.whl", hash = "sha256:938dcad184827c5e94928c4fd5526e2b46692b7fb1ae94472da9131d0299343c"},
+    {file = "cachetools-7.0.2.tar.gz", hash = "sha256:7e7f09a4ca8b791d8bb4864afc71e9c17e607a28e6839ca1a644253c97dbeae0"},
 ]
 
 [[package]]
@@ -293,13 +293,38 @@ pycparser = {version = "*", markers = "implementation_name != \"PyPy\""}
 
 [[package]]
 name = "chardet"
-version = "6.0.0.post1"
-description = "Universal encoding detector for Python 3"
+version = "7.0.0"
+description = "Universal character encoding detector"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "chardet-6.0.0.post1-py3-none-any.whl", hash = "sha256:c894a36800549adf7bb5f2af47033281b75fdfcd2aa0f0243be0ad22a52e2dcb"},
-    {file = "chardet-6.0.0.post1.tar.gz", hash = "sha256:6b78048c3c97c7b2ed1fbad7a18f76f5a6547f7d34dbab536cc13887c9a92fa4"},
+    {file = "chardet-7.0.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1c174e06e0be69c84bcec4fb21c416cc6c9858f47c814b8c632d55c7a8739263"},
+    {file = "chardet-7.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:daef86877738cb7d310bc8d74ca73e98c543d07c5d2e0b957779591d38796651"},
+    {file = "chardet-7.0.0-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:23a7c9aa3674f62721d6c34a3666d8c28aff0ec5908790f3985a73b10b355be4"},
+    {file = "chardet-7.0.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:49966634d83fc7ebc305a31cf931fc398118805d838b3c123b2ddb78d5ace9f3"},
+    {file = "chardet-7.0.0-cp310-cp310-win_amd64.whl", hash = "sha256:432c4c063ca184eeb3da7d2803b7f3681a7ae352b538d8c6ef86d15eab1448a1"},
+    {file = "chardet-7.0.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:884cbd66256e7d82b885d1c3ed4d8c7b0285ea329f41a475f4d13d17b6047f44"},
+    {file = "chardet-7.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:11bb4541efc6b82ca7809d8044fed19ee3c8d0a0e2632dfe9f9e0828bda48883"},
+    {file = "chardet-7.0.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:79f8a53a25596c21a1f6df75cc948ab83bf443978cdad64de4595484a426716b"},
+    {file = "chardet-7.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ada0fada6199007f9c46e7a43f8563e0c843d98e8a491f15e0209198d1912f85"},
+    {file = "chardet-7.0.0-cp311-cp311-win_amd64.whl", hash = "sha256:6751ef77c6826b464615a25adff8887a64a061a9a4c61fb61c2d1bb4d90a5630"},
+    {file = "chardet-7.0.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:4108c8dde681107d73f2b2e3fb74c3a521eed97024547ce4b7b191da5fd6b2ac"},
+    {file = "chardet-7.0.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f81d9b6caa13e0c9db313f6f6bcce00a6f6cbfa786abfbdbf222924ebe4d13f1"},
+    {file = "chardet-7.0.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:25682c2655978e247b45dcc9eccce497599886745aaee1205a23d43cb5aa93f3"},
+    {file = "chardet-7.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f71dcd89e24f77439cdaf1398b79adcb21b7e8f42b3e92b359dfba4271212c39"},
+    {file = "chardet-7.0.0-cp312-cp312-win_amd64.whl", hash = "sha256:8bfe685e10855f7e8a89a18830088db4988768df5935f5febd8dedf933b3fbd4"},
+    {file = "chardet-7.0.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:7d8bf5429bbba5d3c3709af873753e00d03352389177e65b2d00732ef0a28619"},
+    {file = "chardet-7.0.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:23ceffa098b95da7ffa88aaf62c45e316438f2c7ea9e0c63cf42a5c0361fa505"},
+    {file = "chardet-7.0.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:6e74e95c1284c374e05aa061f5629ba3f13cb82e3040395447b4de9659b155ff"},
+    {file = "chardet-7.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8657ef6a394b64e7dc36c7a5bfcdc653cb99909a0292a83707db0e0da84b34a3"},
+    {file = "chardet-7.0.0-cp313-cp313-win_amd64.whl", hash = "sha256:cc175fa09a813297a2db957ea71e7a5b708cf2cff4b8e2e7580e3ffd1940f1ad"},
+    {file = "chardet-7.0.0-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:8883e3fd31f8125952c3c4d8b3a0245f5095268706a43794f4431c74744e3cb8"},
+    {file = "chardet-7.0.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:8102637cb2695535f35f2f6a1df3edd5c0a3b63f3572d52a88a83f3d4a50e556"},
+    {file = "chardet-7.0.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:89889ec2f64e49956d70e35c57e4d52bb7680616de8577beefef081edf9f7216"},
+    {file = "chardet-7.0.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8aeb797bd40a75f620feb6f4ed3aaa48ea969b8f5ff537b23043a08efbf135fe"},
+    {file = "chardet-7.0.0-cp314-cp314-win_amd64.whl", hash = "sha256:ebf9d2af092f2660b43a25b4043ab5d72f0714106edc580b41ea5a3d03b0760c"},
+    {file = "chardet-7.0.0-py3-none-any.whl", hash = "sha256:d5a8f8edda42b016352de4cdb36e1145e19a66ddd5ac42a1b2bbb6592f4d070c"},
+    {file = "chardet-7.0.0.tar.gz", hash = "sha256:5272ea14c48cb5f38e87e698c641a7ea2a8b1db6c42ea729527fbe8bd621f39c"},
 ]
 
 [[package]]
@@ -527,13 +552,13 @@ test-no-images = ["pytest", "pytest-cov", "pytest-rerunfailures", "pytest-xdist"
 
 [[package]]
 name = "cookiecutter"
-version = "2.7.0"
+version = "2.7.1"
 description = "A command-line utility that creates projects from project templates, e.g. creating a Python package project from a Python package project template."
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "cookiecutter-2.7.0-py3-none-any.whl", hash = "sha256:08dc4398e2d8a57771c20703fa10f8d03952e870eddd46bbb832161dc784fa3d"},
-    {file = "cookiecutter-2.7.0.tar.gz", hash = "sha256:b0bf50141201ebf022c95e3fa02a760b64e600b3675d6dabf97563425a62a707"},
+    {file = "cookiecutter-2.7.1-py3-none-any.whl", hash = "sha256:cee50defc1eaa7ad0071ee9b9893b746c1b3201b66bf4d3686d0f127c8ed6cf9"},
+    {file = "cookiecutter-2.7.1.tar.gz", hash = "sha256:ca7bb7bc8c6ff441fbf53921b5537668000e38d56e28d763a1b73975c66c6138"},
 ]
 
 [package.dependencies]
@@ -548,7 +573,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.26.3"
+version = "1.26.4"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -668,7 +693,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.26.3"
+version = "1.26.4"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -679,7 +704,7 @@ develop = true
 bokeh = "3.1.1"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.26.3"
+dara-core = "1.26.4"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -693,7 +718,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.26.3"
+version = "1.26.4"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -738,7 +763,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.26.3)"]
+all = ["dara-components (==1.26.4)"]
 
 [package.source]
 type = "directory"
@@ -757,7 +782,7 @@ files = [
 
 [[package]]
 name = "demo-app"
-version = "1.26.3"
+version = "1.26.4"
 description = "Demo App"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -765,8 +790,8 @@ files = []
 develop = true
 
 [package.dependencies]
-dara-components = "1.26.3"
-dara-core = "1.26.3"
+dara-components = "1.26.4"
+dara-core = "1.26.4"
 
 [package.source]
 type = "directory"
@@ -789,7 +814,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -2026,7 +2051,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -2504,13 +2529,13 @@ unidecode = ["Unidecode (>=1.1.1)"]
 
 [[package]]
 name = "pytz"
-version = "2025.2"
+version = "2026.1.post1"
 description = "World timezone definitions, modern and historical"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"},
-    {file = "pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3"},
+    {file = "pytz-2026.1.post1-py2.py3-none-any.whl", hash = "sha256:f2fd16142fda348286a75e1a524be810bb05d444e5a081f37f7affc635035f7a"},
+    {file = "pytz-2026.1.post1.tar.gz", hash = "sha256:3378dde6a0c3d26719182142c56e60c7f9af7e968076f31aae569d72a0358ee1"},
 ]
 
 [[package]]
@@ -2844,7 +2869,7 @@ files = [
 
 [[package]]
 name = "styled-components"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -2857,7 +2882,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3067,7 +3092,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3080,7 +3105,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3093,7 +3118,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3106,7 +3131,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3119,7 +3144,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3132,7 +3157,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3145,7 +3170,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.26.3"
+version = "1.26.4"
 description = ""
 optional = false
 python-versions = "*"
@@ -3483,4 +3508,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<3.13.0"
-content-hash = "4f4fa3f2a5175c069322de733bb18bbe8fd89075a0fc6ffd39360152e5ca6103"
+content-hash = "454cab96b312b68b87f78e9151bcd2e2c5b87ba796b214e1dd93ad47226ec2e0"
