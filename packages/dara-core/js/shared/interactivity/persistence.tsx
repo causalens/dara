@@ -2,6 +2,7 @@ import { mixed } from '@recoiljs/refine';
 import { applyPatch } from 'fast-json-patch';
 import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
+import PQueue from 'p-queue';
 import * as React from 'react';
 import { type Params, type UIMatch, generatePath, useLocation, useMatches, useNavigate, useParams } from 'react-router';
 import { type AtomEffect, DefaultValue, type RecoilState, useRecoilCallback } from 'recoil';
@@ -63,6 +64,41 @@ const STORE_LATEST_VALUE_MAP = new Map<string, any>();
  */
 const STORE_RECOVERY_IN_PROGRESS = new Set<string>();
 
+type ApplyPatchesFn = (
+    storeUid: string,
+    patches: BackendStorePatchMessage['message']['patches'],
+    sequenceNumber: number
+) => Promise<void>;
+
+/**
+ * Queues patch applications per store to guarantee patches are applied in the order they arrive,
+ * even when individual applications are async (e.g. recovery fetches).
+ */
+class PatchQueue {
+    private queues = new Map<string, PQueue>();
+
+    private getQueue(storeUid: string): PQueue {
+        let queue = this.queues.get(storeUid);
+        if (!queue) {
+            queue = new PQueue({ concurrency: 1 });
+            this.queues.set(storeUid, queue);
+        }
+        return queue;
+    }
+
+    enqueue(
+        storeUid: string,
+        patches: BackendStorePatchMessage['message']['patches'],
+        sequenceNumber: number,
+        applyFn: ApplyPatchesFn
+    ): void {
+        const queue = this.getQueue(storeUid);
+        void queue.add(() => applyFn(storeUid, patches, sequenceNumber));
+    }
+}
+
+const PATCH_QUEUE = new PatchQueue();
+
 /**
  * Shared item key used for the route matches store
  */
@@ -99,7 +135,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             Array.from(diff.entries())
                 .filter(
                     ([itemKey, value]) =>
-                        !STORE_LATEST_VALUE_MAP.has(itemKey) || STORE_LATEST_VALUE_MAP.get(itemKey) !== value
+                        !STORE_LATEST_VALUE_MAP.has(itemKey) || !isEqual(STORE_LATEST_VALUE_MAP.get(itemKey), value)
                 )
                 .forEach(([itemKey, value]) => {
                     STORE_LATEST_VALUE_MAP.set(itemKey, value);
@@ -288,10 +324,9 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                 STORE_LATEST_VALUE_MAP.set(message.store_uid, message.value);
             });
 
-            // Subscribe to patch updates
+            // Subscribe to patch updates — queued per store to preserve ordering
             const patchSub = client.backendStorePatchMessages$().subscribe((message) => {
-                // Apply patches directly to atoms instead of going through RecoilSync
-                applyPatchesToAtoms(message.store_uid, message.patches, message.sequence_number);
+                PATCH_QUEUE.enqueue(message.store_uid, message.patches, message.sequence_number, applyPatchesToAtoms);
             });
 
             return () => {
