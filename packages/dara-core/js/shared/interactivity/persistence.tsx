@@ -93,7 +93,7 @@ class PatchQueue {
         applyFn: ApplyPatchesFn
     ): void {
         const queue = this.getQueue(storeUid);
-        void queue.add(() => applyFn(storeUid, patches, sequenceNumber));
+        queue.add(() => applyFn(storeUid, patches, sequenceNumber));
     }
 }
 
