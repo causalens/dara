@@ -189,6 +189,11 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                 // Validate sequence number to ensure UI state is in sync with backend
                 const expectedSequence = STORE_SEQUENCE_MAP.get(storeUid) || 0;
                 if (sequenceNumber !== expectedSequence + 1) {
+                    // Stale patch that arrived before a recovery updated the sequence — skip it
+                    if (sequenceNumber <= expectedSequence) {
+                        return;
+                    }
+
                     // eslint-disable-next-line no-console
                     console.warn(
                         `Sequence number mismatch for store ${storeUid}. Expected: ${expectedSequence + 1}, Got: ${sequenceNumber}.`
