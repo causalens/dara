@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added recovery mechanism for persistent store when sequence number mismatch is detected
+
 ## 1.26.3
 
 - Fixed auth recovery when stale session cookies are present by clearing both auth cookies on `/auth/refresh-token` requests with missing refresh token.
