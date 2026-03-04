@@ -58,6 +58,12 @@ const STORE_SEQUENCE_MAP = new Map<string, number>();
 const STORE_LATEST_VALUE_MAP = new Map<string, any>();
 
 /**
+ * Global set to track stores that are currently recovering from a sequence mismatch,
+ * preventing multiple concurrent full-state fetches for the same store.
+ */
+const STORE_RECOVERY_IN_PROGRESS = new Set<string>();
+
+/**
  * Shared item key used for the route matches store
  */
 const ROUTE_MATCHES_KEY = '__route_matches';
@@ -93,7 +99,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
             Array.from(diff.entries())
                 .filter(
                     ([itemKey, value]) =>
-                        !STORE_LATEST_VALUE_MAP.has(itemKey) || STORE_LATEST_VALUE_MAP.get(itemKey) !== value
+                        !STORE_LATEST_VALUE_MAP.has(itemKey) || !isEqual(STORE_LATEST_VALUE_MAP.get(itemKey), value)
                 )
                 .forEach(([itemKey, value]) => {
                     STORE_LATEST_VALUE_MAP.set(itemKey, value);
@@ -149,9 +155,42 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                 if (sequenceNumber !== expectedSequence + 1) {
                     // eslint-disable-next-line no-console
                     console.warn(
-                        `Sequence number mismatch for store ${storeUid}. Expected: ${expectedSequence + 1}, Got: ${sequenceNumber}. Rejecting patch.`
+                        `Sequence number mismatch for store ${storeUid}. Expected: ${expectedSequence + 1}, Got: ${sequenceNumber}.`
                     );
-                    // Could trigger a full state refresh here in the future
+
+                    if (!STORE_RECOVERY_IN_PROGRESS.has(storeUid)) {
+                        STORE_RECOVERY_IN_PROGRESS.add(storeUid);
+                        // eslint-disable-next-line no-console
+                        console.warn(`Fetching full state for store ${storeUid} to recover.`);
+
+                        try {
+                            const fullValue = await getStoreValue(storeUid);
+                            const variableUids = STORE_VARIABLE_MAP.get(storeUid);
+                            if (variableUids) {
+                                for (const variableUid of variableUids) {
+                                    const directAtom = atomRegistry.get(variableUid);
+                                    if (directAtom) {
+                                        set(directAtom, fullValue);
+                                        continue;
+                                    }
+                                    const atomFamily = atomFamilyRegistry.get(variableUid);
+                                    if (atomFamily) {
+                                        const familyMembers = atomFamilyMembersRegistry.get(atomFamily);
+                                        if (familyMembers) {
+                                            for (const [, atomInstance] of familyMembers) {
+                                                set(atomInstance, fullValue);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            // eslint-disable-next-line no-console
+                            console.error(`Failed to recover store ${storeUid} after sequence mismatch:`, e);
+                        } finally {
+                            STORE_RECOVERY_IN_PROGRESS.delete(storeUid);
+                        }
+                    }
                     return;
                 }
 
