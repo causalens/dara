@@ -197,6 +197,7 @@ class BackendStore(PersistenceStore):
     sequence_number: dict[str, int] = Field(
         default_factory=dict, exclude=True
     )  # Track sequence numbers per user for patch validation
+    _lock: aiorwlock.RWLock = PrivateAttr(default_factory=aiorwlock.RWLock)
 
     def __init__(
         self,
@@ -428,39 +429,40 @@ class BackendStore(PersistenceStore):
 
         key = await self._get_key()
 
-        # Read current value
-        current_value = await run_user_handler(self.backend.read, (key,))
+        async with self._lock.writer:
+            # Read current value
+            current_value = await run_user_handler(self.backend.read, (key,))
 
-        if current_value is None:
             # If no current value, create an empty dict as the base
-            current_value = {}
+            if current_value is None:
+                current_value = {}
 
-        # Determine if data is patches or a full object
-        if isinstance(data, list) and all(isinstance(item, dict) and 'op' in item for item in data):
-            # Data is a list of patch operations
-            patches = data
+            # Determine if data is patches or a full object
+            if isinstance(data, list) and all(isinstance(item, dict) and 'op' in item for item in data):
+                # Data is a list of patch operations
+                patches = data
 
-            if not isinstance(current_value, (dict, list)):
-                # JSON patches can only be applied to structured data (objects/arrays)
-                raise ValueError(
-                    f'Cannot apply JSON patches to non-structured data. '
-                    f'Current value is of type {type(current_value).__name__}, but patches require dict or list.'
-                )
+                if not isinstance(current_value, dict | list):
+                    # JSON patches can only be applied to structured data (objects/arrays)
+                    raise ValueError(
+                        f'Cannot apply JSON patches to non-structured data. '
+                        f'Current value is of type {type(current_value).__name__}, but patches require dict or list.'
+                    )
 
-            # Apply patches to current value
-            try:
-                updated_value = jsonpatch.apply_patch(current_value, patches, in_place=in_place)
-            except (jsonpatch.InvalidJsonPatch, jsonpatch.JsonPatchException) as e:
-                raise ValueError(f'Invalid JSON patch operation: {e}') from e
-        else:
-            # Data is a full object - generate patches by diffing
-            patches = jsonpatch.make_patch(current_value, data).patch
-            updated_value = data
+                # Apply patches to current value
+                try:
+                    updated_value = jsonpatch.apply_patch(current_value, patches, in_place=in_place)
+                except (jsonpatch.InvalidJsonPatch, jsonpatch.JsonPatchException) as e:
+                    raise ValueError(f'Invalid JSON patch operation: {e}') from e
+            else:
+                # Data is a full object, use jsonpatch to create patches
+                patches = jsonpatch.make_patch(current_value, data).patch
+                updated_value = data
 
-        # Write updated value back to store
-        await run_user_handler(self.backend.write, (key, updated_value))
-        # Increment sequence number for this update
-        self._get_next_sequence_number(key)
+            # Write updated value back to store
+            await run_user_handler(self.backend.write, (key, updated_value))
+            # Increment sequence number for this update
+            self._get_next_sequence_number(key)
 
         if notify:
             # Notify clients about the patches, not the full value
@@ -484,9 +486,9 @@ class BackendStore(PersistenceStore):
 
         key = await self._get_key()
 
-        res = await run_user_handler(self.backend.write, (key, value))
-        # Increment sequence number for this update
-        self._get_next_sequence_number(key)
+        async with self._lock.writer:
+            res = await run_user_handler(self.backend.write, (key, value))
+            self._get_next_sequence_number(key)
 
         if notify:
             await self._notify_value(value, ignore_channel=ignore_channel)
@@ -503,7 +505,8 @@ class BackendStore(PersistenceStore):
         """
 
         key = await self._get_key()
-        return await run_user_handler(self.backend.read, (key,))
+        async with self._lock.reader:
+            return await run_user_handler(self.backend.read, (key,))
 
     async def delete(self, notify=True):
         """

@@ -701,13 +701,21 @@ describe('Variable Persistence', () => {
         });
     });
 
-    test('BackendStore validates sequence numbers', async () => {
+    test('BackendStore recovers from sequence number mismatch by fetching full state', async () => {
         const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        // Mock endpoint to retrieve store value
+        let fetchCount = 0;
+
+        // Mock endpoint to retrieve store value - returns updated value on recovery fetch
         server.use(
             http.get('/api/core/store/:store_uid', () => {
-                return HttpResponse.json({ value: { count: 0 }, sequence_number: 0 });
+                fetchCount++;
+                if (fetchCount === 1) {
+                    return HttpResponse.json({ value: { count: 0 }, sequence_number: 0 });
+                }
+                // Recovery fetch returns the latest server state
+                return HttpResponse.json({ value: { count: 50 }, sequence_number: 999 });
             })
         );
 
@@ -750,22 +758,166 @@ describe('Variable Persistence', () => {
             expect(result.current[0]).toEqual({ count: 1 });
         });
 
-        // Send patch with wrong sequence number - value should not change
+        // Send patch with wrong sequence number - should trigger recovery fetch
         act(() => {
             wsClient.receiveMessage({
                 message: {
                     store_uid: 'sequence-validation-store',
                     patches: [{ op: 'replace', path: '/count', value: 999 }],
-                    sequence_number: 999, // Wrong sequence
+                    sequence_number: 999,
                 },
                 type: 'message',
             } as BackendStorePatchMessage);
         });
 
-        // Value should remain unchanged after invalid patch
-        expect(result.current[0]).toEqual({ count: 1 });
+        // After recovery, value should be the full state from the server
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 50 });
+        });
+
+        expect(consoleSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Sequence number mismatch')
+        );
 
         consoleSpy.mockRestore();
+        consoleErrorSpy.mockRestore();
+    });
+
+    test('BackendStore deduplicates concurrent recovery fetches for the same store', async () => {
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        let fetchCount = 0;
+
+        server.use(
+            http.get('/api/core/store/:store_uid', async () => {
+                fetchCount++;
+                if (fetchCount === 1) {
+                    return HttpResponse.json({ value: { count: 0 }, sequence_number: 0 });
+                }
+                // Simulate slow recovery fetch
+                await new Promise((r) => setTimeout(r, 50));
+                return HttpResponse.json({ value: { count: 100 }, sequence_number: 10 });
+            })
+        );
+
+        const wsClient = new MockWebSocketClient('CHANNEL');
+
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: { count: 0 },
+                    nested: [],
+                    store: {
+                        __typename: 'BackendStore',
+                        uid: 'dedup-store',
+                    },
+                    uid: 'dedup-var',
+                } as SingleVariable<any, BackendStore>),
+            {
+                wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper>,
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 0 });
+        });
+
+        // Send multiple mismatched patches rapidly — should only trigger one recovery fetch
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'dedup-store',
+                    patches: [{ op: 'replace', path: '/count', value: 5 }],
+                    sequence_number: 5,
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'dedup-store',
+                    patches: [{ op: 'replace', path: '/count', value: 6 }],
+                    sequence_number: 6,
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'dedup-store',
+                    patches: [{ op: 'replace', path: '/count', value: 7 }],
+                    sequence_number: 7,
+                },
+                type: 'message',
+            } as BackendStorePatchMessage);
+        });
+
+        // Wait for recovery to complete
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ count: 100 });
+        });
+
+        // Only 2 fetches: initial read + 1 recovery (not 3 recoveries)
+        expect(fetchCount).toBe(2);
+
+        consoleSpy.mockRestore();
+        consoleErrorSpy.mockRestore();
+    });
+
+    test('BackendStore echo filter prevents sync of identical values received via WS', async () => {
+        const onSave = vi.fn();
+
+        server.use(
+            http.get('/api/core/store/:store_uid', () => {
+                return HttpResponse.json({ value: { foo: 'bar' }, sequence_number: 0 });
+            }),
+            http.post('/api/core/store', async (info) => {
+                onSave((await info.request.json()) as any);
+                return HttpResponse.json({});
+            })
+        );
+
+        const wsClient = new MockWebSocketClient('CHANNEL');
+
+        const { result } = renderHook(
+            () =>
+                useVariable<any>({
+                    __typename: 'Variable',
+                    default: { foo: 'bar' },
+                    nested: [],
+                    store: {
+                        __typename: 'BackendStore',
+                        uid: 'echo-store',
+                    },
+                    uid: 'echo-var',
+                } as SingleVariable<any, BackendStore>),
+            {
+                wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper>,
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ foo: 'bar' });
+        });
+
+        // Receive a WS full-value message with the same content (different object reference)
+        act(() => {
+            wsClient.receiveMessage({
+                message: {
+                    store_uid: 'echo-store',
+                    value: { foo: 'bar' },
+                    sequence_number: 1,
+                },
+                type: 'message',
+            } as BackendStoreMessage);
+        });
+
+        await waitFor(() => {
+            expect(result.current[0]).toEqual({ foo: 'bar' });
+        });
+
+        // The sync should NOT have posted back to the server since the value is deeply equal
+        expect(onSave).not.toHaveBeenCalled();
     });
 
     test('BackendStore resets sequence number on full value update', async () => {
