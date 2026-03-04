@@ -64,7 +64,7 @@
     "prettier": "^3.0.0",
     "react-test-renderer": "^17.0",
     "rimraf": "^3.0.2",
-    "storybook": "^9.1.17",
+    "storybook": "^9.1.19",
     "stylelint": "^15.0.0",
     "ts-jest": "^29.1.0",
     "tsc-alias": "^1.8.5",
