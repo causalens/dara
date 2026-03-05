@@ -2,6 +2,9 @@
 title: Changelog
 ---
 
+## NEXT
+- Made table sorting case-insensitve
+
 ## 1.26.2
 
 - Added row_data_id_column to the `Table` component, to allow users to set the `data-row-id` property to make it easier to test the table

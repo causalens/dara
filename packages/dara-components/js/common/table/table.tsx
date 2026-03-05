@@ -150,7 +150,8 @@ const compareDateStrings = (a: string, b: string): number =>
 
 const compareNumberStrings = (a: string, b: string): number => coerceValueToUnit(Number(a) - Number(b));
 
-const compareStrings = (a: string, b: string): number => coerceValueToUnit(a.localeCompare(b));
+const compareStrings = (a: string, b: string): number =>
+    coerceValueToUnit((a ?? '').localeCompare(b ?? '', undefined, { sensitivity: 'base' }));
 
 const columnSortTypes: Record<NonNullable<ColumnProps['type']>, (a: any, b: any, id: string) => number> = {
     datetime: (a, b, id) => compareDateStrings(a.values[id], b.values[id]),

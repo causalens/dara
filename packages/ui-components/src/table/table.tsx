@@ -221,6 +221,54 @@ const getSortKey = (sortBy: Array<SortingRule<string>>, columns: Array<TableColu
 };
 
 /**
+ * Case-insensitive alphanumeric sort function for react-table.
+ * Overrides the default alphanumeric sort to compare strings without regard to case.
+ */
+const caseInsensitiveAlphanumeric = (rowA: any, rowB: any, columnId: string): number => {
+    const reSplitAlphaNumeric = /([0-9]+)/gm;
+    const getValues = (row: any): string => {
+        const val = row.values[columnId];
+        if (val == null) {
+            return '';
+        }
+        if (typeof val === 'number') {
+            return Number.isNaN(val) || val === Infinity || val === -Infinity ? '' : String(val);
+        }
+        return typeof val === 'string' ? val : String(val);
+    };
+    const a = getValues(rowA).split(reSplitAlphaNumeric).filter(Boolean);
+    const b = getValues(rowB).split(reSplitAlphaNumeric).filter(Boolean);
+
+    const aCopy = [...a];
+    const bCopy = [...b];
+    while (aCopy.length && bCopy.length) {
+        const aa = aCopy.shift() ?? '';
+        const bb = bCopy.shift() ?? '';
+        const an = parseInt(aa);
+        const bn = parseInt(bb);
+        const combo = [an, bn].sort((x, y) => x - y);
+
+        if (Number.isNaN(combo[0])) {
+            const cmp = aa.toLowerCase().localeCompare(bb.toLowerCase());
+            if (cmp !== 0) {
+                return cmp;
+            }
+            continue;
+        }
+        if (Number.isNaN(combo[1])) {
+            return Number.isNaN(an) ? -1 : 1;
+        }
+        if (an > bn) {
+            return 1;
+        }
+        if (bn > an) {
+            return -1;
+        }
+    }
+    return aCopy.length - bCopy.length;
+};
+
+/**
  * Quick helper for reordering the columns to have the left sticky columns first and the right sticky columns
  * in the end.
  *
@@ -627,6 +675,9 @@ const Table = forwardRef(
                 columns: mappedColumns,
                 data: data || infiniteData,
                 filterTypes,
+                sortTypes: {
+                    alphanumeric: caseInsensitiveAlphanumeric,
+                },
                 initialState: {
                     sortBy: currentSortBy.map((sort) => ({
                         ...sort,
