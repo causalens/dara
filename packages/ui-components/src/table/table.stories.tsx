@@ -532,7 +532,6 @@ TableWithRowDataIdSingle.parameters = {
     },
 };
 
-
 // Data designed to test case-insensitive sorting: mixed-case values that would sort
 // differently with case-sensitive (uppercase before lowercase) vs case-insensitive
 const caseInsensitiveSortData = [
@@ -570,8 +569,7 @@ TableCaseInsensitiveSort.args = {
 TableCaseInsensitiveSort.parameters = {
     docs: {
         description: {
-            story:
-                'Table sorting is case-insensitive. Click the "Name" or "Category" column header to sort. Values like "Zebra", "apple", "Banana" should sort alphabetically (aardvark, alpha, apple, Banana, Beta, cherry, Mango, Zebra) regardless of case.',
+            story: 'Table sorting is case-insensitive. Click the "Name" or "Category" column header to sort. Values like "Zebra", "apple", "Banana" should sort alphabetically (aardvark, alpha, apple, Banana, Beta, cherry, Mango, Zebra) regardless of case.',
         },
     },
 };
