@@ -3,7 +3,7 @@ title: Changelog
 ---
 
 ## NEXT
-- Removed unused client-side sort comparators (sorting is handled by backend)
+- Removed unused sortType code here since the sorting is handled in different places for dara-components
 
 ## 1.26.2
 
