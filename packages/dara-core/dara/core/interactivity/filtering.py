@@ -304,7 +304,10 @@ def apply_filters(
                     return series
 
                 new_data = new_data.sort_values(
-                    by=col, ascending=ascending, inplace=False, key=_sort_key  # type: ignore[arg-type]
+                    by=col,
+                    ascending=ascending,
+                    inplace=False,
+                    key=_sort_key,  # type: ignore[arg-type]
                 )
 
         # PAGINATE

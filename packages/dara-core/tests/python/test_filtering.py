@@ -93,9 +93,7 @@ def test_pagination_with_order_by(test_input, expected):
 def test_pagination_order_by_case_insensitive():
     """String columns are sorted case-insensitively to match frontend behavior."""
     data = DataFrame({'name': ['Charlie', 'alice', 'Bob', 'ALICE', 'bob']})
-    paginated, count = apply_filters(
-        data=data, pagination=Pagination(offset=None, limit=None, orderBy='name')
-    )
+    paginated, count = apply_filters(data=data, pagination=Pagination(offset=None, limit=None, orderBy='name'))
     assert paginated is not None
     # Case-insensitive order: alice, ALICE, Bob, bob, Charlie
     assert list(paginated['name']) == ['alice', 'ALICE', 'Bob', 'bob', 'Charlie']
