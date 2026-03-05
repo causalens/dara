@@ -275,7 +275,7 @@ export function applyFilters(
                     }
                     comparison = aTime - bTime;
                 } else {
-                    comparison = String(aVal).localeCompare(String(bVal));
+                    comparison = String(aVal).localeCompare(String(bVal), undefined, { sensitivity: 'base' });
                 }
 
                 return desc ? -comparison : comparison;
