@@ -230,7 +230,9 @@ const RE_SPLIT_ALPHANUMERIC = /([0-9]+)/g;
 const caseInsensitiveAlphanumeric = (rowA: any, rowB: any, columnId: string): number => {
     const getVal = (row: any): string => {
         const val = row.values[columnId];
-        if (val == null) return '';
+        if (val == null) {
+            return '';
+        }
         if (typeof val === 'number') {
             return Number.isNaN(val) || val === Infinity || val === -Infinity ? '' : String(val);
         }
