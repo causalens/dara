@@ -135,34 +135,6 @@ interface ColumnProps {
     width?: string;
 }
 
-const coerceValueToUnit = (num: number): number => {
-    if (num < 0) {
-        return -1;
-    }
-    if (num > 0) {
-        return 1;
-    }
-    return 0;
-};
-
-const compareDateStrings = (a: string, b: string): number =>
-    coerceValueToUnit(new Date(a).getTime() - new Date(b).getTime());
-
-const compareNumberStrings = (a: string, b: string): number => coerceValueToUnit(Number(a) - Number(b));
-
-const compareStrings = (a: string, b: string): number =>
-    coerceValueToUnit((a ?? '').localeCompare(b ?? '', undefined, { sensitivity: 'base' }));
-
-const columnSortTypes: Record<NonNullable<ColumnProps['type']>, (a: any, b: any, id: string) => number> = {
-    datetime: (a, b, id) => compareDateStrings(a.values[id], b.values[id]),
-    'datetime64[ms]': (a, b, id) => compareDateStrings(a.values[id], b.values[id]),
-    'datetime64[us]': (a, b, id) => compareDateStrings(a.values[id], b.values[id]),
-    'datetime64[ns]': (a, b, id) => compareDateStrings(a.values[id], b.values[id]),
-    'datetime64[s]': (a, b, id) => compareDateStrings(a.values[id], b.values[id]),
-    number: (a, b, id) => compareNumberStrings(a.values[id], b.values[id]),
-    string: (a, b, id) => compareStrings(a.values[id], b.values[id]),
-};
-
 const TableSearch = styled.div`
     display: flex;
     justify-content: flex-end;
@@ -217,7 +189,6 @@ function mapColumns(columns: Array<ColumnProps>): any {
             ...(column.formatter && { Cell: getCellRenderer(column.formatter) }),
             ...(column.sticky && { sticky: column.sticky }),
             ...(column.width && { maxWidth: column.width, width: column.width }),
-            ...(column.type && { sortType: columnSortTypes[column.type] }),
             ...(column.unique_items && { uniqueItems: column.unique_items }),
             ...(column.tooltip && { tooltip: column.tooltip }),
         }));

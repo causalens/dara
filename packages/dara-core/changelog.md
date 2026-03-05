@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Table sorting now uses case-insensitive comparison for string columns
+
 ## 1.26.4
 
 - Added recovery mechanism for persistent store when sequence number mismatch is detected

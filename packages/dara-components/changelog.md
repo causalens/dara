@@ -3,7 +3,8 @@ title: Changelog
 ---
 
 ## NEXT
-- Made table sorting case-insensitve
+- Made table sorting case-insensitive
+- Removed unused client-side sort comparators (sorting is handled by backend)
 
 ## 1.26.2
 
