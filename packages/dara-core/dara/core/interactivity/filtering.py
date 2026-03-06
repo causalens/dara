@@ -297,7 +297,18 @@ def apply_filters(
             if col == 'index':
                 new_data = new_data.sort_index(ascending=ascending, inplace=False)
             else:
-                new_data = new_data.sort_values(by=col, ascending=ascending, inplace=False)  # type: ignore
+                # Case-insensitive sort for string columns to match frontend behavior
+                def _sort_key(series: Series) -> Series:
+                    if series.dtype == object or (hasattr(series.dtype, 'kind') and series.dtype.kind in 'OU'):
+                        return series.astype(str).str.lower()
+                    return series
+
+                new_data = new_data.sort_values(
+                    by=col,
+                    ascending=ascending,
+                    inplace=False,
+                    key=_sort_key,  # type: ignore[arg-type]
+                )
 
         # PAGINATE
         start_index = pagination.offset if pagination.offset is not None else 0

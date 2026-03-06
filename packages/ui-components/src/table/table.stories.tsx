@@ -531,3 +531,45 @@ TableWithRowDataIdSingle.parameters = {
         },
     },
 };
+
+// Data designed to test case-insensitive sorting: mixed-case values that would sort
+// differently with case-sensitive (uppercase before lowercase) vs case-insensitive
+const caseInsensitiveSortData = [
+    { name: 'Zebra', category: 'Animal', id: 1 },
+    { name: 'apple', category: 'Fruit', id: 2 },
+    { name: 'Banana', category: 'Fruit', id: 3 },
+    { name: 'cherry', category: 'Fruit', id: 4 },
+    { name: 'alpha', category: 'Greek', id: 5 },
+    { name: 'Beta', category: 'Greek', id: 6 },
+    { name: 'aardvark', category: 'Animal', id: 7 },
+    { name: 'Mango', category: 'Fruit', id: 8 },
+];
+
+const caseInsensitiveSortColumns = [
+    { Header: 'Name', accessor: 'name' },
+    { Header: 'Category', accessor: 'category' },
+    { Header: 'ID', accessor: 'id', disableSortBy: true },
+];
+
+export const TableCaseInsensitiveSort = (args: Props<any>): JSX.Element => {
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <TableComponent {...args} />
+        </div>
+    );
+};
+
+TableCaseInsensitiveSort.args = {
+    columns: caseInsensitiveSortColumns,
+    data: caseInsensitiveSortData,
+    onFilter: null,
+    onSort: null,
+} as Props<any>;
+
+TableCaseInsensitiveSort.parameters = {
+    docs: {
+        description: {
+            story: 'Table sorting is case-insensitive. Click the "Name" or "Category" column header to sort. Values like "Zebra", "apple", "Banana" should sort alphabetically (aardvark, alpha, apple, Banana, Beta, cherry, Mango, Zebra) regardless of case.',
+        },
+    },
+};

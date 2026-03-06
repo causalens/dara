@@ -220,6 +220,56 @@ const getSortKey = (sortBy: Array<SortingRule<string>>, columns: Array<TableColu
     }));
 };
 
+/** Regex for splitting alphanumeric segments - hoisted to avoid recreation per comparison */
+const RE_SPLIT_ALPHANUMERIC = /([0-9]+)/g;
+
+/**
+ * Case-insensitive alphanumeric sort function for react-table.
+ * Overrides the default alphanumeric sort to compare strings without regard to case.
+ */
+const caseInsensitiveAlphanumeric = (rowA: any, rowB: any, columnId: string): number => {
+    const getVal = (row: any): string => {
+        const val = row.values[columnId];
+        if (val == null) {
+            return '';
+        }
+        if (typeof val === 'number') {
+            return Number.isNaN(val) || val === Infinity || val === -Infinity ? '' : String(val);
+        }
+        return typeof val === 'string' ? val : String(val);
+    };
+    const a = getVal(rowA).split(RE_SPLIT_ALPHANUMERIC).filter(Boolean);
+    const b = getVal(rowB).split(RE_SPLIT_ALPHANUMERIC).filter(Boolean);
+
+    const len = Math.min(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+        const aa = a[i];
+        const bb = b[i];
+        const an = parseInt(aa);
+        const bn = parseInt(bb);
+        const aIsNaN = Number.isNaN(an);
+        const bIsNaN = Number.isNaN(bn);
+
+        if (aIsNaN && bIsNaN) {
+            const cmp = aa.toLowerCase().localeCompare(bb.toLowerCase());
+            if (cmp !== 0) {
+                return cmp;
+            }
+            continue;
+        }
+        if (aIsNaN) {
+            return 1;
+        }
+        if (bIsNaN) {
+            return -1;
+        }
+        if (an !== bn) {
+            return an > bn ? 1 : -1;
+        }
+    }
+    return a.length - b.length;
+};
+
 /**
  * Quick helper for reordering the columns to have the left sticky columns first and the right sticky columns
  * in the end.
@@ -627,6 +677,9 @@ const Table = forwardRef(
                 columns: mappedColumns,
                 data: data || infiniteData,
                 filterTypes,
+                sortTypes: {
+                    alphanumeric: caseInsensitiveAlphanumeric,
+                },
                 initialState: {
                     sortBy: currentSortBy.map((sort) => ({
                         ...sort,
