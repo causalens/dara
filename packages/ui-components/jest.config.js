@@ -2,6 +2,9 @@
 // https://jestjs.io/docs/en/configuration.html
 
 var ignoredModules = [
+    '@darajs[/+]styled-components', // match / (nested) or + (pnpm)
+    '@darajs[/+]ui-icons',
+    '@darajs[/+]ui-utils',
     'nanoid',
     'react-markdown',
     'devlop',
