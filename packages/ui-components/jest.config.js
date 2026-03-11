@@ -2,7 +2,6 @@
 // https://jestjs.io/docs/en/configuration.html
 
 var ignoredModules = [
-    '@darajs/styled-components',
     'nanoid',
     'react-markdown',
     'devlop',
