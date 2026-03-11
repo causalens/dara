@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.5
 
 - Table sorting now uses case-insensitive comparison for string columns
 

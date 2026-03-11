@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.5
 - Made table sorting case-insensitve
 
 ## 1.26.2

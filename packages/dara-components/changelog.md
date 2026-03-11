@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.5
 - Removed unused sortType code for the Table's Columns, here since the sorting is handled in different places for dara-components
 
 ## 1.26.2
