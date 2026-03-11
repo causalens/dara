@@ -70,25 +70,25 @@ importers:
         version: 6.34.1
       '@darajs/core':
         specifier: 1.26.5
-        version: 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
+        version: link:../dara-core
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@darajs/ui-causal-graph-editor':
         specifier: 1.26.5
-        version: 1.26.5(@egjs/hammerjs@2.0.17)(@types/hoist-non-react-statics@3.3.5)(@types/node@22.13.10)(@types/react@18.2.60)(component-emitter@1.3.1)(keycharm@0.4.0)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(uuid@11.1.0)(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1))
+        version: link:../ui-causal-graph-editor
       '@darajs/ui-components':
         specifier: 1.26.5
-        version: 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
+        version: link:../ui-components
       '@darajs/ui-hierarchy-viewer':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-hierarchy-viewer
       '@darajs/ui-icons':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-icons
       '@darajs/ui-utils':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../ui-utils
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.1
@@ -152,13 +152,13 @@ importers:
         version: 7.26.0
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.6.3)
+        version: link:../stylelint-config
       '@testing-library/react-hooks':
         specifier: ^3.4.2
         version: 3.7.0(react-test-renderer@17.0.2(react@18.3.1))(react@18.3.1)
@@ -224,16 +224,16 @@ importers:
     dependencies:
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@darajs/ui-components':
         specifier: 1.26.5
-        version: 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
+        version: link:../ui-components
       '@darajs/ui-notifications':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-notifications
       '@darajs/ui-utils':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../ui-utils
       '@fortawesome/fontawesome-free':
         specifier: ~6.4.0
         version: 6.4.2
@@ -339,13 +339,13 @@ importers:
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.6.3)
+        version: link:../stylelint-config
       '@rollup/plugin-inject':
         specifier: ^4.0.4
         version: 4.0.4(rollup@4.46.2)
@@ -444,7 +444,7 @@ importers:
     dependencies:
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.26.1
         version: 8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)
@@ -505,13 +505,13 @@ importers:
     devDependencies:
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@types/styled-components':
         specifier: ^5.1.26
         version: 5.1.34
@@ -556,22 +556,22 @@ importers:
     dependencies:
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@darajs/ui-components':
         specifier: 1.26.5
-        version: 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
+        version: link:../ui-components
       '@darajs/ui-icons':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-icons
       '@darajs/ui-notifications':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-notifications
       '@darajs/ui-utils':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../ui-utils
       '@darajs/ui-widgets':
         specifier: 1.26.5
-        version: 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
+        version: link:../ui-widgets
       comlink:
         specifier: ^4.4.1
         version: 4.4.1
@@ -662,13 +662,13 @@ importers:
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.1.17
         version: 9.1.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.46.2)(storybook@9.1.20(@testing-library/dom@9.3.4)(msw@2.10.5(@types/node@18.19.64)(typescript@5.8.2))(prettier@3.2.5)(vite@7.0.8(@types/node@18.19.64)(terser@5.36.0)(yaml@2.8.2)))(typescript@5.8.2)(vite@7.0.8(@types/node@18.19.64)(terser@5.36.0)(yaml@2.8.2))
@@ -770,13 +770,13 @@ importers:
     dependencies:
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@darajs/ui-icons':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-icons
       '@darajs/ui-utils':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../ui-utils
       '@floating-ui/react':
         specifier: ^0.26.12
         version: 0.26.27(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -873,13 +873,13 @@ importers:
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.1.17
         version: 9.1.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.46.2)(storybook@9.1.20(@testing-library/dom@9.3.4)(msw@2.10.5(@types/node@22.13.10)(typescript@5.8.2))(prettier@3.2.5)(vite@7.0.8(@types/node@22.13.10)(terser@5.36.0)(yaml@2.8.2)))(typescript@5.8.2)(vite@7.0.8(@types/node@22.13.10)(terser@5.36.0)(yaml@2.8.2))
@@ -981,10 +981,10 @@ importers:
     dependencies:
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@darajs/ui-utils':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../ui-utils
       d3:
         specifier: 6.2.0
         version: 6.2.0
@@ -994,13 +994,13 @@ importers:
     devDependencies:
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@types/d3':
         specifier: ^6.2.0
         version: 6.7.8
@@ -1042,7 +1042,7 @@ importers:
     dependencies:
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@fortawesome/fontawesome-svg-core':
         specifier: ~6.4.0
         version: 6.4.2
@@ -1070,13 +1070,13 @@ importers:
     devDependencies:
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@types/jest':
         specifier: ^25.2.3
         version: 25.2.3
@@ -1115,13 +1115,13 @@ importers:
     dependencies:
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@darajs/ui-icons':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-icons
       '@darajs/ui-utils':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../ui-utils
       lodash:
         specifier: 4.17.21
         version: 4.17.21
@@ -1137,13 +1137,13 @@ importers:
     devDependencies:
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^9.1.17
         version: 9.1.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.46.2)(storybook@9.1.20(@testing-library/dom@9.3.4)(msw@2.10.5(@types/node@22.13.10)(typescript@5.8.2))(prettier@3.2.5)(vite@7.0.8(@types/node@22.13.10)(terser@5.36.0)(yaml@2.8.2)))(typescript@5.8.2)(vite@7.0.8(@types/node@22.13.10)(terser@5.36.0)(yaml@2.8.2))
@@ -1222,13 +1222,13 @@ importers:
         version: 7.25.9(@babel/core@7.26.0)
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@types/jest':
         specifier: ^25.2.3
         version: 25.2.3
@@ -1276,16 +1276,16 @@ importers:
     dependencies:
       '@darajs/styled-components':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
+        version: link:../styled-components
       '@darajs/ui-components':
         specifier: 1.26.5
-        version: 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
+        version: link:../ui-components
       '@darajs/ui-icons':
         specifier: 1.26.5
-        version: 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
+        version: link:../ui-icons
       '@darajs/ui-utils':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../ui-utils
       lodash:
         specifier: 4.17.21
         version: 4.17.21
@@ -1313,13 +1313,13 @@ importers:
         version: 7.26.0(@babel/core@7.26.0)
       '@darajs/eslint-config':
         specifier: 1.26.5
-        version: 1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))
+        version: link:../eslint-config
       '@darajs/prettier-config':
         specifier: 1.26.5
-        version: 1.26.5
+        version: link:../prettier-config
       '@darajs/stylelint-config':
         specifier: 1.26.5
-        version: 1.26.5(typescript@5.8.2)
+        version: link:../stylelint-config
       '@testing-library/dom':
         specifier: ^9.3.0
         version: 9.3.4
@@ -2199,43 +2199,6 @@ packages:
 
   '@cypress/xvfb@1.2.4':
     resolution: {integrity: sha512-skbBzPggOVYCbnGgV+0dmBdW/s77ZkAOXIC1knS8NagwDjBrNC1LuXtQJeiN6l+m7lzmHtaoUw/ctJKdqkG57Q==}
-
-  '@darajs/core@1.26.5':
-    resolution: {integrity: sha512-eox7KaT4XjwX1Yds0PJxIldkYIpuJmmQNoW7zK0ngHg1U+69UfbyeYAl6K4snsI6FSmxBgaa4N6vcwtN3uTbGg==}
-    engines: {node: '>=20.19.0'}
-
-  '@darajs/eslint-config@1.26.5':
-    resolution: {integrity: sha512-bu7zsdU7bQ2UU3su7K+C0o/3hbhfkPjqJiKGi+dn11KTKJzaPUKEZs6X7lGHHyvSeIjYa2DTdNbcO/5RTgqzng==}
-
-  '@darajs/prettier-config@1.26.5':
-    resolution: {integrity: sha512-5BX5EYvTBJhRtRqLZwn9wgsBS8QjrT3kNvO+05zBfR3YKcCNAMKYMhRkhyT1WuqttIDLcEzpSPTkcCfh2A7wvQ==}
-
-  '@darajs/styled-components@1.26.5':
-    resolution: {integrity: sha512-hTo5Q6xTDMC85qAR0GaSPvu/FLOKBo9KBK/OJ7s/kQ3hzbymhODL0yoHlV9GuHHaGWfspvt5cNl6NaPPU77M1Q==}
-
-  '@darajs/stylelint-config@1.26.5':
-    resolution: {integrity: sha512-ZzItKdiFtSIqqdanuAQ/TROkS0HV6pG0Uvy5UISQg9vGYE5gb0VnpgnjTikS+5ZZol/86GSABnnpYQ00UyCXGA==}
-
-  '@darajs/ui-causal-graph-editor@1.26.5':
-    resolution: {integrity: sha512-4a06ByeemHfuX+lEre7eRk+m3GbLSW+78LvmWwP2IngRWmYzgZkqFJFPgK/LB+Om+d0C4IgMqdp5Sr4WEhfAUQ==}
-
-  '@darajs/ui-components@1.26.5':
-    resolution: {integrity: sha512-Nl8GN6iMed+1F0mkEJmLpYMYH2q80yPxVa+xUuLjTMVpJ2EoRLQH3osT3pDrGol3sp5oGobl8JnpSsWJnr1ZAw==}
-
-  '@darajs/ui-hierarchy-viewer@1.26.5':
-    resolution: {integrity: sha512-x/BaXuF9VPUaCeVSVjf9yCFfmhwCHft3ZUW0zxfr+ANzggbarvDv4UfZRbtJWKUl5974nX3uZnURgQ8+ct4ksw==}
-
-  '@darajs/ui-icons@1.26.5':
-    resolution: {integrity: sha512-1S236XRUyKARz6mpXD4BNtbsLcaysZDpL95xFtZYpj69coLD+3xqTrObWx8j4TMAXNMu6GO1s3o9G3UGKHBFxQ==}
-
-  '@darajs/ui-notifications@1.26.5':
-    resolution: {integrity: sha512-rWSNdWJvkCd9H+LKLbGhtFsOGKXRivmb1tVpaXxDnXz53lAiT8hYaTtUt49IL34LvXBkEIMlRkfuPSkQ68tmQw==}
-
-  '@darajs/ui-utils@1.26.5':
-    resolution: {integrity: sha512-qkpH9uN0d/COQieTXBq2ZNUnpCQDvGFGuqATnYJFnunU8UI7AdMeTBd58AGegAADAROvUxb70eVNvB8MQQYMYA==}
-
-  '@darajs/ui-widgets@1.26.5':
-    resolution: {integrity: sha512-nMZ6GFnnBLV+9ypLyVk0BAQnhWOmPCFA7nWquketCeifv4gCacF4OsELu0IKHUvN80V0+c7V9128gA4o85uYkA==}
 
   '@egjs/hammerjs@2.0.17':
     resolution: {integrity: sha512-XQsZgjm2EcVUiZQf11UBJQfmZeEmOW8DpI1gsFeln6w0ae0ii4dMQEQ0kjl6DspdWX1aGY1/loyXnP0JS06e/A==}
@@ -11961,280 +11924,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@darajs/core@1.26.5(@types/react@18.2.60)(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-components': 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
-      '@darajs/ui-notifications': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-utils': 1.26.5
-      '@fortawesome/fontawesome-free': 6.4.2
-      '@microsoft/fetch-event-source': 2.0.1
-      '@recoiljs/refine': 0.1.1
-      '@tanstack/query-core': 4.40.0
-      '@tanstack/react-query': 4.40.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      date-fns: 2.30.0
-      exceljs: 4.4.0
-      fast-json-patch: 3.1.1
-      file-saver: 2.0.5
-      jwt-decode: 4.0.0
-      lodash: 4.17.21
-      nanoid: 3.3.11
-      nprogress: 0.2.0
-      p-queue: 9.1.0
-      polished: 4.3.1
-      query-string: 7.1.3
-      react: 18.3.1
-      react-collapse: 5.1.1(react@18.3.1)
-      react-dom: 18.3.1(react@18.3.1)
-      react-error-boundary: 4.1.2(react@18.3.1)
-      react-router: 7.9.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-virtualized-auto-sizer: 1.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-window: 1.8.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      recoil: 0.7.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      recoil-sync: 0.2.0(recoil@0.7.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
-      rxjs: 7.8.1
-      styled-components: 5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      typescript: 5.8.2
-      use-async-resource: 2.2.2(react@18.3.1)
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@types/react'
-      - react-is
-      - react-native
-      - supports-color
-
-  '@darajs/eslint-config@1.26.5(jest@29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0))':
-    dependencies:
-      '@darajs/prettier-config': 1.26.5
-      '@typescript-eslint/eslint-plugin': 8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)
-      '@typescript-eslint/parser': 8.26.1(eslint@8.57.1)(typescript@5.8.2)
-      eslint: 8.57.1
-      eslint-config-airbnb: 18.2.1(eslint-plugin-import@2.31.0)(eslint-plugin-jsx-a11y@6.10.2(eslint@8.57.1))(eslint-plugin-react-hooks@4.6.2(eslint@8.57.1))(eslint-plugin-react@7.37.2(eslint@8.57.1))(eslint@8.57.1)
-      eslint-config-prettier: 9.1.0(eslint@8.57.1)
-      eslint-import-resolver-typescript: 4.1.1(eslint-plugin-import@2.31.0)(eslint@8.57.1)
-      eslint-plugin-import: 2.31.0(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-typescript@4.1.1)(eslint@8.57.1)
-      eslint-plugin-jest: 27.9.0(@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(jest@29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
-      eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1)
-      eslint-plugin-react: 7.37.2(eslint@8.57.1)
-      eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
-      prettier: 3.2.5
-      typescript: 5.8.2
-    transitivePeerDependencies:
-      - '@vue/compiler-sfc'
-      - eslint-import-resolver-webpack
-      - eslint-plugin-import-x
-      - jest
-      - supports-color
-
-  '@darajs/eslint-config@1.26.5(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))':
-    dependencies:
-      '@darajs/prettier-config': 1.26.5
-      '@typescript-eslint/eslint-plugin': 8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
-      '@typescript-eslint/parser': 8.26.1(eslint@8.57.1)(typescript@5.8.2)
-      eslint: 8.57.1
-      eslint-config-airbnb: 18.2.1(eslint-plugin-import@2.31.0)(eslint-plugin-jsx-a11y@6.10.2(eslint@8.57.1))(eslint-plugin-react-hooks@4.6.2(eslint@8.57.1))(eslint-plugin-react@7.37.2(eslint@8.57.1))(eslint@8.57.1)
-      eslint-config-prettier: 9.1.0(eslint@8.57.1)
-      eslint-import-resolver-typescript: 4.1.1(eslint-plugin-import@2.31.0)(eslint@8.57.1)
-      eslint-plugin-import: 2.31.0(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@4.1.1)(eslint@8.57.1)
-      eslint-plugin-jest: 27.9.0(@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(jest@29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0))(typescript@5.8.2)
-      eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1)
-      eslint-plugin-react: 7.37.2(eslint@8.57.1)
-      eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
-      prettier: 3.2.5
-      typescript: 5.8.2
-    transitivePeerDependencies:
-      - '@vue/compiler-sfc'
-      - eslint-import-resolver-webpack
-      - eslint-plugin-import-x
-      - jest
-      - supports-color
-
-  '@darajs/prettier-config@1.26.5':
-    dependencies:
-      '@trivago/prettier-plugin-sort-imports': 4.3.0(prettier@3.2.5)
-      prettier: 3.2.5
-    transitivePeerDependencies:
-      - '@vue/compiler-sfc'
-      - supports-color
-
-  '@darajs/styled-components@1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)':
-    dependencies:
-      polished: 4.3.1
-      styled-components: 5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-    transitivePeerDependencies:
-      - react
-      - react-dom
-      - react-is
-
-  '@darajs/stylelint-config@1.26.5(typescript@5.6.3)':
-    dependencies:
-      postcss: 8.5.6
-      postcss-styled-syntax: 0.6.4(postcss@8.5.6)
-      stylelint: 15.11.0(typescript@5.6.3)
-      stylelint-config-clean-order: 5.4.2(stylelint@15.11.0(typescript@5.6.3))
-      stylelint-config-standard: 34.0.0(stylelint@15.11.0(typescript@5.6.3))
-      stylelint-order: 6.0.4(stylelint@15.11.0(typescript@5.6.3))
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
-
-  '@darajs/stylelint-config@1.26.5(typescript@5.8.2)':
-    dependencies:
-      postcss: 8.5.6
-      postcss-styled-syntax: 0.6.4(postcss@8.5.6)
-      stylelint: 15.11.0(typescript@5.8.2)
-      stylelint-config-clean-order: 5.4.2(stylelint@15.11.0(typescript@5.8.2))
-      stylelint-config-standard: 34.0.0(stylelint@15.11.0(typescript@5.8.2))
-      stylelint-order: 6.0.4(stylelint@15.11.0(typescript@5.8.2))
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
-
-  '@darajs/ui-causal-graph-editor@1.26.5(@egjs/hammerjs@2.0.17)(@types/hoist-non-react-statics@3.3.5)(@types/node@22.13.10)(@types/react@18.2.60)(component-emitter@1.3.1)(keycharm@0.4.0)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(uuid@11.1.0)(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1))':
-    dependencies:
-      '@darajs/styled-components': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-components': 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
-      '@darajs/ui-icons': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-notifications': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-utils': 1.26.5
-      '@darajs/ui-widgets': 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
-      comlink: 4.4.1
-      cytoscape: 3.30.3
-      cytoscape-fcose: 2.2.0(cytoscape@3.30.3)
-      d3: 6.2.0
-      d3-dag: 1.1.0
-      d3-scale: 3.2.1
-      eventemitter3: 5.0.1
-      fontfaceobserver: 2.3.0
-      graphology: 0.25.4(graphology-types@0.24.7)
-      graphology-dag: 0.2.0(graphology-types@0.24.7)
-      graphology-layout: 0.6.1(graphology-types@0.24.7)
-      graphology-layout-forceatlas2: 0.10.1(graphology-types@0.24.7)
-      graphology-layout-noverlap: 0.4.2(graphology-types@0.24.7)
-      graphology-types: 0.24.7
-      immer: 10.1.1
-      lodash: 4.17.21
-      nanoid: 3.3.11
-      polished: 4.3.1
-      react: 18.3.1
-      react-dnd: 14.0.5(@types/hoist-non-react-statics@3.3.5)(@types/node@22.13.10)(@types/react@18.2.60)(react@18.3.1)
-      react-dnd-html5-backend: 14.1.0
-      svg-path-parser: 1.1.0
-      use-immer: 0.9.0(immer@10.1.1)(react@18.3.1)
-      vis-data: 7.1.9(uuid@11.1.0)(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1))
-      vis-network: 9.1.9(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)(keycharm@0.4.0)(uuid@11.1.0)(vis-data@7.1.9(uuid@11.1.0)(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)))(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1))
-    transitivePeerDependencies:
-      - '@egjs/hammerjs'
-      - '@types/hoist-non-react-statics'
-      - '@types/node'
-      - '@types/react'
-      - component-emitter
-      - keycharm
-      - react-dom
-      - react-is
-      - supports-color
-      - uuid
-      - vis-util
-
-  '@darajs/ui-components@1.26.5(@types/react@18.2.60)(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-icons': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-utils': 1.26.5
-      '@floating-ui/react': 0.26.27(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
-      '@headlessui-float/react': 0.15.0(@headlessui/react@1.7.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@headlessui/react': 1.7.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      d3-array: 3.2.4
-      date-fns: 2.30.0
-      downshift: 7.6.2(react@18.3.1)
-      lodash: 4.17.21
-      memoize-one: 6.0.0
-      nanoid: 3.3.11
-      polished: 3.6.4
-      prism-react-renderer: 1.3.5(react@18.3.1)
-      react: 18.3.1
-      react-aria-components: 1.9.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-collapse: 5.1.1(react@18.3.1)
-      react-datepicker: 4.8.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-dom: 18.3.1(react@18.3.1)
-      react-dropzone: 11.0.1(react@18.3.1)
-      react-markdown: 9.0.1(@types/react@18.2.60)(react@18.3.1)
-      react-table: 7.7.0(react@18.3.1)
-      react-table-sticky: 1.1.3
-      react-virtualized-auto-sizer: 1.0.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-window: 1.8.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      remark-gfm: 4.0.0
-    transitivePeerDependencies:
-      - '@types/react'
-      - react-is
-      - supports-color
-
-  '@darajs/ui-hierarchy-viewer@1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-utils': 1.26.5
-      d3: 6.2.0
-      react: 18.3.1
-    transitivePeerDependencies:
-      - react-dom
-      - react-is
-
-  '@darajs/ui-icons@1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@fortawesome/fontawesome-svg-core': 6.4.2
-      '@fortawesome/free-brands-svg-icons': 6.4.2
-      '@fortawesome/free-regular-svg-icons': 6.4.2
-      '@fortawesome/free-solid-svg-icons': 6.4.2
-      '@fortawesome/react-fontawesome': 0.2.2(@fortawesome/fontawesome-svg-core@6.4.2)(react@18.3.1)
-      '@mdi/js': 5.9.55
-      '@mdi/react': 1.4.0
-      react: 18.3.1
-    transitivePeerDependencies:
-      - react-dom
-      - react-is
-
-  '@darajs/ui-notifications@1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-icons': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-utils': 1.26.5
-      lodash: 4.17.21
-      polished: 4.3.1
-      react: 18.3.1
-      rxjs: 7.8.1
-    transitivePeerDependencies:
-      - react-dom
-      - react-is
-
-  '@darajs/ui-utils@1.26.5':
-    dependencies:
-      d3-scale: 3.2.1
-      lodash: 4.17.21
-      nanoid: 3.3.11
-      react: 18.3.1
-      rxjs: 7.8.1
-      tinykeys: 3.0.0(patch_hash=6855931e9590b29110de8402432514ff7aa294934a067557e96dc7eb46f365e3)
-
-  '@darajs/ui-widgets@1.26.5(@types/react@18.2.60)(react-is@18.3.1)':
-    dependencies:
-      '@darajs/styled-components': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
-      '@darajs/ui-components': 1.26.5(@types/react@18.2.60)(react-is@18.3.1)
-      '@darajs/ui-icons': 1.26.5(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)
-      '@darajs/ui-utils': 1.26.5
-      lodash: 4.17.21
-      nanoid: 3.3.11
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-    transitivePeerDependencies:
-      - '@types/react'
-      - react-is
-      - supports-color
-
   '@egjs/hammerjs@2.0.17':
     dependencies:
       '@types/hammerjs': 2.0.46
@@ -15127,23 +14816,6 @@ snapshots:
       '@types/node': 18.19.64
     optional: true
 
-  '@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)':
-    dependencies:
-      '@eslint-community/regexpp': 4.12.1
-      '@typescript-eslint/parser': 8.26.1(eslint@8.57.1)(typescript@5.8.2)
-      '@typescript-eslint/scope-manager': 8.26.1
-      '@typescript-eslint/type-utils': 8.26.1(eslint@8.57.1)(typescript@5.8.2)
-      '@typescript-eslint/utils': 8.26.1(eslint@8.57.1)(typescript@5.8.2)
-      '@typescript-eslint/visitor-keys': 8.26.1
-      eslint: 8.57.1
-      graphemer: 1.4.0
-      ignore: 5.3.2
-      natural-compare: 1.4.0
-      ts-api-utils: 2.0.1(typescript@5.8.2)
-      typescript: 5.6.3
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
@@ -17448,35 +17120,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.31.0(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@4.1.1)(eslint@8.57.1):
-    dependencies:
-      '@rtsao/scc': 1.1.0
-      array-includes: 3.1.8
-      array.prototype.findlastindex: 1.2.6
-      array.prototype.flat: 1.3.2
-      array.prototype.flatmap: 1.3.3
-      debug: 3.2.7(supports-color@8.1.1)
-      doctrine: 2.1.0
-      eslint: 8.57.1
-      eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@4.1.1)(eslint@8.57.1)
-      hasown: 2.0.2
-      is-core-module: 2.16.1
-      is-glob: 4.0.3
-      minimatch: 3.1.2
-      object.fromentries: 2.0.8
-      object.groupby: 1.0.3
-      object.values: 1.2.0
-      semver: 6.3.1
-      string.prototype.trimend: 1.0.9
-      tsconfig-paths: 3.15.0
-    optionalDependencies:
-      '@typescript-eslint/parser': 8.26.1(eslint@8.57.1)(typescript@5.8.2)
-    transitivePeerDependencies:
-      - eslint-import-resolver-typescript
-      - eslint-import-resolver-webpack
-      - supports-color
-
   eslint-plugin-import@2.31.0(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint-import-resolver-typescript@4.1.1)(eslint@8.57.1):
     dependencies:
       '@rtsao/scc': 1.1.0
@@ -17512,17 +17155,6 @@ snapshots:
       eslint: 8.57.1
     optionalDependencies:
       jest: 29.7.0(@types/node@22.13.10)(babel-plugin-macros@3.1.0)
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
-
-  eslint-plugin-jest@27.9.0(@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(jest@29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0))(typescript@5.8.2):
-    dependencies:
-      '@typescript-eslint/utils': 5.62.0(eslint@8.57.1)(typescript@5.8.2)
-      eslint: 8.57.1
-    optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 8.26.1(@typescript-eslint/parser@8.26.1(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)
-      jest: 29.7.0(@types/node@18.19.64)(babel-plugin-macros@3.1.0)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -21072,11 +20704,6 @@ snapshots:
       postcss: 8.4.47
       typescript: 5.8.2
 
-  postcss-styled-syntax@0.6.4(postcss@8.5.6):
-    dependencies:
-      postcss: 8.5.6
-      typescript: 5.8.2
-
   postcss-value-parser@4.2.0: {}
 
   postcss@8.4.47:
@@ -21338,19 +20965,6 @@ snapshots:
     optionalDependencies:
       '@types/hoist-non-react-statics': 3.3.5
       '@types/node': 18.19.64
-      '@types/react': 18.2.60
-
-  react-dnd@14.0.5(@types/hoist-non-react-statics@3.3.5)(@types/node@22.13.10)(@types/react@18.2.60)(react@18.3.1):
-    dependencies:
-      '@react-dnd/invariant': 2.0.0
-      '@react-dnd/shallowequal': 2.0.0
-      dnd-core: 14.0.1
-      fast-deep-equal: 3.1.3
-      hoist-non-react-statics: 3.3.2
-      react: 18.3.1
-    optionalDependencies:
-      '@types/hoist-non-react-statics': 3.3.5
-      '@types/node': 22.13.10
       '@types/react': 18.2.60
 
   react-docgen-typescript@2.2.2(typescript@5.8.2):
@@ -22364,39 +21978,19 @@ snapshots:
       shallowequal: 1.1.0
       supports-color: 5.5.0
 
-  stylelint-config-clean-order@5.4.2(stylelint@15.11.0(typescript@5.6.3)):
-    dependencies:
-      stylelint: 15.11.0(typescript@5.6.3)
-      stylelint-order: 6.0.4(stylelint@15.11.0(typescript@5.6.3))
-
   stylelint-config-clean-order@5.4.2(stylelint@15.11.0(typescript@5.8.2)):
     dependencies:
       stylelint: 15.11.0(typescript@5.8.2)
       stylelint-order: 6.0.4(stylelint@15.11.0(typescript@5.8.2))
 
-  stylelint-config-recommended@13.0.0(stylelint@15.11.0(typescript@5.6.3)):
-    dependencies:
-      stylelint: 15.11.0(typescript@5.6.3)
-
   stylelint-config-recommended@13.0.0(stylelint@15.11.0(typescript@5.8.2)):
     dependencies:
       stylelint: 15.11.0(typescript@5.8.2)
-
-  stylelint-config-standard@34.0.0(stylelint@15.11.0(typescript@5.6.3)):
-    dependencies:
-      stylelint: 15.11.0(typescript@5.6.3)
-      stylelint-config-recommended: 13.0.0(stylelint@15.11.0(typescript@5.6.3))
 
   stylelint-config-standard@34.0.0(stylelint@15.11.0(typescript@5.8.2)):
     dependencies:
       stylelint: 15.11.0(typescript@5.8.2)
       stylelint-config-recommended: 13.0.0(stylelint@15.11.0(typescript@5.8.2))
-
-  stylelint-order@6.0.4(stylelint@15.11.0(typescript@5.6.3)):
-    dependencies:
-      postcss: 8.4.47
-      postcss-sorting: 8.0.2(postcss@8.4.47)
-      stylelint: 15.11.0(typescript@5.6.3)
 
   stylelint-order@6.0.4(stylelint@15.11.0(typescript@5.8.2)):
     dependencies:
