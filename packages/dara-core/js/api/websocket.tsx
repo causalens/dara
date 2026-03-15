@@ -5,7 +5,7 @@ import { filter, map, take } from 'rxjs/operators';
 
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
-import { handleAuthErrors } from '@/auth';
+import { handleAuthErrors } from '@/auth/auth';
 import type { ActionImpl, AnyVariable } from '@/types';
 
 import { request } from './http';
@@ -321,12 +321,12 @@ export class WebSocketClient implements WebSocketClientInterface {
         });
 
         // Bind the close handler so the re-initialize logic is added every time
-        this.closeHandler = (event: CloseEvent) => {
+        this.closeHandler = () => {
             if (!receivedInit) {
-                void this.verifySessionAfterFailedConnect();
+                this.verifySessionAfterFailedConnect().catch(() => undefined);
             }
 
-            this.onClose(event);
+            this.onClose();
         };
         socket.addEventListener('close', this.closeHandler);
         return socket;
@@ -406,7 +406,7 @@ export class WebSocketClient implements WebSocketClientInterface {
     /**
      * Close handler to attempt to reconnect on WS closed
      */
-    onClose(_event?: CloseEvent): void {
+    onClose(): void {
         if (this.#reconnectCount >= this.maxAttempts) {
             // eslint-disable-next-line no-console
             console.error('Could not reconnect the websocket to the server');

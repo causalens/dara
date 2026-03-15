@@ -16,10 +16,15 @@ class FailingWebSocket extends EventTarget {
 
     static CLOSED = 3;
 
+    url: string;
+
+    lastSentData: string | null = null;
+
     readyState = FailingWebSocket.CONNECTING;
 
-    constructor(_url: string | URL) {
+    constructor(url: string | URL) {
         super();
+        this.url = url.toString();
 
         setTimeout(() => {
             this.readyState = FailingWebSocket.CLOSED;
@@ -28,7 +33,9 @@ class FailingWebSocket extends EventTarget {
         }, 0);
     }
 
-    send(_data: string): void {}
+    send(data: string): void {
+        this.lastSentData = data;
+    }
 
     close(): void {
         this.readyState = FailingWebSocket.CLOSED;
