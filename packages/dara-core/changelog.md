@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed websocket auth reconnect failures to re-run session verification so stale/invalid cookies redirect back to login instead of leaving the app broken until another request is made.
+
 ## 1.26.5
 
 - Table sorting now uses case-insensitive comparison for string columns

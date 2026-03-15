@@ -64,9 +64,11 @@ function shouldIgnoreError(message: AuthenticationError, ignoreErrors: Array<Aut
  * @param message error message
  */
 function shouldRedirectToLogin(message: AuthenticationError): boolean {
-    return [AuthenticationErrorReason.INVALID_CREDENTIALS, AuthenticationErrorReason.EXPIRED_TOKEN].includes(
-        message.reason
-    );
+    return [
+        AuthenticationErrorReason.INVALID_CREDENTIALS,
+        AuthenticationErrorReason.EXPIRED_TOKEN,
+        AuthenticationErrorReason.INVALID_TOKEN,
+    ].includes(message.reason);
 }
 
 interface RedirectResponse {
