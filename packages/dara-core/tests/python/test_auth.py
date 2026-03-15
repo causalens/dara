@@ -39,6 +39,17 @@ def _make_refreshed_session_token(old_token: TokenData, marker: str) -> str:
     )
 
 
+def _make_refresh_token_with_expiry(days: int = 7) -> str:
+    return jwt.encode(
+        {
+            'sub': 'refresh-user',
+            'exp': datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=days),
+        },
+        TEST_JWT_SECRET,
+        algorithm=JWT_ALGO,
+    )
+
+
 async def test_verify_session():
     """Check that verify session validates token correctly"""
 
@@ -418,6 +429,41 @@ async def test_refresh_token_success_with_session_cookie():
         decoded = jwt.decode(refreshed_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
         assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
+
+
+async def test_refresh_token_sets_cookie_expiry_when_refresh_token_has_exp():
+    config = ConfigurationBuilder()
+
+    old_token_data = TokenData(
+        session_id='session',
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1),
+        identity_name='user',
+        identity_id='user',
+    )
+    old_token = jwt.encode(old_token_data.dict(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
+    refreshed_refresh_token = _make_refresh_token_with_expiry()
+
+    class TestAuthConfig(BasicAuthConfig):
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            return _make_refreshed_session_token(old_token, 'refresh_cookie_expiry'), refreshed_refresh_token
+
+    config.add_auth(TestAuthConfig('test', 'test'))
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post(
+            '/api/auth/refresh-token',
+            cookies={'dara_refresh_token': 'refresh_token'},
+            headers={'Authorization': f'Bearer {old_token}'},
+        )
+
+        assert response.status_code == 200
+        set_cookies = response.headers.getall('set-cookie')
+        refresh_cookie = next((cookie for cookie in set_cookies if cookie.startswith('dara_refresh_token=')), None)
+        assert refresh_cookie is not None
+        assert 'Max-Age=' in refresh_cookie
+        assert 'expires=' in refresh_cookie.lower()
+        assert response.cookies['dara_refresh_token'] == refreshed_refresh_token
 
 
 async def test_refresh_token_expired():

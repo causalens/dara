@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 - Fixed websocket auth reconnect failures to re-run session verification so stale/invalid cookies redirect back to login instead of leaving the app broken until another request is made.
+- Persisted JWT refresh-token cookies using the token expiry instead of dropping them at browser-session end.
 
 ## 1.26.5
 
