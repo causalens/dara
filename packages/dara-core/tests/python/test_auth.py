@@ -128,6 +128,28 @@ async def test_verify_session_cookie():
         assert response.json() == {'test': 'test'}
 
 
+async def test_verify_session_invalid_cookie_clears_auth_cookies_without_refresh_token():
+    """Check that /verify-session clears stale auth cookies when no refresh token is available."""
+
+    config = ConfigurationBuilder()
+    config.add_auth(BasicAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post(
+            '/api/auth/verify-session',
+            cookies={SESSION_TOKEN_COOKIE_NAME: 'stale-token'},
+        )
+
+        assert response.status_code == 401
+        assert response.json()['detail']['message'] == 'Token is invalid, please log in again'
+
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith('dara_refresh_token="";') for cookie in cleared_cookies)
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+
 async def test_authorization_header_injected_from_session_cookie():
     """Check that a missing Authorization header is synthesized from the session cookie"""
 

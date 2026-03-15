@@ -182,6 +182,15 @@ def _build_auth_error_response(status_code: int, detail: Any):
     return error_response
 
 
+def _should_clear_auth_cookies_on_verify_failure(detail: Any, refresh_token: str | None) -> bool:
+    """
+    Determine whether /verify-session should clear auth cookies for a terminal auth failure.
+
+    We only do this when there is no refresh token to preserve for a follow-up refresh attempt.
+    """
+    return refresh_token is None and detail in (INVALID_TOKEN_ERROR, EXPIRED_TOKEN_ERROR)
+
+
 def _should_attempt_session_refresh(
     auth_config: BaseAuthConfig,
     auth_error: AuthError,
@@ -237,6 +246,26 @@ async def _refresh_session(
 
 
 @auth_router.post('/verify-session')
+async def handle_verify_session(
+    req: Request,
+    response: Response,
+    dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
+    dara_refresh_token: Annotated[str | None, Cookie(alias=REFRESH_TOKEN_COOKIE_NAME)] = None,
+):
+    """
+    Verify the current session for client-side auth checks.
+
+    Unlike the dependency version, this endpoint can clear stale auth cookies on terminal failures.
+    """
+    try:
+        return await verify_session(req, response, dara_session_token, dara_refresh_token)
+    except HTTPException as err:
+        if _should_clear_auth_cookies_on_verify_failure(err.detail, dara_refresh_token):
+            return _build_auth_error_response(err.status_code, err.detail)
+
+        return JSONResponse(status_code=err.status_code, content={'detail': err.detail})
+
+
 async def verify_session(
     req: Request,
     response: Response,
