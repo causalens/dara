@@ -8,8 +8,8 @@ import { HTTP_METHOD } from '@darajs/ui-utils';
 import { handleAuthErrors } from '@/auth/auth';
 import type { ActionImpl, AnyVariable } from '@/types';
 
-import { request } from './http';
 import { SESSION_REFRESHED_EVENT } from './events';
+import { request } from './http';
 
 const interAttemptTimeout = 500;
 const maxDisconnectedTime = 10000;
