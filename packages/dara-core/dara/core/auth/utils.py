@@ -22,9 +22,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
+from fastapi import Response
 from pydantic import ValidationError
 
 from dara.core.auth.definitions import (
+    AUTH_COOKIE_KWARGS,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
     JWT_ALGO,
@@ -60,6 +62,31 @@ def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tup
     expires_at = datetime.fromtimestamp(exp_claim, tz=timezone.utc) + timedelta(seconds=grace_seconds)
     max_age = max(0, int((expires_at - datetime.now(tz=timezone.utc)).total_seconds()))
     return max_age, expires_at
+
+
+def set_cookie_from_token_expiration(
+    response: Response,
+    key: str,
+    token: str,
+    grace_seconds: int = 60,
+) -> None:
+    """
+    Set a secure auth cookie and align its expiry with the token's exp claim when available.
+
+    Falls back to a browser-session cookie when the token is opaque or has no exp claim.
+
+    :param response: FastAPI response object
+    :param key: cookie name
+    :param token: cookie value
+    :param grace_seconds: optional grace period added after token expiry
+    """
+    expiration = get_cookie_expiration_from_token(token, grace_seconds=grace_seconds)
+    if expiration is None:
+        response.set_cookie(key=key, value=token, **AUTH_COOKIE_KWARGS)
+        return
+
+    max_age, expires = expiration
+    response.set_cookie(key=key, value=token, max_age=max_age, expires=expires, **AUTH_COOKIE_KWARGS)
 
 
 def decode_token(token: str, **kwargs) -> TokenData:

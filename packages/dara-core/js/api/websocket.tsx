@@ -3,9 +3,13 @@ import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
+import { HTTP_METHOD } from '@darajs/ui-utils';
+
+import { handleAuthErrors } from '@/auth/auth';
 import type { ActionImpl, AnyVariable } from '@/types';
 
 import { SESSION_REFRESHED_EVENT } from './events';
+import { request } from './http';
 
 const interAttemptTimeout = 500;
 const maxDisconnectedTime = 10000;
@@ -225,7 +229,7 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     liveReload: boolean;
 
-    closeHandler: () => void;
+    closeHandler: ((event: CloseEvent) => void) | null;
 
     maxAttempts: number;
 
@@ -245,10 +249,12 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     #resumeListenersAttached: boolean;
 
+    #authVerificationPromise: Promise<void> | null;
+
     constructor(_socketUrl: string, _liveReload = false) {
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
-        this.closeHandler = this.onClose.bind(this);
+        this.closeHandler = null;
         this.maxAttempts = maxAttempts;
         this.maxAttemptsReached = false;
         this.#socketUrl = _socketUrl;
@@ -258,6 +264,7 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.#resumeSignalHandler = this.onResumeSignal.bind(this);
         this.#visibilityResumeHandler = this.onVisibilityResumeSignal.bind(this);
         this.#resumeListenersAttached = false;
+        this.#authVerificationPromise = null;
 
         // Satisfy TSC, channel is set within initialize again
         this.channel = Promise.resolve('');
@@ -269,6 +276,7 @@ export class WebSocketClient implements WebSocketClientInterface {
     initialize(isReconnect = false): WebSocket {
         // Create the underlying socket instance from the url.
         const socket = new WebSocket(this.#socketUrl);
+        let receivedInit = false;
 
         // Send heartbeat to ping every few seconds and clear it on error
         this.#pingInterval = setInterval(() => {
@@ -293,6 +301,7 @@ export class WebSocketClient implements WebSocketClientInterface {
             const handler = (ev: MessageEvent<any>): void => {
                 const msg = JSON.parse(ev.data) as WebSocketMessage;
                 if (msg.type === 'init') {
+                    receivedInit = true;
                     this.#reconnectCount = 0;
                     this.maxAttemptsReached = false;
                     this.removeReconnectResumeListeners();
@@ -312,8 +321,41 @@ export class WebSocketClient implements WebSocketClientInterface {
         });
 
         // Bind the close handler so the re-initialize logic is added every time
+        this.closeHandler = () => {
+            if (!receivedInit) {
+                this.verifySessionAfterFailedConnect().catch(() => undefined);
+            }
+
+            this.onClose();
+        };
         socket.addEventListener('close', this.closeHandler);
         return socket;
+    }
+
+    async verifySessionAfterFailedConnect(): Promise<void> {
+        if (this.#authVerificationPromise) {
+            return this.#authVerificationPromise;
+        }
+
+        // Browser WS APIs do not expose failed handshake status codes, so re-use
+        // the HTTP auth verification path to decide between refresh/login/error recovery.
+        this.#authVerificationPromise = (async () => {
+            try {
+                const response = await request('/api/auth/verify-session', {
+                    method: HTTP_METHOD.POST,
+                });
+
+                if (!response.ok) {
+                    await handleAuthErrors(response);
+                }
+            } catch {
+                // Ignore transient network/server failures and let the reconnect loop continue.
+            } finally {
+                this.#authVerificationPromise = null;
+            }
+        })();
+
+        return this.#authVerificationPromise;
     }
 
     addReconnectResumeListeners(): void {
@@ -392,7 +434,9 @@ export class WebSocketClient implements WebSocketClientInterface {
             this.#reconnectTimeout = null;
         }
         this.removeReconnectResumeListeners();
-        this.socket.removeEventListener('close', this.closeHandler);
+        if (this.closeHandler) {
+            this.socket.removeEventListener('close', this.closeHandler);
+        }
         this.socket.close();
     }
 

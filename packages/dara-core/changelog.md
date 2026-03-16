@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed websocket auth reconnect failures to re-run session verification so stale/invalid cookies redirect back to login instead of leaving the app broken until another request is made.
+- Cleared stale session cookies from `/api/auth/verify-session` on terminal auth failures when no refresh token is available, avoiding relogin loops on invalid cookie state.
+- Persisted JWT refresh-token cookies using the token expiry instead of dropping them at browser-session end.
+
 ## 1.26.5
 
 - Table sorting now uses case-insensitive comparison for string columns

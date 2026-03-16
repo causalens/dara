@@ -24,7 +24,6 @@ from fastapi.responses import JSONResponse
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import (
-    AUTH_COOKIE_KWARGS,
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
@@ -36,7 +35,7 @@ from dara.core.auth.definitions import (
     SessionRequestBody,
     TokenData,
 )
-from dara.core.auth.utils import cached_refresh_token, decode_token, get_cookie_expiration_from_token
+from dara.core.auth.utils import cached_refresh_token, decode_token, set_cookie_from_token_expiration
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
@@ -145,15 +144,20 @@ def _set_session_token_cookie(response: Response, token: str):
     :param response: FastAPI response object
     :param token: session token value
     """
-    expiration = get_cookie_expiration_from_token(token)
-    if expiration is None:
-        response.set_cookie(key=SESSION_TOKEN_COOKIE_NAME, value=token, **AUTH_COOKIE_KWARGS)
-        return
+    set_cookie_from_token_expiration(response, SESSION_TOKEN_COOKIE_NAME, token)
 
-    max_age, expires = expiration
-    response.set_cookie(
-        key=SESSION_TOKEN_COOKIE_NAME, value=token, max_age=max_age, expires=expires, **AUTH_COOKIE_KWARGS
-    )
+
+def _set_refresh_token_cookie(response: Response, token: str):
+    """
+    Set the refresh token cookie.
+
+    If the refresh token is a JWT, keep the cookie alive for the token lifetime rather than
+    dropping it at browser-session end.
+
+    :param response: FastAPI response object
+    :param token: refresh token value
+    """
+    set_cookie_from_token_expiration(response, REFRESH_TOKEN_COOKIE_NAME, token)
 
 
 def _clear_auth_cookies(response: Response):
@@ -176,6 +180,15 @@ def _build_auth_error_response(status_code: int, detail: Any):
     error_response = JSONResponse(status_code=status_code, content={'detail': detail})
     _clear_auth_cookies(error_response)
     return error_response
+
+
+def _should_clear_auth_cookies_on_verify_failure(detail: Any, refresh_token: str | None) -> bool:
+    """
+    Determine whether /verify-session should clear auth cookies for a terminal auth failure.
+
+    We only do this when there is no refresh token to preserve for a follow-up refresh attempt.
+    """
+    return refresh_token is None and detail in (INVALID_TOKEN_ERROR, EXPIRED_TOKEN_ERROR)
 
 
 def _should_attempt_session_refresh(
@@ -227,12 +240,32 @@ async def _refresh_session(
     )
     _cache_session_auth_token(new_session_token)
 
-    response.set_cookie(key=REFRESH_TOKEN_COOKIE_NAME, value=new_refresh_token, **AUTH_COOKIE_KWARGS)
+    _set_refresh_token_cookie(response, new_refresh_token)
     _set_session_token_cookie(response, new_session_token)
     return new_session_token
 
 
 @auth_router.post('/verify-session')
+async def handle_verify_session(
+    req: Request,
+    response: Response,
+    dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
+    dara_refresh_token: Annotated[str | None, Cookie(alias=REFRESH_TOKEN_COOKIE_NAME)] = None,
+):
+    """
+    Verify the current session for client-side auth checks.
+
+    Unlike the dependency version, this endpoint can clear stale auth cookies on terminal failures.
+    """
+    try:
+        return await verify_session(req, response, dara_session_token, dara_refresh_token)
+    except HTTPException as err:
+        if _should_clear_auth_cookies_on_verify_failure(err.detail, dara_refresh_token):
+            return _build_auth_error_response(err.status_code, err.detail)
+
+        return JSONResponse(status_code=err.status_code, content={'detail': err.detail})
+
+
 async def verify_session(
     req: Request,
     response: Response,

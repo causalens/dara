@@ -27,8 +27,21 @@ async function initialize(liveReload = false): Promise<[server: WS, client: WebS
 }
 
 describe('WebsocketClient', () => {
+    beforeAll(() => {
+        Object.defineProperty(globalThis, 'WebSocket', {
+            configurable: true,
+            writable: true,
+            value: globalThis.WebSocket,
+        });
+    });
+
+    beforeEach(() => {
+        vi.spyOn(WebSocketClient.prototype, 'verifySessionAfterFailedConnect').mockResolvedValue();
+    });
+
     afterEach(() => {
         WS.clean();
+        vi.restoreAllMocks();
     });
 
     it('should initialize the websocket connection when the client is instantiated', async () => {

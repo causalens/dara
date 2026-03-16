@@ -245,6 +245,12 @@ async def test_sso_callback_creates_valid_session_token():
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
             jwk = PyJWK(MOCK_JWK)
+            refresh_token = jwt.encode(
+                {**MOCK_REFRESH_TOKEN, 'exp': int((datetime.now(tz=timezone.utc) + timedelta(days=7)).timestamp())},
+                PyJWK(MOCK_JWK).key,
+                algorithm=MOCK_JWK['alg'],
+                headers={'kid': MOCK_JWK['kid']},
+            )
             id_token = jwt.encode(
                 MOCK_ID_TOKEN,
                 jwk.key,
@@ -253,12 +259,7 @@ async def test_sso_callback_creates_valid_session_token():
             )
             mock_idp_response = {
                 'id_token': id_token,
-                'refresh_token': jwt.encode(
-                    MOCK_REFRESH_TOKEN,
-                    PyJWK(MOCK_JWK).key,
-                    algorithm=MOCK_JWK['alg'],
-                    headers={'kid': MOCK_JWK['kid']},
-                ),
+                'refresh_token': refresh_token,
             }
 
             respx.post(auth_config.discovery.token_endpoint).mock(
@@ -272,8 +273,12 @@ async def test_sso_callback_creates_valid_session_token():
             assert mock_urllib.call_count == 1
 
             # Check that the refresh token is added as a cookie
-            assert 'set-cookie' in response.headers
-            assert response.headers['set-cookie'].startswith(f'dara_refresh_token={mock_idp_response["refresh_token"]}')
+            set_cookies = response.headers.getall('set-cookie')
+            refresh_cookie = next((cookie for cookie in set_cookies if cookie.startswith('dara_refresh_token=')), None)
+            assert refresh_cookie is not None
+            assert refresh_cookie.startswith(f'dara_refresh_token={mock_idp_response["refresh_token"]}')
+            assert 'Max-Age=' in refresh_cookie
+            assert 'expires=' in refresh_cookie.lower()
 
             assert response.json() == {'success': True}
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
