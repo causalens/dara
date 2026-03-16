@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.6
 
 - Fixed websocket auth reconnect failures to re-run session verification so stale/invalid cookies redirect back to login instead of leaving the app broken until another request is made.
 - Cleared stale session cookies from `/api/auth/verify-session` on terminal auth failures when no refresh token is available, avoiding relogin loops on invalid cookie state.
