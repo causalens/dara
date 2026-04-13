@@ -32,7 +32,7 @@ from dara.core.auth.utils import set_cookie_from_token_expiration, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
-from .definitions import AuthCodeRequestBody, OIDC_STATE_COOKIE_NAME
+from .definitions import AuthCodeRequestBody, OIDC_LOGIN_SESSION_COOKIE_NAME
 from .id_token_cache import oidc_id_token_cache
 from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
@@ -73,18 +73,16 @@ async def sso_callback(
             detail=BAD_REQUEST_ERROR('Cannot use sso-callback for non-OIDC auth configuration'),
         )
 
-    response.delete_cookie(OIDC_STATE_COOKIE_NAME, path='/')
-
     if body.state is None:
         raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Missing state parameter'))
 
-    state_cookie = request.cookies.get(OIDC_STATE_COOKIE_NAME)
+    login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
     transaction = oidc_transaction_store.take(body.state)
     if transaction is None:
         dev_logger.error('Invalid state parameter', error=Exception('missing oidc transaction'))
         raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter'))
 
-    if state_cookie != body.state:
+    if login_session_id is None or transaction.login_session_id != login_session_id:
         dev_logger.error('Invalid state parameter', error=Exception('state cookie mismatch'))
         raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter'))
 

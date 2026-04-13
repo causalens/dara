@@ -6,7 +6,7 @@ from dara.core.auth.definitions import REFRESH_TOKEN_COOKIE_NAME as CORE_REFRESH
 
 JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
 REFRESH_TOKEN_COOKIE_NAME = CORE_REFRESH_TOKEN_COOKIE_NAME
-OIDC_STATE_COOKIE_NAME = 'dara_oidc_state'
+OIDC_LOGIN_SESSION_COOKIE_NAME = 'dara_oidc_login_session'
 
 
 class AuthCodeRequestBody(BaseModel):
@@ -292,6 +292,7 @@ class OIDCLoginTransaction(BaseModel):
     """
 
     state: str = Field(..., description='Opaque state value sent to the authorization endpoint')
+    login_session_id: str | None = Field(default=None, description='Pre-auth login session id bound to the browser')
     nonce: str = Field(..., description='Nonce value sent in the authorization request')
     redirect_to: str | None = Field(default=None, description='Optional redirect target after successful auth')
     created_at: datetime = Field(

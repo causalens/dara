@@ -24,7 +24,7 @@ from dara.core.auth.definitions import (
     AuthError,
 )
 from dara.core.auth.oidc.config import OIDCAuthConfig
-from dara.core.auth.oidc.definitions import OIDC_STATE_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME, OIDCDiscoveryMetadata
+from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME, OIDCDiscoveryMetadata
 from dara.core.auth.oidc.id_token_cache import OIDCIdTokenCache, oidc_id_token_cache
 from dara.core.auth.oidc.settings import get_oidc_settings
 from dara.core.auth.oidc.transaction_store import oidc_transaction_store
@@ -183,8 +183,8 @@ async def start_oidc_login(client: AsyncClient, redirect_to: str | None = None) 
     _, query = parse_url(response.json()['redirect_uri'])
     state = query['state'][0]
 
-    state_cookie = response.cookies.get(OIDC_STATE_COOKIE_NAME)
-    assert state_cookie == state
+    login_session_id = response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+    assert login_session_id is not None
 
     return state
 
@@ -225,11 +225,13 @@ async def test_session_no_state():
         assert received_query['redirect_uri'] == [get_oidc_settings().redirect_uri]
 
         received_state = received_query['state'][0]
-        assert response.cookies.get(OIDC_STATE_COOKIE_NAME) == received_state
+        login_session_id = response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+        assert login_session_id is not None
 
         transaction = oidc_transaction_store.take(received_state)
         assert transaction is not None
         assert received_query['nonce'] == [transaction.nonce]
+        assert transaction.login_session_id == login_session_id
         assert transaction.redirect_to is None
 
 
@@ -250,11 +252,13 @@ async def test_session_with_state():
 
         assert received_url == urlparse(auth_config.discovery.authorization_endpoint).path
         received_state = received_query['state'][0]
-        assert response.cookies.get(OIDC_STATE_COOKIE_NAME) == received_state
+        login_session_id = response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+        assert login_session_id is not None
 
         transaction = oidc_transaction_store.take(received_state)
         assert transaction is not None
         assert received_query['nonce'] == [transaction.nonce]
+        assert transaction.login_session_id == login_session_id
         assert transaction.redirect_to == 'https://localhost:8000/test'
 
 
@@ -337,7 +341,7 @@ async def test_sso_callback_rejects_cookie_mismatch():
 
     async with AsyncClient(app) as client:
         state = await start_oidc_login(client)
-        client.cookie_jar[OIDC_STATE_COOKIE_NAME] = 'different-state'
+        client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME] = 'different-session'
 
         response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
         assert response.status_code == 400
@@ -366,6 +370,66 @@ async def test_sso_callback_rejects_reused_state():
             second_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
             assert second_response.status_code == 400
             assert second_response.json()['detail'] == BAD_REQUEST_ERROR('Invalid state parameter')
+
+
+async def test_session_supports_multiple_live_transactions_per_login_session():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        first_response = await client.post('/api/auth/session', json={'redirect_to': '/first'})
+        first_state = parse_url(first_response.json()['redirect_uri'])[1]['state'][0]
+        first_login_session_id = first_response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+        assert first_login_session_id is not None
+
+        second_response = await client.post('/api/auth/session', json={'redirect_to': '/second'})
+        second_state = parse_url(second_response.json()['redirect_uri'])[1]['state'][0]
+        second_login_session_id = second_response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+
+        assert second_login_session_id == first_login_session_id
+        assert first_state != second_state
+
+        first_transaction = oidc_transaction_store.take(first_state)
+        second_transaction = oidc_transaction_store.take(second_state)
+
+        assert first_transaction is not None
+        assert second_transaction is not None
+        assert first_transaction.login_session_id == first_login_session_id
+        assert second_transaction.login_session_id == first_login_session_id
+        assert first_transaction.nonce != second_transaction.nonce
+        assert first_transaction.redirect_to == '/first'
+        assert second_transaction.redirect_to == '/second'
+
+
+async def test_sso_callback_supports_multiple_live_transactions_per_login_session():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            first_state = await start_oidc_login(client, redirect_to='/first')
+            second_state = await start_oidc_login(client, redirect_to='/second')
+
+            token_route = respx.post(auth_config.discovery.token_endpoint)
+
+            token_route.mock(return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(first_state)}))
+            first_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': first_state})
+            assert first_response.status_code == 200
+            assert first_response.json() == {'success': True, 'redirect_to': '/first'}
+
+            token_route.mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(second_state)})
+            )
+            second_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': second_state})
+            assert second_response.status_code == 200
+            assert second_response.json() == {'success': True, 'redirect_to': '/second'}
 
 
 async def test_sso_callback_rejects_nonce_mismatch():

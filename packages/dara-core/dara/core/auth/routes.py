@@ -18,6 +18,7 @@ limitations under the License.
 from inspect import isawaitable
 from typing import Annotated, Any
 from urllib.parse import parse_qs, urlparse
+from uuid import uuid4
 
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
@@ -66,10 +67,16 @@ def _cache_session_auth_token(session_token: str):
     session_auth_token_registry.set(decoded_token.session_id, decoded_token)
 
 
-def _maybe_set_oidc_state_cookie(response: Response, auth_config: BaseAuthConfig, redirect_uri: str):
+def _maybe_set_oidc_state_cookie(
+    response: Response,
+    auth_config: BaseAuthConfig,
+    redirect_uri: str,
+    existing_login_session_id: str | None = None,
+):
     from dara.core.auth.oidc.config import OIDCAuthConfig
-    from dara.core.auth.oidc.definitions import OIDC_STATE_COOKIE_NAME
+    from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME
     from dara.core.auth.oidc.settings import get_oidc_settings
+    from dara.core.auth.oidc.transaction_store import oidc_transaction_store
 
     if not isinstance(auth_config, OIDCAuthConfig):
         return
@@ -78,9 +85,14 @@ def _maybe_set_oidc_state_cookie(response: Response, auth_config: BaseAuthConfig
     if state is None:
         return
 
+    login_session_id = existing_login_session_id or str(uuid4())
+
+    if oidc_transaction_store.bind_login_session(state, login_session_id) is None:
+        return
+
     response.set_cookie(
-        key=OIDC_STATE_COOKIE_NAME,
-        value=state,
+        key=OIDC_LOGIN_SESSION_COOKIE_NAME,
+        value=login_session_id,
         httponly=True,
         max_age=get_oidc_settings().transaction_ttl_seconds,
         path='/',
@@ -420,16 +432,23 @@ async def handle_refresh_token(
 
 # Request to retrieve a session token from the backend. The app does this on startup.
 @auth_router.post('/session')
-async def _get_session(body: SessionRequestBody, response: Response):
+async def _get_session(body: SessionRequestBody, request: Request, response: Response):
     from dara.core.internal.registries import auth_registry
+    from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME
 
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
+    existing_login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
 
     session_response = auth_config.get_token(body)
     if 'token' in session_response:
         _set_session_token_cookie(response, session_response['token'])
         return {'success': True}
-    _maybe_set_oidc_state_cookie(response, auth_config, session_response['redirect_uri'])
+    _maybe_set_oidc_state_cookie(
+        response,
+        auth_config,
+        session_response['redirect_uri'],
+        existing_login_session_id=existing_login_session_id,
+    )
     return session_response
 
 
