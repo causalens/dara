@@ -73,9 +73,6 @@ async def sso_callback(
             detail=BAD_REQUEST_ERROR('Cannot use sso-callback for non-OIDC auth configuration'),
         )
 
-    if body.state is None:
-        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Missing state parameter'))
-
     login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
     transaction = oidc_transaction_store.take_if_login_session_matches(body.state, login_session_id)
     if transaction is None:
@@ -102,7 +99,7 @@ async def sso_callback(
 
         # Decode and verify the ID token
         claims = decode_id_token(oidc_tokens.id_token)
-        if claims.nonce != transaction.nonce:
+        if claims.nonce is None or claims.nonce != transaction.nonce:
             dev_logger.error('Invalid OIDC nonce', error=Exception('nonce mismatch'))
             raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 

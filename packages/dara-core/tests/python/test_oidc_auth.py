@@ -272,7 +272,7 @@ async def test_session_with_state():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        response = await client.post('/api/auth/session', json={'redirect_to': 'https://localhost:8000/test'})
+        response = await client.post('/api/auth/session', json={'redirect_to': '/test'})
         received_url, received_query = parse_url(response.json()['redirect_uri'])
 
         assert received_url == urlparse(auth_config.discovery.authorization_endpoint).path
@@ -284,7 +284,22 @@ async def test_session_with_state():
         assert transaction is not None
         assert received_query['nonce'] == [transaction.nonce]
         assert transaction.login_session_id == login_session_id
-        assert transaction.redirect_to == 'https://localhost:8000/test'
+        assert transaction.redirect_to == '/test'
+
+
+@pytest.mark.parametrize('redirect_to', ['https://evil.com/phish', '//evil.com/phish', 'relative-path'])
+async def test_session_rejects_invalid_redirect_to(redirect_to: str):
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/session', json={'redirect_to': redirect_to})
+        assert response.status_code == 400
+        assert response.json()['detail'] == BAD_REQUEST_ERROR('Invalid redirect_to parameter')
 
 
 async def test_sso_callback_creates_valid_session_token():
@@ -299,7 +314,7 @@ async def test_sso_callback_creates_valid_session_token():
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
-            state = await start_oidc_login(client, redirect_to='https://localhost:8000/post-auth')
+            state = await start_oidc_login(client, redirect_to='/post-auth')
             refresh_token = jwt.encode(
                 {**MOCK_REFRESH_TOKEN, 'exp': int((datetime.now(tz=timezone.utc) + timedelta(days=7)).timestamp())},
                 PyJWK(MOCK_JWK).key,
@@ -330,7 +345,7 @@ async def test_sso_callback_creates_valid_session_token():
             assert 'Max-Age=' in refresh_cookie
             assert 'expires=' in refresh_cookie.lower()
 
-            assert response.json() == {'success': True, 'redirect_to': 'https://localhost:8000/post-auth'}
+            assert response.json() == {'success': True, 'redirect_to': '/post-auth'}
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
             decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
@@ -352,8 +367,7 @@ async def test_sso_callback_requires_state():
 
     async with AsyncClient(app) as client:
         response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
-        assert response.status_code == 400
-        assert response.json()['detail'] == BAD_REQUEST_ERROR('Missing state parameter')
+        assert response.status_code == 422
 
 
 async def test_sso_callback_rejects_cookie_mismatch_without_consuming_transaction():
@@ -491,6 +505,27 @@ async def test_sso_callback_rejects_nonce_mismatch():
         async with AsyncClient(app) as client:
             state = await start_oidc_login(client)
             id_token = make_mock_id_token(state, {'nonce': 'wrong-nonce'})
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
+async def test_sso_callback_rejects_missing_nonce_claim():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state, {'nonce': None})
 
             respx.post(auth_config.discovery.token_endpoint).mock(
                 return_value=httpx.Response(status_code=200, json={'id_token': id_token})

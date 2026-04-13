@@ -15,8 +15,8 @@ class AuthCodeRequestBody(BaseModel):
     auth_code: str
     """The authorization code received from the IDP"""
 
-    state: str | None = None
-    """The state parameter for CSRF validation (optional for backward compatibility)"""
+    state: str = Field(..., min_length=1)
+    """The state parameter for CSRF validation."""
 
 
 class OIDCDiscoveryMetadata(BaseModel):

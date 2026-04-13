@@ -1,6 +1,6 @@
 import secrets
 from typing import ClassVar
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 import jwt
@@ -15,6 +15,7 @@ from dara.core.logging import dev_logger
 
 from ..base import AuthComponent, AuthComponentConfig, BaseAuthConfig
 from ..definitions import (
+    BAD_REQUEST_ERROR,
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
     REFRESH_TOKEN_COOKIE_NAME,
@@ -202,6 +203,22 @@ class OIDCAuthConfig(BaseAuthConfig):
         params = self.get_authorization_params(state, nonce=nonce)
         return f'{self.discovery.authorization_endpoint}?{urlencode(params)}'
 
+    def validate_redirect_to(self, redirect_to: str | None) -> str | None:
+        """
+        Validate the post-auth redirect target.
+
+        Only same-origin relative app paths are allowed. Absolute URLs, protocol-relative
+        URLs, and non-path values are rejected.
+        """
+        if redirect_to is None:
+            return None
+
+        parsed = urlparse(redirect_to)
+        if parsed.scheme or parsed.netloc or not redirect_to.startswith('/') or redirect_to.startswith('//'):
+            raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid redirect_to parameter'))
+
+        return redirect_to
+
     def get_token(self, body: SessionRequestBody) -> TokenResponse | RedirectResponse:
         """
         Get token from the IDP - redirect to the authorization endpoint.
@@ -211,10 +228,11 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         :param body: Request body, may contain redirect_to for post-auth navigation
         """
+        redirect_to = self.validate_redirect_to(body.redirect_to)
         transaction = OIDCLoginTransaction(
-            state=self.generate_state(redirect_to=body.redirect_to),
+            state=self.generate_state(redirect_to=redirect_to),
             nonce=self.generate_nonce(),
-            redirect_to=body.redirect_to,
+            redirect_to=redirect_to,
         )
         oidc_transaction_store.set(transaction)
         return RedirectResponse(redirect_uri=self.get_authorization_url(transaction.state, nonce=transaction.nonce))
