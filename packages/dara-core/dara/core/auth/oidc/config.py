@@ -151,19 +151,21 @@ class OIDCAuthConfig(BaseAuthConfig):
 
     def generate_state(self, redirect_to: str | None = None) -> str:
         """
-        Generate an opaque state parameter and persist the login transaction server-side.
+        Generate an opaque state parameter for the authorization request.
 
         :param redirect_to: Optional URL to redirect to after successful authentication
         :return: Opaque state string to use as the state parameter
         """
-        transaction = OIDCLoginTransaction(
-            state=secrets.token_urlsafe(32),
-            redirect_to=redirect_to,
-        )
-        oidc_transaction_store.set(transaction)
-        return transaction.state
+        del redirect_to
+        return secrets.token_urlsafe(32)
 
-    def get_authorization_params(self, state: str) -> dict[str, str]:
+    def generate_nonce(self) -> str:
+        """
+        Generate an OIDC nonce parameter for the authorization request.
+        """
+        return secrets.token_urlsafe(32)
+
+    def get_authorization_params(self, state: str, nonce: str | None = None) -> dict[str, str]:
         """
         Build the query parameters for the authorization request per OpenID Connect Core 1.0 Section 3.1.2.1.
 
@@ -184,14 +186,15 @@ class OIDCAuthConfig(BaseAuthConfig):
             'response_type': 'code',
             'client_id': oidc_settings.client_id,
             'redirect_uri': oidc_settings.redirect_uri,
+            **({'nonce': nonce} if nonce is not None else {}),
             'state': state,
         }
 
-    def get_authorization_url(self, state: str) -> str:
+    def get_authorization_url(self, state: str, nonce: str | None = None) -> str:
         """
         Build the full authorization URL using the discovery document's authorization_endpoint.
         """
-        params = self.get_authorization_params(state)
+        params = self.get_authorization_params(state, nonce=nonce)
         return f'{self.discovery.authorization_endpoint}?{urlencode(params)}'
 
     def get_token(self, body: SessionRequestBody) -> TokenResponse | RedirectResponse:
@@ -203,8 +206,13 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         :param body: Request body, may contain redirect_to for post-auth navigation
         """
-        state = self.generate_state(redirect_to=body.redirect_to)
-        return RedirectResponse(redirect_uri=self.get_authorization_url(state))
+        transaction = OIDCLoginTransaction(
+            state=self.generate_state(redirect_to=body.redirect_to),
+            nonce=self.generate_nonce(),
+            redirect_to=body.redirect_to,
+        )
+        oidc_transaction_store.set(transaction)
+        return RedirectResponse(redirect_uri=self.get_authorization_url(transaction.state, nonce=transaction.nonce))
 
     async def fetch_userinfo(self, access_token: str) -> dict | None:
         """

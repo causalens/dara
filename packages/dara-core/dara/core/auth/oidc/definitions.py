@@ -292,6 +292,7 @@ class OIDCLoginTransaction(BaseModel):
     """
 
     state: str = Field(..., description='Opaque state value sent to the authorization endpoint')
+    nonce: str = Field(..., description='Nonce value sent in the authorization request')
     redirect_to: str | None = Field(default=None, description='Optional redirect target after successful auth')
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=timezone.utc),

@@ -108,6 +108,9 @@ async def sso_callback(
 
         # Decode and verify the ID token
         claims = decode_id_token(oidc_tokens.id_token)
+        if claims.nonce != transaction.nonce:
+            dev_logger.error('Invalid OIDC nonce', error=Exception('nonce mismatch'))
+            raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 
         # Fetch userinfo if enabled and we have an access token
         userinfo = None

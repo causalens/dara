@@ -56,6 +56,16 @@ class OIDCTransactionStore:
                 return None
             return entry.transaction
 
+    def get(self, state: str) -> OIDCLoginTransaction | None:
+        now = datetime.now(tz=timezone.utc)
+
+        with self._lock:
+            self._prune_expired_locked(now)
+            entry = self._entries.get(state)
+            if entry is None:
+                return None
+            return entry.transaction
+
     def clear(self):
         with self._lock:
             self._entries.clear()
