@@ -220,12 +220,18 @@ jobs:
       - name: Build JS packages
         run: make prepare
       - name: Cache Cypress binary
+        id: cypress-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-cypress-${{ needs.setup.outputs.cypress-version }}
           restore-keys: |
             cypress-${{ runner.os }}-cypress-
+      - name: Install Cypress binary
+        if: steps.cypress-cache.outputs.cache-hit != 'true'
+        run: pnpm --dir packages/dara-core exec cypress install
+      - name: Verify Cypress binary
+        run: pnpm --dir packages/dara-core exec cypress verify
       - name: Install system deps
         run: sudo apt update && sudo apt install wget -y
       - name: Install and cache APT Cypress deps
