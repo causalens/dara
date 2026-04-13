@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Reworked OIDC login state handling to use server-side transactions bound to an HTTP-only browser cookie instead of short-lived self-signed JWT state values.
+- Added OIDC nonce propagation and callback verification, and now return post-auth redirect targets from the backend callback flow.
+
 ## 1.26.6
 
 - Fixed websocket auth reconnect failures to re-run session verification so stale/invalid cookies redirect back to login instead of leaving the app broken until another request is made.
