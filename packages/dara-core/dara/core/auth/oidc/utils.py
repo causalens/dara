@@ -89,6 +89,7 @@ def decode_id_token(id_token: str) -> IdTokenClaims:
         jwks_client.get_signing_key_from_jwt(id_token).key,
         algorithms=[oidc_settings.jwt_algo],
         audience=audience,
+        issuer=oidc_settings.issuer_url,
     )
 
     return IdTokenClaims.model_validate(decoded)

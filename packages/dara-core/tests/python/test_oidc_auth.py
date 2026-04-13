@@ -39,7 +39,7 @@ os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 pytestmark = pytest.mark.anyio
 
 TEST_JWT_SECRET = 'd6446c35450e31c4d0b48351c0423bf9'
-TEST_SSO_ISSUER_URL = 'http://test-identity-provider.causalens.dev/'
+TEST_SSO_ISSUER_URL = 'http://test-identity-provider.com'
 TEST_SSO_CLIENT_ID = 'CLIENT_ID'
 TEST_SSO_CLIENT_SECRET = 'CLIENT_SECRET'
 TEST_SSO_REDIRECT_URI = 'http://localhost:8000/sso-callback'
@@ -114,7 +114,7 @@ def mocked_urllib(data):
 
 
 MOCK_DISCOVERY = OIDCDiscoveryMetadata(
-    issuer='http://test-identity-provider.com/api/authentication',
+    issuer=TEST_SSO_ISSUER_URL,
     authorization_endpoint='http://test-identity-provider.com/api/authentication/authenticate',
     token_endpoint='http://test-identity-provider.com/api/authentication/token',
     jwks_uri='http://test-identity-provider.com/api/authentication/keys',
@@ -163,6 +163,27 @@ async def test_config_parses_groups():
     assert len(sso_config.allowed_groups) == 2
     assert 'dev' in sso_config.allowed_groups
     assert 'test' in sso_config.allowed_groups
+
+
+async def test_startup_hook_rejects_discovery_issuer_mismatch():
+    auth_config = make_config()
+    mismatched_discovery = MOCK_DISCOVERY.model_copy(update={'issuer': 'http://wrong-issuer.com'})
+
+    with mock.patch.object(
+        auth_config.client,
+        'get',
+        mock.AsyncMock(
+            return_value=httpx.Response(
+                status_code=200,
+                json=mismatched_discovery.model_dump(),
+                request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+            )
+        ),
+    ):
+        with pytest.raises(RuntimeError, match='OIDC discovery issuer mismatch'):
+            await auth_config.startup_hook()
+
+    await auth_config.client.aclose()
 
 
 def parse_url(url: str) -> tuple[str, dict]:
@@ -460,6 +481,27 @@ async def test_sso_callback_rejects_nonce_mismatch():
         async with AsyncClient(app) as client:
             state = await start_oidc_login(client)
             id_token = make_mock_id_token(state, {'nonce': 'wrong-nonce'})
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
+async def test_sso_callback_rejects_issuer_mismatch():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state, {'iss': 'http://wrong-issuer.com'})
 
             respx.post(auth_config.discovery.token_endpoint).mock(
                 return_value=httpx.Response(status_code=200, json={'id_token': id_token})
@@ -1394,7 +1436,7 @@ MOCK_USERINFO = {
 
 # Mock discovery with userinfo endpoint
 MOCK_DISCOVERY_WITH_USERINFO = OIDCDiscoveryMetadata(
-    issuer='http://test-identity-provider.com/api/authentication',
+    issuer=TEST_SSO_ISSUER_URL,
     authorization_endpoint='http://test-identity-provider.com/api/authentication/authenticate',
     token_endpoint='http://test-identity-provider.com/api/authentication/token',
     jwks_uri='http://test-identity-provider.com/api/authentication/keys',
@@ -1478,6 +1520,51 @@ async def test_sso_callback_with_userinfo(mock_discovery_with_userinfo):
                 assert decoded_session_token.get('identity_email') == MOCK_USERINFO['email']
                 # Groups should come from userinfo
                 assert decoded_session_token.get('groups') == MOCK_USERINFO['groups']
+
+
+async def test_sso_callback_rejects_userinfo_subject_mismatch(mock_discovery_with_userinfo):
+    """
+    Test that /sso-callback rejects userinfo for a different subject
+    """
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA):
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    PyJWK(MOCK_JWK).key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+                respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json={**MOCK_USERINFO, 'sub': 'other-user'})
+                )
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+                assert response.status_code == 401
+                assert response.json()['detail'] == INVALID_TOKEN_ERROR
 
 
 async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_userinfo):

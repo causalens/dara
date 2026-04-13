@@ -135,6 +135,12 @@ class OIDCAuthConfig(BaseAuthConfig):
         except Exception as e:
             raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
 
+        if self._discovery.issuer != oidc_settings.issuer_url:
+            raise RuntimeError(
+                'OIDC discovery issuer mismatch: '
+                f'expected {oidc_settings.issuer_url}, got {self._discovery.issuer}'
+            )
+
         dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
 
         # 3. Register a PyJWKClient instance bound to the jwks_uri from discovery
@@ -264,8 +270,12 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         # When userinfo is provided and use_userinfo is enabled, prefer userinfo claims
         if userinfo and oidc_settings.use_userinfo:
-            # userinfo 'sub' must match id_token 'sub' per OIDC spec
-            identity_id = userinfo.get('sub') or claims.sub
+            userinfo_sub = userinfo.get('sub')
+            if not isinstance(userinfo_sub, str) or userinfo_sub != claims.sub:
+                dev_logger.error('Invalid OIDC userinfo subject', error=Exception('userinfo sub mismatch'))
+                raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+
+            identity_id = claims.sub
             identity_email = userinfo.get('email') or claims.email
             identity_name = (
                 userinfo.get('name')
