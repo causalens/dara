@@ -225,8 +225,6 @@ jobs:
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-cypress-${{ needs.setup.outputs.cypress-version }}
-          restore-keys: |
-            cypress-${{ runner.os }}-cypress-
       - name: Install Cypress binary
         if: steps.cypress-cache.outputs.cache-hit != 'true'
         run: pnpm --dir packages/dara-core exec cypress install
