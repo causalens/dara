@@ -77,12 +77,8 @@ async def sso_callback(
         raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Missing state parameter'))
 
     login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
-    transaction = oidc_transaction_store.take(body.state)
+    transaction = oidc_transaction_store.take_if_login_session_matches(body.state, login_session_id)
     if transaction is None:
-        dev_logger.error('Invalid state parameter', error=Exception('missing oidc transaction'))
-        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter'))
-
-    if login_session_id is None or transaction.login_session_id != login_session_id:
         dev_logger.error('Invalid state parameter', error=Exception('state cookie mismatch'))
         raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter'))
 

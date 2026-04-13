@@ -331,21 +331,38 @@ async def test_sso_callback_requires_state():
         assert response.json()['detail'] == BAD_REQUEST_ERROR('Missing state parameter')
 
 
-async def test_sso_callback_rejects_cookie_mismatch():
+async def test_sso_callback_rejects_cookie_mismatch_without_consuming_transaction():
     config = ConfigurationBuilder()
 
     auth_config = make_config()
     config.add_auth(auth_config)
 
-    app = _start_application(config._to_configuration())
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
 
-    async with AsyncClient(app) as client:
-        state = await start_oidc_login(client)
-        client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME] = 'different-session'
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            login_session_id = client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME]
+            id_token = make_mock_id_token(state)
 
-        response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
-        assert response.status_code == 400
-        assert response.json()['detail'] == BAD_REQUEST_ERROR('Invalid state parameter')
+            client.cookie_jar.clear()
+            client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME] = 'different-session'
+            mismatch_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert mismatch_response.status_code == 400
+            assert mismatch_response.json()['detail'] == BAD_REQUEST_ERROR('Invalid state parameter')
+            assert oidc_transaction_store.get(state) is not None
+
+            client.cookie_jar.clear()
+            client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME] = login_session_id
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            success_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert success_response.status_code == 200
+            assert success_response.json() == {'success': True, 'redirect_to': None}
+            assert oidc_transaction_store.get(state) is None
 
 
 async def test_sso_callback_rejects_reused_state():

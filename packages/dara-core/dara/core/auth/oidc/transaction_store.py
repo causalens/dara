@@ -56,6 +56,18 @@ class OIDCTransactionStore:
                 return None
             return entry.transaction
 
+    def take_if_login_session_matches(self, state: str, login_session_id: str | None) -> OIDCLoginTransaction | None:
+        now = datetime.now(tz=timezone.utc)
+
+        with self._lock:
+            self._prune_expired_locked(now)
+            entry = self._entries.get(state)
+            if entry is None or login_session_id is None or entry.transaction.login_session_id != login_session_id:
+                return None
+
+            self._entries.pop(state, None)
+            return entry.transaction
+
     def bind_login_session(self, state: str, login_session_id: str) -> OIDCLoginTransaction | None:
         now = datetime.now(tz=timezone.utc)
 
