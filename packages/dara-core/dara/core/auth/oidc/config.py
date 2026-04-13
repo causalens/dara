@@ -1,3 +1,4 @@
+import asyncio
 import secrets
 from typing import ClassVar
 from urllib.parse import urlencode, urlparse
@@ -40,7 +41,7 @@ from .definitions import (
 )
 from .id_token_cache import oidc_id_token_cache
 from .routes import sso_callback
-from .settings import get_oidc_settings
+from .settings import OIDCSettings, get_oidc_settings
 from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
 
@@ -49,6 +50,10 @@ OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', j
 OIDCAuthLogout = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogout')
 
 OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthSSOCallback')
+
+
+class _RetryableDiscoveryError(Exception):
+    """Transient failure while fetching the OIDC discovery document."""
 
 
 class OIDCAuthConfig(BaseAuthConfig):
@@ -109,6 +114,44 @@ class OIDCAuthConfig(BaseAuthConfig):
         issuer_url = get_oidc_settings().issuer_url
         return f'{issuer_url}/.well-known/openid-configuration'
 
+    async def fetch_discovery_document(self, discovery_url: str, oidc_settings: OIDCSettings) -> httpx.Response:
+        """
+        Fetch the OIDC discovery document with bounded retries for transient failures.
+        """
+        delay_seconds = 0.5
+
+        for attempt in range(1, oidc_settings.discovery_max_attempts + 1):
+            try:
+                response = await self.client.get(
+                    discovery_url,
+                    timeout=oidc_settings.discovery_request_timeout_seconds,
+                )
+
+                if response.status_code == 429 or 500 <= response.status_code < 600:
+                    raise _RetryableDiscoveryError(f'HTTP {response.status_code}')
+
+                response.raise_for_status()
+                return response
+            except _RetryableDiscoveryError as e:
+                if attempt == oidc_settings.discovery_max_attempts:
+                    raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
+            except httpx.HTTPStatusError as e:
+                raise RuntimeError(
+                    f'Failed to fetch OIDC discovery document from {discovery_url}: HTTP {e.response.status_code}'
+                ) from e
+            except httpx.RequestError as e:
+                if attempt == oidc_settings.discovery_max_attempts:
+                    raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
+
+            dev_logger.warning(
+                'Retrying OIDC discovery fetch',
+                {'attempt': attempt, 'max_attempts': oidc_settings.discovery_max_attempts, 'url': discovery_url},
+            )
+            await asyncio.sleep(delay_seconds)
+            delay_seconds *= 2
+
+        raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}')
+
     async def startup_hook(self):
         await self.client.__aenter__()
 
@@ -121,15 +164,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         # 2. Fetch OIDC discovery document
         discovery_url = self.get_discovery_url()
         dev_logger.info(f'Fetching OIDC discovery document from {discovery_url}...')
-        try:
-            response = await self.client.get(discovery_url)
-            response.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            raise RuntimeError(
-                f'Failed to fetch OIDC discovery document from {discovery_url}: HTTP {e.response.status_code}'
-            ) from e
-        except httpx.RequestError as e:
-            raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
+        response = await self.fetch_discovery_document(discovery_url, oidc_settings)
 
         try:
             self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())

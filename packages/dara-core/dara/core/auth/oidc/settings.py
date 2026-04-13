@@ -26,6 +26,10 @@ class OIDCSettings(BaseSettings):
     allowed_identity_id: str | None = None
     use_userinfo: bool = False
     """If True, fetch additional claims from the userinfo endpoint when an access token is available."""
+    discovery_request_timeout_seconds: float = Field(default=5.0, gt=0)
+    """Timeout applied to each OIDC discovery HTTP request."""
+    discovery_max_attempts: int = Field(default=3, ge=1)
+    """Maximum number of attempts when fetching the OIDC discovery document."""
     transaction_ttl_seconds: int = Field(default=86400, ge=1)
     """TTL used to clean up abandoned OIDC login transactions."""
     transaction_max_entries: int = Field(default=10000, ge=1)

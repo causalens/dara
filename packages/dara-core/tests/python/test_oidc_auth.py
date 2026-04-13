@@ -190,6 +190,70 @@ async def test_startup_hook_rejects_discovery_issuer_mismatch():
     await auth_config.client.aclose()
 
 
+async def test_startup_hook_retries_transient_discovery_request_error():
+    auth_config = make_config()
+    discovery_response = httpx.Response(
+        status_code=200,
+        json=MOCK_DISCOVERY.model_dump(),
+        request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+    )
+
+    with (
+        mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                side_effect=[
+                    httpx.ConnectError(
+                        'connection failed',
+                        request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+                    ),
+                    discovery_response,
+                ]
+            ),
+        ) as get_mock,
+        mock.patch('dara.core.auth.oidc.config.asyncio.sleep', mock.AsyncMock()) as sleep_mock,
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert get_mock.await_count == 2
+    sleep_mock.assert_awaited_once()
+    assert auth_config.discovery.issuer == MOCK_DISCOVERY.issuer
+
+    await cleanup()
+
+
+async def test_startup_hook_retries_retryable_discovery_status():
+    auth_config = make_config()
+    discovery_request = httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration')
+    discovery_response = httpx.Response(
+        status_code=200,
+        json=MOCK_DISCOVERY.model_dump(),
+        request=discovery_request,
+    )
+
+    with (
+        mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                side_effect=[
+                    httpx.Response(status_code=503, request=discovery_request),
+                    discovery_response,
+                ]
+            ),
+        ) as get_mock,
+        mock.patch('dara.core.auth.oidc.config.asyncio.sleep', mock.AsyncMock()) as sleep_mock,
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert get_mock.await_count == 2
+    sleep_mock.assert_awaited_once()
+    assert auth_config.discovery.issuer == MOCK_DISCOVERY.issuer
+
+    await cleanup()
+
+
 def parse_url(url: str) -> tuple[str, dict]:
     """
     Parse redirect uri extracting state from it
