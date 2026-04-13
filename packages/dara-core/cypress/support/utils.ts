@@ -1,7 +1,7 @@
 /* eslint-disable import/prefer-default-export */
 
-/* eslint-disable import/no-extraneous-dependencies */
-import { HttpResponseInterceptor, RouteMatcher, StaticResponse } from 'cypress/types/net-stubbing';
+type InterceptRequestMatcher = Parameters<Cypress.Chainable['intercept']>[0];
+type InterceptResponse = Parameters<CyHttpMessages.IncomingHttpRequest['reply']>[0];
 
 /**
  * Helper method to intercept a specific API call and return a callback to send a response at a specific point.
@@ -11,11 +11,11 @@ import { HttpResponseInterceptor, RouteMatcher, StaticResponse } from 'cypress/t
  * @param response optional specific response to send
  */
 export function interceptIndefinitely(
-    requestMatcher: RouteMatcher,
-    response?: StaticResponse | HttpResponseInterceptor
+    requestMatcher: InterceptRequestMatcher,
+    response?: InterceptResponse
 ): { sendResponse: () => void } {
-    let sendResponse;
-    const trigger = new Promise((resolve) => {
+    let sendResponse: (() => void) | undefined;
+    const trigger = new Promise<void>((resolve) => {
         sendResponse = resolve;
     });
     cy.intercept(requestMatcher, (request) => {
@@ -23,7 +23,15 @@ export function interceptIndefinitely(
             request.reply(response);
         });
     });
-    return { sendResponse };
+    return {
+        sendResponse: () => {
+            if (sendResponse === undefined) {
+                throw new Error('Intercept response trigger not initialized');
+            }
+
+            sendResponse();
+        },
+    };
 }
 
 /**

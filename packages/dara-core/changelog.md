@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Upgraded `@darajs/core` E2E tooling from Cypress 9 to Cypress 10 so the bundled test runner works on Apple Silicon without relying on the legacy `cypress.json` config format.
 - Reworked OIDC login state handling to use server-side transactions bound to an HTTP-only browser cookie instead of short-lived self-signed JWT state values.
 - Added OIDC nonce propagation and callback verification, and now return post-auth redirect targets from the backend callback flow.
 - Fixed additional OIDC compliance gaps by validating discovery and ID token issuers and rejecting UserInfo responses whose `sub` does not match the ID token subject.

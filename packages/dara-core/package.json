@@ -23,7 +23,7 @@
     "prepare-dev": "mkdir -p dist && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias",
     "build-dev": "mkdir -p dist && cp js/index.css dist/ && cp -R js/assets dist/ && tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
     "clean": "rimraf api assets components shared types *.js.map *.d.ts '!(*.config).js' *.css",
-    "cypress:open": "cypress open",
+    "cypress:open": "cypress open --e2e",
     "lint": "tsc --noemit && eslint js tests cypress --ext .tsx,.ts --max-warnings 0 && stylelint './js/**/*.tsx'",
     "format": "prettier js --write --list-different",
     "format:check": "prettier js --check",
@@ -31,7 +31,7 @@
     "package": "yarn build && yarn publish --no-git-tag-version",
     "test-watch": "vitest",
     "test": "vitest --run",
-    "test:e2e": "start-server-and-test 'poetry run dara start --config cypress.dara.main:config' http://127.0.0.1:8000/static/index.js 'cypress run'"
+    "test:e2e": "start-server-and-test 'poetry run dara start --config cypress.dara.main:config' http://127.0.0.1:8000/static/index.js 'cypress run --e2e'"
   },
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
@@ -60,7 +60,7 @@
     "@types/whatwg-fetch": "^0.0.33",
     "@vitejs/plugin-react": "4.6.0",
     "concurrently": "^8.0.1",
-    "cypress": "9.5.3",
+    "cypress": "10.11.0",
     "msw": "^2.10.5",
     "postcss": "^8.4.35",
     "prettier": "^3.0.0",
