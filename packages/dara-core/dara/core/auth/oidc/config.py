@@ -190,14 +190,12 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         return _cleanup
 
-    def generate_state(self, redirect_to: str | None = None) -> str:
+    def generate_state(self) -> str:
         """
         Generate an opaque state parameter for the authorization request.
 
-        :param redirect_to: Optional URL to redirect to after successful authentication
         :return: Opaque state string to use as the state parameter
         """
-        del redirect_to
         return secrets.token_urlsafe(32)
 
     def generate_nonce(self) -> str:
@@ -265,7 +263,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         redirect_to = self.validate_redirect_to(body.redirect_to)
         transaction = OIDCLoginTransaction(
-            state=self.generate_state(redirect_to=redirect_to),
+            state=self.generate_state(),
             nonce=self.generate_nonce(),
             redirect_to=redirect_to,
         )
