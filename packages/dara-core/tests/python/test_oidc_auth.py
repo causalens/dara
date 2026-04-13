@@ -461,15 +461,21 @@ async def test_sso_callback_supports_multiple_live_transactions_per_login_sessio
 
             token_route = respx.post(auth_config.discovery.token_endpoint)
 
-            token_route.mock(return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(first_state)}))
-            first_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': first_state})
+            token_route.mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(first_state)})
+            )
+            first_response = await client.post(
+                '/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': first_state}
+            )
             assert first_response.status_code == 200
             assert first_response.json() == {'success': True, 'redirect_to': '/first'}
 
             token_route.mock(
                 return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(second_state)})
             )
-            second_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': second_state})
+            second_response = await client.post(
+                '/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': second_state}
+            )
             assert second_response.status_code == 200
             assert second_response.json() == {'success': True, 'redirect_to': '/second'}
 

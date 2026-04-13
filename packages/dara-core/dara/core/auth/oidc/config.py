@@ -137,8 +137,7 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         if self._discovery.issuer != oidc_settings.issuer_url:
             raise RuntimeError(
-                'OIDC discovery issuer mismatch: '
-                f'expected {oidc_settings.issuer_url}, got {self._discovery.issuer}'
+                f'OIDC discovery issuer mismatch: expected {oidc_settings.issuer_url}, got {self._discovery.issuer}'
             )
 
         dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
