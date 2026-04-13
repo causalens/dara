@@ -32,7 +32,7 @@ from dara.core.auth.utils import set_cookie_from_token_expiration, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
-from .definitions import AuthCodeRequestBody, OIDC_LOGIN_SESSION_COOKIE_NAME
+from .definitions import OIDC_LOGIN_SESSION_COOKIE_NAME, AuthCodeRequestBody
 from .id_token_cache import oidc_id_token_cache
 from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp

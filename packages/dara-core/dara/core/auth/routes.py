@@ -433,8 +433,8 @@ async def handle_refresh_token(
 # Request to retrieve a session token from the backend. The app does this on startup.
 @auth_router.post('/session')
 async def _get_session(body: SessionRequestBody, request: Request, response: Response):
-    from dara.core.internal.registries import auth_registry
     from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME
+    from dara.core.internal.registries import auth_registry
 
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
     existing_login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)

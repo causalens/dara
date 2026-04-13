@@ -34,8 +34,8 @@ from ..utils import decode_token, sign_jwt
 from .definitions import (
     JWK_CLIENT_REGISTRY_KEY,
     IdTokenClaims,
-    OIDCLoginTransaction,
     OIDCDiscoveryMetadata,
+    OIDCLoginTransaction,
 )
 from .id_token_cache import oidc_id_token_cache
 from .routes import sso_callback
