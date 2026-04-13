@@ -1,3 +1,4 @@
+import secrets
 from typing import ClassVar
 from urllib.parse import urlencode
 
@@ -16,7 +17,6 @@ from ..base import AuthComponent, AuthComponentConfig, BaseAuthConfig
 from ..definitions import (
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
-    JWT_ALGO,
     REFRESH_TOKEN_COOKIE_NAME,
     SESSION_ID,
     UNAUTHORIZED_ERROR,
@@ -34,12 +34,13 @@ from ..utils import decode_token, sign_jwt
 from .definitions import (
     JWK_CLIENT_REGISTRY_KEY,
     IdTokenClaims,
+    OIDCLoginTransaction,
     OIDCDiscoveryMetadata,
-    StateObject,
 )
 from .id_token_cache import oidc_id_token_cache
 from .routes import sso_callback
 from .settings import get_oidc_settings
+from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
 
 OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogin')
@@ -150,29 +151,17 @@ class OIDCAuthConfig(BaseAuthConfig):
 
     def generate_state(self, redirect_to: str | None = None) -> str:
         """
-        Generate a signed JWT state parameter for CSRF protection.
-
-        The state is a JWT signed with the application's secret containing:
-        - nonce: cryptographically random value for uniqueness
-        - redirect_to: optional URL to redirect to after authentication
-        - exp: expiration timestamp
+        Generate an opaque state parameter and persist the login transaction server-side.
 
         :param redirect_to: Optional URL to redirect to after successful authentication
-        :return: Signed JWT string to use as the state parameter
+        :return: Opaque state string to use as the state parameter
         """
-        payload = StateObject(redirect_to=redirect_to)
-        return jwt.encode(payload.model_dump(), get_settings().jwt_secret, algorithm=JWT_ALGO)
-
-    def verify_state(self, state: str) -> StateObject:
-        """
-        Verify and decode the state JWT.
-
-        :param state: The state JWT string from the callback
-        :return: Decoded payload containing nonce and optional redirect_to
-        :raises jwt.ExpiredSignatureError: If the state has expired
-        :raises jwt.InvalidTokenError: If the state is invalid
-        """
-        return StateObject.model_validate(jwt.decode(state, get_settings().jwt_secret, algorithms=[JWT_ALGO]))
+        transaction = OIDCLoginTransaction(
+            state=secrets.token_urlsafe(32),
+            redirect_to=redirect_to,
+        )
+        oidc_transaction_store.set(transaction)
+        return transaction.state
 
     def get_authorization_params(self, state: str) -> dict[str, str]:
         """
@@ -185,7 +174,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         - redirect_uri: Redirection URI for the response (from SSO_REDIRECT_URI setting)
 
         Recommended parameters:
-        - state: Opaque value for CSRF protection (signed JWT containing nonce and optional redirect URL)
+        - state: Opaque value for CSRF protection bound to the browser session
 
         Override this method to add optional parameters like nonce, display, prompt, max_age, etc.
         """
@@ -209,8 +198,8 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         Get token from the IDP - redirect to the authorization endpoint.
 
-        Generates a signed JWT state parameter containing a nonce for CSRF protection
-        and optionally the redirect URL for post-authentication navigation.
+        Generates an opaque state parameter for CSRF protection and stores the redirect
+        target server-side for post-authentication navigation.
 
         :param body: Request body, may contain redirect_to for post-auth navigation
         """

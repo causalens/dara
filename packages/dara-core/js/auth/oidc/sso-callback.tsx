@@ -1,4 +1,3 @@
-import { jwtDecode } from 'jwt-decode';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
@@ -11,32 +10,8 @@ import Center from '@/shared/center/center';
 
 import { handleAuthErrors } from '../auth';
 
-interface StatePayload {
-    redirect_to?: string;
-}
-
-/**
- * Decode the state parameter which is a JWT containing the redirect URL.
- *
- * @param state The state parameter from the callback URL
- * @returns The redirect URL extracted from the state
- */
-function decodeStateRedirect(state: string | null): string | null {
-    if (!state) {
-        return null;
-    }
-
-    try {
-        const payload = jwtDecode<StatePayload>(state);
-        return payload.redirect_to ?? null;
-    } catch {
-        // If decoding fails, try using the raw state as a URL (fallback for non-JWT states)
-        try {
-            return decodeURIComponent(state);
-        } catch {
-            return null;
-        }
-    }
+interface SSOCallbackResponse {
+    redirect_to?: string | null;
 }
 
 /**
@@ -67,8 +42,9 @@ export async function getSSOCallbackResult(
         }
 
         if (res.ok) {
+            const responseData = (await res.json()) as SSOCallbackResponse;
             return {
-                redirectTo: decodeStateRedirect(state) ?? defaultPath,
+                redirectTo: responseData.redirect_to ?? defaultPath,
             };
         }
 

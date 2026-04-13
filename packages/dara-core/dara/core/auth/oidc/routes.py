@@ -18,7 +18,7 @@ limitations under the License.
 from uuid import uuid4
 
 import jwt
-from fastapi import Depends, HTTPException, Response
+from fastapi import Depends, HTTPException, Request, Response
 
 from dara.core.auth.definitions import (
     BAD_REQUEST_ERROR,
@@ -32,14 +32,18 @@ from dara.core.auth.utils import set_cookie_from_token_expiration, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
-from .definitions import AuthCodeRequestBody
+from .definitions import AuthCodeRequestBody, OIDC_STATE_COOKIE_NAME
 from .id_token_cache import oidc_id_token_cache
+from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
 
 
 @post('/auth/sso-callback', authenticated=False)
 async def sso_callback(
-    body: AuthCodeRequestBody, response: Response, oidc_settings: OIDCSettings = Depends(get_oidc_settings)
+    body: AuthCodeRequestBody,
+    request: Request,
+    response: Response,
+    oidc_settings: OIDCSettings = Depends(get_oidc_settings),
 ):
     """
     Handle the OIDC authorization callback.
@@ -69,16 +73,20 @@ async def sso_callback(
             detail=BAD_REQUEST_ERROR('Cannot use sso-callback for non-OIDC auth configuration'),
         )
 
-    # Validate state parameter if provided (CSRF protection)
-    if body.state:
-        try:
-            auth_config.verify_state(body.state)
-        except jwt.ExpiredSignatureError as e:
-            dev_logger.error('State parameter expired', error=e)
-            raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('State parameter expired')) from e
-        except jwt.InvalidTokenError as e:
-            dev_logger.error('Invalid state parameter', error=e)
-            raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter')) from e
+    response.delete_cookie(OIDC_STATE_COOKIE_NAME, path='/')
+
+    if body.state is None:
+        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Missing state parameter'))
+
+    state_cookie = request.cookies.get(OIDC_STATE_COOKIE_NAME)
+    transaction = oidc_transaction_store.take(body.state)
+    if transaction is None:
+        dev_logger.error('Invalid state parameter', error=Exception('missing oidc transaction'))
+        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter'))
+
+    if state_cookie != body.state:
+        dev_logger.error('Invalid state parameter', error=Exception('state cookie mismatch'))
+        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter'))
 
     try:
         # Exchange authorization code for tokens per RFC 6749 Section 4.1.3
@@ -134,7 +142,7 @@ async def sso_callback(
 
         set_cookie_from_token_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token)
 
-        return {'success': True}
+        return {'success': True, 'redirect_to': transaction.redirect_to}
 
     except jwt.ExpiredSignatureError as e:
         dev_logger.error('Expired Token Signature', error=e)

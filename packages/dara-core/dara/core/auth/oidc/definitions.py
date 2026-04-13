@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta, timezone
-from secrets import token_urlsafe
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -7,6 +6,7 @@ from dara.core.auth.definitions import REFRESH_TOKEN_COOKIE_NAME as CORE_REFRESH
 
 JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
 REFRESH_TOKEN_COOKIE_NAME = CORE_REFRESH_TOKEN_COOKIE_NAME
+OIDC_STATE_COOKIE_NAME = 'dara_oidc_state'
 
 
 class AuthCodeRequestBody(BaseModel):
@@ -286,28 +286,14 @@ class IdTokenClaims(BaseModel):
     model_config = ConfigDict(extra='allow')
 
 
-# Expiration time for the state JWT
-STATE_EXPIRATION_MINUTES = 5
-
-
-class StateObject(BaseModel):
+class OIDCLoginTransaction(BaseModel):
     """
-    State object content used by Dara when sending `state` to the authorization endpoint of the IDP
+    Server-side OIDC login transaction keyed by the opaque `state` value.
     """
 
-    nonce: str = Field(
-        default_factory=lambda: token_urlsafe(16),
-        description='Nonce value',
-    )
-    iat: datetime = Field(
+    state: str = Field(..., description='Opaque state value sent to the authorization endpoint')
+    redirect_to: str | None = Field(default=None, description='Optional redirect target after successful auth')
+    created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=timezone.utc),
-        description='Issued at time',
-    )
-    exp: datetime = Field(
-        default_factory=lambda: datetime.now(tz=timezone.utc) + timedelta(minutes=STATE_EXPIRATION_MINUTES),
-        description='Expiration time',
-    )
-    redirect_to: str | None = Field(
-        default=None,
-        description='Optional redirect to URL',
+        description='Creation time for the transaction',
     )

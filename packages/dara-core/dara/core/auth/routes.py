@@ -17,6 +17,7 @@ limitations under the License.
 
 from inspect import isawaitable
 from typing import Annotated, Any
+from urllib.parse import parse_qs, urlparse
 
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
@@ -63,6 +64,29 @@ def _cache_session_auth_token(session_token: str):
             decoded_token = decoded_token.model_copy(update={'id_token': cached_token.id_token})
 
     session_auth_token_registry.set(decoded_token.session_id, decoded_token)
+
+
+def _maybe_set_oidc_state_cookie(response: Response, auth_config: BaseAuthConfig, redirect_uri: str):
+    from dara.core.auth.oidc.config import OIDCAuthConfig
+    from dara.core.auth.oidc.definitions import OIDC_STATE_COOKIE_NAME
+    from dara.core.auth.oidc.settings import get_oidc_settings
+
+    if not isinstance(auth_config, OIDCAuthConfig):
+        return
+
+    state = parse_qs(urlparse(redirect_uri).query).get('state', [None])[0]
+    if state is None:
+        return
+
+    response.set_cookie(
+        key=OIDC_STATE_COOKIE_NAME,
+        value=state,
+        httponly=True,
+        max_age=get_oidc_settings().transaction_ttl_seconds,
+        path='/',
+        samesite='lax',
+        secure=True,
+    )
 
 
 async def _clear_cached_session_auth_token(token: str):
@@ -405,6 +429,7 @@ async def _get_session(body: SessionRequestBody, response: Response):
     if 'token' in session_response:
         _set_session_token_cookie(response, session_response['token'])
         return {'success': True}
+    _maybe_set_oidc_state_cookie(response, auth_config, session_response['redirect_uri'])
     return session_response
 
 

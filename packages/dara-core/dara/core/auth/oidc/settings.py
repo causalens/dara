@@ -26,6 +26,10 @@ class OIDCSettings(BaseSettings):
     allowed_identity_id: str | None = None
     use_userinfo: bool = False
     """If True, fetch additional claims from the userinfo endpoint when an access token is available."""
+    transaction_ttl_seconds: int = Field(default=86400, ge=1)
+    """TTL used to clean up abandoned OIDC login transactions."""
+    transaction_max_entries: int = Field(default=10000, ge=1)
+    """Maximum number of outstanding OIDC login transactions kept in memory."""
     id_token_cache_idle_ttl_seconds: int = Field(default=1800, ge=1)
     """Sliding TTL for cached OIDC id_tokens used to hydrate compact session tokens."""
     id_token_cache_max_entries: int = Field(default=10000, ge=1)
