@@ -24,7 +24,11 @@ from dara.core.auth.definitions import (
     AuthError,
 )
 from dara.core.auth.oidc.config import OIDCAuthConfig
-from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME, OIDCDiscoveryMetadata
+from dara.core.auth.oidc.definitions import (
+    OIDC_LOGIN_SESSION_COOKIE_NAME,
+    REFRESH_TOKEN_COOKIE_NAME,
+    OIDCDiscoveryMetadata,
+)
 from dara.core.auth.oidc.id_token_cache import OIDCIdTokenCache, oidc_id_token_cache
 from dara.core.auth.oidc.settings import get_oidc_settings
 from dara.core.auth.oidc.transaction_store import oidc_transaction_store
