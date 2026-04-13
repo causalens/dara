@@ -111,6 +111,41 @@ class DaraBaseModel(BaseModel, metaclass=SerializeAsAnyMeta):
     model_config = ConfigDict(extra='forbid')
 
     @classmethod
+    def _should_rebuild_generic_serialization_schema(cls) -> bool:
+        """
+        Check whether a parametrized generic subclass lost SerializeAsAny metadata during specialization.
+        """
+        generic_metadata = getattr(cls, '__pydantic_generic_metadata__', None)
+        if not generic_metadata or len(generic_metadata.get('args', ())) == 0:
+            return False
+
+        for field_info in cls.__pydantic_fields__.values():
+            if (
+                field_info.annotation is not SerializeAsAny
+                and field_info.annotation is not ClassVar
+                and annotation_has_base_model(field_info.annotation)
+            ):
+                if any(isinstance(x, SerializeAsAny) for x in field_info.metadata):  # type: ignore
+                    continue
+                if get_origin(field_info.annotation) is Annotated and any(
+                    isinstance(arg, SerializeAsAny)  # pyright: ignore[reportArgumentType]
+                    for arg in field_info.annotation.__metadata__  # type: ignore
+                ):
+                    continue
+                return True
+
+        return False
+
+    @classmethod
+    def _ensure_generic_serialization_schema(cls):
+        """
+        Rebuild parametrized generic models lazily before serialization so nested BaseModels retain
+        SerializeAsAny metadata.
+        """
+        if cls._should_rebuild_generic_serialization_schema():
+            cls.model_rebuild(force=True)
+
+    @classmethod
     def model_rebuild(
         cls, *, force: bool = False, raise_errors: bool = True, _parent_namespace_depth: int = 2, _types_namespace=None
     ) -> bool | None:
@@ -153,6 +188,13 @@ class DaraBaseModel(BaseModel, metaclass=SerializeAsAnyMeta):
             _parent_namespace_depth=_parent_namespace_depth + 1,
             _types_namespace=_types_namespace,
         )
+
+    def model_post_init(self, __context: Any) -> None:
+        """
+        Rebuild parametrized generic subclasses after initialization so nested BaseModel fields keep
+        SerializeAsAny metadata for subsequent parent serialization.
+        """
+        self.__class__._ensure_generic_serialization_schema()
 
 
 class CacheType(str, Enum):

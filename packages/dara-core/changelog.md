@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Fixed generic `DaraBaseModel` serialization so parametrized models such as `DerivedVariable[str]` preserve nested `BaseModel` fields when serialized.
 - Upgraded `@darajs/core` E2E tooling from Cypress 9 to Cypress 10 so the bundled test runner works on Apple Silicon without relying on the legacy `cypress.json` config format.
 - Reworked OIDC login state handling to use server-side transactions bound to an HTTP-only browser cookie instead of short-lived self-signed JWT state values.
 - Added OIDC nonce propagation and callback verification, and now return post-auth redirect targets from the backend callback flow.
