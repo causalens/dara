@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.7
 
 - Fixed generic `DaraBaseModel` serialization so parametrized models such as `DerivedVariable[str]` preserve nested `BaseModel` fields when serialized.
 - Improved OIDC login robustness by moving login transactions server-side, binding them to the browser session, propagating and verifying `nonce`, validating redirect targets and issuer consistency, and removing the previous Dara-side 5 minute login-window failure mode when users leave the login flow open for a while.
