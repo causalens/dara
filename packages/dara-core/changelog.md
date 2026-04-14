@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed generic `DaraBaseModel` serialization so parametrized models such as `DerivedVariable[str]` preserve nested `BaseModel` fields when serialized.
+- Improved OIDC login robustness by moving login transactions server-side, binding them to the browser session, propagating and verifying `nonce`, validating redirect targets and issuer consistency, and removing the previous Dara-side 5 minute login-window failure mode when users leave the login flow open for a while.
+- Internal: Upgraded `@darajs/core` E2E tooling from Cypress 9 to Cypress 10 so the bundled test runner works on Apple Silicon without relying on the legacy `cypress.json` config format.
+
 ## 1.26.6
 
 - Fixed websocket auth reconnect failures to re-run session verification so stale/invalid cookies redirect back to login instead of leaving the app broken until another request is made.

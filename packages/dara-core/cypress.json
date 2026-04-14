@@ -1,7 +1,0 @@
-{
-  "$schema": "https://on.cypress.io/cypress.schema.json",
-  "baseUrl": "http://localhost:8000",
-  "video": false,
-  "screenshotOnRunFailure": false,
-  "defaultCommandTimeout": 20000
-}

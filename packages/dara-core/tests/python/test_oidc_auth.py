@@ -14,6 +14,7 @@ from async_asgi_testclient import TestClient as AsyncClient
 from jwt import PyJWK
 
 from dara.core.auth.definitions import (
+    BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
     JWT_ALGO,
@@ -23,9 +24,14 @@ from dara.core.auth.definitions import (
     AuthError,
 )
 from dara.core.auth.oidc.config import OIDCAuthConfig
-from dara.core.auth.oidc.definitions import REFRESH_TOKEN_COOKIE_NAME, OIDCDiscoveryMetadata
+from dara.core.auth.oidc.definitions import (
+    OIDC_LOGIN_SESSION_COOKIE_NAME,
+    REFRESH_TOKEN_COOKIE_NAME,
+    OIDCDiscoveryMetadata,
+)
 from dara.core.auth.oidc.id_token_cache import OIDCIdTokenCache, oidc_id_token_cache
 from dara.core.auth.oidc.settings import get_oidc_settings
+from dara.core.auth.oidc.transaction_store import oidc_transaction_store
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
@@ -37,7 +43,7 @@ os.environ['DARA_DOCKER_MODE'] = 'TRUE'
 pytestmark = pytest.mark.anyio
 
 TEST_JWT_SECRET = 'd6446c35450e31c4d0b48351c0423bf9'
-TEST_SSO_ISSUER_URL = 'http://test-identity-provider.causalens.dev/'
+TEST_SSO_ISSUER_URL = 'http://test-identity-provider.com'
 TEST_SSO_CLIENT_ID = 'CLIENT_ID'
 TEST_SSO_CLIENT_SECRET = 'CLIENT_SECRET'
 TEST_SSO_REDIRECT_URI = 'http://localhost:8000/sso-callback'
@@ -112,7 +118,7 @@ def mocked_urllib(data):
 
 
 MOCK_DISCOVERY = OIDCDiscoveryMetadata(
-    issuer='http://test-identity-provider.com/api/authentication',
+    issuer=TEST_SSO_ISSUER_URL,
     authorization_endpoint='http://test-identity-provider.com/api/authentication/authenticate',
     token_endpoint='http://test-identity-provider.com/api/authentication/token',
     jwks_uri='http://test-identity-provider.com/api/authentication/keys',
@@ -146,6 +152,13 @@ async def clear_oidc_id_token_cache():
     await oidc_id_token_cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def clear_oidc_transaction_store():
+    oidc_transaction_store.clear()
+    yield
+    oidc_transaction_store.clear()
+
+
 async def test_config_parses_groups():
     """
     Test that OIDCAuthConfig parses groups correctly
@@ -156,6 +169,91 @@ async def test_config_parses_groups():
     assert 'test' in sso_config.allowed_groups
 
 
+async def test_startup_hook_rejects_discovery_issuer_mismatch():
+    auth_config = make_config()
+    mismatched_discovery = MOCK_DISCOVERY.model_copy(update={'issuer': 'http://wrong-issuer.com'})
+
+    with mock.patch.object(
+        auth_config.client,
+        'get',
+        mock.AsyncMock(
+            return_value=httpx.Response(
+                status_code=200,
+                json=mismatched_discovery.model_dump(),
+                request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+            )
+        ),
+    ):
+        with pytest.raises(RuntimeError, match='OIDC discovery issuer mismatch'):
+            await auth_config.startup_hook()
+
+    await auth_config.client.aclose()
+
+
+async def test_startup_hook_retries_transient_discovery_request_error():
+    auth_config = make_config()
+    discovery_response = httpx.Response(
+        status_code=200,
+        json=MOCK_DISCOVERY.model_dump(),
+        request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+    )
+
+    with (
+        mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                side_effect=[
+                    httpx.ConnectError(
+                        'connection failed',
+                        request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+                    ),
+                    discovery_response,
+                ]
+            ),
+        ) as get_mock,
+        mock.patch('dara.core.auth.oidc.config.asyncio.sleep', mock.AsyncMock()) as sleep_mock,
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert get_mock.await_count == 2
+    sleep_mock.assert_awaited_once()
+    assert auth_config.discovery.issuer == MOCK_DISCOVERY.issuer
+
+    await cleanup()
+
+
+async def test_startup_hook_retries_retryable_discovery_status():
+    auth_config = make_config()
+    discovery_request = httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration')
+    discovery_response = httpx.Response(
+        status_code=200,
+        json=MOCK_DISCOVERY.model_dump(),
+        request=discovery_request,
+    )
+
+    with (
+        mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                side_effect=[
+                    httpx.Response(status_code=503, request=discovery_request),
+                    discovery_response,
+                ]
+            ),
+        ) as get_mock,
+        mock.patch('dara.core.auth.oidc.config.asyncio.sleep', mock.AsyncMock()) as sleep_mock,
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert get_mock.await_count == 2
+    sleep_mock.assert_awaited_once()
+    assert auth_config.discovery.issuer == MOCK_DISCOVERY.issuer
+
+    await cleanup()
+
+
 def parse_url(url: str) -> tuple[str, dict]:
     """
     Parse redirect uri extracting state from it
@@ -164,6 +262,34 @@ def parse_url(url: str) -> tuple[str, dict]:
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
     return parsed.path, query
+
+
+async def start_oidc_login(client: AsyncClient, redirect_to: str | None = None) -> str:
+    payload = {} if redirect_to is None else {'redirect_to': redirect_to}
+    response = await client.post('/api/auth/session', json=payload)
+    assert response.status_code == 200
+
+    _, query = parse_url(response.json()['redirect_uri'])
+    state = query['state'][0]
+
+    login_session_id = response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+    assert login_session_id is not None
+
+    return state
+
+
+def make_mock_id_token(state: str, overrides: dict | None = None) -> str:
+    transaction = oidc_transaction_store.get(state)
+    assert transaction is not None
+
+    claims = {**MOCK_ID_TOKEN, 'nonce': transaction.nonce, **(overrides or {})}
+    jwk = PyJWK(MOCK_JWK)
+    return jwt.encode(
+        claims,
+        jwk.key,
+        algorithm=MOCK_JWK['alg'],
+        headers={'kid': MOCK_JWK['kid']},
+    )
 
 
 async def test_session_no_state():
@@ -179,24 +305,23 @@ async def test_session_no_state():
 
     async with AsyncClient(app) as client:
         response = await client.post('/api/auth/session', json={})
-
-        state = auth_config.generate_state()
-        expected_url, expected_query = parse_url(auth_config.get_authorization_url(state))
         received_url, received_query = parse_url(response.json()['redirect_uri'])
 
-        assert expected_url == received_url
-        # check query is the same except the state since we generate a new one
-        for key in expected_query.keys():
-            if key == 'state':
-                continue
-            assert expected_query[key] == received_query[key]
+        assert received_url == urlparse(auth_config.discovery.authorization_endpoint).path
+        assert received_query['scope'] == [get_oidc_settings().scopes]
+        assert received_query['response_type'] == ['code']
+        assert received_query['client_id'] == [get_oidc_settings().client_id]
+        assert received_query['redirect_uri'] == [get_oidc_settings().redirect_uri]
 
-        # check generated state is valid, i.e. it's a jwt that can be decoded
-        received_state_object = auth_config.verify_state(received_query['state'][0])
-        assert received_state_object.redirect_to is None
-        assert received_state_object.nonce is not None
-        assert received_state_object.iat is not None
-        assert received_state_object.exp is not None
+        received_state = received_query['state'][0]
+        login_session_id = response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+        assert login_session_id is not None
+
+        transaction = oidc_transaction_store.take(received_state)
+        assert transaction is not None
+        assert received_query['nonce'] == [transaction.nonce]
+        assert transaction.login_session_id == login_session_id
+        assert transaction.redirect_to is None
 
 
 async def test_session_with_state():
@@ -211,25 +336,34 @@ async def test_session_with_state():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        response = await client.post('/api/auth/session', json={'redirect_to': 'https://localhost:8000/test'})
-
-        state = auth_config.generate_state('https://localhost:8000/test')
-        expected_url, expected_query = parse_url(auth_config.get_authorization_url(state))
+        response = await client.post('/api/auth/session', json={'redirect_to': '/test'})
         received_url, received_query = parse_url(response.json()['redirect_uri'])
 
-        assert expected_url == received_url
-        # check query is the same except the state since we generate a new one
-        for key in expected_query.keys():
-            if key == 'state':
-                continue
-            assert expected_query[key] == received_query[key]
+        assert received_url == urlparse(auth_config.discovery.authorization_endpoint).path
+        received_state = received_query['state'][0]
+        login_session_id = response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+        assert login_session_id is not None
 
-        # check generated state is valid, i.e. it's a jwt that can be decoded
-        received_state_object = auth_config.verify_state(received_query['state'][0])
-        assert received_state_object.redirect_to == 'https://localhost:8000/test'
-        assert received_state_object.nonce is not None
-        assert received_state_object.iat is not None
-        assert received_state_object.exp is not None
+        transaction = oidc_transaction_store.take(received_state)
+        assert transaction is not None
+        assert received_query['nonce'] == [transaction.nonce]
+        assert transaction.login_session_id == login_session_id
+        assert transaction.redirect_to == '/test'
+
+
+@pytest.mark.parametrize('redirect_to', ['https://evil.com/phish', '//evil.com/phish', 'relative-path'])
+async def test_session_rejects_invalid_redirect_to(redirect_to: str):
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/session', json={'redirect_to': redirect_to})
+        assert response.status_code == 400
+        assert response.json()['detail'] == BAD_REQUEST_ERROR('Invalid redirect_to parameter')
 
 
 async def test_sso_callback_creates_valid_session_token():
@@ -244,19 +378,14 @@ async def test_sso_callback_creates_valid_session_token():
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
-            jwk = PyJWK(MOCK_JWK)
+            state = await start_oidc_login(client, redirect_to='/post-auth')
             refresh_token = jwt.encode(
                 {**MOCK_REFRESH_TOKEN, 'exp': int((datetime.now(tz=timezone.utc) + timedelta(days=7)).timestamp())},
                 PyJWK(MOCK_JWK).key,
                 algorithm=MOCK_JWK['alg'],
                 headers={'kid': MOCK_JWK['kid']},
             )
-            id_token = jwt.encode(
-                MOCK_ID_TOKEN,
-                jwk.key,
-                algorithm=MOCK_JWK['alg'],
-                headers={'kid': MOCK_JWK['kid']},
-            )
+            id_token = make_mock_id_token(state)
             mock_idp_response = {
                 'id_token': id_token,
                 'refresh_token': refresh_token,
@@ -266,7 +395,7 @@ async def test_sso_callback_creates_valid_session_token():
                 return_value=httpx.Response(status_code=200, json=mock_idp_response)
             )
 
-            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
             assert response.status_code == 200
 
             # JWKS endpoint should have been called once to retrieve the key
@@ -280,7 +409,7 @@ async def test_sso_callback_creates_valid_session_token():
             assert 'Max-Age=' in refresh_cookie
             assert 'expires=' in refresh_cookie.lower()
 
-            assert response.json() == {'success': True}
+            assert response.json() == {'success': True, 'redirect_to': '/post-auth'}
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
             decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
@@ -290,6 +419,206 @@ async def test_sso_callback_creates_valid_session_token():
             assert 'id_token' not in decoded_session_token
             assert decoded_session_token.get('exp') == MOCK_ID_TOKEN.get('exp')
             assert 'session_id' in decoded_session_token
+
+
+async def test_sso_callback_requires_state():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+        assert response.status_code == 422
+
+
+async def test_sso_callback_rejects_cookie_mismatch_without_consuming_transaction():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            login_session_id = client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME]
+            id_token = make_mock_id_token(state)
+
+            client.cookie_jar.clear()
+            client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME] = 'different-session'
+            mismatch_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert mismatch_response.status_code == 400
+            assert mismatch_response.json()['detail'] == BAD_REQUEST_ERROR('Invalid state parameter')
+            assert oidc_transaction_store.get(state) is not None
+
+            client.cookie_jar.clear()
+            client.cookie_jar[OIDC_LOGIN_SESSION_COOKIE_NAME] = login_session_id
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            success_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert success_response.status_code == 200
+            assert success_response.json() == {'success': True, 'redirect_to': None}
+            assert oidc_transaction_store.get(state) is None
+
+
+async def test_sso_callback_rejects_reused_state():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state)
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            first_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert first_response.status_code == 200
+
+            second_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert second_response.status_code == 400
+            assert second_response.json()['detail'] == BAD_REQUEST_ERROR('Invalid state parameter')
+
+
+async def test_session_supports_multiple_live_transactions_per_login_session():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        first_response = await client.post('/api/auth/session', json={'redirect_to': '/first'})
+        first_state = parse_url(first_response.json()['redirect_uri'])[1]['state'][0]
+        first_login_session_id = first_response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+        assert first_login_session_id is not None
+
+        second_response = await client.post('/api/auth/session', json={'redirect_to': '/second'})
+        second_state = parse_url(second_response.json()['redirect_uri'])[1]['state'][0]
+        second_login_session_id = second_response.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+
+        assert second_login_session_id == first_login_session_id
+        assert first_state != second_state
+
+        first_transaction = oidc_transaction_store.take(first_state)
+        second_transaction = oidc_transaction_store.take(second_state)
+
+        assert first_transaction is not None
+        assert second_transaction is not None
+        assert first_transaction.login_session_id == first_login_session_id
+        assert second_transaction.login_session_id == first_login_session_id
+        assert first_transaction.nonce != second_transaction.nonce
+        assert first_transaction.redirect_to == '/first'
+        assert second_transaction.redirect_to == '/second'
+
+
+async def test_sso_callback_supports_multiple_live_transactions_per_login_session():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            first_state = await start_oidc_login(client, redirect_to='/first')
+            second_state = await start_oidc_login(client, redirect_to='/second')
+
+            token_route = respx.post(auth_config.discovery.token_endpoint)
+
+            token_route.mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(first_state)})
+            )
+            first_response = await client.post(
+                '/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': first_state}
+            )
+            assert first_response.status_code == 200
+            assert first_response.json() == {'success': True, 'redirect_to': '/first'}
+
+            token_route.mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(second_state)})
+            )
+            second_response = await client.post(
+                '/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': second_state}
+            )
+            assert second_response.status_code == 200
+            assert second_response.json() == {'success': True, 'redirect_to': '/second'}
+
+
+async def test_sso_callback_rejects_nonce_mismatch():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state, {'nonce': 'wrong-nonce'})
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
+async def test_sso_callback_rejects_missing_nonce_claim():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state, {'nonce': None})
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
+async def test_sso_callback_rejects_issuer_mismatch():
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA):
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state, {'iss': 'http://wrong-issuer.com'})
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(status_code=200, json={'id_token': id_token})
+            )
+
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
 
 
 async def test_sso_callback_invalid_group():
@@ -306,13 +635,8 @@ async def test_sso_callback_invalid_group():
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
-            jwk = PyJWK(MOCK_JWK)
-            id_token = jwt.encode(
-                MODIFIED_ID_TOKEN,
-                jwk.key,
-                algorithm=MOCK_JWK['alg'],
-                headers={'kid': MOCK_JWK['kid']},
-            )
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state, {'groups': ['other']})
 
             mock_idp_response = {
                 'id_token': id_token,
@@ -328,7 +652,7 @@ async def test_sso_callback_invalid_group():
                 return_value=httpx.Response(status_code=200, json=mock_idp_response)
             )
 
-            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
 
             # JWKS endpoint should have been called once to retrieve the key
             assert mock_urllib.call_count == 1
@@ -351,13 +675,8 @@ async def test_sso_callback_invalid_identity():
         with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
             app = _start_application(config._to_configuration())
             async with AsyncClient(app) as client:
-                jwk = PyJWK(MOCK_JWK)
-                id_token = jwt.encode(
-                    MOCK_ID_TOKEN,
-                    jwk.key,
-                    algorithm=MOCK_JWK['alg'],
-                    headers={'kid': MOCK_JWK['kid']},
-                )
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
 
                 mock_idp_response = {
                     'id_token': id_token,
@@ -373,7 +692,7 @@ async def test_sso_callback_invalid_identity():
                     return_value=httpx.Response(status_code=200, json=mock_idp_response)
                 )
 
-                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
 
                 # JWKS endpoint should have been called once to retrieve the key
                 assert mock_urllib.call_count == 1
@@ -396,13 +715,8 @@ async def test_sso_callback_valid_email():
         with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
             app = _start_application(config._to_configuration())
             async with AsyncClient(app) as client:
-                jwk = PyJWK(MOCK_JWK)
-                id_token = jwt.encode(
-                    MOCK_ID_TOKEN,
-                    jwk.key,
-                    algorithm=MOCK_JWK['alg'],
-                    headers={'kid': MOCK_JWK['kid']},
-                )
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
 
                 mock_idp_response = {
                     'id_token': id_token,
@@ -418,7 +732,7 @@ async def test_sso_callback_valid_email():
                     return_value=httpx.Response(status_code=200, json=mock_idp_response)
                 )
 
-                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
 
                 # JWKS endpoint should have been called once to retrieve the key
                 assert mock_urllib.call_count == 1
@@ -442,13 +756,8 @@ async def test_sso_callback_verifies_group_with_identity_id():
         with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
             app = _start_application(config._to_configuration())
             async with AsyncClient(app) as client:
-                jwk = PyJWK(MOCK_JWK)
-                id_token = jwt.encode(
-                    MODIFIED_ID_TOKEN,
-                    jwk.key,
-                    algorithm=MOCK_JWK['alg'],
-                    headers={'kid': MOCK_JWK['kid']},
-                )
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state, {'groups': ['other']})
 
                 mock_idp_response = {
                     'id_token': id_token,
@@ -464,7 +773,7 @@ async def test_sso_callback_verifies_group_with_identity_id():
                     return_value=httpx.Response(status_code=200, json=mock_idp_response)
                 )
 
-                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
 
                 # JWKS endpoint should have been called once to retrieve the key
                 assert mock_urllib.call_count == 1
@@ -492,13 +801,8 @@ async def test_sso_callback_expired_id_token():
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
-            jwk = PyJWK(MOCK_JWK)
-            id_token = jwt.encode(
-                MODIFIED_ID_TOKEN,
-                jwk.key,
-                algorithm=MOCK_JWK['alg'],
-                headers={'kid': MOCK_JWK['kid']},
-            )
+            state = await start_oidc_login(client)
+            id_token = make_mock_id_token(state, MODIFIED_ID_TOKEN)
 
             mock_idp_response = {
                 'id_token': id_token,
@@ -514,7 +818,7 @@ async def test_sso_callback_expired_id_token():
                 return_value=httpx.Response(status_code=200, json=mock_idp_response)
             )
 
-            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
 
             # JWKS endpoint should have been called once to retrieve the key
             assert mock_urllib.call_count == 1
@@ -536,13 +840,14 @@ async def test_sso_callback_idp_error():
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
             mock_idp_response = {'error': 'invalid_client', 'error_description': 'No client credentials found.'}
 
             respx.post(auth_config.discovery.token_endpoint).mock(
                 return_value=httpx.Response(status_code=401, json=mock_idp_response)
             )
 
-            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
 
             # JWKS endpoint should not have been called, request should've failed before that point
             assert mock_urllib.call_count == 0
@@ -1240,7 +1545,7 @@ MOCK_USERINFO = {
 
 # Mock discovery with userinfo endpoint
 MOCK_DISCOVERY_WITH_USERINFO = OIDCDiscoveryMetadata(
-    issuer='http://test-identity-provider.com/api/authentication',
+    issuer=TEST_SSO_ISSUER_URL,
     authorization_endpoint='http://test-identity-provider.com/api/authentication/authenticate',
     token_endpoint='http://test-identity-provider.com/api/authentication/token',
     jwks_uri='http://test-identity-provider.com/api/authentication/keys',
@@ -1280,16 +1585,11 @@ async def test_sso_callback_with_userinfo(mock_discovery_with_userinfo):
         with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
             app = _start_application(config._to_configuration())
             async with AsyncClient(app) as client:
-                jwk = PyJWK(MOCK_JWK)
-                id_token = jwt.encode(
-                    MOCK_ID_TOKEN,
-                    jwk.key,
-                    algorithm=MOCK_JWK['alg'],
-                    headers={'kid': MOCK_JWK['kid']},
-                )
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
                 access_token = jwt.encode(
                     MOCK_ACCESS_TOKEN,
-                    jwk.key,
+                    PyJWK(MOCK_JWK).key,
                     algorithm=MOCK_JWK['alg'],
                     headers={'kid': MOCK_JWK['kid']},
                 )
@@ -1314,13 +1614,13 @@ async def test_sso_callback_with_userinfo(mock_discovery_with_userinfo):
                     return_value=httpx.Response(status_code=200, json=MOCK_USERINFO)
                 )
 
-                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
                 assert response.status_code == 200
 
                 # JWKS endpoint should have been called once to retrieve the key
                 assert mock_urllib.call_count == 1
 
-                assert response.json() == {'success': True}
+                assert response.json() == {'success': True, 'redirect_to': None}
                 session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
@@ -1329,6 +1629,51 @@ async def test_sso_callback_with_userinfo(mock_discovery_with_userinfo):
                 assert decoded_session_token.get('identity_email') == MOCK_USERINFO['email']
                 # Groups should come from userinfo
                 assert decoded_session_token.get('groups') == MOCK_USERINFO['groups']
+
+
+async def test_sso_callback_rejects_userinfo_subject_mismatch(mock_discovery_with_userinfo):
+    """
+    Test that /sso-callback rejects userinfo for a different subject
+    """
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA):
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    PyJWK(MOCK_JWK).key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+                respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json={**MOCK_USERINFO, 'sub': 'other-user'})
+                )
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+                assert response.status_code == 401
+                assert response.json()['detail'] == INVALID_TOKEN_ERROR
 
 
 async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_userinfo):
@@ -1347,16 +1692,11 @@ async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_use
         with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
             app = _start_application(config._to_configuration())
             async with AsyncClient(app) as client:
-                jwk = PyJWK(MOCK_JWK)
-                id_token = jwt.encode(
-                    MOCK_ID_TOKEN,
-                    jwk.key,
-                    algorithm=MOCK_JWK['alg'],
-                    headers={'kid': MOCK_JWK['kid']},
-                )
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
                 access_token = jwt.encode(
                     MOCK_ACCESS_TOKEN,
-                    jwk.key,
+                    PyJWK(MOCK_JWK).key,
                     algorithm=MOCK_JWK['alg'],
                     headers={'kid': MOCK_JWK['kid']},
                 )
@@ -1381,13 +1721,13 @@ async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_use
                     return_value=httpx.Response(status_code=200, json=MOCK_USERINFO)
                 )
 
-                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
                 assert response.status_code == 200
 
                 # Userinfo endpoint should NOT have been called
                 assert userinfo_route.call_count == 0
 
-                assert response.json() == {'success': True}
+                assert response.json() == {'success': True, 'redirect_to': None}
                 session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
@@ -1411,16 +1751,11 @@ async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_useri
         with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
             app = _start_application(config._to_configuration())
             async with AsyncClient(app) as client:
-                jwk = PyJWK(MOCK_JWK)
-                id_token = jwt.encode(
-                    MOCK_ID_TOKEN,
-                    jwk.key,
-                    algorithm=MOCK_JWK['alg'],
-                    headers={'kid': MOCK_JWK['kid']},
-                )
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
                 access_token = jwt.encode(
                     MOCK_ACCESS_TOKEN,
-                    jwk.key,
+                    PyJWK(MOCK_JWK).key,
                     algorithm=MOCK_JWK['alg'],
                     headers={'kid': MOCK_JWK['kid']},
                 )
@@ -1445,11 +1780,11 @@ async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_useri
                     return_value=httpx.Response(status_code=500, json={'error': 'Internal Server Error'})
                 )
 
-                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST'})
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
                 # Should still succeed
                 assert response.status_code == 200
 
-                assert response.json() == {'success': True}
+                assert response.json() == {'success': True, 'redirect_to': None}
                 session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 decoded_session_token = jwt.decode(session_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 

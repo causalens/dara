@@ -5,6 +5,7 @@ import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from fastapi.encoders import jsonable_encoder
 
+from dara.components import Text
 from dara.core import DerivedVariable, Variable
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
@@ -155,8 +156,6 @@ class TestVariables(unittest.TestCase):
 
     def test_getter_with_loop_variable_serialization(self):
         """Test that Variable with LoopVariable in nested serializes correctly"""
-        from dara.core.interactivity.loop_variable import LoopVariable
-
         variable = Variable({})
         items = Variable([])
         nested_var = variable.get(items.list_item.get('key'))
@@ -187,6 +186,22 @@ class TestVariables(unittest.TestCase):
 
         assert len(nested_dv.nested) == 1
         assert isinstance(nested_dv.nested[0], LoopVariable)
+
+    def test_generic_derived_variable_serialization_preserves_nested_defaults(self):
+        """Test nested variables keep full serialization inside parametrized generic DerivedVariables"""
+        input_var = Variable(default='test')
+        child = DerivedVariable[str](lambda x: x.upper(), variables=[input_var], uid='child')
+        parent = DerivedVariable(lambda _: 'ok', variables=[child], uid='parent')
+
+        serialized = jsonable_encoder(Text(parent))
+
+        assert serialized['props']['text']['variables'][0]['variables'][0] == {
+            '__typename': 'Variable',
+            'default': 'test',
+            'nested': [],
+            'store': None,
+            'uid': input_var.uid,
+        }
 
 
 async def test_derived_variables_with_df_nan():

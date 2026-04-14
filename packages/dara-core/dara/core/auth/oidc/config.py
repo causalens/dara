@@ -1,5 +1,7 @@
+import asyncio
+import secrets
 from typing import ClassVar
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 import jwt
@@ -14,9 +16,9 @@ from dara.core.logging import dev_logger
 
 from ..base import AuthComponent, AuthComponentConfig, BaseAuthConfig
 from ..definitions import (
+    BAD_REQUEST_ERROR,
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
-    JWT_ALGO,
     REFRESH_TOKEN_COOKIE_NAME,
     SESSION_ID,
     UNAUTHORIZED_ERROR,
@@ -35,11 +37,12 @@ from .definitions import (
     JWK_CLIENT_REGISTRY_KEY,
     IdTokenClaims,
     OIDCDiscoveryMetadata,
-    StateObject,
+    OIDCLoginTransaction,
 )
 from .id_token_cache import oidc_id_token_cache
 from .routes import sso_callback
-from .settings import get_oidc_settings
+from .settings import OIDCSettings, get_oidc_settings
+from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
 
 OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogin')
@@ -47,6 +50,10 @@ OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', j
 OIDCAuthLogout = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogout')
 
 OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthSSOCallback')
+
+
+class _RetryableDiscoveryError(Exception):
+    """Transient failure while fetching the OIDC discovery document."""
 
 
 class OIDCAuthConfig(BaseAuthConfig):
@@ -107,6 +114,44 @@ class OIDCAuthConfig(BaseAuthConfig):
         issuer_url = get_oidc_settings().issuer_url
         return f'{issuer_url}/.well-known/openid-configuration'
 
+    async def fetch_discovery_document(self, discovery_url: str, oidc_settings: OIDCSettings) -> httpx.Response:
+        """
+        Fetch the OIDC discovery document with bounded retries for transient failures.
+        """
+        delay_seconds = 0.5
+
+        for attempt in range(1, oidc_settings.discovery_max_attempts + 1):
+            try:
+                response = await self.client.get(
+                    discovery_url,
+                    timeout=oidc_settings.discovery_request_timeout_seconds,
+                )
+
+                if response.status_code == 429 or 500 <= response.status_code < 600:
+                    raise _RetryableDiscoveryError(f'HTTP {response.status_code}')
+
+                response.raise_for_status()
+                return response
+            except _RetryableDiscoveryError as e:
+                if attempt == oidc_settings.discovery_max_attempts:
+                    raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
+            except httpx.HTTPStatusError as e:
+                raise RuntimeError(
+                    f'Failed to fetch OIDC discovery document from {discovery_url}: HTTP {e.response.status_code}'
+                ) from e
+            except httpx.RequestError as e:
+                if attempt == oidc_settings.discovery_max_attempts:
+                    raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
+
+            dev_logger.warning(
+                'Retrying OIDC discovery fetch',
+                {'attempt': attempt, 'max_attempts': oidc_settings.discovery_max_attempts, 'url': discovery_url},
+            )
+            await asyncio.sleep(delay_seconds)
+            delay_seconds *= 2
+
+        raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}')
+
     async def startup_hook(self):
         await self.client.__aenter__()
 
@@ -119,20 +164,17 @@ class OIDCAuthConfig(BaseAuthConfig):
         # 2. Fetch OIDC discovery document
         discovery_url = self.get_discovery_url()
         dev_logger.info(f'Fetching OIDC discovery document from {discovery_url}...')
-        try:
-            response = await self.client.get(discovery_url)
-            response.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            raise RuntimeError(
-                f'Failed to fetch OIDC discovery document from {discovery_url}: HTTP {e.response.status_code}'
-            ) from e
-        except httpx.RequestError as e:
-            raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
+        response = await self.fetch_discovery_document(discovery_url, oidc_settings)
 
         try:
             self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())
         except Exception as e:
             raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
+
+        if self._discovery.issuer != oidc_settings.issuer_url:
+            raise RuntimeError(
+                f'OIDC discovery issuer mismatch: expected {oidc_settings.issuer_url}, got {self._discovery.issuer}'
+            )
 
         dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
 
@@ -148,33 +190,21 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         return _cleanup
 
-    def generate_state(self, redirect_to: str | None = None) -> str:
+    def generate_state(self) -> str:
         """
-        Generate a signed JWT state parameter for CSRF protection.
+        Generate an opaque state parameter for the authorization request.
 
-        The state is a JWT signed with the application's secret containing:
-        - nonce: cryptographically random value for uniqueness
-        - redirect_to: optional URL to redirect to after authentication
-        - exp: expiration timestamp
-
-        :param redirect_to: Optional URL to redirect to after successful authentication
-        :return: Signed JWT string to use as the state parameter
+        :return: Opaque state string to use as the state parameter
         """
-        payload = StateObject(redirect_to=redirect_to)
-        return jwt.encode(payload.model_dump(), get_settings().jwt_secret, algorithm=JWT_ALGO)
+        return secrets.token_urlsafe(32)
 
-    def verify_state(self, state: str) -> StateObject:
+    def generate_nonce(self) -> str:
         """
-        Verify and decode the state JWT.
-
-        :param state: The state JWT string from the callback
-        :return: Decoded payload containing nonce and optional redirect_to
-        :raises jwt.ExpiredSignatureError: If the state has expired
-        :raises jwt.InvalidTokenError: If the state is invalid
+        Generate an OIDC nonce parameter for the authorization request.
         """
-        return StateObject.model_validate(jwt.decode(state, get_settings().jwt_secret, algorithms=[JWT_ALGO]))
+        return secrets.token_urlsafe(32)
 
-    def get_authorization_params(self, state: str) -> dict[str, str]:
+    def get_authorization_params(self, state: str, nonce: str | None = None) -> dict[str, str]:
         """
         Build the query parameters for the authorization request per OpenID Connect Core 1.0 Section 3.1.2.1.
 
@@ -185,7 +215,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         - redirect_uri: Redirection URI for the response (from SSO_REDIRECT_URI setting)
 
         Recommended parameters:
-        - state: Opaque value for CSRF protection (signed JWT containing nonce and optional redirect URL)
+        - state: Opaque value for CSRF protection bound to the browser session
 
         Override this method to add optional parameters like nonce, display, prompt, max_age, etc.
         """
@@ -195,27 +225,50 @@ class OIDCAuthConfig(BaseAuthConfig):
             'response_type': 'code',
             'client_id': oidc_settings.client_id,
             'redirect_uri': oidc_settings.redirect_uri,
+            **({'nonce': nonce} if nonce is not None else {}),
             'state': state,
         }
 
-    def get_authorization_url(self, state: str) -> str:
+    def get_authorization_url(self, state: str, nonce: str | None = None) -> str:
         """
         Build the full authorization URL using the discovery document's authorization_endpoint.
         """
-        params = self.get_authorization_params(state)
+        params = self.get_authorization_params(state, nonce=nonce)
         return f'{self.discovery.authorization_endpoint}?{urlencode(params)}'
+
+    def validate_redirect_to(self, redirect_to: str | None) -> str | None:
+        """
+        Validate the post-auth redirect target.
+
+        Only same-origin relative app paths are allowed. Absolute URLs, protocol-relative
+        URLs, and non-path values are rejected.
+        """
+        if redirect_to is None:
+            return None
+
+        parsed = urlparse(redirect_to)
+        if parsed.scheme or parsed.netloc or not redirect_to.startswith('/') or redirect_to.startswith('//'):
+            raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid redirect_to parameter'))
+
+        return redirect_to
 
     def get_token(self, body: SessionRequestBody) -> TokenResponse | RedirectResponse:
         """
         Get token from the IDP - redirect to the authorization endpoint.
 
-        Generates a signed JWT state parameter containing a nonce for CSRF protection
-        and optionally the redirect URL for post-authentication navigation.
+        Generates an opaque state parameter for CSRF protection and stores the redirect
+        target server-side for post-authentication navigation.
 
         :param body: Request body, may contain redirect_to for post-auth navigation
         """
-        state = self.generate_state(redirect_to=body.redirect_to)
-        return RedirectResponse(redirect_uri=self.get_authorization_url(state))
+        redirect_to = self.validate_redirect_to(body.redirect_to)
+        transaction = OIDCLoginTransaction(
+            state=self.generate_state(),
+            nonce=self.generate_nonce(),
+            redirect_to=redirect_to,
+        )
+        oidc_transaction_store.set(transaction)
+        return RedirectResponse(redirect_uri=self.get_authorization_url(transaction.state, nonce=transaction.nonce))
 
     async def fetch_userinfo(self, access_token: str) -> dict | None:
         """
@@ -267,8 +320,12 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         # When userinfo is provided and use_userinfo is enabled, prefer userinfo claims
         if userinfo and oidc_settings.use_userinfo:
-            # userinfo 'sub' must match id_token 'sub' per OIDC spec
-            identity_id = userinfo.get('sub') or claims.sub
+            userinfo_sub = userinfo.get('sub')
+            if not isinstance(userinfo_sub, str) or userinfo_sub != claims.sub:
+                dev_logger.error('Invalid OIDC userinfo subject', error=Exception('userinfo sub mismatch'))
+                raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+
+            identity_id = claims.sub
             identity_email = userinfo.get('email') or claims.email
             identity_name = (
                 userinfo.get('name')
