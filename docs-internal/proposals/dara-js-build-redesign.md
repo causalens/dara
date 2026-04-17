@@ -65,6 +65,59 @@ This Bun binary is used for:
 
 The main reason to ship the full binary rather than a narrower helper is that once Dara supports a user-owned `package.json` and custom JS, it needs a real package manager + runtime + bundler anyway.
 
+### 1a. Global Toolchain Cache
+
+To avoid multiple Dara environments each carrying their own separate copy of the same Bun runtime, Dara should resolve the toolchain through a global per-version cache.
+
+Suggested resolution order:
+
+- explicit override such as `DARA_BUN_PATH`
+- global cached pinned Bun for the required version and target
+- bundled Bun from the current Dara install, if present
+- on-demand download into the global cache
+
+Suggested cache location:
+
+- `${XDG_CACHE_HOME:-~/.cache}/dara/bun/<version>/<target>/bun` on Linux/macOS
+- the equivalent local app cache location on Windows
+
+This gives Dara:
+
+- one cached copy per machine per Bun version/target
+- sharing across multiple virtualenvs or Dara installs
+- predictable upgrades when Dara bumps its pinned Bun version
+- optional support for either bundled or downloaded initial acquisition without changing the steady-state runtime path
+
+The cache manager should:
+
+- download atomically via a temp path + rename
+- verify checksum before activation
+- set executable permissions
+- coordinate concurrent fetches with a simple file lock
+
+### 1b. Bun vs Node
+
+The proposal currently leans toward Bun, but there is still a real toolchain choice to make.
+
+Arguments for Bun:
+
+- one self-contained binary that covers package management, runtime, and build execution
+- native lockfile support that fits the `bun.lock` + `dara.lock` model cleanly
+- likely smaller overall runtime footprint than vendoring a full Node distribution
+- simpler user story than requiring Node plus a separate package manager
+
+Arguments for Node:
+
+- higher ecosystem compatibility and lower migration risk for existing tooling/plugins
+- fewer surprises if Dara keeps using Vite and broader Node-oriented build tooling
+- easier debugging for users already familiar with the standard Node ecosystem
+
+A reasonable implementation strategy is:
+
+- keep the proposal Bun-first
+- explicitly treat Node as the fallback alternative if Bun compatibility proves too costly during implementation spikes
+- keep the cache/distribution design generic enough that Dara could cache a pinned Node distribution instead of Bun if the decision changes
+
 ### 2. Root `package.json` Is User-Owned
 
 The app root should contain the real `package.json`.
@@ -258,6 +311,7 @@ For existing apps with custom local JS:
 ## Open Questions
 
 - What exact dependency allowlist should Dara be allowed to project into `package.json`?
+- Is Bun sufficiently compatible for Dara's existing Vite-based build flow, or does the lower migration risk of Node outweigh the single-binary advantage?
 - Does Dara continue to own bundler configuration, or should `dara eject` optionally expose more of it?
 - How much of `.dara/generated/*` should be considered stable vs internal implementation detail?
 - How long should the compatibility period for `dara.config.json` last?
