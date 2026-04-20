@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.8
 - Added `LocalizedDate` component to the `dara.components.common` package
 
 ## 1.26.5
