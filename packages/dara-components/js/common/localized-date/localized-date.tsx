@@ -3,7 +3,9 @@ import { format, isValid, parseISO } from 'date-fns';
 import { type StyledComponentProps, type Variable, injectCss, useComponentStyles, useVariable } from '@darajs/core';
 import styled from '@darajs/styled-components';
 
-const LocalizedDateWrapper = styled.div``;
+const LocalizedDateWrapper = styled.div`
+    display: inline-block;
+`;
 const StyledLocalizedDate = injectCss(LocalizedDateWrapper);
 
 interface LocalizedDateProps extends StyledComponentProps {
@@ -37,12 +39,7 @@ function LocalizedDate(props: LocalizedDateProps): JSX.Element {
     const content = isError ? placeholderStr : format(parsedDate, formatStr);
 
     return (
-        <StyledLocalizedDate
-            $rawCss={css}
-            data-state={isError ? 'error' : 'ok'}
-            id={props.id_}
-            style={style}
-        >
+        <StyledLocalizedDate $rawCss={css} data-state={isError ? 'error' : 'ok'} id={props.id_} style={style}>
             {content}
         </StyledLocalizedDate>
     );
