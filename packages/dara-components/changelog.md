@@ -2,6 +2,9 @@
 title: Changelog
 ---
 
+## NEXT
+- Added `LocalizedDate` component to the `dara.components.common` package
+
 ## 1.26.5
 - Removed unused sortType code for the Table's Columns, here since the sorting is handled in different places for dara-components
 
