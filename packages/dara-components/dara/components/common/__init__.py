@@ -51,6 +51,7 @@ from dara.components.common.if_cmp import If
 from dara.components.common.image import Image
 from dara.components.common.input import Input
 from dara.components.common.label import Label
+from dara.components.common.localized_date import LocalizedDate
 from dara.components.common.markdown import Markdown
 from dara.components.common.modal import Modal
 from dara.components.common.overlay import Overlay
@@ -102,6 +103,7 @@ __all__ = [
     'ItemBadge',
     'Label',
     'ListSection',
+    'LocalizedDate',
     'MenuItem',
     'Markdown',
     'Modal',

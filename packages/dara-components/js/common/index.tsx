@@ -27,6 +27,7 @@ export { default as If } from './if/if';
 export { default as Image } from './image/image';
 export { default as Input } from './input/input';
 export { default as Label } from './label/label';
+export { default as LocalizedDate } from './localized-date/localized-date';
 export { default as Markdown } from './markdown/markdown';
 export { default as Modal } from './modal/modal';
 export { default as Overlay } from './overlay/overlay';
