@@ -23,6 +23,33 @@ The recommended path is incremental:
 - then add a staged distributed mode with `off`, `warn`, and `enforce`
 - only after that decide whether Dara should keep that model as an opt-in mode or use a Dara v2 to make stronger defaults
 
+## Goals
+
+- Allow multiple Dara workers behind a load balancer.
+- Improve multicore utilization without requiring a single giant process.
+- Support multi-box deployments with shared state backends.
+- Provide a clear migration path for existing apps.
+- Make distributed-safety visible and enforceable where the framework owns the surface.
+
+## Non-Goals
+
+- Make arbitrary user Python objects magically serializable or portable.
+- Guarantee that all user-defined custom adapters are actually distributed-safe.
+- Eliminate every stateful API in one step.
+- Require a Dara v2 before any meaningful scaling improvements are possible.
+
+## Runtime Shapes
+
+The proposal distinguishes three deployment/runtime shapes:
+
+- sticky-session scale: multiple workers or boxes can serve different users/sessions, but each live session remains pinned to one worker
+- distributed-safe mode: multiple workers can serve the same app without relying on process-local state for correctness, within the enforced feature contract
+- true stateless mode: any compatible request/action can land on any worker in the same deployment without process-local runtime dependency
+
+Sticky sessions are a useful near-term operational shape because they improve multicore and multi-box utilization with fewer framework changes. They are not the target distributed contract because they do not provide free rerouting, strong failover, or stateless request handling.
+
+Distributed-safe mode is the main target for this proposal. True stateless behavior is the direction of travel, but only inside the explicit contract described below.
+
 ## Current Problem Areas
 
 The central issue is not the absence of Redis / Valkey. The central issue is that Dara currently assumes the process that defines, renders, stores, or owns something is usually the same process that later resolves, executes, updates, or notifies it.
@@ -208,6 +235,67 @@ Dara can enforce the contracts it owns, reject known local-only defaults, and re
 
 The following should be treated as design decisions for this proposal rather than open alternatives.
 
+### Runtime Strategy And Modes
+
+Dara should not wait for a v2 rewrite to unlock horizontal scaling. The main path should be incremental:
+
+1. document sticky-session multi-worker deployment as the near-term scale shape
+2. externalize obvious local state behind adapters
+3. add the websocket backplane
+4. add `distributed_mode = off | warn | enforce`
+5. add stable definition identity and build-time manifest validation
+6. tighten data contracts until `enforce` becomes the practical Dara v2 compatibility target
+
+The mode semantics should be:
+
+- `off`: today's behavior
+- `warn`: allow the app to run but warn on known unsafe or suspicious distributed-mode usage
+- `enforce`: fail startup or fail the operation when the app violates the distributed-safe contract
+
+`warn` should cover:
+
+- local-only built-in backends
+- unstable or missing required IDs
+- distributed-relevant definitions registered after startup/compile
+- `get_current_value()` or equivalent APIs that require browser / websocket RPC
+- static kwargs or framework payloads that cannot be serialized/deserialized under a declared type contract
+
+`enforce` should reject:
+
+- unsupported local-only backends
+- banned local-only APIs
+- browser roundtrip reads for core state resolution
+- missing stable lookup identities where Dara requires them
+- distributed-relevant registry writes after startup/compile freeze
+- runtime payloads that do not satisfy their serializer/type contract
+
+Rejected alternatives:
+
+- sticky sessions only: useful operationally, but not enough for worker failover or stateless request handling
+- separate Dara v2 first: cleaner eventually, but it blocks practical scaling improvements behind a larger migration
+- one-shot "make everything stateless" rewrite: too broad and unnecessary before adapters, backplane, and identity constraints are proven
+
+### Enforcement And Detectability Model
+
+Dara should enforce what the framework owns and explicitly classify the rest as user-attested.
+
+Provably safe framework-owned checks include:
+
+- required adapters are configured
+- built-in local-only defaults are not used in `enforce`
+- shared signing/session configuration is explicit
+- values pass the configured serializer/type contract
+- distributed-relevant registries are frozen after startup/compile
+
+Known unsafe framework-owned paths should be rejected in `enforce`, including:
+
+- unsupported local backends
+- banned browser roundtrip reads
+- non-serializable framework payloads
+- runtime-created distributed definitions
+
+Custom adapters, custom serializers, and external stores are user-attested. Dara should validate interface shape and advertised capabilities, but it cannot prove that a user implementation has correct distributed semantics.
+
 ### Websocket Routing
 
 Dara should use a websocket backplane.
@@ -222,6 +310,11 @@ This is required for:
 The target distributed-safe websocket backplane does not need to support browser value-read RPC. Browser roundtrip reads are a compatibility feature, not part of the `enforce` contract.
 
 The canonical first implementation is app workers owning their own websocket connections plus a shared backplane for routing. A separate websocket service is not the default design.
+
+Rejected alternatives:
+
+- no backplane: incompatible with cross-worker websocket ownership, fanout, and broadcast
+- separate websocket routing service as v1 default: possible later, but unnecessary for the first distributed-safe design and more operationally complex
 
 ### Browser Roundtrip Reads
 
@@ -244,7 +337,7 @@ The narrow compatibility use case is notebook / kernel-style execution, where co
 
 ### Shared State Backends
 
-OIDC transaction state, token caches, cache/task metadata, websocket presence, and backend store state should move behind explicit adapters.
+OIDC transaction state, OIDC ID-token cache, session auth token cache, cache/task metadata, websocket presence, and backend store state should move behind explicit adapters.
 
 Dara should ship at least one first-party distributed backend, such as a Valkey / Redis adapter set, and distributed mode should reject the built-in local-only defaults.
 
@@ -281,6 +374,29 @@ Capability protocols should be grouped by storage semantics, not by every indivi
 - `PubSubBackplane` for websocket fanout and broadcast
 - `PresenceStore` for websocket channel/session/user ownership leases
 - `TaskQueue` and task `ResultStore` for distributed task execution
+
+Rejected alternatives:
+
+- one mandatory mega-adapter: too rigid for users that need to override only one capability
+- only feature-specific adapters: too repetitive for common Valkey / Redis deployments
+- accepting built-in local defaults in `enforce`: would make distributed mode look enabled while still depending on process-local state
+
+### Distributed Store Semantics
+
+`BackendStore`, `ServerVariable`, and related abstractions need cluster-wide semantics for sequence/version ownership, atomic writes, invalidation, and fanout.
+
+The distributed backend should own sequence/version state. Dara should not maintain process-local sequence counters in distributed mode.
+
+The minimum distributed store contract is:
+
+- every successful write increments a backend-owned monotonic sequence/version
+- value writes and sequence increments are atomic for one store key
+- partial writes / patches are atomic per store key
+- normal conflict behavior is last-write-wins unless a backend exposes an explicit stronger compare-and-set API
+- cross-key transactions are not required in v1
+- notifications happen after commit, and clients refetch against the committed sequence/version
+
+First-party Valkey / Redis implementations should use atomic primitives or Lua where needed so value writes and sequence updates cannot diverge. Users that need stronger multi-key transactional semantics should provide a custom backend over a database that supports those guarantees.
 
 ### Static Kwargs
 
@@ -445,6 +561,13 @@ So, for `DerivedVariable` inputs:
 
 This preserves common dynamic form patterns while making the distributed boundary explicit. Longer term, Dara should improve form APIs so dynamic forms can submit structured payloads or bind to one backend-backed state object keyed by stable field IDs instead of creating many backend-visible variables at render time.
 
+Rejected alternatives:
+
+- deterministic IDs for everything: attractive ergonomically, but fragile for dynamic construction, closures, ordering-dependent definitions, and backend-visible state
+- explicit IDs for everything: simpler conceptually, but too much migration burden for top-level framework-owned actions and py_components where Dara can infer stable code identity
+- random frontend-visible IDs backed by process-local registries: works only when every follow-up request lands on the same worker
+- manifest support for runtime-created definitions: impossible to make reliable when the definition only exists on the worker that happened to execute the render/request path
+
 ### Build-Time Manifest
 
 Dara should generate a build-time manifest artifact as the source of truth for distributed-safe definition identity.
@@ -495,432 +618,23 @@ So the contract is:
 - shared backend: stores only deployment-scoped manifest version/build ID/fingerprint for cluster consistency
 - dev mode: may auto-generate the manifest as a convenience, but `enforce` treats the manifest as required
 
-## Goals
+### Dara V2 Default And Local Escape Hatch
 
-- Allow multiple Dara workers behind a load balancer.
-- Improve multicore utilization without requiring a single giant process.
-- Support multi-box deployments with shared state backends.
-- Provide a clear migration path for existing apps.
-- Make distributed-safety visible and enforceable where the framework owns the surface.
+`distributed_mode = enforce` should become the practical "Dara v2 compatible" contract before Dara v2 exists.
 
-## Non-Goals
+That lets the current major version:
 
-- Make arbitrary user Python objects magically serializable or portable.
-- Guarantee that all user-defined custom adapters are actually distributed-safe.
-- Eliminate every stateful API in one step.
-- Require a Dara v2 before any meaningful scaling improvements are possible.
+- introduce the distributed-safe contract behind `enforce`
+- warn or error on deprecated APIs that are incompatible with that contract
+- give applications a concrete migration target before a major-version cut
 
-## Deployment Targets
+A future Dara v2 should then default to the distributed-safe contract, remove deprecated APIs already surfaced through warnings/errors, and remove compatibility warning systems that only exist to bridge old behavior.
 
-### 1. Sticky-Session Horizontal Scale
-
-Multiple Dara workers can serve different users or sessions, while each session stays pinned to one worker.
-
-This gives:
-
-- better multicore usage
-- multiple workers per box
-- multiple boxes with an L7 load balancer
-- fewer changes to current Dara semantics
-
-This does not give:
-
-- stateless request handling
-- free rerouting of a session to another worker
-- robustness to a worker disappearing mid-session
-
-### 2. Distributed-Safe Mode
-
-Multiple Dara workers can serve the same app without relying on process-local state for correctness, as long as the app stays within a constrained feature set.
-
-This requires:
-
-- externalized shared state
-- websocket backplane
-- stable lookup identities for framework-owned definitions
-- detection or prohibition of local-only features
-
-### 3. True Stateless Mode
-
-Any request or action can land on any worker without relying on process-local runtime state, and rolling deploys / restarts are safe within the defined contract.
-
-This is the hardest target and likely requires the strongest constraints.
-
-## IDs: Deterministic Vs Required
-
-There are two broad strategies for distributed-safe IDs.
-
-### Option A: Deterministic IDs
-
-Generate the same ID on every worker from a stable input, such as:
-
-- module path + qualified name
-- route path + component position
-- explicit manifest path
-- stable normalized serialization of a definition
-
-Pros:
-
-- easier migration for users
-- no need to annotate every action/component manually
-- works well for framework-generated definitions
-
-Cons:
-
-- hard to guarantee stability when code structure changes
-- fragile for repeated dynamic construction
-- difficult when identity depends on ordering or closures
-- can create accidental collisions unless the input is very carefully defined
-
-### Option B: Required Explicit IDs
-
-Require the user or framework to provide a stable ID for distributed-sensitive definitions.
-
-Pros:
-
-- simpler model
-- easier to reason about rolling deploy safety
-- avoids pseudo-stability from heuristics
-
-Cons:
-
-- more migration burden
-- worse ergonomics
-- easy to underuse unless strongly integrated into framework APIs
-
-### Recommended Position
-
-Use both, depending on the surface:
-
-- deterministic IDs for framework-owned definitions that exist at import / compile time
-- explicit required IDs only where deterministic identity is too weak or ambiguous, not as the default model
-- keep per-execution IDs random and ephemeral
-
-The important distinction is that not every ID must be deterministic. Only IDs that must survive crossing workers need stable meaning.
-
-### Opinionated Resolution
-
-For distributed mode, Dara should assume that cluster-stable identity is only available for import-time definitions.
-
-That means:
-
-- a manifest or deterministic-ID scheme is the solution for top-level definitions
-- nested composition is fine if it invokes already-defined top-level py_components/actions
-- dynamically defining new decorated functions during render or request handling is not compatible with true stateless execution
-
-In other words: a manifest cannot save definitions that only come into existence on one worker after render-time code runs. Those should be banned from `enforce` mode rather than supported through increasingly fragile heuristics.
-
-## What Can Be Enforced Now
-
-These changes largely fit the current architecture.
-
-### Adapterize And Ban Default Local Backends In Distributed Deployments
-
-In distributed mode Dara can require non-local implementations for:
-
-- OIDC transaction store
-- OIDC ID-token cache
-- session auth token cache
-- cache/task metadata storage
-- websocket presence and routing metadata
-
-This does not prove a custom adapter is correct, but it does remove the built-in local-only defaults.
-
-### Require Shared Secrets And Startup Capability Checks
-
-Dara can fail startup in distributed mode unless:
-
-- JWT/session signing config is explicitly shared
-- required adapters are present
-- configured backends advertise required capabilities
-
-### Validate Serializable Static Inputs
-
-Dara can detect and warn or fail when framework-owned payloads contain obviously non-serializable static values.
-
-This is especially useful for:
-
-- static action kwargs
-- py component inputs
-- backend store payloads
-
-For static kwargs specifically, this should become part of the distributed-mode contract rather than a best-effort warning.
-
-In practice `enforce` mode should reject static kwargs when:
-
-- the target parameter is untyped
-- the declared type is too weak to deserialize safely, such as `Any` or `object`
-- no matching serializer / deserializer is registered for the declared type
-- the runtime value does not satisfy the declared type contract
-
-### Mark Known Local-Only APIs As Unsupported
-
-Dara can explicitly mark certain APIs as unsupported in distributed mode, for example:
-
-- browser roundtrip value reads
-- default local cache/task stores
-- server variables storing arbitrary Python objects
-
-## What Needs Redesign
-
-These go beyond swapping adapters.
-
-### Stable Definition Identity
-
-Action definitions, derived variables, py components, stores, and similar framework-owned definitions need identities that mean the same thing on every worker.
-
-This is the area where a manifest or stable ID scheme is most important.
-
-This only works for definitions Dara can discover before handling traffic. If a definition is created dynamically inside another handler, there is no cluster-stable object to map to.
-
-### Remove Server-Side Dependence On Instance Registries
-
-Today some frontend-visible instance IDs are only useful because the server later uses them as keys into local registries.
-
-That pattern needs to be replaced with one of:
-
-- serializable inline payloads
-- stable definition lookup plus explicit serialized arguments
-- manifest-driven resolution
-
-For py_components and actions this implies:
-
-- definition lookup should use stable definition identity
-- request payloads should carry only serializable arguments and invocation metadata
-- server-side lookup by random instance ID is acceptable for static kwargs if the backing store is shared and stores serialized values rather than live Python objects
-
-### Websocket Backplane
-
-Dara needs a backplane for:
-
-- cross-worker send-to-channel
-- send-to-user fanout
-- global broadcast
-- presence tracking
-
-It should not implement browser value-read RPC as part of the target distributed-safe model. Compatibility modes may keep local/browser RPC behavior, but `enforce` should reject APIs that depend on it.
-
-The canonical first version is not a separate websocket service. It is app workers owning their own sockets plus a shared backplane for routing.
-
-This should be treated as settled architecture, not an open choice.
-
-### Distributed Store Semantics
-
-`BackendStore` and similar abstractions need cluster-wide semantics for:
-
-- sequence numbers
-- concurrency
-- ordering
-- invalidation/fanout
-
-Local incrementing counters are not enough once multiple workers can write.
-
-The distributed backend should own sequence/version state. Dara should not maintain process-local sequence counters in distributed mode.
-
-The minimum distributed store contract is:
-
-- every successful write increments a backend-owned monotonic sequence/version
-- value writes and sequence increments are atomic for one store key
-- partial writes / patches are atomic per store key
-- normal conflict behavior is last-write-wins unless a backend exposes an explicit stronger compare-and-set API
-- cross-key transactions are not required in v1
-- notifications happen after commit, and clients refetch against the committed sequence/version
-
-First-party Valkey / Redis implementations should use atomic primitives or Lua where needed so value writes and sequence updates cannot diverge. Users that need stronger multi-key transactional semantics should provide a custom backend over a database that supports those guarantees.
-
-### ServerVariable Contract
-
-`ServerVariable` currently allows arbitrary Python objects. That is not compatible with stateless/distributed execution.
-
-The framework should enforce a stricter contract in distributed mode rather than trying to replicate arbitrary objects across workers or introducing a new primary distributed-safe type.
-
-Given the existing backend abstraction, the path is to keep `ServerVariable` but narrow its supported semantics in distributed mode:
-
-- non-local distributed-safe backend required
-- stable `uid` required
-- process-local live-object usage unsupported
-- if the underlying state already lives outside Dara, a custom backend over that external source should be preferred over an in-memory mirror
-- local-only behavior is available only through the explicit non-distributed / local-compatibility escape hatch
-
-## Detectability Limits
-
-Not everything is discoverable in Python, and the framework should not pretend otherwise.
-
-The workable model is to separate three buckets:
-
-### 1. Provably Safe
-
-Framework-owned paths where Dara can verify the contract.
-
-Examples:
-
-- a required adapter type is present
-- a value is JSON-serializable
-- a local-only default backend is not being used
-
-### 2. Known Unsafe
-
-Framework-owned paths Dara can reject.
-
-Examples:
-
-- an unsupported local backend
-- use of a banned API in distributed mode
-- a non-serializable framework payload
-
-### 3. User-Attested
-
-Custom implementations that Dara cannot fully prove safe.
-
-Examples:
-
-- custom adapters
-- user-defined serialization conventions
-- external stores with looser guarantees
-
-For these, Dara should validate interface shape and capability, but it cannot guarantee semantics.
-
-## Proposed Migration Paths
-
-These are not mutually exclusive.
-
-### Path A: Sticky Sessions First
-
-This is the fastest way to get operational benefit.
-
-### Phase A1
-
-- document supported sticky-session deployment shape
-- require explicit shared signing secret
-- move OIDC/session caches behind shared adapters where needed
-
-### Phase A2
-
-- support multiple workers and multiple boxes with sticky sessions
-- keep current local registries and random IDs
-
-Pros:
-
-- quickest win
-- low framework risk
-- good answer for many current deployments
-
-Cons:
-
-- not stateless
-- weaker failover
-- still blocked on worker affinity
-
-### Path B: Distributed Mode In Stages
-
-This is the recommended main path.
-
-### Phase B1: Externalize Obvious Local State
-
-- adapterize caches and token/session support
-- add startup capability checks
-- reject built-in local defaults when distributed mode is enabled
-- reject the local-only task backend when distributed mode is enabled
-
-### Phase B2: Add Websocket Backplane
-
-- shared presence store
-- cross-worker channel routing
-- user fanout
-- broadcast
-
-This enables distributed websocket correctness even before full statelessness.
-
-### Phase B3: Add `distributed_mode = off | warn | enforce`
-
-`off`:
-
-- current behavior
-
-`warn`:
-
-- emit warnings for known unsafe or suspicious usage
-- surface ID instability and local-only features
-- warn when distributed-relevant definitions are registered after startup/compile
-- warn when `get_current_value()` or equivalent APIs require browser / websocket RPC
-- do not block startup
-
-`enforce`:
-
-- fail on unsupported backends
-- fail on banned local-only APIs
-- fail when `get_current_value()` or equivalent APIs require browser / websocket RPC
-- require stable lookup identities where Dara needs them
-- freeze distributed-relevant registries after startup/compile and reject any later registrations
-
-This is similar in spirit to React Strict Mode, but with a real deployability contract behind `enforce`.
-
-### Phase B4: Stable Definition Identity / Manifest Work
-
-Introduce the build-time manifest artifact for framework-owned definitions.
-
-Recommended direction:
-
-- generate the manifest during the Dara-controlled app build step
-- validate the runtime app graph against the manifest at startup
-- publish/check only a manifest fingerprint through the shared backend in distributed `enforce`
-- start with framework-generated deterministic IDs where Dara controls the structure
-- restrict distributed mode to import-time discoverable definitions
-- add explicit IDs only where ambiguity remains
-- reject runtime-created definitions in `enforce` mode
-
-The implementation should be straightforward:
-
-1. build the app, compile the router, and emit the manifest artifact
-2. at runtime, import the app and compile the router
-3. validate the runtime app graph against the manifest
-4. freeze registries for actions, py_components, derived variables, and similar distributed-relevant definitions
-5. in distributed `enforce`, publish/check the manifest fingerprint in the shared backend
-6. inject app/deployment/manifest identity into the initial frontend config
-7. require internal API and websocket requests to carry that identity
-8. reject mismatched runtime identity with a typed reload-required error
-9. let normal request handling continue
-10. if any framework-owned decorator or registration path attempts to add a new definition after freeze, warn or fail depending on mode
-
-### Phase B5: Tighten Data Contracts
-
-- ban arbitrary-object server values in distributed mode
-- tighten backend store semantics
-- reject browser roundtrip reads such as `get_current_value()` in distributed `enforce`
-- replace in-memory `PendingTask` coordination with shared serializable task state/handles
-
-At this point Dara starts approaching a real stateless contract rather than just distributed compatibility.
-
-### Path C: Dara V2 Clean Break
-
-A Dara v2 could choose stricter defaults up front, such as:
-
-- distributed-safe mode as the default required contract
-- explicit distributed-safe server value types
-- stable IDs as a first-class design choice
-- fewer process-local escape hatches
-- no browser RPC for core state retrieval
-
-The preferred migration story is that `distributed_mode = enforce` becomes the practical "Dara v2 compatible" contract before Dara v2 exists.
-
-That would let Dara use the current major version to:
-
-- introduce the stricter distributed-safe contract behind `enforce`
-- warn or error on use of APIs that are deprecated or incompatible with that contract
-- give applications a concrete target to migrate toward before any major-version cut
-
-Then a future Dara v2 can be a cleaner flip of defaults rather than a second large redesign. In particular, Dara v2 should aim to:
-
-- remove deprecated APIs that were already surfaced through warnings/errors in the current line
-- remove the compatibility warning system that only exists to bridge old and new behavior
-- default to the cleaner contract that `enforce` had already established
-- require the distributed-safe contract by default, with an explicit opt-out flag for local-only compatibility
-
-For narrow notebook / kernel scenarios that still need browser value reads, Dara v2 should provide an explicit non-distributed or local-compatibility escape hatch rather than making those APIs work inside the distributed-safe default. That escape hatch should be visibly non-scalable: it opts the app out of the distributed contract instead of weakening the default contract.
+Some narrow notebook / kernel scenarios still need browser value reads or other in-process behavior. Dara v2 should support those through an explicit non-distributed escape hatch rather than weakening the default contract.
 
 The tentative API should be deliberately explicit, for example `unsafe_runtime_mode="local"`. The name should communicate that the app is choosing process-local compatibility over the distributed-safe contract.
 
-`unsafe_runtime_mode="local"` should allow simpler/in-process patterns such as:
+`unsafe_runtime_mode="local"` should allow simpler in-process patterns such as:
 
 - browser value reads through `get_current_value()`
 - local-only `ServerVariable` / `MemoryBackend` usage
@@ -928,33 +642,13 @@ The tentative API should be deliberately explicit, for example `unsafe_runtime_m
 - process-local caches and registries
 - runtime-created definitions where still supported by the non-distributed runtime
 
-This mode should not claim general multi-worker or multi-box support. At most, it can scale through sticky-session routing where each user/session remains pinned to one worker and the deployment accepts weaker failover guarantees. Dara should document it as local compatibility mode, not as a horizontally scalable runtime mode.
+This mode should not claim general multi-worker or multi-box support. At most, it can scale through sticky-session routing where each user/session remains pinned to one worker and the deployment accepts weaker failover guarantees.
 
-Pros:
+Rejected alternatives:
 
-- cleaner model
-- fewer compatibility hacks
-- easier docs and support story
-
-Cons:
-
-- slower time to value
-- forces a migration story anyway
-- risks blocking practical scaling improvements behind a bigger rewrite
-
-## Recommendation
-
-Do not wait for a v2 to unlock horizontal scaling.
-
-The practical recommendation is:
-
-1. support sticky-session multi-worker deployments as an explicitly documented near-term shape
-2. build shared adapters plus a websocket backplane
-3. introduce staged distributed mode with `off`, `warn`, and `enforce`
-4. do the stable-ID / manifest work for import-time framework-owned definitions and explicitly exclude runtime-created definitions
-5. use what is learned there to decide whether Dara v2 should simply flip defaults, or make a cleaner break
-
-This gives Dara near-term operational wins without pretending that all local-process assumptions can be solved by a cache adapter.
+- make browser RPC and process-local APIs work in the distributed-safe default: this weakens the contract and keeps single-process assumptions alive
+- require all users to migrate before any scaling work ships: this delays useful adapter/backplane work unnecessarily
+- remove local-only compatibility entirely in v2: too disruptive for notebook/kernel-style workflows
 
 ## Open Questions
 
