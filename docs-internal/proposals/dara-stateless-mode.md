@@ -23,6 +23,187 @@ The recommended path is incremental:
 - then add a staged distributed mode with `off`, `warn`, and `enforce`
 - only after that decide whether Dara should keep that model as an opt-in mode or use a Dara v2 to make stronger defaults
 
+## Current Problem Areas
+
+The central issue is not the absence of Redis / Valkey. The central issue is that Dara currently assumes the process that defines, renders, stores, or owns something is usually the same process that later resolves, executes, updates, or notifies it.
+
+This section is the problem inventory. Later sections lock the proposed solutions.
+
+### 1. Process-Local Definition And Resolver State
+
+Dara has framework-owned registries that map frontend or request-visible identifiers back to Python callables, resolver objects, or component definitions in the current process.
+
+Known affected surfaces include:
+
+- action resolver registration and lookup
+- upload resolver registration and lookup
+- py_component definition registration and lookup
+- DerivedVariable definition registration and lookup
+- backend-visible variable/store definition registration and lookup
+- custom websocket handler registration and dispatch
+
+The problem is not that every worker has Python functions in memory. Every worker will. The problem is when the identifier used by the client or another worker is random, late-created, or otherwise not guaranteed to resolve to the same definition on every worker.
+
+### 2. Process-Local Runtime Data Stores
+
+Dara also keeps runtime data in local memory where another worker cannot see it.
+
+Known affected surfaces include:
+
+- `static_kwargs_registry`
+- OIDC transaction state
+- OIDC ID-token cache
+- session auth token cache
+- cache/task metadata storage
+- websocket channel ownership
+- websocket session/user presence
+- backend store in-memory state
+- `ServerVariable` in-memory backend state
+- local task state and live `PendingTask` coordination
+
+Some of these are ordinary key-value or sequenced stores and can move behind adapters. Others currently contain live Python objects and need stronger constraints before they can be shared.
+
+### 3. Frontend-Visible Identity With Mixed Semantics
+
+Dara uses frontend-visible IDs for several different purposes, but not all IDs need the same stability.
+
+The problematic cases are IDs that cross a worker boundary and are later used for server-side lookup. That includes:
+
+- action definition IDs
+- py_component definition IDs
+- DerivedVariable UIDs
+- BackendStore UIDs
+- ServerVariable UIDs
+- backend-backed Variable / store UIDs
+- action or py_component instance IDs when they are used to retrieve server-side static kwargs
+
+The less problematic cases are IDs that are only transport/session correlation. Those can remain ephemeral if the state they point at is in a shared backend or is included directly in the request.
+
+The current code does not make this distinction consistently, which makes it hard to know whether a random ID is harmless or a hidden single-process dependency.
+
+### 4. Runtime-Created Distributed Definitions
+
+Dara supports patterns where a request-time or render-time code path creates new framework definitions.
+
+Known risky patterns include:
+
+- defining `@py_component` inside another `@py_component`
+- defining `@action` inside render/request/action code
+- creating DerivedVariables dynamically during render
+- creating ServerVariables dynamically during render
+- creating BackendStores or backend-backed Variables dynamically during render
+
+These definitions only exist on the worker that executed the code path. A manifest or deterministic ID scheme cannot make another worker resolve a definition that was never created there.
+
+Ordinary browser-local `Variable` instances created dynamically for forms are a different case. They are not a distributed definition as long as they stay browser/session-local and are submitted as values rather than looked up by backend UID.
+
+### 5. Websocket Ownership, Presence, Fanout, And RPC
+
+Dara's websocket layer is both a transport and a local ownership registry.
+
+Known affected surfaces include:
+
+- channel-to-worker ownership
+- session and user presence
+- send-to-channel
+- send-to-user fanout
+- broadcast
+- custom inbound websocket handlers
+- request/reply flows over websocket
+- browser value reads used by `get_current_value()`
+
+Without a backplane, one worker cannot reliably send to a socket owned by another worker. Separately, browser value-read RPC is not a good distributed contract because it depends on reaching the right live browser connection at request time.
+
+### 6. Backend State Semantics
+
+`BackendStore`, `ServerVariable`, and related abstractions need cluster-wide semantics when multiple workers can read and write.
+
+Known affected concerns include:
+
+- sequence/version ownership
+- atomic value + sequence updates
+- partial writes and patch ordering
+- conflict behavior
+- invalidation and client refetch
+- websocket notifications after state changes
+- backend-owned synchronization versions for ServerVariable
+
+Local incrementing counters and process-local invalidation are not enough once writes can happen from more than one worker.
+
+### 7. Task Execution And Result Coordination
+
+The current task model has local execution and local coordination assumptions.
+
+Known affected surfaces include:
+
+- local process-pool style execution
+- live task objects stored in local cache
+- task graph orchestration coupled to the app worker
+- task result lookup
+- task cancellation/status propagation
+- serialization of task payloads and results
+
+Distributed mode needs a queue/result backend and serializable task handles. It does not need to move all orchestration away from the app worker in the first version.
+
+### 8. Serialization And Type Contracts
+
+Distributed workers can only exchange values that can be serialized and deserialized with enough type information.
+
+Known affected surfaces include:
+
+- static action kwargs
+- static py_component kwargs
+- task payloads and results
+- backend store payloads
+- ServerVariable backend values
+- custom encoder / decoder registration
+- Pydantic model handling
+
+JSON-serializability is not the only acceptable standard, but "live object in this process" cannot be part of the distributed contract. Dara needs to know which serializer/deserializer and type contract apply when another worker reads the value.
+
+### 9. Auth, Session, And Shared Secret Configuration
+
+Multi-worker deployments require configuration and auth state to be shared consistently.
+
+Known affected surfaces include:
+
+- JWT/session signing secret configuration
+- OIDC transaction state
+- OIDC ID-token cache
+- session auth token cache
+- cookie/session verification behavior
+
+If these remain per-process, sticky sessions may hide the issue for happy-path traffic, but failover and cross-worker requests remain unsafe.
+
+### 10. Deployment And Manifest Consistency
+
+Even if every worker is distributed-safe, a client can still talk to a worker running a different build during rolling deployment.
+
+Known affected surfaces include:
+
+- build-time definition manifest
+- manifest fingerprint
+- app/deployment/build identity
+- internal HTTP request headers
+- websocket connection identity
+- client behavior when runtime identity mismatches
+
+Dara needs a clear contract for same-deployment consistency and a simple failure mode for incompatible deployment mismatches.
+
+### 11. Detectability And User Extension Limits
+
+Python makes it impossible to prove every user implementation is distributed-safe.
+
+Known limits include:
+
+- arbitrary custom adapters
+- custom serializers
+- external stores with weak consistency
+- user code that hides process-local state behind a safe-looking interface
+- arbitrary live Python objects such as database connections, model instances, and runtime handles
+
+Dara can enforce the contracts it owns, reject known local-only defaults, and require adapters to advertise capabilities. It cannot prove that every custom implementation has correct distributed semantics.
+
 ## Locked Decisions
 
 The following should be treated as design decisions for this proposal rather than open alternatives.
@@ -314,21 +495,6 @@ So the contract is:
 - shared backend: stores only deployment-scoped manifest version/build ID/fingerprint for cluster consistency
 - dev mode: may auto-generate the manifest as a convenience, but `enforce` treats the manifest as required
 
-## Why This Is Hard
-
-The main blocker is not Redis itself. The harder issue is that Dara currently assumes that the process which rendered or registered something is also the process which later resolves or executes it.
-
-Current examples include:
-
-- process-local registries of Python objects and function resolvers
-- frontend-visible IDs generated with `uuid4()` at runtime
-- action instance IDs used as keys into `static_kwargs_registry`
-- websocket ownership tracked in local registries
-- request/response RPC over websocket for browser-held values
-- server variables explicitly allowing arbitrary Python objects
-
-So "add Redis" is not enough on its own. Some parts can be adapterized directly. Others require constraints or redesign.
-
 ## Goals
 
 - Allow multiple Dara workers behind a load balancer.
@@ -379,57 +545,6 @@ This requires:
 Any request or action can land on any worker without relying on process-local runtime state, and rolling deploys / restarts are safe within the defined contract.
 
 This is the hardest target and likely requires the strongest constraints.
-
-## Current Problem Areas
-
-### 1. Local Registries Of Live Python Objects
-
-Several registries store values that only exist in one process, including:
-
-- action resolvers
-- upload resolvers
-- static kwargs
-- websocket ownership
-- session auth token cache
-- OIDC transaction and ID-token caches
-- backend store instances
-
-Some of these can move behind adapters. Some cannot, because they store live callables or bound objects.
-
-### 2. Frontend-Visible Random IDs
-
-Dara currently creates frontend-visible IDs at runtime for several things. These IDs are often used later to look up data in process-local registries.
-
-There are three distinct ID categories:
-
-- stable definition identity
-- instance identity used during one render/load flow
-- per-execution correlation identity
-
-Those should not all be treated the same.
-
-### 3. Websocket Ownership And RPC
-
-Dara's websocket layer is not just a transport. It currently owns:
-
-- channel ownership
-- user/session presence
-- fanout to user channels
-- custom inbound WS handlers
-- request/response RPC such as browser value lookups
-
-That means a shared backplane is needed even before Dara reaches fully stateless execution.
-
-### 4. Local-Only Runtime APIs
-
-Some APIs fundamentally rely on current process or current browser state, for example:
-
-- local registries of static kwargs
-- browser roundtrip reads via websocket
-- arbitrary objects inside `ServerVariable`
-- process-local sequence numbers in backend state
-
-These either need to be banned in distributed mode, or redesigned.
 
 ## IDs: Deterministic Vs Required
 
