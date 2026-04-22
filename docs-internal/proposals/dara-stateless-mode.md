@@ -14,14 +14,14 @@ The proposal intentionally separates three different outcomes:
 
 1. better horizontal utilization today
 2. distributed-safe deployments with some constraints
-3. a stricter future Dara model that defaults to stateless/distributed-safe behavior
+3. a stricter opt-in stateless/distributed-safe mode for apps that need stronger scaling guarantees
 
 The recommended path is incremental:
 
 - first support sticky-session multi-worker deployments with shared secrets
 - then externalize obvious local state behind adapters and add a websocket backplane
 - then add a staged distributed mode with `off`, `warn`, and `enforce`
-- only after that decide whether Dara should keep that model as an opt-in mode or use a Dara v2 to make stronger defaults
+- keep `off`, `warn`, and `enforce` as the long-term adoption model rather than making statelessness mandatory
 
 ## Goals
 
@@ -48,7 +48,7 @@ The proposal distinguishes three deployment/runtime shapes:
 
 Sticky sessions are a useful near-term operational shape because they improve multicore and multi-box utilization with fewer framework changes. They are not the target distributed contract because they do not provide free rerouting, strong failover, or stateless request handling.
 
-Distributed-safe mode is the main target for this proposal. True stateless behavior is the direction of travel, but only inside the explicit contract described below.
+Distributed-safe mode is the main target for this proposal, but it should remain an opt-in higher bar. Apps can stay on lower-friction local or warning modes unless they want the performance, failover, and scaling properties unlocked by `enforce`.
 
 ## Current Problem Areas
 
@@ -244,13 +244,13 @@ Dara should not wait for a v2 rewrite to unlock horizontal scaling. The main pat
 3. add the websocket backplane
 4. add `distributed_mode = off | warn | enforce`
 5. add stable definition identity and build-time manifest validation
-6. tighten data contracts until `enforce` becomes the practical Dara v2 compatibility target
+6. tighten data contracts inside `enforce` without making `enforce` the mandatory default
 
 The mode semantics should be:
 
-- `off`: today's behavior
-- `warn`: allow the app to run but warn on known unsafe or suspicious distributed-mode usage
-- `enforce`: fail startup or fail the operation when the app violates the distributed-safe contract
+- `off`: default compatibility behavior for apps that do not need distributed-safe guarantees
+- `warn`: adoption/audit mode that allows the app to run but warns on known unsafe or suspicious distributed-mode usage
+- `enforce`: opt-in high-bar mode that fails startup or fails the operation when the app violates the distributed-safe contract
 
 `warn` should cover:
 
@@ -273,6 +273,7 @@ Rejected alternatives:
 
 - sticky sessions only: useful operationally, but not enough for worker failover or stateless request handling
 - separate Dara v2 first: cleaner eventually, but it blocks practical scaling improvements behind a larger migration
+- making `enforce` mandatory in v2: raises the adoption floor too much and makes statelessness a breaking requirement even for apps that do not need it
 - one-shot "make everything stateless" rewrite: too broad and unnecessary before adapters, backplane, and identity constraints are proven
 
 ### Enforcement And Detectability Model
@@ -333,7 +334,7 @@ The common app patterns that use `get_current_value()` should be treated as anti
 - backend services or tools reading UI state should receive explicit inputs or move the source of truth server-side
 - server code reading a backend-backed value through `get_current_value()` should read the backend directly
 
-The narrow compatibility use case is notebook / kernel-style execution, where code running outside the Dara app process needs a way to retrieve UI values from the active frontend. That use case can remain in non-distributed mode and may require an explicit opt-out from the v2 distributed-safe default, but it should not force browser RPC into the distributed websocket backplane.
+The narrow compatibility use case is notebook / kernel-style execution, where code running outside the Dara app process needs a way to retrieve UI values from the active frontend. That use case can remain in `off` mode or another non-distributed compatibility mode, but it should not force browser RPC into the distributed websocket backplane.
 
 ### Shared State Backends
 
@@ -496,8 +497,8 @@ So the distributed-safe position should be:
 - distributed `enforce` rejects the default `MemoryBackend`
 - distributed `enforce` requires a non-local, distributed-safe backend
 - distributed `enforce` does not support using `ServerVariable` as a holder for arbitrary live process-local objects
-- Dara v2 should keep `ServerVariable` as the normal distributed-safe server-owned state primitive rather than introducing a new primary type
-- local-only `ServerVariable` behavior is supported only through the explicit non-distributed / local-compatibility escape hatch
+- Dara should keep `ServerVariable` as the normal distributed-safe server-owned state primitive rather than introducing a new primary type
+- local-only `ServerVariable` behavior is supported only in `off` mode or another explicit local-compatibility configuration
 
 Docs should be updated accordingly. In particular, Dara documentation should stop presenting `ServerVariable` as a generic place to keep arbitrary Python objects and instead describe it as:
 
@@ -618,21 +619,30 @@ So the contract is:
 - shared backend: stores only deployment-scoped manifest version/build ID/fingerprint for cluster consistency
 - dev mode: may auto-generate the manifest as a convenience, but `enforce` treats the manifest as required
 
-### Dara V2 Default And Local Escape Hatch
+### Long-Term Mode Policy
 
-`distributed_mode = enforce` should become the practical "Dara v2 compatible" contract before Dara v2 exists.
+`off`, `warn`, and `enforce` should remain the long-term model, including across a future Dara v2.
 
-That lets the current major version:
+The goal is not to make every Dara app stateless by default. The goal is to make statelessness a clear, enforceable higher bar that applications can opt into when they want stronger performance, failover, and horizontal-scaling guarantees.
+
+This gives Dara three durable adoption tiers:
+
+- `off`: lowest adoption floor; preserves local/in-process compatibility and supports sticky-session scaling at most
+- `warn`: migration/audit tier; surfaces distributed-incompatible patterns without blocking the app
+- `enforce`: high-performance/high-scale tier; rejects patterns that would prevent stateless or distributed-safe operation
+
+This lets Dara evolve the framework without forcing every application through the strictest contract:
 
 - introduce the distributed-safe contract behind `enforce`
 - warn or error on deprecated APIs that are incompatible with that contract
-- give applications a concrete migration target before a major-version cut
+- give applications a concrete migration target when they choose to pursue stateless scaling
+- keep simple/local apps viable without requiring distributed-safe architecture
 
-A future Dara v2 should then default to the distributed-safe contract, remove deprecated APIs already surfaced through warnings/errors, and remove compatibility warning systems that only exist to bridge old behavior.
+A future Dara v2 may still remove deprecated APIs and clean up old implementation paths, but it should not make `enforce` mandatory. Instead, Dara v2 should preserve the mode split and make the boundaries sharper: local compatibility belongs in `off`, migration diagnostics belong in `warn`, and stateless/distributed guarantees belong in `enforce`.
 
-Some narrow notebook / kernel scenarios still need browser value reads or other in-process behavior. Dara v2 should support those through an explicit non-distributed escape hatch rather than weakening the default contract.
+Some narrow notebook / kernel scenarios still need browser value reads or other in-process behavior. Those should remain supported through `off` or another explicitly local compatibility configuration rather than weakening `enforce`.
 
-The tentative API should be deliberately explicit, for example `unsafe_runtime_mode="local"`. The name should communicate that the app is choosing process-local compatibility over the distributed-safe contract.
+If Dara needs a more explicit local runtime flag, the tentative API should be direct about the tradeoff, for example `unsafe_runtime_mode="local"`. The name should communicate that the app is choosing process-local compatibility and sticky-session-only scaling, not stateless operation.
 
 `unsafe_runtime_mode="local"` should allow simpler in-process patterns such as:
 
@@ -646,10 +656,11 @@ This mode should not claim general multi-worker or multi-box support. At most, i
 
 Rejected alternatives:
 
-- make browser RPC and process-local APIs work in the distributed-safe default: this weakens the contract and keeps single-process assumptions alive
+- make browser RPC and process-local APIs work in `enforce`: this weakens the contract and keeps single-process assumptions alive
+- make `enforce` the default or only v2 runtime: this raises the adoption floor and blocks apps that do not need stateless scaling
 - require all users to migrate before any scaling work ships: this delays useful adapter/backplane work unnecessarily
-- remove local-only compatibility entirely in v2: too disruptive for notebook/kernel-style workflows
+- remove local-only compatibility entirely: too disruptive for notebook/kernel-style workflows
 
 ## Open Questions
 
-- At what point does the cost of compatibility exceed the cost of a Dara v2 break?
+- What deprecated APIs should be removed in a future Dara v2 even if `off` / `warn` / `enforce` remain as runtime modes?
