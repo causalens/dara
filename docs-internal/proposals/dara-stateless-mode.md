@@ -451,13 +451,31 @@ The v1 shape should be:
 
 - app workers remain responsible for orchestrating task graphs for actions and DerivedVariables
 - only leaf `Task` executions are offloaded to the distributed task backend
-- a first-party distributed backend should provide queueing plus task state/result storage, with a Valkey / Redis implementation as the default candidate
-- task workers should run the same Dara/app image with a worker entrypoint rather than a separate codebase
-- the initial distributed task codec may use pickle as an internal trusted same-image protocol for task payloads and results
+- a first-party distributed backend should provide queueing, leasing/acks, task status, and task result storage, with a Valkey / Redis implementation as the default candidate
+- task workers should run the same Dara/app image with a task-ingestion entrypoint rather than a separate codebase
+- each task-worker replica should own an instance of the existing local process-pool executor
+- total task parallelism should scale as task-worker replicas multiplied by process-pool size per replica
+- the initial distributed task codec should use pickle as an internal trusted same-image protocol for task payloads and results
 
-This keeps the first version simple and aligned with the current `TaskPool` mental model. It also makes the trust boundary explicit: tasks are for coarse-grained compute-heavy work where the serialization overhead and same-image coupling are acceptable.
+This keeps the first version simple and aligned with the current `TaskPool` mental model. The distributed queue decides which task-worker replica owns a task; the existing process pool inside that replica remains the local execution engine.
+
+The pickle trust boundary should be explicit. Pickle is acceptable for first-party distributed task execution because the app workers and task workers run the same trusted image. It is not a public cross-language, cross-version, or untrusted-payload protocol. Tasks remain a fit for coarse-grained compute-heavy work where serialization overhead and same-image coupling are acceptable.
 
 The current in-memory coordination pattern, where live `PendingTask` objects are stored in cache, is not part of the distributed-safe contract and must be replaced with shared serializable task state/handles.
+
+DerivedVariable and action cache/results need the same treatment. In distributed `enforce`, cached Python results that may be read by another worker should be stored through a distributed result/cache backend using the configured runtime codec. The v1 default can also be pickle for the same reason as task results: these values are arbitrary Python objects within a trusted same-image Dara deployment.
+
+The cache/result backend contract should distinguish:
+
+- task status and handles: structured metadata that should remain inspectable
+- task payloads and results: pickle-backed v1 same-image blobs
+- DerivedVariable/action cached results: pickle-backed v1 same-image blobs
+
+Rejected alternatives:
+
+- one global remote executor with no local process pool: more redesign than needed for v1 and throws away existing `TaskPool` behavior
+- JSON-only task/cache results: too restrictive because Dara tasks and DerivedVariable results may be arbitrary Python objects
+- live `PendingTask` objects in shared cache: impossible to make portable across workers
 
 ### ServerVariable
 
