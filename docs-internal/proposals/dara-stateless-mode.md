@@ -334,7 +334,7 @@ The common app patterns that use `get_current_value()` should be treated as anti
 - backend services or tools reading UI state should receive explicit inputs or move the source of truth server-side
 - server code reading a backend-backed value through `get_current_value()` should read the backend directly
 
-The narrow compatibility use case is notebook / kernel-style execution, where code running outside the Dara app process needs a way to retrieve UI values from the active frontend. That use case can remain in `off` mode or another non-distributed compatibility mode, but it should not force browser RPC into the distributed websocket backplane.
+The narrow compatibility use case is notebook / kernel-style execution, where code running outside the Dara app process needs a way to retrieve UI values from the active frontend. That use case can remain in `off` mode, but it should not force browser RPC into the distributed websocket backplane.
 
 ### Shared State Backends
 
@@ -498,7 +498,7 @@ So the distributed-safe position should be:
 - distributed `enforce` requires a non-local, distributed-safe backend
 - distributed `enforce` does not support using `ServerVariable` as a holder for arbitrary live process-local objects
 - Dara should keep `ServerVariable` as the normal distributed-safe server-owned state primitive rather than introducing a new primary type
-- local-only `ServerVariable` behavior is supported only in `off` mode or another explicit local-compatibility configuration
+- local-only `ServerVariable` behavior is supported only in `off` mode
 
 Docs should be updated accordingly. In particular, Dara documentation should stop presenting `ServerVariable` as a generic place to keep arbitrary Python objects and instead describe it as:
 
@@ -640,11 +640,9 @@ This lets Dara evolve the framework without forcing every application through th
 
 A future Dara v2 may still remove deprecated APIs and clean up old implementation paths, but it should not make `enforce` mandatory. Instead, Dara v2 should preserve the mode split and make the boundaries sharper: local compatibility belongs in `off`, migration diagnostics belong in `warn`, and stateless/distributed guarantees belong in `enforce`.
 
-Some narrow notebook / kernel scenarios still need browser value reads or other in-process behavior. Those should remain supported through `off` or another explicitly local compatibility configuration rather than weakening `enforce`.
+Some narrow notebook / kernel scenarios still need browser value reads or other in-process behavior. Those should remain supported through `off` rather than weakening `enforce`.
 
-If Dara needs a more explicit local runtime flag, the tentative API should be direct about the tradeoff, for example `unsafe_runtime_mode="local"`. The name should communicate that the app is choosing process-local compatibility and sticky-session-only scaling, not stateless operation.
-
-`unsafe_runtime_mode="local"` should allow simpler in-process patterns such as:
+`off` should allow simpler in-process patterns such as:
 
 - browser value reads through `get_current_value()`
 - local-only `ServerVariable` / `MemoryBackend` usage
@@ -652,7 +650,7 @@ If Dara needs a more explicit local runtime flag, the tentative API should be di
 - process-local caches and registries
 - runtime-created definitions where still supported by the non-distributed runtime
 
-This mode should not claim general multi-worker or multi-box support. At most, it can scale through sticky-session routing where each user/session remains pinned to one worker and the deployment accepts weaker failover guarantees.
+`off` should not claim general multi-worker or multi-box support. At most, it can scale through sticky-session routing where each user/session remains pinned to one worker and the deployment accepts weaker failover guarantees.
 
 Rejected alternatives:
 
