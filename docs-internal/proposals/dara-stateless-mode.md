@@ -301,12 +301,28 @@ Custom adapters, custom serializers, and external stores are user-attested. Dara
 
 Dara should use a websocket backplane.
 
+This is the canonical self-hosted scale-out pattern for websocket frameworks because each websocket connection is physically attached to one process/node, while the application still needs cross-node fanout and routing.
+
+The normal architecture is:
+
+- each app worker owns the websocket connections that terminated on that worker
+- local sends go directly to locally owned sockets
+- cross-worker sends are published into a shared backplane
+- each worker consumes relevant backplane messages and delivers them to its own local sockets
+
 This is required for:
 
 - cross-worker send-to-channel
 - send-to-user fanout
 - broadcast
 - shared presence
+
+This is not an unusual Dara-specific choice. It is the common pattern used by several mainstream realtime stacks:
+
+- Socket.IO commonly scales with the Redis adapter so multiple servers can emit to rooms/sockets across instances
+- Django Channels uses a Redis-backed channel layer as its official production cross-process messaging mechanism
+- Phoenix Channels uses Phoenix.PubSub to route broadcasts across nodes while each node still owns its local sockets
+- ASP.NET Core SignalR documents Redis backplane scale-out for self-hosted deployments and separately offers a managed SignalR service when you want to externalize connection ownership entirely
 
 The target distributed-safe websocket backplane does not need to support browser value-read RPC. Browser roundtrip reads are a compatibility feature, not part of the `enforce` contract.
 
@@ -316,6 +332,30 @@ Rejected alternatives:
 
 - no backplane: incompatible with cross-worker websocket ownership, fanout, and broadcast
 - separate websocket routing service as v1 default: possible later, but unnecessary for the first distributed-safe design and more operationally complex
+
+A separate websocket service could work like this:
+
+- a dedicated realtime tier terminates all websocket connections
+- Dara app workers no longer own client sockets directly
+- app workers publish outbound events/commands to that realtime tier through a broker or RPC boundary
+- the realtime tier owns channel membership, presence, and final delivery to clients
+
+That architecture can make sense when:
+
+- websocket traffic dominates the system and deserves an independently scaled tier
+- connection count is much larger than application compute needs
+- the team wants to reuse one shared realtime edge across multiple backend services
+- a managed realtime service is being used instead of app-owned sockets
+
+The tradeoff is extra complexity:
+
+- a second deployable service or service tier
+- a new internal protocol between Dara and the realtime tier
+- duplicated auth/session and runtime-identity concerns across tiers
+- more operational coordination during deploys, rollouts, and incident handling
+- more work to preserve Dara-specific semantics such as action correlation, presence, and backplane-triggered updates
+
+So the decision is not that a separate websocket tier is wrong. It is that for Dara v1 distributed mode, the simpler and more standard self-hosted architecture is app-owned sockets plus a shared backplane.
 
 ### Browser Roundtrip Reads
 
