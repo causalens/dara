@@ -155,15 +155,46 @@ Apps with no custom JS should still use the same pipeline; the only difference i
 
 ### 5. Small Dara-Owned Generated Layer
 
-Dara will still need a generated layer for importer maps, generated entrypoints, and possibly bundler configuration.
+Dara will still need a small generated layer, but it should stay limited to framework internals rather than becoming a second hidden JS workspace.
 
-That should live in a clearly Dara-owned internal folder, for example:
+The intended directory boundary is:
 
-- `.dara/generated/importers.ts`
-- `.dara/generated/entry.tsx`
-- `.dara/generated/vite.config.ts` if Dara continues to own bundler configuration
+- app root: user-owned project files such as `package.json`, lockfile, source, `node_modules`, and ejected build config
+- `.dara/generated/*`: Dara-owned metadata and generated glue
+- `dist/`: emitted build output only
 
-This keeps machine-owned files separate from user-owned project files while avoiding the current synthetic `dist/` workspace model.
+Examples of things that can live under `.dara/generated/*`:
+
+- generated importer map
+- generated entry wiring
+- generated dependency projection metadata
+
+Examples of things that should not live under `.dara/`:
+
+- `node_modules`
+- the real project `package.json`
+- the primary lockfile
+- final emitted assets
+
+This keeps machine-owned internals separate from both user-owned project files and real build output, instead of repeating the current pattern where `dist/` doubles as both a synthetic workspace and an output directory.
+
+### 6. Eject Changes Ownership of Build Config
+
+Before `dara eject`, Dara can own the default bundler configuration so the no-custom-JS path stays zero-setup.
+
+After `dara eject`, the user should own:
+
+- the local JS entrypoint
+- the application source tree
+- bundler configuration such as `vite.config.ts`
+- any additional bundler plugins or project-specific build customizations
+
+After eject, Dara should still own only the framework-generated glue and metadata under `.dara/generated/*`.
+
+In other words:
+
+- eject means "user owns source and build config"
+- it does not mean Dara stops generating framework metadata
 
 ## Commands
 
@@ -172,7 +203,7 @@ This keeps machine-owned files separate from user-owned project files while avoi
 | `dara lock` | Discover required Dara JS dependencies, merge the Dara-owned projection into `package.json`, refresh `.dara/generated/*`, install/update JS dependencies, and write the JS lockfile plus `dara.lock`. |
 | `dara dev` | Auto-bootstrap if lockfiles are missing locally; otherwise validate staleness, refresh `.dara/generated/*`, and run the development server. |
 | `dara build` | Require valid checked-in lock state, run a frozen install, and produce the app bundle through the unified pipeline. |
-| `dara eject` | Create the standard user-owned local JS entrypoint and minimal scaffolding for custom JS. `dara setup-custom-js` can remain as a compatibility alias for a migration period. |
+| `dara eject` | Create the standard user-owned local JS entrypoint and eject the default bundler configuration so the user can add plugins and other build customization. `dara setup-custom-js` can remain as a compatibility alias for a migration period. |
 
 ## Migration
 
@@ -220,7 +251,6 @@ If the Node-based implementation proves more awkward than expected, Bun remains 
 ## Open Questions
 
 - Should Dara standardize on `npm` first, or manage a pinned `pnpm` alongside the cached Node runtime?
-- How much bundler configuration should Dara own versus expose through `dara eject`?
 - How stable should `.dara/generated/*` be as a surface area?
 - How long should the compatibility window for `dara.config.json` last?
 
