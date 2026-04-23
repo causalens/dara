@@ -2,8 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
 ## 1.26.7
 
 - Fixed generic `DaraBaseModel` serialization so parametrized models such as `DerivedVariable[str]` preserve nested `BaseModel` fields when serialized.
