@@ -4,8 +4,6 @@ title: Changelog
 
 ## NEXT
 
-- Internal: Added an internal proposal for redesigning the Dara JS build pipeline around an embedded Bun toolchain, checked-in lockfiles, and a root-owned `package.json`.
-
 ## 1.26.7
 
 - Fixed generic `DaraBaseModel` serialization so parametrized models such as `DerivedVariable[str]` preserve nested `BaseModel` fields when serialized.
