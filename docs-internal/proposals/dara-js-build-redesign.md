@@ -9,7 +9,7 @@ Replace Dara's current generated `dist/` JS workspace, `dara.config.json`, machi
 The proposed model is:
 
 - Dara uses one Dara-managed Node + pnpm toolchain for all apps.
-- Every app checks in `package.json`, `pnpm-lock.yaml`, and a platform-independent `dara.lock`.
+- Every app checks in root `package.json`, `pnpm-lock.yaml`, and a platform-independent `dara.lock`.
 - Non-ejected apps have a Dara-owned root JS manifest and lockfile. Users check them in for reproducibility, but normally update them through `dara lock`.
 - Ejected apps keep the same checked-in lockfile surface, but the root JS workspace becomes user-owned and can include custom source, scripts, dependencies, and Vite config.
 - Missing local lockfiles auto-bootstrap on first run; local dev validates Dara-managed state with clear remediation; CI and `dara build` use frozen installs and fail if stale.
@@ -31,7 +31,7 @@ The proposed model is:
 - Make frontend dependency resolution reproducible through checked-in lockfiles.
 - Keep the app root as the user-facing project root.
 - Preserve a zero-setup path for apps with no custom JS.
-- Keep the JS ownership model simple: `package.json`, `pnpm-lock.yaml`, and `dara.lock` are checked in; `.dara/`, `dist/`, and `node_modules/` are generated or installed state.
+- Keep the JS ownership model simple: `package.json`, `pnpm-lock.yaml`, and `dara.lock` are checked in at the root; `.dara/`, `dist/`, and `node_modules/` are generated or installed state.
 
 ## Non-Goals
 
@@ -45,6 +45,10 @@ The proposed model is:
 ### 1. Pinned JS Runtime and Toolchain
 
 Dara should be Node-first, with one Dara-managed pnpm version.
+
+This is a deliberate shift away from the earlier Bun-oriented option. Bun still has an attractive single-binary shape, but the expected size saving is not large enough to drive the architecture by itself, and pnpm's shared store should offset much of the install-speed difference for repeat builds. The main reason to consider Bun was avoiding conflicts with whatever Node version users happen to have installed; using a Dara-managed Node runtime solves that directly while keeping Dara on the mainstream Node/Vite ecosystem.
+
+The cost is that Dara has to manage one more artifact: pnpm. That is acceptable because it is still Dara-managed state rather than user setup. Users should not need to install or select Node or pnpm themselves for normal Dara workflows.
 
 The key point is that Dara needs a full runtime/toolchain, not a narrower build helper. Even for the no-custom-JS path it still needs:
 
@@ -108,16 +112,16 @@ Every app should have the same checked-in frontend lock surface at the app root:
 
 This is the first-class locked transitive JS dependency graph. The simple user guidance is:
 
-- check in `package.json`, `pnpm-lock.yaml`, and `dara.lock`
+- check in root `package.json`, `pnpm-lock.yaml`, and `dara.lock`
 - do not check in `.dara/`, `dist/`, or `node_modules/`
 - run `dara lock` when Dara-managed frontend state needs to be refreshed
 
 For non-ejected apps, Dara owns the Dara-managed parts of the root `package.json`, the full `pnpm-lock.yaml`, the generated entrypoint, and the default bundler config. Users should not need to run package-manager commands directly. This is the junior-friendly path:
 
 - `dara dev` works from a Python app with no JS files
-- missing lock state auto-bootstraps locally
+- missing lock state auto-bootstraps locally and prints the root files that must be committed
 - `dara lock` refreshes `package.json`, `pnpm-lock.yaml`, and `dara.lock` explicitly
-- `dara build` and CI validate frozen managed state
+- `dara build` and CI validate frozen managed state and fail with a direct `run dara lock and commit package.json, pnpm-lock.yaml, and dara.lock` remediation when required files are missing or stale
 
 For ejected apps, the same root `package.json` and `pnpm-lock.yaml` become the normal user-owned JS workspace. Eject is the point where Dara tells the user it will attempt a narrow merge and hand over ownership of the JS project surface:
 
@@ -146,14 +150,14 @@ Merge rules should stay explicit:
 - if the user specifies an incompatible version, fail with a precise error
 - do not remove user dependencies from `package.json` automatically
 
-Dara should only validate and constrain that narrow Dara-owned dependency surface. In ejected mode, regular user-owned dependencies should remain user-managed, so normal `pnpm add` / `pnpm remove` workflows keep working without Dara treating the whole manifest as its own.
+Dara should only validate and constrain that narrow Dara-owned dependency surface. In ejected mode, regular user-owned dependencies should remain user-managed, so normal `pnpm add` / `pnpm remove` workflows keep working without Dara treating the whole manifest as its own. After changing JS dependencies, ejected users must run `dara lock` to reconcile Dara's view of the JS workspace before `dara build` or CI. That explicit step is acceptable for advanced users and is still simpler than the current dual-environment model.
 
 State checks should stay explicit and actionable. In particular, Dara should detect and explain:
 
 - missing Dara-managed dependencies
 - incompatible versions of Dara-managed dependencies
 - mismatches between the current Python Dara package version and Dara-owned JS dependencies
-- lockfile drift for the Dara-managed dependency projection
+- lockfile drift between the user-owned/ejected JS lockfile and `dara.lock`, with a direct `run dara lock` remediation
 - toolchain mismatch between the cached Dara-managed Node/pnpm pair and `dara.lock`
 
 ### 3. Checked-In Lock State
@@ -182,8 +186,8 @@ Each app should check in:
 The lock policy should be:
 
 - missing lockfiles locally: auto-bootstrap
-- local dev: validate Dara-managed state, refresh `.dara/generated/*`, and explain exactly when `package.json`, `pnpm-lock.yaml`, or `dara.lock` need to be rewritten
-- local user-owned dependency changes outside Dara's managed surface in ejected mode: do not block dev
+- local dev: validate Dara-managed state, refresh `.dara/generated/*`, and explain exactly when root `package.json`, `pnpm-lock.yaml`, or `dara.lock` need to be rewritten
+- local user-owned dependency changes outside Dara's managed surface in ejected mode: do not rewrite automatically; require `dara lock` before reproducible Dara commands such as `dara build`
 - CI and `dara build`: frozen install only, fail if stale
 
 This keeps the local first-run experience smooth without weakening reproducibility for real builds. `dara build` and CI should always run `pnpm install --frozen-lockfile` against the checked-in root `pnpm-lock.yaml` and fail if `package.json`, `pnpm-lock.yaml`, or `dara.lock` are missing or stale.
