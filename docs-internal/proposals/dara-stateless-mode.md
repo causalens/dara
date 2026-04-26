@@ -448,6 +448,7 @@ The contract should be:
 - all static kwargs must be serializable through Dara's built-in encoders, Pydantic model handling, or `config.add_encoder(...)`
 - all static kwargs must have a declared type contract Dara can use to deserialize them on another worker
 - distributed mode should validate this when the action or py_component instance is created
+- bound action receivers and other live captured Python objects are not part of the distributed-safe contract; `warn` should flag them and `enforce` should reject them unless they satisfy the same explicit serialization/type contract as any other static kwarg
 - the backing `static_kwargs_registry` should move behind an adapter, with a first-party Valkey / Redis implementation
 - stored entries should be treated as short-lived invocation/render metadata and should use TTL-based cleanup
 
@@ -504,6 +505,8 @@ The pickle trust boundary should be explicit. Pickle is acceptable for first-par
 The current in-memory coordination pattern, where live `PendingTask` objects are stored in cache, is not part of the distributed-safe contract and must be replaced with shared serializable task state/handles.
 
 DerivedVariable and action cache/results need the same treatment. In distributed `enforce`, cached Python results that may be read by another worker should be stored through a distributed result/cache backend using the configured runtime codec. The v1 default can also be pickle for the same reason as task results: these values are arbitrary Python objects within a trusted same-image Dara deployment.
+
+Because pickle-backed task payloads, task results, and cached Python results are same-image artifacts, their shared storage must be scoped by runtime identity. Distributed task queues, result stores, and action/DerivedVariable caches should include `app_id` and `deployment_id` / `build_id` in their keys or queue namespaces, and workers should reject or ignore entries from a different deployment identity. Dara should not let a new deployment consume old-deployment pickle payloads during a rolling release.
 
 The cache/result backend contract should distinguish:
 

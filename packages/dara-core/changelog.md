@@ -2,10 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
-- Internal: Added a proposal for Dara stateless/distributed runtime mode and horizontal scaling.
-
 ## 1.26.7
 
 - Fixed generic `DaraBaseModel` serialization so parametrized models such as `DerivedVariable[str]` preserve nested `BaseModel` fields when serialized.
