@@ -550,15 +550,43 @@ The first distributed-safe task model should split task execution into pluggable
 
 The v1 shape should be:
 
-- app workers remain responsible for orchestrating task graphs for actions and DerivedVariables
-- only leaf `Task` executions are offloaded to the distributed task backend
-- a first-party distributed backend should provide queueing, leasing/acks, task status, and task result storage, with a Valkey / Redis implementation as the default candidate
+- app workers submit serializable task handles and subscribe to shared task state; they do not own live `PendingTask` orchestration in distributed `enforce`
+- the distributed task backend owns orchestration state for actions, DerivedVariables, and leaf `Task` executions
+- a first-party distributed backend should provide queueing, leasing/acks, task status, cancellation state, progress pub/sub, and task result storage, with a Valkey / Redis implementation as the default candidate
 - task workers should run the same Dara/app image with a task-ingestion entrypoint rather than a separate codebase
 - each task-worker replica should own an instance of the existing local process-pool executor
 - total task parallelism should scale as task-worker replicas multiplied by process-pool size per replica
 - the initial distributed task codec should use pickle as an internal trusted same-image protocol for task payloads and results
 
-This keeps the first version simple and aligned with the current `TaskPool` mental model. The distributed queue decides which task-worker replica owns a task; the existing process pool inside that replica remains the local execution engine.
+This keeps the execution mechanism simple and aligned with the current `TaskPool` mental model. The distributed backend decides which task-worker replica owns a task through queueing and leases; the existing process pool inside that replica remains the local execution engine.
+
+Distributed `enforce` mode should not rely on sticky/session-affine task orchestration. Any app worker should be able to submit a task, observe task status, request cancellation, and read the final result through the shared backend. The backend should expose durable task records with states such as:
+
+- `queued`
+- `running`
+- `cancelling`
+- `cancelled`
+- `succeeded`
+- `failed`
+
+Cancellation should be part of the v1 distributed contract because Dara currently cancels work when pages are navigated away from or subscribers disappear. The cancellation path should be:
+
+1. any app worker records `cancel_requested` on the shared task record
+2. the task backend publishes or exposes the cancellation request to the task worker that owns the lease
+3. the owning task worker cancels its local `TaskPool` / subprocess work
+4. the shared task record moves to `cancelled`, and subscribers are notified through the shared progress/pub-sub path
+
+Duplicate work prevention for DerivedVariables and cached action results should also move to the backend. Instead of storing live `PendingTask` objects in `CacheStore`, distributed `enforce` should use backend-owned idempotency/cache keys that point to a durable task record or a completed result.
+
+The implementation should preserve the existing task code path as the local orchestration backend rather than rewriting it wholesale. The preferred migration is:
+
+1. introduce a narrow `TaskOrchestrationBackend` interface around submit, status, result, cancellation, progress subscription, and cache-key deduplication
+2. adapt today's `TaskManager`, `PendingTask`, local `CacheStore`, websocket notification, cancellation-scope, and process-pool behavior behind a `LocalTaskOrchestrationBackend`
+3. make `LocalTaskOrchestrationBackend` the default in `off` mode and reject it in distributed `enforce`
+4. add a `ValkeyTaskOrchestrationBackend` that implements the same interface using shared task records, leases, progress pub/sub, cancellation flags, idempotency keys, and result storage
+5. reuse the existing `TaskPool` inside each task-worker replica so the distributed implementation replaces orchestration and coordination, not the battle-tested local execution engine
+
+`PendingTask` should therefore become a local-backend implementation detail. Framework code that needs to be distributed-safe should work with serializable task handles and task statuses returned by the orchestration backend.
 
 The pickle trust boundary should be explicit. Pickle is acceptable for first-party distributed task execution because the app workers and task workers run the same trusted image. It is not a public cross-language, cross-version, or untrusted-payload protocol. Tasks remain a fit for coarse-grained compute-heavy work where serialization overhead and same-image coupling are acceptable.
 
