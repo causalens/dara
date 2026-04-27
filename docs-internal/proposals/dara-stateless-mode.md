@@ -255,6 +255,8 @@ The mode semantics should be:
 `warn` should cover:
 
 - local-only built-in backends
+- missing or incomplete runtime scope for shared distributed backends
+- custom distributed adapters that do not advertise scoped-key support
 - unstable or missing required IDs
 - distributed-relevant definitions registered after startup/compile
 - `get_current_value()` or equivalent APIs that require browser / websocket RPC
@@ -263,6 +265,8 @@ The mode semantics should be:
 `enforce` should reject:
 
 - unsupported local-only backends
+- shared backend configuration without an explicit framework-owned runtime scope
+- feature adapters that construct or accept unscoped raw backend keys
 - banned local-only APIs
 - browser roundtrip reads for core state resolution
 - missing stable lookup identities where Dara requires them
@@ -285,6 +289,7 @@ Provably safe framework-owned checks include:
 - required adapters are configured
 - built-in local-only defaults are not used in `enforce`
 - shared signing/session configuration is explicit
+- shared backend keys are produced by Dara's scoped-key builder
 - values pass the configured serializer/type contract
 - distributed-relevant registries are frozen after startup/compile
 
@@ -403,6 +408,11 @@ Example shape:
 
 ```python
 config.configure_runtime(
+    scope=RuntimeScope(
+        namespace='prod',
+        app_id='sales-dashboard',
+        deployment_id=os.environ['DARA_DEPLOYMENT_ID'],
+    ),
     backend=ValkeyDistributedBackend(...),
     task_queue=CeleryTaskQueue(...),  # feature-specific override
 )
@@ -416,11 +426,61 @@ Capability protocols should be grouped by storage semantics, not by every indivi
 - `PresenceStore` for websocket channel/session/user ownership leases
 - `TaskQueue` and task `ResultStore` for distributed task execution
 
+#### Runtime Scope And Key Construction
+
+Shared backend key scoping should be a framework-owned invariant, not a naming convention left to each feature adapter.
+
+The easy path should be that users configure one `RuntimeScope` alongside the bundled distributed backend. Dara then derives every backend key from that scope:
+
+```python
+config.configure_runtime(
+    scope=RuntimeScope(
+        namespace='prod',
+        app_id='sales-dashboard',
+        deployment_id=os.environ['DARA_DEPLOYMENT_ID'],
+    ),
+    backend=ValkeyDistributedBackend(url=os.environ['VALKEY_URL']),
+)
+```
+
+The minimum `RuntimeScope` fields should be:
+
+- `namespace`: operator-chosen isolation boundary such as `dev`, `staging`, `prod`, customer, or tenant namespace when a shared backend cluster is reused
+- `app_id`: stable application identity shared by all workers serving the same app
+- `deployment_id` / `build_id`: stable identity for one deployed app artifact
+
+Dara should construct typed scoped keys centrally, for example:
+
+```text
+dara:v1:{namespace}:app:{app_id}:feature:{feature}:...
+dara:v1:{namespace}:deploy:{app_id}:{deployment_id}:feature:{feature}:...
+```
+
+The important part is not the exact string format. The important contract is that framework code works with a `ScopedKey` / `ScopedChannel` value produced by Dara, not an arbitrary Redis / Valkey string assembled by each feature.
+
+Different features should choose the narrowest scope that preserves their semantics:
+
+- deployment-scoped keys for same-image or build-sensitive state such as static kwargs, task payload/result blobs, action/DerivedVariable cached Python results, websocket presence, channel ownership, and manifest fingerprints
+- app-scoped keys for state that is meant to survive a rolling deployment, such as durable `BackendStore` / `ServerVariable` values backed by a versioned serializer contract
+- app-scoped or deployment-scoped auth/session keys depending on the token/cache contract; if the token format, JWT secret, and deserializer are deployment-independent, session token caches can be app-scoped, while OIDC transaction scratch state can usually be short-lived and deployment-scoped
+
+Correctness guarantees:
+
+- In `enforce`, Dara should require an explicit `RuntimeScope` whenever any shared distributed backend is configured.
+- First-party bundled backends should receive only `ScopedKey` / `ScopedChannel` values from Dara's key builder.
+- Feature-specific adapters should either receive already-scoped keys or declare that they implement Dara's scoped-key protocol.
+- Custom adapters are user-attested for storage semantics, but not for namespace construction; Dara should still own and pass the scoped keys.
+- Built-in tests for each first-party adapter should assert that keys for different runtime scopes cannot overlap. Deployment-scoped features must differ by `{namespace, app_id, deployment_id}`; app-scoped features intentionally omit `deployment_id` and must differ by `{namespace, app_id}`.
+- Persistent app-scoped state should include a feature/schema version in the key or value envelope when the deserialization contract can change across deployments.
+
+This keeps common setup short while making the isolation boundary explicit. Most users configure one scope and one backend. Advanced users can still override capabilities or individual feature adapters, but those adapters must participate in the same scoped-key contract before `enforce` accepts them.
+
 Rejected alternatives:
 
 - one mandatory mega-adapter: too rigid for users that need to override only one capability
 - only feature-specific adapters: too repetitive for common Valkey / Redis deployments
 - accepting built-in local defaults in `enforce`: would make distributed mode look enabled while still depending on process-local state
+- letting each adapter manually prefix string keys: too easy to get subtly wrong and impossible for Dara to verify consistently
 
 ### Distributed Store Semantics
 
