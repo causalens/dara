@@ -562,6 +562,19 @@ This keeps the first version simple and aligned with the current `TaskPool` ment
 
 The pickle trust boundary should be explicit. Pickle is acceptable for first-party distributed task execution because the app workers and task workers run the same trusted image. It is not a public cross-language, cross-version, or untrusted-payload protocol. Tasks remain a fit for coarse-grained compute-heavy work where serialization overhead and same-image coupling are acceptable.
 
+The v1 baseline integrity model should be deployment identity validation rather than mandatory payload hashing/signing. Pickle-backed entries should be stored with non-pickle metadata that Dara can validate before unpickling. The metadata should include:
+
+- entry kind, such as `task_payload`, `task_result`, `derived_variable_cache`, or `action_cache`
+- `app_id`
+- `deployment_id` / `build_id`
+- `manifest_hash`
+- codec identifier, such as `pickle-v1`
+- metadata schema version
+
+For binary-safe stores such as Redis / Valkey, the pickle payload should be stored as raw bytes rather than base64-encoded text. The metadata can be stored as JSON, msgpack, or another simple structured format, either adjacent to the payload or in a small typed envelope. Workers must validate the metadata first and reject the entry before unpickling when the app/deployment/manifest/codec/kind does not match the current runtime.
+
+This is a correctness boundary, not a hostile-writer security boundary. The expected production deployment is that the shared queue/result/cache backend is private and authenticated so only Dara app workers and task workers can write these entries. If Dara needs to support untrusted or broadly shared backend writers later, signed runtime blobs can be added as an opt-in stronger mode, but v1 distributed `enforce` should not require SHA/HMAC over every arbitrary pickle payload.
+
 The current in-memory coordination pattern, where live `PendingTask` objects are stored in cache, is not part of the distributed-safe contract and must be replaced with shared serializable task state/handles.
 
 DerivedVariable and action cache/results need the same treatment. In distributed `enforce`, cached Python results that may be read by another worker should be stored through a distributed result/cache backend using the configured runtime codec. The v1 default can also be pickle for the same reason as task results: these values are arbitrary Python objects within a trusted same-image Dara deployment.
