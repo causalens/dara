@@ -550,7 +550,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.26.9"
+version = "1.26.10"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -662,7 +662,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.26.9"
+version = "1.26.10"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -673,7 +673,7 @@ develop = true
 bokeh = "3.1.1"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.26.9"
+dara-core = "1.26.10"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -687,7 +687,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.26.9"
+version = "1.26.10"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -732,7 +732,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.26.9)"]
+all = ["dara-components (==1.26.10)"]
 
 [package.source]
 type = "directory"
@@ -751,7 +751,7 @@ files = [
 
 [[package]]
 name = "demo-app"
-version = "1.26.9"
+version = "1.26.10"
 description = "Demo App"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -759,8 +759,8 @@ files = []
 develop = true
 
 [package.dependencies]
-dara-components = "1.26.9"
-dara-core = "1.26.9"
+dara-components = "1.26.10"
+dara-core = "1.26.10"
 
 [package.source]
 type = "directory"
@@ -783,7 +783,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2036,7 +2036,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2842,7 +2842,7 @@ files = [
 
 [[package]]
 name = "styled-components"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -2855,7 +2855,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3063,7 +3063,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3076,7 +3076,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3089,7 +3089,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3102,7 +3102,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3115,7 +3115,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3128,7 +3128,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3141,7 +3141,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.26.9"
+version = "1.26.10"
 description = ""
 optional = false
 python-versions = "*"
@@ -3479,4 +3479,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<3.13.0"
-content-hash = "f148f6ac39ceb234470bf881e33c85a17fdb6cfc41804f8f65aa0aa3b0c4c344"
+content-hash = "11fcf0daab52350c2b74ec0926baf4d121a33d9d22fef79aad8067039625bb26"

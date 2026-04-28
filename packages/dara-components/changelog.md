@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.10
 
 - Fixed a potential edge case in `Table` component where if the first result was empty it might get stuck in a perpetual loading state
 
