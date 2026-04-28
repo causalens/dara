@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.11
 
 - Added OIDC public client PKCE mode for identity providers that do not issue client secrets.
 
