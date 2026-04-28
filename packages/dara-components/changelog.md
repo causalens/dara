@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed a potential edge case in `Table` component where if the first result was empty it might get stuck in a perpetual loading state
+
 ## 1.26.9
 
 - Fixed table column text filter closing immediately after typing by stabilizing resolved columns reference
