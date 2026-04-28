@@ -253,7 +253,7 @@ class Accordion(LayoutComponent):
 
     @field_validator('initial', mode='before')
     @classmethod
-    def validate_initial(cls, initial: Any) -> int | list[int]:
+    def validate_initial(cls, initial: Any) -> int | list[int] | None:
         if initial is not None:
             dev_logger.warning("Accordion's initial prop is now deprecated, please use value instead.")
         return initial
