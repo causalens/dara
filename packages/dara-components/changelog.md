@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.9
 
 - Fixed table column text filter closing immediately after typing by stabilizing resolved columns reference
 - Fixed table header row disappearing when a column filter returns no results
