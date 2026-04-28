@@ -132,7 +132,7 @@ class Plotly(StyledComponentInstance):
         if theme is None and figure is not None:
             figure.update_layout(template=theme if theme is not None else SETTINGS['THEME'])
 
-        figure_dict = figure.to_json()
+        figure_dict = figure.to_json() if figure is not None else None
 
         super().__init__(figure=figure_dict, events=events, **kwargs)
 
