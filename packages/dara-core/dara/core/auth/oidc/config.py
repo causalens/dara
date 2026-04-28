@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import hashlib
 import secrets
 from typing import ClassVar
 from urllib.parse import urlencode, urlparse
@@ -204,7 +206,25 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         return secrets.token_urlsafe(32)
 
-    def get_authorization_params(self, state: str, nonce: str | None = None) -> dict[str, str]:
+    def generate_code_verifier(self) -> str:
+        """
+        Generate a PKCE code verifier for public client auth.
+        """
+        return secrets.token_urlsafe(64)
+
+    def get_code_challenge(self, code_verifier: str) -> str:
+        """
+        Generate the S256 PKCE code challenge for a verifier.
+        """
+        digest = hashlib.sha256(code_verifier.encode('ascii')).digest()
+        return base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
+
+    def get_authorization_params(
+        self,
+        state: str,
+        nonce: str | None = None,
+        code_verifier: str | None = None,
+    ) -> dict[str, str]:
         """
         Build the query parameters for the authorization request per OpenID Connect Core 1.0 Section 3.1.2.1.
 
@@ -216,6 +236,7 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         Recommended parameters:
         - state: Opaque value for CSRF protection bound to the browser session
+        - code_challenge/code_challenge_method: PKCE parameters when public client auth is enabled
 
         Override this method to add optional parameters like nonce, display, prompt, max_age, etc.
         """
@@ -226,14 +247,24 @@ class OIDCAuthConfig(BaseAuthConfig):
             'client_id': oidc_settings.client_id,
             'redirect_uri': oidc_settings.redirect_uri,
             **({'nonce': nonce} if nonce is not None else {}),
+            **(
+                {'code_challenge': self.get_code_challenge(code_verifier), 'code_challenge_method': 'S256'}
+                if code_verifier is not None
+                else {}
+            ),
             'state': state,
         }
 
-    def get_authorization_url(self, state: str, nonce: str | None = None) -> str:
+    def get_authorization_url(
+        self,
+        state: str,
+        nonce: str | None = None,
+        code_verifier: str | None = None,
+    ) -> str:
         """
         Build the full authorization URL using the discovery document's authorization_endpoint.
         """
-        params = self.get_authorization_params(state, nonce=nonce)
+        params = self.get_authorization_params(state, nonce=nonce, code_verifier=code_verifier)
         return f'{self.discovery.authorization_endpoint}?{urlencode(params)}'
 
     def validate_redirect_to(self, redirect_to: str | None) -> str | None:
@@ -261,14 +292,23 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         :param body: Request body, may contain redirect_to for post-auth navigation
         """
+        oidc_settings = get_oidc_settings()
         redirect_to = self.validate_redirect_to(body.redirect_to)
+        code_verifier = self.generate_code_verifier() if oidc_settings.client_auth_mode == 'pkce_public' else None
         transaction = OIDCLoginTransaction(
             state=self.generate_state(),
             nonce=self.generate_nonce(),
+            code_verifier=code_verifier,
             redirect_to=redirect_to,
         )
         oidc_transaction_store.set(transaction)
-        return RedirectResponse(redirect_uri=self.get_authorization_url(transaction.state, nonce=transaction.nonce))
+        return RedirectResponse(
+            redirect_uri=self.get_authorization_url(
+                transaction.state,
+                nonce=transaction.nonce,
+                code_verifier=transaction.code_verifier,
+            )
+        )
 
     async def fetch_userinfo(self, access_token: str) -> dict | None:
         """

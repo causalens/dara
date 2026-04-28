@@ -294,6 +294,7 @@ class OIDCLoginTransaction(BaseModel):
     state: str = Field(..., description='Opaque state value sent to the authorization endpoint')
     login_session_id: str | None = Field(default=None, description='Pre-auth login session id bound to the browser')
     nonce: str = Field(..., description='Nonce value sent in the authorization request')
+    code_verifier: str | None = Field(default=None, description='PKCE code verifier for public client auth')
     redirect_to: str | None = Field(default=None, description='Optional redirect target after successful auth')
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=timezone.utc),
