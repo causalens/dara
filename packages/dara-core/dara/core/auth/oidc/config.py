@@ -65,11 +65,12 @@ class OIDCAuthConfig(BaseAuthConfig):
     This config requires the following ENV variables to be set:
     - SSO_ISSUER_URL - URL of the identity provider issuer; should expose a `SSO_ISSUER_URL/.well-known/openid-configuration` endpoint for discovery
     - SSO_CLIENT_ID - client_id generated for the application by the identity provider
-    - SSO_CLIENT_SECRET - client_secret generated for the application by the identity provider
     - SSO_REDIRECT_URI - URL that identity provider should redirect back to, in most cases https://deployed-app-url/sso-callback
     - SSO_GROUPS - comma separated list of allowed SSO groups
 
     In addition, the following ENV variables can be set:
+    - SSO_CLIENT_AUTH_MODE - token endpoint client authentication mode, supports `client_secret_basic` and `pkce_public`, defaults to `client_secret_basic`
+    - SSO_CLIENT_SECRET - client_secret generated for the application by the identity provider; required when SSO_CLIENT_AUTH_MODE is `client_secret_basic`
     - SSO_ALLOWED_IDENTITY_ID - if set, only the user with matching identity_id will be allowed to access the app
     - SSO_VERIFY_AUDIENCE - if set, the ID token will be verified against the configured audience, by default `sso_client_id`
     - SSO_EXTRA_AUDIENCE - if set, extra audiences to verify against the ID token in addition to `sso_client_id`
