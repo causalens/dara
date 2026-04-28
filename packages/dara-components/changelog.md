@@ -6,7 +6,6 @@ title: Changelog
 
 - Fixed table column text filter closing immediately after typing by stabilizing resolved columns reference
 - Fixed table header row disappearing when a column filter returns no results
-- Fixed linting issues: `Accordion.validate_initial` return type, `CustomJS` import path, and `Plotly` figure optional access
 
 ## 1.26.8
 
