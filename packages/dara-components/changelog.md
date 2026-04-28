@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed table column text filter closing immediately after typing by stabilizing resolved columns reference
+- Fixed table header row disappearing when a column filter returns no results
+
 ## 1.26.8
 - Added `LocalizedDate` component to the `dara.components.common` package
 

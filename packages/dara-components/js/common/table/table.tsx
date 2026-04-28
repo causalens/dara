@@ -514,13 +514,17 @@ function Table(props: TableProps): JSX.Element {
             );
 
             if (data === null || data.length === 0) {
-                setResolvedColumns([]);
                 return { data: [], totalCount: count };
             }
 
             // update columns with schema on each fetch
             const columns = resolveColumns(data[0]!, schema, resolvedPropColumns, props.include_index);
-            setResolvedColumns(columns);
+            setResolvedColumns((prev) => {
+                if (prev && isEqual(prev, columns)) {
+                    return prev;
+                }
+                return columns;
+            });
             const datetimeColumns = getDatetimeColumns(columns);
 
             return {
