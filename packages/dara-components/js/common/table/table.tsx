@@ -514,6 +514,10 @@ function Table(props: TableProps): JSX.Element {
             );
 
             if (data === null || data.length === 0) {
+                // Set to empty array only on first load (when resolvedColumns is null)
+                // so the table exits the loading state; otherwise preserve existing columns
+                // to keep the header row visible when filters yield no results.
+                setResolvedColumns((prev) => prev ?? []);
                 return { data: [], totalCount: count };
             }
 
