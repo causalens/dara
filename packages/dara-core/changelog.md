@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added OIDC public client PKCE mode for identity providers that do not issue client secrets.
+
 ## 1.26.7
 
 - Fixed generic `DaraBaseModel` serialization so parametrized models such as `DerivedVariable[str]` preserve nested `BaseModel` fields when serialized.

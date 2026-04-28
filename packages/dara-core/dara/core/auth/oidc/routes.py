@@ -87,6 +87,7 @@ async def sso_callback(
                 'grant_type': 'authorization_code',
                 'code': body.auth_code,
                 'redirect_uri': oidc_settings.redirect_uri,
+                **({'code_verifier': transaction.code_verifier} if transaction.code_verifier is not None else {}),
             },
         )
 

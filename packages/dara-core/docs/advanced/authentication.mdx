@@ -97,22 +97,24 @@ The `OIDCAuthConfig` reads its configuration from environment variables. The fol
 | ------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `SSO_ISSUER_URL`    | URL of the OIDC identity provider issuer                                                                      |
 | `SSO_CLIENT_ID`     | OAuth 2.0 client ID provided by your identity provider                                                        |
-| `SSO_CLIENT_ID`     | OAuth 2.0 client ID provided by your identity provider                                                        |
-| `SSO_CLIENT_SECRET` | OAuth 2.0 client secret provided by your identity provider                                                    |
 | `SSO_REDIRECT_URI`  | URL the identity provider should redirect to after authentication (e.g., `https://your-app.com/sso-callback`) |
 | `SSO_GROUPS`        | Comma-separated list of allowed groups for access control                                                     |
 
+`SSO_CLIENT_SECRET` is also required by default. It is not required when `SSO_CLIENT_AUTH_MODE=pkce_public`.
+
 The following environment variables are optional:
 
-| Variable                  | Default  | Description                                                                        |
-| ------------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `SSO_JWKS_LIFESPAN`       | `86400`  | Lifespan of the JWKS cache in seconds (default 1 day)                              |
-| `SSO_JWT_ALGO`            | `ES256`  | Algorithm for verifying identity provider JWTs                                     |
-| `SSO_SCOPES`              | `openid` | Space-separated list of OAuth scopes to request                                    |
-| `SSO_VERIFY_AUDIENCE`     | `False`  | Whether to verify the `aud` claim in ID tokens                                     |
-| `SSO_EXTRA_AUDIENCE`      | `None`   | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`)               |
-| `SSO_ALLOWED_IDENTITY_ID` | `None`   | If set, restricts access to a specific identity ID                                 |
-| `SSO_USE_USERINFO`        | `False`  | If `true`, fetch additional claims from the userinfo endpoint during login/refresh |
+| Variable                  | Default                 | Description                                                                                                  |
+| ------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `SSO_CLIENT_AUTH_MODE`    | `client_secret_basic`   | Token endpoint auth mode. Use `pkce_public` for public clients without a client secret.                      |
+| `SSO_CLIENT_SECRET`       | `None`                  | OAuth 2.0 client secret. Required when `SSO_CLIENT_AUTH_MODE=client_secret_basic`. Ignored for `pkce_public`. |
+| `SSO_JWKS_LIFESPAN`       | `86400`                 | Lifespan of the JWKS cache in seconds (default 1 day)                                                        |
+| `SSO_JWT_ALGO`            | `ES256`                 | Algorithm for verifying identity provider JWTs                                                               |
+| `SSO_SCOPES`              | `openid`                | Space-separated list of OAuth scopes to request                                                              |
+| `SSO_VERIFY_AUDIENCE`     | `False`                 | Whether to verify the `aud` claim in ID tokens                                                               |
+| `SSO_EXTRA_AUDIENCE`      | `None`                  | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`)                                         |
+| `SSO_ALLOWED_IDENTITY_ID` | `None`                  | If set, restricts access to a specific identity ID                                                           |
+| `SSO_USE_USERINFO`        | `False`                 | If `true`, fetch additional claims from the userinfo endpoint during login/refresh                           |
 
 ### OIDC Authentication Flow
 

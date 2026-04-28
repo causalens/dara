@@ -128,7 +128,9 @@ async def get_token_from_idp(
     Per RFC 6749 Section 4.1.3 (Authorization Code Grant) and Section 6 (Refreshing an Access Token),
     the token request is sent to the token_endpoint using POST with application/x-www-form-urlencoded.
 
-    Client authentication uses HTTP Basic auth with client_id:client_secret per RFC 6749 Section 2.3.1.
+    Client authentication uses the configured OIDC client auth mode. The default is HTTP Basic auth with
+    client_id:client_secret per RFC 6749 Section 2.3.1. Public clients send client_id in the form body
+    and rely on PKCE for the authorization code exchange.
 
     :param auth_config: Current OIDC auth config (used to get token_endpoint from discovery)
     :param body: Request body parameters (grant_type, code/refresh_token, redirect_uri, etc.)
@@ -140,20 +142,26 @@ async def get_token_from_idp(
     # Get token endpoint from discovery
     token_endpoint = auth_config.get_token_endpoint()
 
-    # Build Basic auth header: base64(client_id:client_secret)
-    credentials = f'{oidc_settings.client_id}:{oidc_settings.client_secret}'
-    encoded_credentials = b64encode(credentials.encode()).decode()
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+    }
+    data = body
+
+    if oidc_settings.client_auth_mode == 'client_secret_basic':
+        # Build Basic auth header: base64(client_id:client_secret)
+        credentials = f'{oidc_settings.client_id}:{oidc_settings.client_secret}'
+        encoded_credentials = b64encode(credentials.encode()).decode()
+        headers['Authorization'] = f'Basic {encoded_credentials}'
+    else:
+        data = {**body, 'client_id': oidc_settings.client_id}
 
     # Make the token request per RFC 6749
     # Note: Using application/x-www-form-urlencoded as required by spec
     response = await auth_config.client.post(
         url=token_endpoint,
-        headers={
-            'Accept': 'application/json',
-            'Authorization': f'Basic {encoded_credentials}',
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        data=body,  # httpx will encode as form data
+        headers=headers,
+        data=data,  # httpx will encode as form data
         timeout=10,
     )
 

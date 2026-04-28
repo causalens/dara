@@ -31,6 +31,29 @@ def test_audience_override(monkeypatch: pytest.MonkeyPatch):
         assert s.verify_audience is True
 
 
+def test_client_secret_required_for_default_auth_mode():
+    with pytest.raises(ValidationError):
+        OIDCSettings(
+            _env_file=None,  # type: ignore
+            client_id='client-id',
+            redirect_uri='http://localhost:8000/sso-callback',
+            groups='dev',
+        )
+
+
+def test_client_secret_not_required_for_pkce_public_auth_mode():
+    s = OIDCSettings(
+        _env_file=None,  # type: ignore
+        client_id='client-id',
+        client_auth_mode='pkce_public',
+        redirect_uri='http://localhost:8000/sso-callback',
+        groups='dev',
+    )
+
+    assert s.client_secret is None
+    assert s.client_auth_mode == 'pkce_public'
+
+
 def test_error_on_missing_env():
     """
     Check that the settings error out on missing env vars

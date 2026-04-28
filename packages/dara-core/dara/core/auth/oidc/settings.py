@@ -1,8 +1,11 @@
 import os
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+OIDCClientAuthMode = Literal['client_secret_basic', 'pkce_public']
 
 
 class OIDCSettings(BaseSettings):
@@ -12,11 +15,13 @@ class OIDCSettings(BaseSettings):
 
     # Required, using field with default=... to have pyright not complain about missing values
     client_id: str = Field(default=...)
-    client_secret: str = Field(default=...)
+    client_secret: str | None = None
     redirect_uri: str = Field(default=...)
     groups: str = Field(default=...)
 
     # Optional
+    client_auth_mode: OIDCClientAuthMode = 'client_secret_basic'
+    """Token endpoint client authentication mode."""
     issuer_url: str = 'https://login.causalens.com/api/authentication'
     jwks_lifespan: int = 86400  # 1 day
     jwt_algo: str = 'ES256'
@@ -56,6 +61,16 @@ class OIDCSettings(BaseSettings):
             self.client_id = audience_id
             self.client_secret = audience_secret
             self.verify_audience = True
+
+        return self
+
+    @model_validator(mode='after')
+    def validate_client_auth_mode(self):
+        """
+        Validate token endpoint authentication settings for the selected mode.
+        """
+        if self.client_auth_mode == 'client_secret_basic' and not self.client_secret:
+            raise ValueError('SSO_CLIENT_SECRET is required when SSO_CLIENT_AUTH_MODE=client_secret_basic')
 
         return self
 

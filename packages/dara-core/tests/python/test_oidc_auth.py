@@ -324,6 +324,33 @@ async def test_session_no_state():
         assert transaction.redirect_to is None
 
 
+async def test_session_pkce_public_client_adds_code_challenge():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_CLIENT_AUTH_MODE': 'pkce_public'}):
+        get_oidc_settings.cache_clear()
+        config = ConfigurationBuilder()
+
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        app = _start_application(config._to_configuration())
+
+        async with AsyncClient(app) as client:
+            response = await client.post('/api/auth/session', json={})
+            assert response.status_code == 200
+
+            _, received_query = parse_url(response.json()['redirect_uri'])
+            received_state = received_query['state'][0]
+            transaction = oidc_transaction_store.take(received_state)
+
+            assert transaction is not None
+            assert transaction.code_verifier is not None
+            assert received_query['code_challenge'] == [auth_config.get_code_challenge(transaction.code_verifier)]
+            assert received_query['code_challenge_method'] == ['S256']
+            assert 'code_verifier' not in received_query
+
+        get_oidc_settings.cache_clear()
+
+
 async def test_session_with_state():
     """
     Check that /session returns redirect uri with state
@@ -391,12 +418,20 @@ async def test_sso_callback_creates_valid_session_token():
                 'refresh_token': refresh_token,
             }
 
-            respx.post(auth_config.discovery.token_endpoint).mock(
-                return_value=httpx.Response(status_code=200, json=mock_idp_response)
-            )
+            token_route = respx.post(auth_config.discovery.token_endpoint)
+            token_route.mock(return_value=httpx.Response(status_code=200, json=mock_idp_response))
 
             response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
             assert response.status_code == 200
+
+            token_request = token_route.calls.last.request
+            assert token_request.headers['Authorization'].startswith('Basic ')
+            token_request_body = parse_qs(token_request.content.decode())
+            assert token_request_body['grant_type'] == ['authorization_code']
+            assert token_request_body['code'] == ['TEST']
+            assert token_request_body['redirect_uri'] == [get_oidc_settings().redirect_uri]
+            assert 'client_id' not in token_request_body
+            assert 'code_verifier' not in token_request_body
 
             # JWKS endpoint should have been called once to retrieve the key
             assert mock_urllib.call_count == 1
@@ -419,6 +454,45 @@ async def test_sso_callback_creates_valid_session_token():
             assert 'id_token' not in decoded_session_token
             assert decoded_session_token.get('exp') == MOCK_ID_TOKEN.get('exp')
             assert 'session_id' in decoded_session_token
+
+
+async def test_sso_callback_pkce_public_client_exchanges_code_without_client_secret():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_CLIENT_AUTH_MODE': 'pkce_public'}):
+        get_oidc_settings.cache_clear()
+        config = ConfigurationBuilder()
+
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA):
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                state = await start_oidc_login(client)
+                transaction = oidc_transaction_store.get(state)
+                assert transaction is not None
+                assert transaction.code_verifier is not None
+
+                mock_idp_response = {
+                    'id_token': make_mock_id_token(state),
+                }
+                token_route = respx.post(auth_config.discovery.token_endpoint)
+                token_route.mock(return_value=httpx.Response(status_code=200, json=mock_idp_response))
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+                assert response.status_code == 200
+
+                token_request = token_route.calls.last.request
+                assert 'Authorization' not in token_request.headers
+
+                token_request_body = parse_qs(token_request.content.decode())
+                assert token_request_body['grant_type'] == ['authorization_code']
+                assert token_request_body['code'] == ['TEST']
+                assert token_request_body['redirect_uri'] == [get_oidc_settings().redirect_uri]
+                assert token_request_body['client_id'] == [get_oidc_settings().client_id]
+                assert token_request_body['code_verifier'] == [transaction.code_verifier]
+                assert 'client_secret' not in token_request_body
+
+        get_oidc_settings.cache_clear()
 
 
 async def test_sso_callback_requires_state():
