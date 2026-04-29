@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Removed unused build and test tooling dependencies.
+
 ## 1.19.1
 
 -   Pinned @fortawesome/react-fontawesome to `0.2.2`

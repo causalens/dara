@@ -9,7 +9,7 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "postcss": "^8.3.11",
+    "postcss": "^8.5.10",
     "postcss-styled-syntax": "^0.6.4",
     "stylelint": "^15.0.0",
     "stylelint-config-clean-order": "^5.0.0",

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Hardened JavaScript dependency versions and removed unused build and test tooling dependencies.
+
 ## 1.26.11
 
 - Added OIDC public client PKCE mode for identity providers that do not issue client secrets.
