@@ -45,8 +45,6 @@
     "@types/react-window": "^1.8.2",
     "@types/styled-components": "^5.1.26",
     "babel-jest": "^29.5.0",
-    "babel-loader": "^8.2.2",
-    "babel-plugin-styled-components": "^1.13.2",
     "eslint": "^8.57.1",
     "eslint-plugin-jest": "^26.1.1",
     "eslint-plugin-storybook": "9.0.17",
@@ -54,12 +52,11 @@
     "jest-css-modules": "^2.1.0",
     "jest-environment-jsdom": "^29.5.0",
     "prettier": "^3.0.0",
-    "react-test-renderer": "^17.0",
     "rimraf": "^3.0.2",
     "storybook": "^9.1.17",
     "stylelint": "^15.0.0",
     "typescript": "^5.8.2",
-    "vite": "7.0.8"
+    "vite": "7.3.2"
   },
   "dependencies": {
     "@darajs/styled-components": "1.26.11",
@@ -76,7 +73,7 @@
     "downshift": "^7.0.0",
     "lodash": "4.17.21",
     "memoize-one": "^6.0.0",
-    "nanoid": "^3.3.7",
+    "nanoid": "^3.3.8",
     "polished": "3.6.4",
     "prism-react-renderer": "^1.2.0",
     "react": "^18.0",

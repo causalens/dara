@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Removed unused build and test tooling dependencies.
+
 ## 1.12.7
 
 -   Fix an issue where body's `line-height` was not consistent across packages.
