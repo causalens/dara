@@ -25,7 +25,7 @@ function AdaptivePrecisionCell(): (props: AdaptivePrecisionCellProps) => string 
         if (abs_value >= 100.0) {
             return String(round(value, 2).toFixed(2));
         }
-        if (abs_value < 0.01 && abs_value >= 0.001) {
+        if (abs_value < 0.1 && abs_value >= 0.001) {
             return String(round(value, 4).toFixed(4));
         }
         return String(round(value, 3).toFixed(3));
