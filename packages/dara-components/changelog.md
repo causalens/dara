@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 - Internal: Hardened JavaScript dependency versions and removed unused build and test tooling dependencies.
+- Adjusted the adapative precision formatter handling of small numbers so more precise numbers are shown
 
 ## 1.26.10
 
