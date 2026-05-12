@@ -40,9 +40,7 @@ overrides:
 packageExtensionsChecksum: sha256-d0MaAdE+NkQopK9hmcIUXvQUzPC6ZG4RFX8p93zI/fM=
 
 patchedDependencies:
-  tinykeys:
-    hash: 6855931e9590b29110de8402432514ff7aa294934a067557e96dc7eb46f365e3
-    path: patches/tinykeys.patch
+  tinykeys: 6855931e9590b29110de8402432514ff7aa294934a067557e96dc7eb46f365e3
 
 importers:
 
