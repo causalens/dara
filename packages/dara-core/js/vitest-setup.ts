@@ -1,6 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import '@testing-library/jest-dom/vitest';
+import { transferableAbortController } from 'node:util';
 import * as React from 'react';
 import { RecoilEnv } from 'recoil';
 // @ts-expect-error typescript is not happy but this works
@@ -8,6 +9,45 @@ import { fetch as fetchPolyfill } from 'whatwg-fetch';
 
 // Make React available globally for tests (required for classic JSX runtime)
 global.React = React;
+
+// Node 24's Fetch API rejects jsdom AbortSignals even when they pass instanceof checks.
+// MSW constructs native Requests from intercepted fetch calls, so use a signal implementation
+// that satisfies the native Fetch brand checks.
+const FetchCompatibleAbortController = function FetchCompatibleAbortController(this: AbortController): void {
+    const controller = transferableAbortController();
+
+    Object.defineProperty(this, 'signal', {
+        configurable: true,
+        get: () => controller.signal,
+    });
+    Object.defineProperty(this, 'abort', {
+        configurable: true,
+        value: (reason?: unknown) => controller.abort(reason),
+    });
+} as unknown as typeof AbortController;
+
+const FetchCompatibleAbortSignal = new Request('http://localhost/').signal.constructor as typeof AbortSignal;
+
+Object.defineProperty(globalThis, 'AbortController', {
+    configurable: true,
+    value: FetchCompatibleAbortController,
+    writable: true,
+});
+Object.defineProperty(globalThis, 'AbortSignal', {
+    configurable: true,
+    value: FetchCompatibleAbortSignal,
+    writable: true,
+});
+Object.defineProperty(window, 'AbortController', {
+    configurable: true,
+    value: FetchCompatibleAbortController,
+    writable: true,
+});
+Object.defineProperty(window, 'AbortSignal', {
+    configurable: true,
+    value: FetchCompatibleAbortSignal,
+    writable: true,
+});
 
 // disable duplicate atom key checking in tests, as we clear the registries between tests
 // but recoil does not provide a way to clear the atoms in their internals, so the warnings are false positives

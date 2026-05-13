@@ -3,7 +3,7 @@ deps-project:
 	@echo "******************************************************************************"
 	@echo "Installing Lerna to npm global"
 	pnpm install --frozen-lockfile
-	sed -i '$$ d' .npmrc
+	@if [ -f .npmrc ]; then sed -i '$$ d' .npmrc; fi
 
 # Preprocess resources required to test or build packages
 prepare:
@@ -82,7 +82,7 @@ publish:
 	poetry anthology run publish
 
 	git checkout -- **/README.md
-	git checkout -- .npmrc
+	rm -f .npmrc
 	git add .
 	git commit -m "Version bump to $${VERSION_TAG} [skip ci]"
 

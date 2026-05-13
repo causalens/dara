@@ -45,8 +45,9 @@ jobs:
         run: poetry anthology install
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 10
+          node-version: 24
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
@@ -104,8 +105,9 @@ jobs:
           fetch-depth: 0
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 10
+          node-version: 24
       - name: Restore pnpm cache
         uses: actions/cache@v4
         with:
@@ -161,8 +163,9 @@ jobs:
           fetch-depth: 0
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 10
+          node-version: 24
       - name: Restore pnpm cache
         uses: actions/cache@v4
         with:
@@ -204,8 +207,9 @@ jobs:
         run: make link
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 10
+          node-version: 24
       - name: Restore pnpm cache
         uses: actions/cache@v4
         with:
