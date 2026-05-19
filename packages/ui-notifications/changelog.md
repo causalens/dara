@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.26.12
 
 - Internal: Removed unused build and test tooling dependencies.
 
