@@ -170,7 +170,7 @@ def _get_auth_token(
     if session_cookie_token is not None:
         return session_cookie_token
 
-    raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR(missing_message))
+    raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR)
 
 
 def _set_session_token_cookie(response: Response, token: str):

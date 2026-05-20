@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed missing auth session cookies being reported as bad requests instead of unauthorized session failures, so expired browser cookies redirect users back to login, and limited refresh-token retries to authentication failures.
+
 ## 1.26.12
 
 - Internal: Hardened JavaScript dependency versions and removed unused build and test tooling dependencies.
