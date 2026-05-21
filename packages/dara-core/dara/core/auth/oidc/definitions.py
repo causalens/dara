@@ -277,7 +277,10 @@ class IdTokenClaims(BaseModel):
     address: dict | None = Field(default=None, description="End-User's postal address")
 
     # Groups claim (non-standard but common)
-    groups: list[str] | None = Field(default=None, description='Groups the user belongs to (non-standard claim)')
+    groups: list[str] | str | None = Field(
+        default=None,
+        description='Groups the user belongs to (non-standard claim)',
+    )
 
     # Allow provider-specific claims
     model_config = ConfigDict(extra='allow')

@@ -26,6 +26,8 @@ class OIDCSettings(BaseSettings):
     jwks_lifespan: int = 86400  # 1 day
     jwt_algo: str = 'ES256'
     scopes: str = 'openid'
+    group_claim_name: str = 'groups'
+    """Name of the claim containing user groups in ID token or userinfo responses."""
     verify_audience: bool = False
     extra_audience: list[str] | None = None
     allowed_identity_id: str | None = None

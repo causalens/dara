@@ -12,6 +12,7 @@ import jwt
 import pytest
 import respx
 from async_asgi_testclient import TestClient as AsyncClient
+from fastapi import HTTPException
 from jwt import PyJWK
 
 from dara.core.auth.definitions import (
@@ -28,6 +29,7 @@ from dara.core.auth.definitions import (
 from dara.core.auth.oidc.config import OIDCAuthConfig
 from dara.core.auth.oidc.definitions import (
     OIDC_LOGIN_SESSION_COOKIE_NAME,
+    IdTokenClaims,
     OIDCDiscoveryMetadata,
 )
 from dara.core.auth.oidc.settings import get_oidc_settings
@@ -853,6 +855,98 @@ async def test_sso_callback_valid_email():
 
                 # 200 because identity matches
                 assert response.status_code == 200
+
+
+async def test_extract_user_data_uses_configured_group_claim_name():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_GROUP_CLAIM_NAME': 'memberOf'}):
+        get_oidc_settings.cache_clear()
+        try:
+            auth_config = make_config()
+            claims = IdTokenClaims.model_validate({**MOCK_ID_TOKEN, 'groups': ['other'], 'memberOf': ['dev']})
+
+            user_data = auth_config.extract_user_data(claims)
+
+            assert user_data.groups == ['dev']
+        finally:
+            get_oidc_settings.cache_clear()
+
+
+async def test_extract_user_data_uses_configured_userinfo_group_claim_name():
+    with mock.patch.dict(
+        os.environ,
+        {**os.environ, 'SSO_GROUP_CLAIM_NAME': 'memberOf', 'SSO_USE_USERINFO': 'true'},
+    ):
+        get_oidc_settings.cache_clear()
+        try:
+            auth_config = make_config()
+            claims = IdTokenClaims.model_validate({**MOCK_ID_TOKEN, 'groups': ['other'], 'memberOf': ['id-token-dev']})
+            userinfo = {**MOCK_USERINFO, 'groups': ['other-userinfo'], 'memberOf': ['dev']}
+
+            user_data = auth_config.extract_user_data(claims, userinfo=userinfo)
+
+            assert user_data.groups == ['dev']
+        finally:
+            get_oidc_settings.cache_clear()
+
+
+async def test_extract_user_data_accepts_single_group_string():
+    auth_config = make_config()
+    claims = IdTokenClaims.model_validate({**MOCK_ID_TOKEN, 'groups': 'dev'})
+
+    user_data = auth_config.extract_user_data(claims)
+
+    assert user_data.groups == ['dev']
+
+
+async def test_extract_user_data_accepts_comma_delimited_group_string():
+    auth_config = make_config()
+    claims = IdTokenClaims.model_validate({**MOCK_ID_TOKEN, 'groups': 'dev, engineering'})
+
+    user_data = auth_config.extract_user_data(claims)
+
+    assert user_data.groups == ['dev, engineering', 'dev', 'engineering']
+
+
+async def test_extract_user_data_preserves_full_comma_group_string():
+    auth_config = make_config()
+    group_dn = 'CN=App Users,OU=Groups,DC=example,DC=com'
+    claims = IdTokenClaims.model_validate({**MOCK_ID_TOKEN, 'groups': group_dn})
+
+    user_data = auth_config.extract_user_data(claims)
+
+    assert user_data.groups is not None
+    assert group_dn in user_data.groups
+
+
+async def test_extract_user_data_accepts_configured_group_claim_string():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_GROUP_CLAIM_NAME': 'memberOf'}):
+        get_oidc_settings.cache_clear()
+        try:
+            auth_config = make_config()
+            claims = IdTokenClaims.model_validate({**MOCK_ID_TOKEN, 'groups': ['other'], 'memberOf': 'dev,engineering'})
+
+            user_data = auth_config.extract_user_data(claims)
+
+            assert user_data.groups == ['dev,engineering', 'dev', 'engineering']
+        finally:
+            get_oidc_settings.cache_clear()
+
+
+async def test_extract_user_data_rejects_invalid_userinfo_group_claim_value():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+        try:
+            auth_config = make_config()
+            claims = IdTokenClaims.model_validate(MOCK_ID_TOKEN)
+            userinfo = {**MOCK_USERINFO, 'groups': {'name': 'dev'}}
+
+            with pytest.raises(HTTPException) as error:
+                auth_config.extract_user_data(claims, userinfo=userinfo)
+
+            assert error.value.status_code == 401
+            assert error.value.detail == INVALID_TOKEN_ERROR
+        finally:
+            get_oidc_settings.cache_clear()
 
 
 async def test_sso_callback_verifies_group_with_identity_id():

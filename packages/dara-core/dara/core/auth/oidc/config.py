@@ -73,6 +73,7 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_VERIFY_AUDIENCE - if set, the ID token will be verified against the configured audience, by default `sso_client_id`
     - SSO_EXTRA_AUDIENCE - if set, extra audiences to verify against the ID token in addition to `sso_client_id`
     - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
+    - SSO_GROUP_CLAIM_NAME - name of the claim containing user groups, defaults to `groups`
     - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
     - SSO_USE_USERINFO - if set to `true`, fetch additional claims from the userinfo endpoint when an access token is available
     """
@@ -342,6 +343,45 @@ class OIDCAuthConfig(BaseAuthConfig):
             dev_logger.warning(f'Failed to fetch userinfo: {e}')
             return None
 
+    def _normalize_group_claim(self, groups: list[str] | str, group_claim_name: str) -> list[str]:
+        if isinstance(groups, list) and all(isinstance(group, str) for group in groups):
+            return groups
+
+        if isinstance(groups, str):
+            group = groups.strip()
+            if not group:
+                return []
+
+            if ',' not in group:
+                return [group]
+
+            parsed_groups = [group]
+            parsed_groups.extend(part.strip() for part in group.split(',') if part.strip())
+            return list(dict.fromkeys(parsed_groups))
+
+        dev_logger.error(
+            'Invalid OIDC group claim',
+            error=Exception('invalid group claim'),
+            extra={'group_claim_name': group_claim_name, 'group_claim_type': type(groups).__name__},
+        )
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+
+    def _extract_group_claim(self, claims: IdTokenClaims | dict) -> list[str] | None:
+        """
+        Extract the configured group claim from ID token claims or userinfo data.
+
+        :param claims: decoded ID token claims or userinfo response
+        :return: normalized configured groups value, or None when the claim is absent
+        """
+        group_claim_name = get_oidc_settings().group_claim_name
+
+        groups = claims.get(group_claim_name) if isinstance(claims, dict) else getattr(claims, group_claim_name, None)
+
+        if groups is None:
+            return None
+
+        return self._normalize_group_claim(groups, group_claim_name)
+
     def extract_user_data(self, claims: IdTokenClaims, userinfo: dict | None = None) -> UserData:
         """
         Extract user data from ID token claims and optional userinfo response.
@@ -376,7 +416,9 @@ class OIDCAuthConfig(BaseAuthConfig):
                     else None
                 )
             )
-            groups = userinfo.get('groups') or claims.groups
+            groups = self._extract_group_claim(userinfo)
+            if groups is None:
+                groups = self._extract_group_claim(claims)
         else:
             # Check for non-standard 'identity' claim (Causalens IDP)
             # This is a nested object with id, name, email fields
@@ -390,7 +432,7 @@ class OIDCAuthConfig(BaseAuthConfig):
                 identity_id = claims.sub
                 identity_email = claims.email
                 identity_name = None
-            groups = claims.groups
+            groups = self._extract_group_claim(claims)
 
         # Fall back to standard claims for name if not set
         if not identity_name:
