@@ -82,6 +82,15 @@ class OIDCTransactionStore:
             self._entries.pop(state, None)
             return entry.transaction
 
+    def has_pending_login_session(self, login_session_id: str) -> bool:
+        """Return whether any pending transaction remains for a login session."""
+
+        now = datetime.now(tz=timezone.utc)
+
+        with self._lock:
+            self._prune_expired_locked(now)
+            return any(entry.transaction.login_session_id == login_session_id for entry in self._entries.values())
+
     def bind_login_session(self, state: str, login_session_id: str) -> OIDCLoginTransaction | None:
         """Bind an existing transaction to the pre-auth browser login session."""
 

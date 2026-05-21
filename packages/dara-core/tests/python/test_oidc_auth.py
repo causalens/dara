@@ -494,14 +494,10 @@ async def test_sso_callback_creates_valid_session_token():
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
             set_cookies = response.headers.getall('set-cookie')
             session_cookie = next(
-                cookie
-                for cookie in set_cookies
-                if cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}=')
+                cookie for cookie in set_cookies if cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}=')
             )
             login_session_cookie = next(
-                cookie
-                for cookie in set_cookies
-                if cookie.startswith(f'{OIDC_LOGIN_SESSION_COOKIE_NAME}=')
+                cookie for cookie in set_cookies if cookie.startswith(f'{OIDC_LOGIN_SESSION_COOKIE_NAME}=')
             )
             assert login_session_cookie.startswith(f'{OIDC_LOGIN_SESSION_COOKIE_NAME}="";')
             assert get_cookie_max_age(session_cookie) > 6 * 24 * 60 * 60
@@ -689,6 +685,10 @@ async def test_sso_callback_supports_multiple_live_transactions_per_login_sessio
             )
             assert first_response.status_code == 200
             assert first_response.json() == {'success': True, 'redirect_to': '/first'}
+            assert not any(
+                cookie.startswith(f'{OIDC_LOGIN_SESSION_COOKIE_NAME}="";')
+                for cookie in first_response.headers.getall('set-cookie')
+            )
 
             token_route.mock(
                 return_value=httpx.Response(status_code=200, json={'id_token': make_mock_id_token(second_state)})
@@ -698,6 +698,10 @@ async def test_sso_callback_supports_multiple_live_transactions_per_login_sessio
             )
             assert second_response.status_code == 200
             assert second_response.json() == {'success': True, 'redirect_to': '/second'}
+            assert any(
+                cookie.startswith(f'{OIDC_LOGIN_SESSION_COOKIE_NAME}="";')
+                for cookie in second_response.headers.getall('set-cookie')
+            )
 
 
 async def test_sso_callback_rejects_nonce_mismatch():

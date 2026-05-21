@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Any
+from typing import Any, NoReturn
 from uuid import uuid4
 
 import jwt
@@ -62,6 +62,18 @@ def _oidc_callback_log_extra(
     )
 
 
+def _raise_invalid_state_parameter(request: Request) -> NoReturn:
+    """Reject callbacks that do not match a pending login transaction."""
+
+    detail = BAD_REQUEST_ERROR('Invalid state parameter')
+    dev_logger.error(
+        'Invalid state parameter',
+        error=Exception('state cookie mismatch'),
+        extra=_oidc_callback_log_extra(request, status_code=400, detail=detail),
+    )
+    raise HTTPException(status_code=400, detail=detail)
+
+
 @post('/auth/sso-callback', authenticated=False)
 async def sso_callback(
     body: AuthCodeRequestBody,
@@ -106,15 +118,12 @@ async def sso_callback(
         )
 
     login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+    if login_session_id is None:
+        _raise_invalid_state_parameter(request)
+
     transaction = oidc_transaction_store.take_if_login_session_matches(body.state, login_session_id)
     if transaction is None:
-        detail = BAD_REQUEST_ERROR('Invalid state parameter')
-        dev_logger.error(
-            'Invalid state parameter',
-            error=Exception('state cookie mismatch'),
-            extra=_oidc_callback_log_extra(request, status_code=400, detail=detail),
-        )
-        raise HTTPException(status_code=400, detail=detail)
+        _raise_invalid_state_parameter(request)
 
     try:
         # Exchange authorization code for tokens per RFC 6749 Section 4.1.3
@@ -192,7 +201,9 @@ async def sso_callback(
 
         session_expires_at = get_auth_session_cookie_expiration(token_data, oidc_tokens.refresh_token)
         set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token, session_expires_at)
-        response.delete_cookie(OIDC_LOGIN_SESSION_COOKIE_NAME)
+
+        if not oidc_transaction_store.has_pending_login_session(login_session_id):
+            response.delete_cookie(OIDC_LOGIN_SESSION_COOKIE_NAME)
 
         return {'success': True, 'redirect_to': transaction.redirect_to}
 

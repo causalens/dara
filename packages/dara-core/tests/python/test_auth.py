@@ -15,8 +15,8 @@ from dara.core.auth.definitions import (
     JWT_ALGO,
     SESSION_ID,
     SESSION_TOKEN_COOKIE_NAME,
-    TokenData,
     UNAUTHORIZED_ERROR,
+    TokenData,
 )
 from dara.core.auth.session_store import auth_session_store
 from dara.core.auth.utils import token_refresh_cache
