@@ -90,6 +90,7 @@ def decode_id_token(id_token: str) -> IdTokenClaims:
         algorithms=[oidc_settings.jwt_algo],
         audience=audience,
         issuer=oidc_settings.issuer_url,
+        options={'verify_aud': oidc_settings.verify_audience},
     )
 
     return IdTokenClaims.model_validate(decoded)

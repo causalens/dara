@@ -13,7 +13,7 @@ import pytest
 import respx
 from async_asgi_testclient import TestClient as AsyncClient
 from fastapi import HTTPException
-from jwt import PyJWK
+from jwt import PyJWK, PyJWKClient
 
 from dara.core.auth.definitions import (
     BAD_REQUEST_ERROR,
@@ -28,6 +28,7 @@ from dara.core.auth.definitions import (
 )
 from dara.core.auth.oidc.config import OIDCAuthConfig
 from dara.core.auth.oidc.definitions import (
+    JWK_CLIENT_REGISTRY_KEY,
     OIDC_LOGIN_SESSION_COOKIE_NAME,
     IdTokenClaims,
     OIDCDiscoveryMetadata,
@@ -37,6 +38,7 @@ from dara.core.auth.oidc.transaction_store import oidc_transaction_store
 from dara.core.auth.session import verify_auth_token
 from dara.core.auth.session_store import AuthSession, AuthSessionStore, ExpiredAuthSession, auth_session_store
 from dara.core.configuration import ConfigurationBuilder
+from dara.core.internal.registries import utils_registry
 from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
 
@@ -332,6 +334,16 @@ def make_mock_id_token(state: str, overrides: dict | None = None) -> str:
         algorithm=MOCK_JWK['alg'],
         headers={'kid': MOCK_JWK['kid']},
     )
+
+
+@contextlib.contextmanager
+def mock_registered_jwks_client():
+    previous_registry = dict(utils_registry.get_all())
+    utils_registry.set(JWK_CLIENT_REGISTRY_KEY, PyJWKClient(MOCK_DISCOVERY.jwks_uri))
+    try:
+        yield
+    finally:
+        utils_registry.replace(previous_registry, deepcopy=False)
 
 
 async def test_session_no_state():
@@ -1730,13 +1742,33 @@ async def test_verify_token_decodes_id_token_correctly():
 
     auth_config = make_config()
 
-    with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+    with mocked_urllib(MOCK_JWKS_DATA), mock_registered_jwks_client():
         decoded_token = await auth_config.verify_token(id_token)
         assert decoded_token.identity_id == MOCK_ID_TOKEN.get('identity').get('id')
         assert decoded_token.identity_name == MOCK_ID_TOKEN.get('identity').get('name')
         assert decoded_token.identity_email == MOCK_ID_TOKEN.get('identity').get('email')
         assert decoded_token.id_token == id_token
         assert decoded_token.exp == MOCK_ID_TOKEN.get('exp')
+
+
+async def test_verify_token_allows_aud_claim_when_audience_verification_disabled():
+    """
+    Test SSO token verification accepts a standard OIDC aud claim when audience verification is disabled.
+    """
+    jwk = PyJWK(MOCK_JWK)
+    id_token = jwt.encode(
+        {**MOCK_ID_TOKEN, 'aud': TEST_SSO_CLIENT_ID},
+        jwk.key,
+        algorithm=MOCK_JWK['alg'],
+        headers={'kid': MOCK_JWK['kid']},
+    )
+
+    auth_config = make_config()
+
+    with mocked_urllib(MOCK_JWKS_DATA), mock_registered_jwks_client():
+        decoded_token = await auth_config.verify_token(id_token)
+        assert decoded_token.identity_id == MOCK_ID_TOKEN.get('identity').get('id')
+        assert decoded_token.id_token == id_token
 
 
 async def test_revoke_session():
