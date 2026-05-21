@@ -192,6 +192,7 @@ async def sso_callback(
 
         session_expires_at = get_auth_session_cookie_expiration(token_data, oidc_tokens.refresh_token)
         set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token, session_expires_at)
+        response.delete_cookie(OIDC_LOGIN_SESSION_COOKIE_NAME)
 
         return {'success': True, 'redirect_to': transaction.redirect_to}
 

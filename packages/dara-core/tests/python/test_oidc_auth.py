@@ -492,11 +492,18 @@ async def test_sso_callback_creates_valid_session_token():
 
             assert response.json() == {'success': True, 'redirect_to': '/post-auth'}
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
+            set_cookies = response.headers.getall('set-cookie')
             session_cookie = next(
                 cookie
-                for cookie in response.headers.getall('set-cookie')
+                for cookie in set_cookies
                 if cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}=')
             )
+            login_session_cookie = next(
+                cookie
+                for cookie in set_cookies
+                if cookie.startswith(f'{OIDC_LOGIN_SESSION_COOKIE_NAME}=')
+            )
+            assert login_session_cookie.startswith(f'{OIDC_LOGIN_SESSION_COOKIE_NAME}="";')
             assert get_cookie_max_age(session_cookie) > 6 * 24 * 60 * 60
             stored_session = await get_stored_auth_session(session_token)
             assert stored_session.refresh_token == mock_idp_response['refresh_token']
