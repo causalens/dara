@@ -16,6 +16,7 @@ from dara.core.auth.definitions import (
     SESSION_TOKEN_COOKIE_NAME,
     TokenData,
 )
+from dara.core.auth.session_store import AuthSessionStore, auth_session_store
 from dara.core.auth.utils import token_refresh_cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.http import get
@@ -27,9 +28,17 @@ pytestmark = pytest.mark.anyio
 
 
 @pytest.fixture(autouse=True)
-def clear_cache():
+async def clear_cache():
+    await auth_session_store.clear()
     yield
     token_refresh_cache.clear()
+    await auth_session_store.clear()
+
+
+async def _get_stored_auth_token(session_token: str) -> tuple[str, TokenData]:
+    stored_session = await auth_session_store.get(session_token)
+    assert stored_session is not None
+    return stored_session.auth_token, stored_session.token_data
 
 
 def _make_refreshed_session_token(old_token: TokenData, marker: str) -> str:
@@ -279,6 +288,11 @@ async def test_basic_auth():
         # This should work
         response = await client.post('/api/auth/session', json={'username': 'test', 'password': 'test'})
         assert response.status_code == 200
+        session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
+        assert AuthSessionStore.is_session_token(session_token)
+        stored_auth_token, stored_token_data = await _get_stored_auth_token(session_token)
+        assert stored_token_data.identity_id == 'test'
+        jwt.decode(stored_auth_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
         set_cookie = response.headers.get('set-cookie', '')
         assert 'Max-Age=' in set_cookie
         assert 'expires=' in set_cookie.lower()
@@ -427,7 +441,9 @@ async def test_refresh_token_success():
         assert response.status_code == 200
         assert response.json() == {'success': True}
         refreshed_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
-        decoded = jwt.decode(refreshed_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
+        assert AuthSessionStore.is_session_token(refreshed_token)
+        stored_auth_token, _ = await _get_stored_auth_token(refreshed_token)
+        decoded = jwt.decode(stored_auth_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
         assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
         set_cookies = response.headers.getall('set-cookie')
@@ -471,7 +487,9 @@ async def test_refresh_token_success_with_session_cookie():
         assert response.status_code == 200
         assert response.json() == {'success': True}
         refreshed_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
-        decoded = jwt.decode(refreshed_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
+        assert AuthSessionStore.is_session_token(refreshed_token)
+        stored_auth_token, _ = await _get_stored_auth_token(refreshed_token)
+        decoded = jwt.decode(stored_auth_token, TEST_JWT_SECRET, algorithms=[JWT_ALGO])
         assert decoded['session_id'] == old_token_data.session_id
         assert response.cookies['dara_refresh_token'] == 'new_refresh_token'
 
@@ -666,9 +684,11 @@ async def test_refresh_token_concurrent_requests():
         # All responses should be successful
         assert all(r.status_code == 200 for r in responses)
 
-        # All responses should have the same session cookie token (from cache)
+        # All responses should store the same refreshed auth token from the refresh cache.
         tokens = [r.cookies[SESSION_TOKEN_COOKIE_NAME] for r in responses]
-        assert all(token == tokens[0] for token in tokens)
+        assert all(AuthSessionStore.is_session_token(token) for token in tokens)
+        stored_auth_tokens = [(await _get_stored_auth_token(token))[0] for token in tokens]
+        assert all(token == stored_auth_tokens[0] for token in stored_auth_tokens)
 
         # All responses should have the same refresh token
         refresh_tokens = [r.cookies['dara_refresh_token'] for r in responses]
@@ -710,6 +730,7 @@ async def test_refresh_token_cache_expiration():
             headers={'Authorization': f'Bearer {old_token}'},
         )
         token1 = response1.cookies[SESSION_TOKEN_COOKIE_NAME]
+        stored_auth_token1, _ = await _get_stored_auth_token(token1)
 
         # Immediate second request should use cache
         response2 = await client.post(
@@ -718,8 +739,9 @@ async def test_refresh_token_cache_expiration():
             headers={'Authorization': f'Bearer {old_token}'},
         )
         token2 = response2.cookies[SESSION_TOKEN_COOKIE_NAME]
+        stored_auth_token2, _ = await _get_stored_auth_token(token2)
 
-        assert token1 == token2
+        assert stored_auth_token1 == stored_auth_token2
         assert refresh_count == 1
 
         # Wait for cache to expire (6 seconds to be safe)
@@ -732,8 +754,9 @@ async def test_refresh_token_cache_expiration():
             headers={'Authorization': f'Bearer {old_token}'},
         )
         token3 = response3.cookies[SESSION_TOKEN_COOKIE_NAME]
+        stored_auth_token3, _ = await _get_stored_auth_token(token3)
 
-        assert token3 != token1
+        assert stored_auth_token3 != stored_auth_token1
         assert refresh_count == 2
 
 
@@ -780,9 +803,10 @@ async def test_refresh_token_different_tokens_not_cached():
         # Both requests should succeed
         assert all(r.status_code == 200 for r in responses)
 
-        # Should get different tokens for different refresh tokens
+        # Should get different stored auth tokens for different refresh tokens
         tokens = [r.cookies[SESSION_TOKEN_COOKIE_NAME] for r in responses]
-        assert tokens[0] != tokens[1]
+        stored_auth_tokens = [(await _get_stored_auth_token(token))[0] for token in tokens]
+        assert stored_auth_tokens[0] != stored_auth_tokens[1]
 
         # Should have made two refreshes
         assert refresh_count == 2

@@ -31,6 +31,8 @@ class Settings(BaseSettings):
 
     dara_base_url: str = ''
     dara_template_extra_js: str = ''
+    auth_session_idle_ttl_seconds: int = 1800
+    auth_session_max_entries: int = 10000
 
     # Feature flags
     cgroup_memory_limit_enabled: bool = False

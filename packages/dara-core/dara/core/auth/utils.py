@@ -64,6 +64,47 @@ def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tup
     return max_age, expires_at
 
 
+def get_cookie_expiration_from_exp(
+    exp: datetime | int | float,
+    grace_seconds: int = 60,
+) -> tuple[int, datetime]:
+    """
+    Derive cookie max-age and expiry from an exp value, with an optional grace period.
+
+    :param exp: expiration timestamp or datetime
+    :param grace_seconds: additional grace period added after exp
+    :returns: (max_age_seconds, expires_datetime_utc)
+    """
+    if isinstance(exp, datetime):
+        expires_at = exp.replace(tzinfo=timezone.utc) if exp.tzinfo is None else exp.astimezone(timezone.utc)
+    else:
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
+
+    expires_at += timedelta(seconds=grace_seconds)
+    max_age = max(0, int((expires_at - datetime.now(tz=timezone.utc)).total_seconds()))
+    return max_age, expires_at
+
+
+def set_cookie_from_expiration(
+    response: Response,
+    key: str,
+    token: str,
+    exp: datetime | int | float,
+    grace_seconds: int = 60,
+) -> None:
+    """
+    Set a secure auth cookie and align its expiry with a known server-side token expiry.
+
+    :param response: FastAPI response object
+    :param key: cookie name
+    :param token: cookie value
+    :param exp: expiration timestamp or datetime
+    :param grace_seconds: optional grace period added after token expiry
+    """
+    max_age, expires = get_cookie_expiration_from_exp(exp, grace_seconds=grace_seconds)
+    response.set_cookie(key=key, value=token, max_age=max_age, expires=expires, **AUTH_COOKIE_KWARGS)
+
+
 def set_cookie_from_token_expiration(
     response: Response,
     key: str,

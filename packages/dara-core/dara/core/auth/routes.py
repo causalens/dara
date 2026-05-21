@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from datetime import datetime
 from inspect import isawaitable
 from typing import Annotated, Any
 from urllib.parse import parse_qs, urlparse
@@ -37,34 +38,31 @@ from dara.core.auth.definitions import (
     SessionRequestBody,
     TokenData,
 )
-from dara.core.auth.utils import cached_refresh_token, decode_token, set_cookie_from_token_expiration
+from dara.core.auth.session_store import AuthSession, auth_session_store
+from dara.core.auth.utils import (
+    cached_refresh_token,
+    decode_token,
+    set_cookie_from_expiration,
+    set_cookie_from_token_expiration,
+)
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
 
 
-def _cache_session_auth_token(session_token: str):
+def _cache_session_auth_token(token_data: TokenData):
     """
-    Store latest session token for websocket auth context refreshes.
+    Store latest token data for websocket auth context refreshes.
 
-    :param session_token: latest session token
+    :param token_data: latest session token data
     """
     from dara.core.internal.registries import session_auth_token_registry, websocket_registry
 
-    decoded_token = decode_token(session_token, options={'verify_exp': False})
-
     # Keep this registry websocket-only to avoid unbounded growth.
-    if not websocket_registry.has(decoded_token.session_id) and not session_auth_token_registry.has(
-        decoded_token.session_id
-    ):
+    if not websocket_registry.has(token_data.session_id) and not session_auth_token_registry.has(token_data.session_id):
         return
 
-    if decoded_token.id_token is None and session_auth_token_registry.has(decoded_token.session_id):
-        cached_token = session_auth_token_registry.get(decoded_token.session_id)
-        if cached_token.id_token is not None:
-            decoded_token = decoded_token.model_copy(update={'id_token': cached_token.id_token})
-
-    session_auth_token_registry.set(decoded_token.session_id, decoded_token)
+    session_auth_token_registry.set(token_data.session_id, token_data)
 
 
 def _maybe_set_oidc_state_cookie(
@@ -103,26 +101,26 @@ def _maybe_set_oidc_state_cookie(
 
 async def _clear_cached_session_auth_token(token: str):
     """
-    Remove cached session token for the session associated with the provided token.
+    Remove cached session data for the session associated with the provided token.
 
     :param token: session token
     """
-    from dara.core.auth.oidc.id_token_cache import oidc_id_token_cache
     from dara.core.internal.registries import session_auth_token_registry
+
+    stored_session = await _get_stored_auth_session(token, touch=False)
+    if stored_session is not None:
+        await auth_session_store.remove(token)
+        if session_auth_token_registry.has(stored_session.token_data.session_id):
+            session_auth_token_registry.remove(stored_session.token_data.session_id)
+        return
 
     try:
         decoded = decode_token(token, options={'verify_exp': False})
-    except BaseException as e:
-        dev_logger.warning(
-            'Unable to decode session token while clearing session auth cache',
-            {'reason': str(e)},
-        )
+    except BaseException:
         return
 
     if session_auth_token_registry.has(decoded.session_id):
         session_auth_token_registry.remove(decoded.session_id)
-
-    await oidc_id_token_cache.remove(decoded.session_id)
 
 
 def _get_bearer_token(request: Request, *, error_message: str) -> str | None:
@@ -173,14 +171,18 @@ def _get_auth_token(
     raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR)
 
 
-def _set_session_token_cookie(response: Response, token: str):
+def _set_session_token_cookie(response: Response, token: str, exp: datetime | int | float | None = None):
     """
     Set the session token cookie.
 
     :param response: FastAPI response object
     :param token: session token value
     """
-    set_cookie_from_token_expiration(response, SESSION_TOKEN_COOKIE_NAME, token)
+    if exp is None:
+        set_cookie_from_token_expiration(response, SESSION_TOKEN_COOKIE_NAME, token)
+        return
+
+    set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, token, exp)
 
 
 def _set_refresh_token_cookie(response: Response, token: str):
@@ -236,12 +238,12 @@ def _should_attempt_session_refresh(
     Determine whether verify-session should attempt a server-side refresh.
 
     We only attempt this for OIDC configurations with a refresh token cookie
-    and invalid compact session tokens.
+    and invalid or missing OIDC server-side session data.
     """
     if refresh_token is None:
         return False
 
-    if auth_error.code != 401 or auth_error.detail != INVALID_TOKEN_ERROR:
+    if auth_error.code != 401 or auth_error.detail not in (INVALID_TOKEN_ERROR, EXPIRED_TOKEN_ERROR):
         return False
 
     from dara.core.auth.oidc.config import OIDCAuthConfig
@@ -249,7 +251,17 @@ def _should_attempt_session_refresh(
     return isinstance(auth_config, OIDCAuthConfig)
 
 
-async def _verify_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenData:
+async def _get_stored_auth_session(token: str, *, touch: bool = True) -> AuthSession | None:
+    """
+    Return a stored auth session when the supplied token is an opaque browser session handle.
+    """
+    if not auth_session_store.is_session_token(token):
+        return None
+
+    return await auth_session_store.get(token, touch=touch)
+
+
+async def _verify_raw_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenData:
     """
     Verify a token for auth configs with sync or async verifier implementations.
     """
@@ -257,6 +269,48 @@ async def _verify_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenDa
     if isawaitable(verified_token):
         return await verified_token
     return verified_token
+
+
+async def _verify_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenData:
+    """
+    Resolve an opaque browser session token and verify the auth config's raw token.
+    """
+    stored_session = await _get_stored_auth_session(token)
+    raw_token = stored_session.auth_token if stored_session is not None else token
+    return await _verify_raw_auth_token(auth_config, raw_token)
+
+
+async def _store_auth_session(auth_token: str, token_data: TokenData) -> str:
+    """
+    Store raw auth token data server-side and return the browser-safe opaque handle.
+    """
+    return await auth_session_store.create(auth_token, token_data)
+
+
+async def _get_refresh_token_data(auth_config: BaseAuthConfig, token: str) -> tuple[AuthSession | None, TokenData]:
+    """
+    Resolve token data to pass to the auth config refresh method.
+
+    OIDC can recover from an in-memory opaque-session miss using only the refresh token. For that case we create a new
+    session id; the refreshed ID token will provide the rest of the user data.
+    """
+    stored_session = await _get_stored_auth_session(token)
+    if stored_session is not None:
+        return stored_session, stored_session.token_data
+
+    if auth_session_store.is_session_token(token):
+        from dara.core.auth.oidc.config import OIDCAuthConfig
+
+        if isinstance(auth_config, OIDCAuthConfig):
+            return None, TokenData(
+                session_id=str(uuid4()),
+                exp=0,
+                identity_id='',
+                identity_name='',
+                groups=[],
+            )
+
+    return None, decode_token(token, options={'verify_exp': False})
 
 
 async def _refresh_session(
@@ -270,14 +324,22 @@ async def _refresh_session(
 
     :return: new session token
     """
-    old_token_data = decode_token(token, options={'verify_exp': False})
-    new_session_token, new_refresh_token = await cached_refresh_token(
+    stored_session, old_token_data = await _get_refresh_token_data(auth_config, token)
+    new_auth_token, new_refresh_token = await cached_refresh_token(
         auth_config.refresh_token, old_token_data, refresh_token
     )
-    _cache_session_auth_token(new_session_token)
+    new_token_data = await _verify_raw_auth_token(auth_config, new_auth_token)
+
+    if stored_session is not None:
+        new_session_token = token
+        await auth_session_store.set(new_session_token, new_auth_token, new_token_data)
+    else:
+        new_session_token = await _store_auth_session(new_auth_token, new_token_data)
+
+    _cache_session_auth_token(new_token_data)
 
     _set_refresh_token_cookie(response, new_refresh_token)
-    _set_session_token_cookie(response, new_session_token)
+    _set_session_token_cookie(response, new_session_token, exp=new_token_data.exp)
     return new_session_token
 
 
@@ -374,7 +436,10 @@ async def _revoke_session(
 
     auth_config: BaseAuthConfig = auth_registry.get('auth_config')
 
-    result = auth_config.revoke_token(token, response)
+    stored_session = await _get_stored_auth_session(token, touch=False)
+    raw_token = stored_session.auth_token if stored_session is not None else token
+
+    result = auth_config.revoke_token(raw_token, response)
     if isawaitable(result):
         result = await result
 
@@ -441,7 +506,9 @@ async def _get_session(body: SessionRequestBody, request: Request, response: Res
 
     session_response = auth_config.get_token(body)
     if 'token' in session_response:
-        _set_session_token_cookie(response, session_response['token'])
+        token_data = await _verify_raw_auth_token(auth_config, session_response['token'])
+        session_token = await _store_auth_session(session_response['token'], token_data)
+        _set_session_token_cookie(response, session_token, exp=token_data.exp)
         return {'success': True}
     _maybe_set_oidc_state_cookie(
         response,

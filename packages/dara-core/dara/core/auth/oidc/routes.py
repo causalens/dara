@@ -26,14 +26,15 @@ from dara.core.auth.definitions import (
     INVALID_TOKEN_ERROR,
     REFRESH_TOKEN_COOKIE_NAME,
     SESSION_TOKEN_COOKIE_NAME,
+    TokenData,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
-from dara.core.auth.utils import set_cookie_from_token_expiration, sign_jwt
+from dara.core.auth.session_store import auth_session_store
+from dara.core.auth.utils import set_cookie_from_expiration, set_cookie_from_token_expiration, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
 from .definitions import OIDC_LOGIN_SESSION_COOKIE_NAME, AuthCodeRequestBody
-from .id_token_cache import oidc_id_token_cache
 from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
 
@@ -117,25 +118,34 @@ async def sso_callback(
 
         session_id = str(uuid4())
 
-        # Cache the raw OIDC ID token server-side and keep the cookie token compact.
-        await oidc_id_token_cache.set(session_id, oidc_tokens.id_token, int(claims.exp))
-
-        # Create a compact Dara session token (without embedded raw OIDC id_token)
-        session_token = sign_jwt(
+        # Create an internal Dara session token. The browser only receives an opaque handle for it.
+        raw_session_token = sign_jwt(
+            exp=int(claims.exp),
             identity_id=user_data.identity_id,
             identity_name=user_data.identity_name,
             identity_email=user_data.identity_email,
             groups=user_data.groups or [],
-            id_token=None,
-            exp=int(claims.exp),
+            id_token=oidc_tokens.id_token,
             session_id=session_id,
+        )
+        session_token = await auth_session_store.create(
+            raw_session_token,
+            TokenData(
+                session_id=session_id,
+                exp=int(claims.exp),
+                identity_id=user_data.identity_id,
+                identity_name=user_data.identity_name,
+                identity_email=user_data.identity_email,
+                groups=user_data.groups or [],
+                id_token=oidc_tokens.id_token,
+            ),
         )
 
         # Set refresh token cookie if provided
         if oidc_tokens.refresh_token:
             set_cookie_from_token_expiration(response, REFRESH_TOKEN_COOKIE_NAME, oidc_tokens.refresh_token)
 
-        set_cookie_from_token_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token)
+        set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token, int(claims.exp))
 
         return {'success': True, 'redirect_to': transaction.redirect_to}
 

@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Changed auth session cookies to use opaque server-side session handles, avoiding cookie size overflows from large auth claims while keeping raw auth token data server-side.
+- Removed the OIDC-only ID token cache now that OIDC token data is stored in the generic auth session store.
 - Fixed missing auth session cookies being reported as bad requests instead of unauthorized session failures, so expired browser cookies redirect users back to login, and limited refresh-token retries to authentication failures.
 
 ## 1.26.12
