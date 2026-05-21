@@ -86,6 +86,7 @@ export async function revokeSession(): Promise<RedirectResponse | SuccessRespons
     try {
         const response = await request('/api/auth/revoke-session', {
             method: HTTP_METHOD.POST,
+            refreshOnUnauthorized: false,
         });
 
         if (response.ok) {
@@ -183,6 +184,7 @@ export async function requestSessionToken(body: User = {}): Promise<boolean> {
     const res = await request('/api/auth/session', {
         body: JSON.stringify(body),
         method: HTTP_METHOD.POST,
+        refreshOnUnauthorized: false,
     });
 
     // check auth errors, but ignore invalid credentials - these will be handled by validateResponse further
@@ -211,6 +213,7 @@ export function useSession(body: User = {}): UseQueryResult<boolean, RequestErro
 export async function verifySessionToken(): Promise<boolean> {
     const res = await request('/api/auth/verify-session', {
         method: HTTP_METHOD.POST,
+        refreshOnUnauthorized: false,
     });
 
     if (!res.ok) {

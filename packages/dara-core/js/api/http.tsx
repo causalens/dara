@@ -10,7 +10,13 @@ import { SESSION_REFRESHED_EVENT } from './events';
 /**
  * Extra options to pass to the request function.
  */
-export type RequestExtras = RequestInit;
+export interface RequestExtras extends RequestInit {
+    /**
+     * Whether to refresh the current session and retry when a request returns 401.
+     * Disable this for auth lifecycle requests where a 401 is expected control flow.
+     */
+    refreshOnUnauthorized?: boolean;
+}
 
 /**
  * Serializable form of RequestExtras.
@@ -67,13 +73,13 @@ export class RequestExtrasSerializable {
  * @param url URL
  * @param options optional fetch options. Multiple option sets can be provided, they will be merged in order with later options overriding earlier ones.
  */
-export async function request(url: string | URL, ...options: RequestInit[]): Promise<Response> {
+export async function request(url: string | URL, ...options: RequestExtras[]): Promise<Response> {
     // If another request/tab is currently refreshing the session, wait for it first
     // so we don't send avoidable 401/403 requests with stale credentials.
     await waitForOngoingSessionRefresh();
-    const mergedOptions = options.reduce((acc, opt) => ({ ...acc, ...opt }), {});
+    const mergedOptions = options.reduce<RequestExtras>((acc, opt) => ({ ...acc, ...opt }), {});
 
-    const { headers, credentials: mergedCredentials, ...other } = mergedOptions;
+    const { headers, credentials: mergedCredentials, refreshOnUnauthorized = true, ...other } = mergedOptions;
     const credentials = mergedCredentials ?? 'include';
 
     const headersInterface = new Headers(headers);
@@ -98,7 +104,7 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     });
 
     // in case of an authentication error, attempt to refresh the token and retry the request
-    if (response.status === 401) {
+    if (response.status === 401 && refreshOnUnauthorized) {
         try {
             // Ensure only one tab refreshes at a time; others wait and reuse the refreshed token.
             await runSessionRefresh(async () => {

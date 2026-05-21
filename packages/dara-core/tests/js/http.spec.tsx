@@ -40,6 +40,9 @@ const server = setupServer(
 
         return HttpResponse.json({ detail: 'Authorization error' }, { status: 403 });
     }),
+    http.post('/api/auth/verify-session', () => {
+        return HttpResponse.json({ detail: { message: 'Session has expired', reason: 'expired' } }, { status: 401 });
+    }),
 
     // mock refresh token endpoint
     http.post('/api/auth/refresh-token', async () => {
@@ -91,6 +94,14 @@ describe('HTTP Utils', () => {
 
         const res = await request('/error-403', { method: 'GET' });
         expect(res.status).toBe(403);
+        expect(refreshAttempted).not.toHaveBeenCalled();
+    });
+
+    it('does not attempt to refresh when refreshOnUnauthorized is false', async () => {
+        canRefreshSession = true;
+
+        const res = await request('/api/auth/verify-session', { method: 'POST', refreshOnUnauthorized: false });
+        expect(res.status).toBe(401);
         expect(refreshAttempted).not.toHaveBeenCalled();
     });
 

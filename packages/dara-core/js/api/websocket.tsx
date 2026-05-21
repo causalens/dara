@@ -343,6 +343,7 @@ export class WebSocketClient implements WebSocketClientInterface {
             try {
                 const response = await request('/api/auth/verify-session', {
                     method: HTTP_METHOD.POST,
+                    refreshOnUnauthorized: false,
                 });
 
                 if (!response.ok) {

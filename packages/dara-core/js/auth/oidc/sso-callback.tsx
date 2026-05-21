@@ -34,6 +34,7 @@ export async function getSSOCallbackResult(
                 state,
             }),
             method: HTTP_METHOD.POST,
+            refreshOnUnauthorized: false,
         });
 
         const shouldLogOut = await handleAuthErrors(res);
