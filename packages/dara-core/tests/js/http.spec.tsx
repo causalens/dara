@@ -83,14 +83,18 @@ describe('HTTP Utils', () => {
 
     afterAll(() => server.close());
 
-    it('attempts to refresh the token if 402 or 403 occurs, failing if no refresh token is present', async () => {
+    it('attempts to refresh the token on 401, failing if no refresh token is present', async () => {
         const res = await request('/error-401', { method: 'GET' });
         expect(res.status).toBe(401);
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
+    });
 
-        const res2 = await request('/error-403', { method: 'GET' });
-        expect(res2.status).toBe(403);
-        expect(refreshAttempted).toHaveBeenCalledTimes(2);
+    it('does not attempt to refresh the token on 403', async () => {
+        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+
+        const res = await request('/error-403', { method: 'GET' });
+        expect(res.status).toBe(403);
+        expect(refreshAttempted).not.toHaveBeenCalled();
     });
 
     it('refreshes the token and retries the request', async () => {
@@ -249,7 +253,7 @@ describe('HTTP Utils', () => {
         expect(requested401).toHaveBeenCalledTimes(1);
 
         // make another request while the refresh is still in progress
-        const res2Promise = request('/error-403');
+        const res2Promise = request('/error-401');
 
         resolve();
         delay = null;
@@ -265,9 +269,7 @@ describe('HTTP Utils', () => {
         expect(await res2.json()).toEqual({ success: true });
 
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
-        // first request was made twice
-        expect(requested401).toHaveBeenCalledTimes(2);
-        // the second request should not have made a request until it got the new token
-        expect(requested403).toHaveBeenCalledTimes(1);
+        // first request was made twice; the second request waited and only sent after refresh completed
+        expect(requested401).toHaveBeenCalledTimes(3);
     });
 });

@@ -97,8 +97,8 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
         ...other,
     });
 
-    // in case of an auth error, attempt to refresh the token and retry the request
-    if (response.status === 401 || response.status === 403) {
+    // in case of an authentication error, attempt to refresh the token and retry the request
+    if (response.status === 401) {
         try {
             // Ensure only one tab refreshes at a time; others wait and reuse the refreshed token.
             await runSessionRefresh(async () => {

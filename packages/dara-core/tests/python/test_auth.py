@@ -8,7 +8,14 @@ from async_asgi_testclient import TestClient as AsyncClient
 from fastapi import Request
 
 from dara.core.auth.basic import BasicAuthConfig, MultiBasicAuthConfig
-from dara.core.auth.definitions import ID_TOKEN, JWT_ALGO, SESSION_ID, SESSION_TOKEN_COOKIE_NAME, TokenData
+from dara.core.auth.definitions import (
+    EXPIRED_TOKEN_ERROR,
+    ID_TOKEN,
+    JWT_ALGO,
+    SESSION_ID,
+    SESSION_TOKEN_COOKIE_NAME,
+    TokenData,
+)
 from dara.core.auth.utils import token_refresh_cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.http import get
@@ -87,7 +94,8 @@ async def test_verify_session():
 
         # Test no auth
         response = await client.get('/api/test-ext/test')
-        assert response.status_code == 400
+        assert response.status_code == 401
+        assert response.json()['detail'] == EXPIRED_TOKEN_ERROR
 
         # Test wrong scheme
         response = await client.get('/api/test-ext/test', headers={'Authorization': 'Basic user:pw'})
@@ -148,6 +156,21 @@ async def test_verify_session_invalid_cookie_clears_auth_cookies_without_refresh
         cleared_cookies = response.headers.getall('set-cookie')
         assert any(cookie.startswith('dara_refresh_token="";') for cookie in cleared_cookies)
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+
+async def test_verify_session_missing_auth_returns_unauthorized():
+    """Check that missing auth credentials are treated as an auth failure, not a bad request."""
+
+    config = ConfigurationBuilder()
+    config.add_auth(BasicAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/verify-session')
+
+        assert response.status_code == 401
+        assert response.json()['detail'] == EXPIRED_TOKEN_ERROR
 
 
 async def test_authorization_header_injected_from_session_cookie():
@@ -355,8 +378,8 @@ async def test_stale_session_cookie_recovers_after_refresh_attempt():
 
         # Cookie jar should no longer contain stale auth cookies after refresh response.
         followup_verify_response = await client.post('/api/auth/verify-session')
-        assert followup_verify_response.status_code == 400
-        assert followup_verify_response.json()['detail']['message'] == 'No auth credentials passed'
+        assert followup_verify_response.status_code == 401
+        assert followup_verify_response.json()['detail'] == EXPIRED_TOKEN_ERROR
 
 
 async def test_refresh_token_unsupported():
