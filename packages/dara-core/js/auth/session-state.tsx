@@ -2,7 +2,6 @@ import * as React from 'react';
 import { z } from 'zod/v4';
 
 const SESSION_STATE_CHANNEL_NAME = 'dara-session-state';
-const SESSION_REFRESH_LOCK_NAME = 'dara-auth-refresh-lock';
 
 const SessionStateMessageSchema = z.discriminatedUnion('type', [
     z.object({
@@ -18,11 +17,8 @@ type SessionStateMessage = z.infer<typeof SessionStateMessageSchema>;
 
 const sessionIdSubscribers = new Set<(val: string | null) => void>();
 let sessionIdentifier: string | null = null;
-let activeRefreshPromise: Promise<void> | null = null;
 
 const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(SESSION_STATE_CHANNEL_NAME) : null;
-
-const inTabLockTails = new Map<string, Promise<void>>();
 
 /**
  * Notify local subscribers about an updated session identifier.
@@ -82,51 +78,6 @@ if (channel) {
 }
 
 /**
- * Run a callback under an in-tab lock used when Web Locks are unavailable.
- *
- * @param callback callback to execute once this tab acquires the lock
- */
-function withInTabRefreshLock<T>(callback: () => Promise<T> | T): Promise<T> {
-    const previousTail = inTabLockTails.get(SESSION_REFRESH_LOCK_NAME) ?? Promise.resolve();
-
-    let releaseTail: () => void = () => undefined;
-    const nextTail = new Promise<void>((resolve) => {
-        releaseTail = resolve;
-    });
-
-    inTabLockTails.set(
-        SESSION_REFRESH_LOCK_NAME,
-        previousTail.then(() => nextTail)
-    );
-
-    return previousTail.then(async () => {
-        try {
-            return await callback();
-        } finally {
-            releaseTail();
-            if (inTabLockTails.get(SESSION_REFRESH_LOCK_NAME) === nextTail) {
-                inTabLockTails.delete(SESSION_REFRESH_LOCK_NAME);
-            }
-        }
-    });
-}
-
-/**
- * Acquire the refresh lock using Web Locks when available, otherwise use the in-tab fallback.
- *
- * @param callback callback to execute under the lock
- */
-function requestRefreshLock<T>(callback: () => Promise<T> | T): Promise<T> {
-    if (typeof navigator !== 'undefined' && navigator.locks?.request) {
-        return navigator.locks
-            .request(SESSION_REFRESH_LOCK_NAME, () => callback())
-            .then((result) => Promise.resolve(result));
-    }
-
-    return withInTabRefreshLock(callback);
-}
-
-/**
  * Notify all tabs that the session has been logged out/invalidated.
  */
 export function notifySessionLoggedOut(): void {
@@ -169,43 +120,4 @@ export function setSessionIdentifier(sessionId: string | null): void {
  */
 export function useSessionIdentifier(): string | null {
     return React.useSyncExternalStore(onSessionIdChange, getSessionIdentifier);
-}
-
-/**
- * Run a callback under the cross-tab refresh lock.
- *
- * @param callback callback to execute under lock
- */
-export async function withSessionRefreshLock<T>(callback: () => Promise<T> | T): Promise<T> {
-    return requestRefreshLock(callback);
-}
-
-/**
- * Wait for any currently active refresh lock to complete.
- */
-export async function waitForOngoingSessionRefresh(): Promise<void> {
-    await requestRefreshLock(() => undefined);
-}
-
-/**
- * Run the given refresh function once per tab and share the in-flight result.
- *
- * Cross-tab mutual exclusion is guaranteed via Web Locks when available, with
- * an in-tab lock fallback otherwise.
- *
- * @param refreshFn refresh callback
- */
-export function runSessionRefresh(refreshFn: () => Promise<void>): Promise<void> {
-    if (activeRefreshPromise) {
-        return activeRefreshPromise;
-    }
-
-    const refreshPromise = withSessionRefreshLock(refreshFn).finally(() => {
-        if (activeRefreshPromise === refreshPromise) {
-            activeRefreshPromise = null;
-        }
-    });
-
-    activeRefreshPromise = refreshPromise;
-    return refreshPromise;
 }

@@ -8,7 +8,6 @@ import { HTTP_METHOD } from '@darajs/ui-utils';
 import { handleAuthErrors } from '@/auth/auth';
 import type { ActionImpl, AnyVariable } from '@/types';
 
-import { SESSION_REFRESHED_EVENT } from './events';
 import { request } from './http';
 
 const interAttemptTimeout = 500;
@@ -343,7 +342,6 @@ export class WebSocketClient implements WebSocketClientInterface {
             try {
                 const response = await request('/api/auth/verify-session', {
                     method: HTTP_METHOD.POST,
-                    refreshOnUnauthorized: false,
                 });
 
                 if (!response.ok) {
@@ -367,7 +365,6 @@ export class WebSocketClient implements WebSocketClientInterface {
         document.addEventListener('visibilitychange', this.#visibilityResumeHandler);
         window.addEventListener('focus', this.#resumeSignalHandler);
         window.addEventListener('online', this.#resumeSignalHandler);
-        window.addEventListener(SESSION_REFRESHED_EVENT, this.#resumeSignalHandler);
         this.#resumeListenersAttached = true;
     }
 
@@ -379,7 +376,6 @@ export class WebSocketClient implements WebSocketClientInterface {
         document.removeEventListener('visibilitychange', this.#visibilityResumeHandler);
         window.removeEventListener('focus', this.#resumeSignalHandler);
         window.removeEventListener('online', this.#resumeSignalHandler);
-        window.removeEventListener(SESSION_REFRESHED_EVENT, this.#resumeSignalHandler);
         this.#resumeListenersAttached = false;
     }
 

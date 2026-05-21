@@ -71,6 +71,22 @@ async def _store_test_token(refresh_token: str | None = None) -> str:
     )
 
 
+def _make_expired_token_data(session_id: str = 'session', id_token: str | None = None) -> TokenData:
+    return TokenData(
+        session_id=session_id,
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(seconds=10),
+        identity_name='user',
+        identity_id='user',
+        id_token=id_token,
+    )
+
+
+async def _store_expired_test_token(refresh_token: str | None = None, session_id: str = 'session') -> str:
+    token_data = _make_expired_token_data(session_id=session_id)
+    raw_token = jwt.encode(token_data.model_dump(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
+    return await auth_session_store.create(raw_token, token_data, refresh_token=refresh_token)
+
+
 def _make_refreshed_session_token(old_token: TokenData, marker: str) -> str:
     return jwt.encode(
         TokenData(
@@ -373,80 +389,6 @@ async def test_multi_basic_auth():
         assert response.status_code == 401
 
 
-async def test_refresh_token_missing():
-    config = ConfigurationBuilder()
-    config.add_auth(BasicAuthConfig('test', 'test'))
-
-    app = _start_application(config._to_configuration())
-
-    async with AsyncClient(app) as client:
-        session_token = await _store_test_token()
-        response = await client.post(
-            '/api/auth/refresh-token',
-            headers={'Authorization': f'Bearer {session_token}'},
-        )
-        assert response.status_code == 400
-        assert response.json()['detail']['message'] == 'No refresh token provided'
-        cleared_cookies = response.headers.getall('set-cookie')
-        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
-
-
-async def test_refresh_token_missing_with_stale_session_cookie_clears_auth_cookies(caplog: pytest.LogCaptureFixture):
-    caplog.set_level(logging.WARNING, logger='dara.dev')
-    config = ConfigurationBuilder()
-    config.add_auth(BasicAuthConfig('test', 'test'))
-
-    app = _start_application(config._to_configuration())
-
-    async with AsyncClient(app) as client:
-        response = await client.post(
-            '/api/auth/refresh-token',
-            cookies={SESSION_TOKEN_COOKIE_NAME: 'stale-token'},
-        )
-        assert response.status_code == 401
-        assert response.json()['detail']['message'] == 'Token is invalid, please log in again'
-        log_content = _get_log_content(caplog, 'Auth session refresh failed')
-        assert log_content['status_code'] == 401
-        assert log_content['detail_reason'] == 'invalid_token'
-        assert log_content['has_session_cookie'] is True
-        cleared_cookies = response.headers.getall('set-cookie')
-        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
-
-
-async def test_stale_session_cookie_recovers_after_refresh_attempt():
-    """
-    Regression test for stale/non-JWT session cookie recovery:
-    verify-session fails, then refresh-token clears auth cookies.
-    """
-    config = ConfigurationBuilder()
-    config.add_auth(BasicAuthConfig('test', 'test'))
-
-    app = _start_application(config._to_configuration())
-
-    async with AsyncClient(app) as client:
-        stale_cookie = 'stale-token'
-
-        verify_response = await client.post(
-            '/api/auth/verify-session',
-            cookies={SESSION_TOKEN_COOKIE_NAME: stale_cookie},
-        )
-        assert verify_response.status_code == 401
-
-        refresh_response = await client.post(
-            '/api/auth/refresh-token',
-            cookies={SESSION_TOKEN_COOKIE_NAME: stale_cookie},
-        )
-        assert refresh_response.status_code == 401
-        assert refresh_response.json()['detail']['message'] == 'Token is invalid, please log in again'
-        cleared_cookies = refresh_response.headers.getall('set-cookie')
-        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
-
-        # Cookie jar should no longer contain stale auth cookies after refresh response.
-        followup_verify_response = await client.post('/api/auth/verify-session')
-        assert followup_verify_response.status_code == 401
-        assert followup_verify_response.json()['detail'] == EXPIRED_TOKEN_ERROR
-
-
 async def test_refresh_token_unsupported():
     config = ConfigurationBuilder()
     config.add_auth(BasicAuthConfig('test', 'test'))
@@ -454,9 +396,9 @@ async def test_refresh_token_unsupported():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        session_token = await _store_test_token(refresh_token='foobar')
+        session_token = await _store_expired_test_token(refresh_token='foobar')
         response = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {session_token}'},
         )
         assert response.status_code == 400
@@ -486,11 +428,11 @@ async def test_refresh_token_success():
     async with AsyncClient(app) as client:
         old_session_token = await auth_session_store.create(old_token, old_token_data, refresh_token='refresh_token')
         response = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
         assert response.status_code == 200
-        assert response.json() == {'success': True}
+        assert response.json() == old_token_data.session_id
         refreshed_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
         assert refreshed_token == old_session_token
         stored_auth_token, _ = await _get_stored_auth_token(refreshed_token)
@@ -530,13 +472,13 @@ async def test_refresh_token_success_with_session_cookie():
     async with AsyncClient(app) as client:
         old_session_token = await auth_session_store.create(old_token, old_token_data, refresh_token='refresh_token')
         response = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             cookies={
                 SESSION_TOKEN_COOKIE_NAME: old_session_token,
             },
         )
         assert response.status_code == 200
-        assert response.json() == {'success': True}
+        assert response.json() == old_token_data.session_id
         refreshed_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
         assert refreshed_token == old_session_token
         stored_auth_token, _ = await _get_stored_auth_token(refreshed_token)
@@ -567,7 +509,7 @@ async def test_refresh_token_stores_rotated_refresh_token_server_side():
     async with AsyncClient(app) as client:
         old_session_token = await auth_session_store.create(old_token, old_token_data, refresh_token='refresh_token')
         response = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
 
@@ -587,9 +529,9 @@ async def test_refresh_token_expired():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        session_token = await _store_test_token(refresh_token='refresh_token')
+        session_token = await _store_expired_test_token(refresh_token='refresh_token')
         response = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {session_token}'},
         )
         assert response.status_code == 401
@@ -610,9 +552,9 @@ async def test_refresh_token_error():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        session_token = await _store_test_token(refresh_token='refresh_token')
+        session_token = await _store_expired_test_token(refresh_token='refresh_token')
         response = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {session_token}'},
         )
         assert response.status_code == 401
@@ -630,8 +572,7 @@ async def test_refresh_token_live_ws_connection():
 
     old_token_data = TokenData(
         session_id='session_1',
-        # expired but should be ignored
-        exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=3),
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=1),
         identity_name='user',
         identity_id='user',
         id_token='OLD_TOKEN',
@@ -674,13 +615,15 @@ async def test_refresh_token_live_ws_connection():
         ws1_message = await ws1.receive_json()
         assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
 
-        # Refresh token for ws1
+        await asyncio.sleep(2)
+
+        # Refresh token for ws1 through server-side verification
         response = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
         assert response.status_code == 200
-        assert response.json() == {'success': True}
+        assert response.json() == old_token_data.session_id
         assert await _get_stored_refresh_token(old_session_token) == 'new_refresh_token'
 
         # token in the WS connection should be updated from server-side session auth state
@@ -717,7 +660,7 @@ async def test_refresh_token_concurrent_requests():
 
     async def make_request(client):
         return await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
 
@@ -778,7 +721,7 @@ async def test_refresh_token_cache_expiration():
 
         # First request
         response1 = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
         token1 = response1.cookies[SESSION_TOKEN_COOKIE_NAME]
@@ -786,10 +729,12 @@ async def test_refresh_token_cache_expiration():
 
         # Immediate second request should use cache
         response2 = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
-        token2 = response2.cookies[SESSION_TOKEN_COOKIE_NAME]
+        assert response2.status_code == 200
+        assert SESSION_TOKEN_COOKIE_NAME not in response2.cookies
+        token2 = old_session_token
         stored_auth_token2, _ = await _get_stored_auth_token(token2)
 
         assert stored_auth_token1 == stored_auth_token2
@@ -797,10 +742,11 @@ async def test_refresh_token_cache_expiration():
 
         # Wait for cache to expire (6 seconds to be safe)
         await asyncio.sleep(6)
+        await auth_session_store.set(old_session_token, old_token, old_token_data, refresh_token='test_refresh_token')
 
         # Third request should get new tokens
         response3 = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
         token3 = response3.cookies[SESSION_TOKEN_COOKIE_NAME]
@@ -859,11 +805,11 @@ async def test_refresh_token_different_tokens_not_cached():
         # Make concurrent requests with different refresh tokens
         responses = await asyncio.gather(
             client.post(
-                '/api/auth/refresh-token',
+                '/api/auth/verify-session',
                 headers={'Authorization': f'Bearer {old_session_token_1}'},
             ),
             client.post(
-                '/api/auth/refresh-token',
+                '/api/auth/verify-session',
                 headers={'Authorization': f'Bearer {old_session_token_2}'},
             ),
         )
@@ -917,7 +863,7 @@ async def test_refresh_token_error_not_cached():
 
         # First request should fail
         response1 = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
         assert response1.status_code == 401
@@ -925,7 +871,7 @@ async def test_refresh_token_error_not_cached():
 
         # Immediate second request should succeed (not using error cache)
         response2 = await client.post(
-            '/api/auth/refresh-token',
+            '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
         )
         assert response2.status_code == 200

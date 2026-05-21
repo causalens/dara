@@ -32,7 +32,6 @@ function OIDCAuthLogin(): JSX.Element {
                 redirect_to: previousLocation,
             }),
             method: HTTP_METHOD.POST,
-            refreshOnUnauthorized: false,
         });
 
         // check for auth errors, redirecting to /error as needed

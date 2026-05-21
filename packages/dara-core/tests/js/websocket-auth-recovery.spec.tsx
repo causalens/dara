@@ -80,17 +80,6 @@ describe('Websocket auth recovery', () => {
                     },
                     { status: 401 }
                 );
-            }),
-            http.post('/api/auth/refresh-token', () => {
-                return HttpResponse.json(
-                    {
-                        detail: {
-                            message: 'No refresh token provided',
-                            reason: 'bad_request',
-                        },
-                    },
-                    { status: 400 }
-                );
             })
         );
 

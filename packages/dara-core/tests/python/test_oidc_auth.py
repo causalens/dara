@@ -171,9 +171,16 @@ def get_cookie_max_age(set_cookie: str) -> int:
 
 
 async def create_mock_dara_session_token(refresh_token: str = 'mock-refresh-token') -> str:
+    token_data = TokenData(
+        **{
+            **MOCK_DARA_TOKEN_DATA,
+            'exp': datetime.now(tz=timezone.utc) - timedelta(seconds=10),
+        }
+    )
+    raw_token = jwt.encode(token_data.model_dump(), ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
     return await auth_session_store.create(
-        MOCK_DARA_TOKEN,
-        TokenData(**MOCK_DARA_TOKEN_DATA),
+        raw_token,
+        token_data,
         refresh_token=refresh_token,
     )
 
@@ -1067,7 +1074,7 @@ async def test_sso_callback_idp_error():
 
 async def test_refresh_token_creates_valid_session_token():
     """
-    Test that /refresh-token correctly builds up an opaque session token
+    Test that server-side refresh correctly updates an opaque session token
     """
     config = ConfigurationBuilder()
 
@@ -1098,21 +1105,17 @@ async def test_refresh_token_creates_valid_session_token():
             respx.post(auth_config.discovery.token_endpoint).mock(
                 return_value=httpx.Response(status_code=200, json=mock_idp_response)
             )
-            old_session_token = await auth_session_store.create(
-                MOCK_DARA_TOKEN,
-                TokenData(**MOCK_DARA_TOKEN_DATA),
-                refresh_token=old_refresh_token_mock,
-            )
+            old_session_token = await create_mock_dara_session_token(refresh_token=old_refresh_token_mock)
 
             response = await client.post(
-                '/api/auth/refresh-token',
+                '/api/auth/verify-session',
                 headers={'Authorization': f'Bearer {old_session_token}'},
             )
 
             # JWKS endpoint should have been called once to retrieve the key
             assert mock_urllib.call_count == 1
 
-            assert response.json() == {'success': True}
+            assert response.json() == MOCK_DARA_TOKEN_DATA.get('session_id')
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
             assert session_token == old_session_token
             stored_session = await get_stored_auth_session(session_token)
@@ -1130,7 +1133,7 @@ async def test_refresh_token_creates_valid_session_token():
 
 async def test_refresh_token_invalid_group():
     """
-    Test that /refresh-token returns 403 when group is not allowed
+    Test that server-side refresh returns 403 when group is not allowed
     """
     config = ConfigurationBuilder()
 
@@ -1167,7 +1170,7 @@ async def test_refresh_token_invalid_group():
             old_session_token = await create_mock_dara_session_token(refresh_token=old_refresh_token_mock)
 
             response = await client.post(
-                '/api/auth/refresh-token',
+                '/api/auth/verify-session',
                 headers={'Authorization': f'Bearer {old_session_token}'},
             )
 
@@ -1182,7 +1185,7 @@ async def test_refresh_token_invalid_group():
 
 async def test_refresh_token_idp_error():
     """
-    Make sure /refresh-token returns 401 if IDP authorisation fails
+    Make sure server-side refresh returns 401 if IDP authorisation fails
     """
     config = ConfigurationBuilder()
 
@@ -1203,7 +1206,7 @@ async def test_refresh_token_idp_error():
             old_session_token = await create_mock_dara_session_token(refresh_token=str(uuid4()))
 
             response = await client.post(
-                '/api/auth/refresh-token',
+                '/api/auth/verify-session',
                 headers={'Authorization': f'Bearer {old_session_token}'},
             )
 
@@ -2160,7 +2163,7 @@ async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_useri
 
 async def test_refresh_token_with_userinfo(mock_discovery_with_userinfo):
     """
-    Test that /refresh-token fetches and uses userinfo when SSO_USE_USERINFO is enabled
+    Test that server-side refresh fetches and uses userinfo when SSO_USE_USERINFO is enabled
     """
     with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
         get_oidc_settings.cache_clear()
@@ -2209,13 +2212,13 @@ async def test_refresh_token_with_userinfo(mock_discovery_with_userinfo):
                 old_session_token = await create_mock_dara_session_token(refresh_token=old_refresh_token_mock)
 
                 response = await client.post(
-                    '/api/auth/refresh-token',
+                    '/api/auth/verify-session',
                     headers={'Authorization': f'Bearer {old_session_token}'},
                 )
 
                 assert response.status_code == 200
 
-                assert response.json() == {'success': True}
+                assert response.json() == MOCK_DARA_TOKEN_DATA.get('session_id')
                 session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
                 stored_session = await get_stored_auth_session(session_token)
                 assert stored_session.refresh_token == mock_idp_response['refresh_token']

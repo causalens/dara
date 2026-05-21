@@ -205,26 +205,20 @@ def _build_auth_error_response(status_code: int, detail: Any):
     return error_response
 
 
-def _should_clear_auth_cookies_on_verify_failure(detail: Any) -> bool:
+def _should_clear_auth_cookies_on_verify_failure(status_code: int, detail: Any) -> bool:
     """
     Determine whether /verify-session should clear auth cookies for a terminal auth failure.
     """
-    return detail in (INVALID_TOKEN_ERROR, EXPIRED_TOKEN_ERROR)
+    return status_code in (401, 403) or detail in (INVALID_TOKEN_ERROR, EXPIRED_TOKEN_ERROR)
 
 
 def _should_attempt_session_refresh(
-    auth_config: BaseAuthConfig,
     auth_error: AuthError,
 ) -> bool:
     """
     Determine whether verify-session should attempt a server-side refresh.
     """
-    if auth_error.code != 401 or auth_error.detail not in (INVALID_TOKEN_ERROR, EXPIRED_TOKEN_ERROR):
-        return False
-
-    from dara.core.auth.oidc.config import OIDCAuthConfig
-
-    return isinstance(auth_config, OIDCAuthConfig)
+    return auth_error.code == 401 and auth_error.detail in (INVALID_TOKEN_ERROR, EXPIRED_TOKEN_ERROR)
 
 
 async def _refresh_session(
@@ -265,7 +259,7 @@ async def handle_verify_session(
     try:
         return await verify_session(req, response, dara_session_token)
     except HTTPException as err:
-        if _should_clear_auth_cookies_on_verify_failure(err.detail):
+        if _should_clear_auth_cookies_on_verify_failure(err.status_code, err.detail):
             return _build_auth_error_response(err.status_code, err.detail)
 
         return JSONResponse(status_code=err.status_code, content={'detail': err.detail})
@@ -298,14 +292,32 @@ async def verify_session(
         try:
             await verify_auth_token(auth_config, token)
         except AuthError as auth_error:
-            if not _should_attempt_session_refresh(auth_config, auth_error):
+            if not _should_attempt_session_refresh(auth_error):
                 raise
 
             stored_session = await get_stored_auth_session(token)
             if stored_session is None or stored_session.refresh_token is None:
                 raise
 
-            refreshed_token = await _refresh_session(auth_config, token, response)
+            try:
+                refreshed_token = await _refresh_session(auth_config, token, response)
+            except Exception as refresh_error:
+                if isinstance(refresh_error, HTTPException | AuthError):
+                    raise
+
+                if isinstance(refresh_error, jwt.ExpiredSignatureError):
+                    raise AuthError(code=401, detail=EXPIRED_TOKEN_ERROR) from refresh_error
+
+                log_auth_exception(
+                    'Auth session refresh failed unexpectedly',
+                    req,
+                    error=refresh_error,
+                    status_code=401,
+                    detail=INVALID_TOKEN_ERROR,
+                    extra=_session_cookie_log_extra(dara_session_token),
+                )
+                raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from refresh_error
+
             await verify_auth_token(auth_config, refreshed_token)
 
         # Attach session_id to the request so it can be accessed in the middleware
@@ -401,78 +413,6 @@ async def _revoke_session(
     await _clear_cached_session_auth_token(token)
     _clear_auth_cookies(response)
     return result
-
-
-@auth_router.post('/refresh-token')
-async def handle_refresh_token(
-    request: Request,
-    response: Response,
-    dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
-):
-    """
-    Given an opaque session token with stored refresh credentials, refreshes the session.
-
-    :param response: FastAPI response object
-    :param settings: env settings object
-    """
-    try:
-        token = _get_auth_token(
-            request,
-            dara_session_token,
-            missing_message='No session token provided',
-            invalid_scheme_message='Invalid authentication scheme, previous Bearer token must be included in the refresh request',
-        )
-
-        from dara.core.internal.registries import auth_registry
-
-        auth_config: BaseAuthConfig = auth_registry.get('auth_config')
-
-        await _refresh_session(auth_config, token, response)
-        return {'success': True}
-    except BaseException as e:
-        # If an explicit HTTPException was raised, preserve status and error payload.
-        if isinstance(e, HTTPException):
-            log_auth_request_rejection(
-                'Auth session refresh rejected',
-                request,
-                status_code=e.status_code,
-                detail=e.detail,
-                extra=_session_cookie_log_extra(dara_session_token),
-            )
-            return _build_auth_error_response(e.status_code, e.detail)
-
-        if isinstance(e, AuthError):
-            log_auth_request_rejection(
-                'Auth session refresh failed',
-                request,
-                status_code=e.code,
-                detail=e.detail,
-                extra=_session_cookie_log_extra(dara_session_token),
-            )
-            return _build_auth_error_response(e.code, e.detail)
-
-        # Explicitly handle expired signature error
-        if isinstance(e, jwt.ExpiredSignatureError):
-            log_auth_exception(
-                'Auth session refresh token expired',
-                request,
-                error=e,
-                status_code=401,
-                detail=EXPIRED_TOKEN_ERROR,
-                extra=_session_cookie_log_extra(dara_session_token),
-            )
-            return _build_auth_error_response(status_code=401, detail=EXPIRED_TOKEN_ERROR)
-
-        # Otherwise show a generic invalid token error
-        log_auth_exception(
-            'Auth session refresh failed unexpectedly',
-            request,
-            error=e,
-            status_code=401,
-            detail=INVALID_TOKEN_ERROR,
-            extra=_session_cookie_log_extra(dara_session_token),
-        )
-        return _build_auth_error_response(status_code=401, detail=INVALID_TOKEN_ERROR)
 
 
 # Request to retrieve a session token from the backend. The app does this on startup.
