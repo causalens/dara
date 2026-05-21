@@ -63,7 +63,7 @@ async function uploadFileToExtension(
         },
         extras
     );
-    await handleAuthErrors(res, true);
+    await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
     await validateResponse(res, `Failed to upload file: ${file.name}`);
     const result: { [k: string]: any } = await res.json();
     return { newStatus: result.status };

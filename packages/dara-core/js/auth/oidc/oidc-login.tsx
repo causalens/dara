@@ -35,7 +35,7 @@ function OIDCAuthLogin(): JSX.Element {
         });
 
         // check for auth errors, redirecting to /error as needed
-        const loggedOut = await handleAuthErrors(res, false);
+        const loggedOut = await handleAuthErrors(res);
 
         if (loggedOut) {
             return;

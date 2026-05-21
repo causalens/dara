@@ -128,7 +128,7 @@ export async function fetchDerivedVariable<T>({
         },
         extras
     );
-    await handleAuthErrors(res, true);
+    await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
     await validateResponse(res, `Failed to fetch the derived variable with uid: ${variableUid}`);
     return res.json();
 }

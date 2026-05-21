@@ -74,7 +74,7 @@ async function invokeAction(
         actionCtx.extras
     );
 
-    await handleAuthErrors(res, true);
+    await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
     await validateResponse(res, `Failed to fetch the action value with uid: ${annotatedAction.uid}`);
 
     const resContent = await res.json();

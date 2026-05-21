@@ -117,7 +117,7 @@ async function sendNewMessage(payload: MessageNotificationPayload, extras: Reque
             },
             extras
         );
-        await handleAuthErrors(res, true);
+        await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
         await validateResponse(res, 'Failed to send message notification');
     } catch (error) {
         // eslint-disable-next-line no-console

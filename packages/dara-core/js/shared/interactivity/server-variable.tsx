@@ -200,7 +200,7 @@ export function ServerVariableSyncProvider({ children }: { children: React.React
             `/api/core/server-variable/${itemKey}/sequence`,
             serializableExtras?.extras ?? {}
         );
-        await handleAuthErrors(response, true);
+        await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
         await validateResponse(response, `Failed to fetch the sequence number for key: ${itemKey}`);
         const { sequence_number } = await response.json();
         return sequence_number;

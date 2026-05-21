@@ -293,7 +293,7 @@ export async function fetchRouteData(
         } satisfies RouteDataRequestBody),
         signal,
     });
-    await handleAuthErrors(response, true);
+    await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
 
     if (!response.ok) {
         const error = (await response.json()) as { detail: LoaderErrorPayload };
