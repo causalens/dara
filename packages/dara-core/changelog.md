@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 - Changed auth session cookies to use opaque server-side session handles, avoiding cookie size overflows from large auth claims and refresh tokens while keeping token data server-side.
+- Added clearer auth failure logging for rejected session, refresh, and OIDC callback requests.
 - Fixed missing auth session cookies being reported as bad requests instead of unauthorized session failures, so expired browser cookies redirect users back to login, and limited refresh-token retries to authentication failures.
 
 ## 1.26.12

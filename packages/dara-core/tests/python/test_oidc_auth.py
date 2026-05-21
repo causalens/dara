@@ -1,5 +1,6 @@
 import contextlib
 import json
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from unittest import mock
@@ -164,6 +165,15 @@ async def create_mock_dara_session_token(refresh_token: str = 'mock-refresh-toke
         TokenData(**MOCK_DARA_TOKEN_DATA),
         refresh_token=refresh_token,
     )
+
+
+def get_log_content(caplog: pytest.LogCaptureFixture, title: str) -> dict:
+    for record in reversed(caplog.records):
+        if isinstance(record.msg, dict) and record.msg.get('title') == title:
+            content = getattr(record, 'content', None)
+            assert isinstance(content, dict)
+            return content
+    raise AssertionError(f'Log record not found: {title}')
 
 
 @pytest.fixture(autouse=True)
@@ -518,7 +528,8 @@ async def test_sso_callback_requires_state():
         assert response.status_code == 422
 
 
-async def test_sso_callback_rejects_cookie_mismatch_without_consuming_transaction():
+async def test_sso_callback_rejects_cookie_mismatch_without_consuming_transaction(caplog: pytest.LogCaptureFixture):
+    caplog.set_level(logging.ERROR, logger='dara.dev')
     config = ConfigurationBuilder()
 
     auth_config = make_config()
@@ -537,6 +548,10 @@ async def test_sso_callback_rejects_cookie_mismatch_without_consuming_transactio
             mismatch_response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
             assert mismatch_response.status_code == 400
             assert mismatch_response.json()['detail'] == BAD_REQUEST_ERROR('Invalid state parameter')
+            log_content = get_log_content(caplog, 'Invalid state parameter')
+            assert log_content['status_code'] == 400
+            assert log_content['detail_reason'] == 'bad_request'
+            assert log_content['has_login_session_cookie'] is True
             assert oidc_transaction_store.get(state) is not None
 
             client.cookie_jar.clear()

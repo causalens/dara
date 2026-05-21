@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import time
 
 import jwt
@@ -51,6 +52,15 @@ async def _store_auth_session(token_data: TokenData, refresh_token: str | None =
     raw_token = jwt.encode(token_data.model_dump(), TEST_JWT_SECRET, algorithm=JWT_ALGO)
     session_token = await auth_session_store.create(raw_token, token_data, refresh_token=refresh_token)
     return raw_token, session_token
+
+
+def _get_log_content(caplog: pytest.LogCaptureFixture, title: str) -> dict:
+    for record in reversed(caplog.records):
+        if isinstance(record.msg, dict) and record.msg.get('title') == title:
+            content = getattr(record, 'content', None)
+            assert isinstance(content, dict)
+            return content
+    raise AssertionError(f'Log record not found: {title}')
 
 
 async def _store_test_token(refresh_token: str | None = None) -> str:
@@ -181,9 +191,10 @@ async def test_verify_session_invalid_cookie_clears_auth_cookies_without_refresh
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 
 
-async def test_verify_session_missing_auth_returns_unauthorized():
+async def test_verify_session_missing_auth_returns_unauthorized(caplog: pytest.LogCaptureFixture):
     """Check that missing auth credentials are treated as an auth failure, not a bad request."""
 
+    caplog.set_level(logging.WARNING, logger='dara.dev')
     config = ConfigurationBuilder()
     config.add_auth(BasicAuthConfig('test', 'test'))
 
@@ -194,6 +205,34 @@ async def test_verify_session_missing_auth_returns_unauthorized():
 
         assert response.status_code == 401
         assert response.json()['detail'] == EXPIRED_TOKEN_ERROR
+
+        log_content = _get_log_content(caplog, 'Auth session verification rejected')
+        assert log_content['status_code'] == 401
+        assert log_content['detail_reason'] == 'expired'
+        assert log_content['has_authorization_header'] is False
+        assert log_content['has_session_cookie'] is False
+
+
+async def test_verify_session_invalid_scheme_logs_rejection(caplog: pytest.LogCaptureFixture):
+    """Check that invalid auth schemes are logged with request context."""
+
+    caplog.set_level(logging.WARNING, logger='dara.dev')
+    config = ConfigurationBuilder()
+    config.add_auth(BasicAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/verify-session', headers={'Authorization': 'Basic user:pw'})
+
+        assert response.status_code == 400
+
+        log_content = _get_log_content(caplog, 'Auth session verification rejected')
+        assert log_content['status_code'] == 400
+        assert log_content['detail_reason'] == 'bad_request'
+        assert log_content['authorization_scheme'] == 'Basic'
+        assert log_content['has_authorization_header'] is True
+        assert log_content['has_session_cookie'] is False
 
 
 async def test_authorization_header_injected_from_session_cookie():
@@ -284,7 +323,8 @@ async def test_revoke_session_cookie():
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 
 
-async def test_basic_auth():
+async def test_basic_auth(caplog: pytest.LogCaptureFixture):
+    caplog.set_level(logging.WARNING, logger='dara.dev')
     config = ConfigurationBuilder()
     config.add_auth(BasicAuthConfig('test', 'test'))
 
@@ -304,6 +344,10 @@ async def test_basic_auth():
         # This should fail
         response = await client.post('/api/auth/session', json={'username': 'test', 'password': 'wrong'})
         assert response.status_code == 401
+        log_content = _get_log_content(caplog, 'Auth session creation rejected')
+        assert log_content['status_code'] == 401
+        assert log_content['detail_reason'] == 'invalid_credentials'
+        assert log_content['path'] == '/api/auth/session'
 
 
 async def test_multi_basic_auth():
@@ -347,7 +391,8 @@ async def test_refresh_token_missing():
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 
 
-async def test_refresh_token_missing_with_stale_session_cookie_clears_auth_cookies():
+async def test_refresh_token_missing_with_stale_session_cookie_clears_auth_cookies(caplog: pytest.LogCaptureFixture):
+    caplog.set_level(logging.WARNING, logger='dara.dev')
     config = ConfigurationBuilder()
     config.add_auth(BasicAuthConfig('test', 'test'))
 
@@ -360,6 +405,10 @@ async def test_refresh_token_missing_with_stale_session_cookie_clears_auth_cooki
         )
         assert response.status_code == 401
         assert response.json()['detail']['message'] == 'Token is invalid, please log in again'
+        log_content = _get_log_content(caplog, 'Auth session refresh failed')
+        assert log_content['status_code'] == 401
+        assert log_content['detail_reason'] == 'invalid_token'
+        assert log_content['has_session_cookie'] is True
         cleared_cookies = response.headers.getall('set-cookie')
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 

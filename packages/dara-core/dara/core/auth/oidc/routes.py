@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from typing import Any
 from uuid import uuid4
 
 import jwt
@@ -28,6 +29,7 @@ from dara.core.auth.definitions import (
     TokenData,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
+from dara.core.auth.request_logging import auth_request_log_extra, log_auth_exception, log_auth_request_rejection
 from dara.core.auth.session import create_auth_session
 from dara.core.auth.utils import set_cookie_from_expiration, sign_jwt
 from dara.core.http import post
@@ -36,6 +38,28 @@ from dara.core.logging import dev_logger
 from .definitions import OIDC_LOGIN_SESSION_COOKIE_NAME, AuthCodeRequestBody
 from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
+
+
+def _oidc_login_cookie_log_extra(request: Request) -> dict[str, bool]:
+    return {'has_login_session_cookie': OIDC_LOGIN_SESSION_COOKIE_NAME in request.cookies}
+
+
+def _oidc_callback_log_extra(
+    request: Request,
+    *,
+    status_code: int,
+    detail: Any,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return auth_request_log_extra(
+        request,
+        status_code=status_code,
+        detail=detail,
+        extra={
+            **_oidc_login_cookie_log_extra(request),
+            **(extra or {}),
+        },
+    )
 
 
 @post('/auth/sso-callback', authenticated=False)
@@ -68,16 +92,29 @@ async def sso_callback(
     # Verify the app is configured for OIDC
     auth_config = auth_registry.get('auth_config')
     if not isinstance(auth_config, OIDCAuthConfig):
+        detail = BAD_REQUEST_ERROR('Cannot use sso-callback for non-OIDC auth configuration')
+        log_auth_request_rejection(
+            'OIDC callback rejected',
+            request,
+            status_code=400,
+            detail=detail,
+            extra=_oidc_login_cookie_log_extra(request),
+        )
         raise HTTPException(
             status_code=400,
-            detail=BAD_REQUEST_ERROR('Cannot use sso-callback for non-OIDC auth configuration'),
+            detail=detail,
         )
 
     login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
     transaction = oidc_transaction_store.take_if_login_session_matches(body.state, login_session_id)
     if transaction is None:
-        dev_logger.error('Invalid state parameter', error=Exception('state cookie mismatch'))
-        raise HTTPException(status_code=400, detail=BAD_REQUEST_ERROR('Invalid state parameter'))
+        detail = BAD_REQUEST_ERROR('Invalid state parameter')
+        dev_logger.error(
+            'Invalid state parameter',
+            error=Exception('state cookie mismatch'),
+            extra=_oidc_callback_log_extra(request, status_code=400, detail=detail),
+        )
+        raise HTTPException(status_code=400, detail=detail)
 
     try:
         # Exchange authorization code for tokens per RFC 6749 Section 4.1.3
@@ -93,6 +130,13 @@ async def sso_callback(
 
         # Ensure we received an ID token
         if not oidc_tokens.id_token:
+            log_auth_request_rejection(
+                'OIDC callback missing ID token',
+                request,
+                status_code=401,
+                detail=INVALID_TOKEN_ERROR,
+                extra=_oidc_login_cookie_log_extra(request),
+            )
             raise HTTPException(
                 status_code=401,
                 detail=INVALID_TOKEN_ERROR,
@@ -101,7 +145,11 @@ async def sso_callback(
         # Decode and verify the ID token
         claims = decode_id_token(oidc_tokens.id_token)
         if claims.nonce is None or claims.nonce != transaction.nonce:
-            dev_logger.error('Invalid OIDC nonce', error=Exception('nonce mismatch'))
+            dev_logger.error(
+                'Invalid OIDC nonce',
+                error=Exception('nonce mismatch'),
+                extra=_oidc_callback_log_extra(request, status_code=401, detail=INVALID_TOKEN_ERROR),
+            )
             raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 
         # Fetch userinfo if enabled and we have an access token
@@ -146,14 +194,43 @@ async def sso_callback(
         return {'success': True, 'redirect_to': transaction.redirect_to}
 
     except jwt.ExpiredSignatureError as e:
-        dev_logger.error('Expired Token Signature', error=e)
+        log_auth_exception(
+            'Expired Token Signature',
+            request,
+            error=e,
+            status_code=401,
+            detail=EXPIRED_TOKEN_ERROR,
+            extra=_oidc_login_cookie_log_extra(request),
+        )
         raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR) from e
     except jwt.PyJWTError as e:
-        dev_logger.error('Invalid Token', error=e)
+        log_auth_exception(
+            'Invalid Token',
+            request,
+            error=e,
+            status_code=401,
+            detail=INVALID_TOKEN_ERROR,
+            extra=_oidc_login_cookie_log_extra(request),
+        )
         raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR) from e
-    except HTTPException:
+    except HTTPException as err:
+        log_auth_request_rejection(
+            'OIDC callback rejected',
+            request,
+            status_code=err.status_code,
+            detail=err.detail,
+            extra=_oidc_login_cookie_log_extra(request),
+        )
         # Re-raise HTTP exceptions as-is
         raise
     except Exception as err:
-        dev_logger.error('Auth Error', error=err)
-        raise HTTPException(status_code=500, detail=BAD_REQUEST_ERROR('Authentication failed')) from err
+        detail = BAD_REQUEST_ERROR('Authentication failed')
+        log_auth_exception(
+            'OIDC callback failed unexpectedly',
+            request,
+            error=err,
+            status_code=500,
+            detail=detail,
+            extra=_oidc_login_cookie_log_extra(request),
+        )
+        raise HTTPException(status_code=500, detail=detail) from err
