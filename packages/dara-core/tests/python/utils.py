@@ -18,9 +18,11 @@ import jwt
 from async_asgi_testclient import TestClient as AsyncClient
 from async_asgi_testclient.response import Response
 from async_asgi_testclient.websocket import WebSocketSession
+from pydantic import ValidationError
 from typing_extensions import TypedDict
 
-from dara.core.auth.definitions import JWT_ALGO, SESSION_TOKEN_COOKIE_NAME
+from dara.core.auth.definitions import JWT_ALGO, SESSION_TOKEN_COOKIE_NAME, TokenData
+from dara.core.auth.session_store import auth_session_store
 from dara.core.base_definitions import AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
@@ -65,7 +67,47 @@ TEST_TOKEN = jwt.encode(
     TEST_JWT_SECRET,
     algorithm=JWT_ALGO,
 )
-AUTH_HEADERS = {'Authorization': f'Bearer {TEST_TOKEN}'}
+
+
+async def _get_auth_session_token(token: str = TEST_TOKEN) -> str:
+    """
+    Store a raw test auth token server-side and return the opaque session token used by browser requests.
+    """
+    try:
+        token_data = TokenData(**jwt.decode(token, TEST_JWT_SECRET, algorithms=[JWT_ALGO]))
+    except (jwt.PyJWTError, ValidationError):
+        return token
+
+    return await auth_session_store.create(token, token_data)
+
+
+async def _get_auth_headers(token: str = TEST_TOKEN) -> dict[str, str]:
+    """
+    Build auth headers matching the application's browser-facing opaque session format.
+    """
+    return {'Authorization': f'Bearer {await _get_auth_session_token(token)}'}
+
+
+async def _resolve_auth_headers(headers: Mapping[str, str] | None) -> Mapping[str, str]:
+    """
+    Convert raw JWT headers used by older tests into opaque auth-session headers.
+    """
+    if headers is None:
+        return await _get_auth_headers()
+
+    auth_header_key = next((key for key in headers if key.lower() == 'authorization'), None)
+    if auth_header_key is None:
+        return headers
+
+    scheme, _, token = headers[auth_header_key].partition(' ')
+    if scheme.lower() != 'bearer' or not token:
+        return headers
+
+    session_token = await _get_auth_session_token(token)
+    if session_token == token:
+        return headers
+
+    return {**headers, auth_header_key: f'Bearer {session_token}'}
 
 
 def read_template_json(path: str, data: dict) -> dict:
@@ -223,7 +265,7 @@ async def _get_template(
 
     response = await client.post(
         f'/api/core/route/{page_id}',
-        headers=AUTH_HEADERS,
+        headers=await _get_auth_headers(),
         json={'action_payloads': action_payloads, 'params': params or {}, 'ws_channel': ws_channel},
     )
 
@@ -257,7 +299,7 @@ async def _get_tabular_derived_variable(
     client: AsyncClient,
     dv: DerivedVariable,
     data: dict,
-    headers=AUTH_HEADERS,
+    headers: Mapping[str, str] | None = None,
     expect_success=True,
 ):
     # Denormalize data.dv_values
@@ -267,7 +309,7 @@ async def _get_tabular_derived_variable(
     response = await client.post(
         f'/api/core/tabular-variable/{str(dv.uid)}',
         json=data,
-        headers=headers,
+        headers=await _resolve_auth_headers(headers),
     )
     if expect_success:
         assert response.status_code == 200
@@ -279,12 +321,15 @@ async def _get_tabular_server_variable(
     client: AsyncClient,
     sv: ServerVariable,
     data: dict,
-    headers=AUTH_HEADERS,
+    headers: Mapping[str, str] | None = None,
     expect_success=True,
     query_string: dict | None = None,
 ):
     response = await client.post(
-        f'/api/core/tabular-variable/{str(sv.uid)}', json=data, headers=headers, query_string=query_string
+        f'/api/core/tabular-variable/{str(sv.uid)}',
+        json=data,
+        headers=await _resolve_auth_headers(headers),
+        query_string=query_string,
     )
     if expect_success:
         assert response.status_code == 200
@@ -293,7 +338,11 @@ async def _get_tabular_server_variable(
 
 
 async def _get_derived_variable(
-    client: AsyncClient, dv: DerivedVariable, data: dict, headers=AUTH_HEADERS, expect_success=True
+    client: AsyncClient,
+    dv: DerivedVariable,
+    data: dict,
+    headers: Mapping[str, str] | None = None,
+    expect_success=True,
 ):
     if 'values' in data:
         # Denormalize data.values
@@ -303,7 +352,7 @@ async def _get_derived_variable(
     response = await client.post(
         f'/api/core/derived-variable/{str(dv.uid)}',
         json=data,
-        headers=headers,
+        headers=await _resolve_auth_headers(headers),
     )
 
     if expect_success:
@@ -312,10 +361,12 @@ async def _get_derived_variable(
     return response
 
 
-async def _get_latest_derived_variable(client: AsyncClient, dv: DerivedVariable, headers=AUTH_HEADERS):
+async def _get_latest_derived_variable(
+    client: AsyncClient, dv: DerivedVariable, headers: Mapping[str, str] | None = None
+):
     response = await client.get(
         f'/api/core/derived-variable/{str(dv.uid)}/latest',
-        headers=headers,
+        headers=await _resolve_auth_headers(headers),
     )
     assert response.status_code == 200
     return response
@@ -326,7 +377,7 @@ async def _get_py_component(
     name: str,
     kwargs: dict[str, AnyVariable],
     data: dict,
-    headers=AUTH_HEADERS,
+    headers: Mapping[str, str] | None = None,
     expect_success=True,
 ):
     if 'values' in data:
@@ -334,7 +385,9 @@ async def _get_py_component(
         normalized_values, lookup = normalize_request(data['values'], kwargs)
         data['values'] = {'data': normalized_values, 'lookup': lookup}
 
-    response = await client.post(f'/api/core/components/{name}', json=data, headers=headers)
+    response = await client.post(
+        f'/api/core/components/{name}', json=data, headers=await _resolve_auth_headers(headers)
+    )
     if expect_success:
         assert response.status_code == 200
         res = response.json()
@@ -363,7 +416,7 @@ async def _call_action(client: AsyncClient, action: AnnotatedAction, data: Actio
     response = await client.post(
         f'/api/core/action/{action.definition_uid}',
         json=data,
-        headers=AUTH_HEADERS,
+        headers=await _get_auth_headers(),
     )
 
     return response
@@ -371,7 +424,9 @@ async def _call_action(client: AsyncClient, action: AnnotatedAction, data: Actio
 
 @asynccontextmanager
 async def _async_ws_connect(client: AsyncClient, token: str = TEST_TOKEN):
-    async with client.websocket_connect('/api/core/ws', cookies={SESSION_TOKEN_COOKIE_NAME: token}) as ws:
+    async with client.websocket_connect(
+        '/api/core/ws', cookies={SESSION_TOKEN_COOKIE_NAME: await _get_auth_session_token(token)}
+    ) as ws:
         yield ws
 
 

@@ -17,7 +17,7 @@ from dara.core.interactivity.stream_variable import StreamVariable
 from dara.core.internal.dependency_resolution import ResolvedDerivedVariable
 from dara.core.main import _start_application
 
-from tests.python.utils import AUTH_HEADERS, create_app, normalize_request
+from tests.python.utils import _get_auth_headers, create_app, normalize_request
 
 pytestmark = pytest.mark.anyio
 
@@ -270,7 +270,7 @@ async def _get_stream_response(
     client: AsyncClient,
     stream_var: StreamVariable,
     values: list[Any],
-    headers=AUTH_HEADERS,
+    headers=None,
 ):
     """Helper to fetch SSE response from the stream endpoint."""
     # Normalize the values like the frontend would
@@ -279,7 +279,7 @@ async def _get_stream_response(
     response = await client.post(
         f'/api/core/stream/{str(stream_var.uid)}',
         json={'values': {'data': normalized_values, 'lookup': lookup}},
-        headers=headers,
+        headers=headers if headers is not None else await _get_auth_headers(),
     )
 
     return response
@@ -537,7 +537,7 @@ async def test_stream_endpoint_not_found():
         response = await client.post(
             '/api/core/stream/nonexistent-uid',
             json={'values': {'data': [], 'lookup': {}}},
-            headers=AUTH_HEADERS,
+            headers=await _get_auth_headers(),
         )
         assert response.status_code == 404
 

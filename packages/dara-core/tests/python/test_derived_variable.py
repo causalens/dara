@@ -23,9 +23,9 @@ from dara.core.main import _start_application
 
 from tests.python.tasks import calc_task, delay_exception_task, exception_task
 from tests.python.utils import (
-    AUTH_HEADERS,
     TEST_JWT_SECRET,
     _async_ws_connect,
+    _get_auth_headers,
     _get_derived_variable,
     _get_latest_derived_variable,
     create_app,
@@ -464,7 +464,7 @@ async def test_fetching_derived_variable_run_as_task():
         }
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == '15'
 
@@ -515,7 +515,7 @@ async def test_cancel_derived_variable_run_as_task():
         task_id = response.json().get('task_id')
 
         # Cancel the task
-        response = await client.delete(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
+        response = await client.delete(f'/api/core/tasks/{str(task_id)}', headers=await _get_auth_headers())
 
         # Listen on the websocket channel for ws messages
         messages = await get_ws_messages(websocket, 3)
@@ -624,7 +624,7 @@ async def test_fetching_derived_variable_that_returns_task():
         }
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{str(task_id)}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == '15'
 
@@ -696,7 +696,7 @@ async def test_chaining_derived_variable_run_as_task():
         } in messages
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == '25'
 
@@ -780,7 +780,7 @@ async def test_chaining_derived_variable_all_run_as_task():
         } in messages
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == '30'
 
@@ -1096,7 +1096,7 @@ async def test_derived_variable_task_chain_loop():
         )
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == 11
 

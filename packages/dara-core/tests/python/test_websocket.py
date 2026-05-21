@@ -28,9 +28,9 @@ from dara.core.main import _start_application
 
 from tests.python.tasks import exception_task
 from tests.python.utils import (
-    AUTH_HEADERS,
     _async_ws_connect,
     _call_action,
+    _get_auth_headers,
     create_app,
     get_ws_messages,
     wait_for,
@@ -489,7 +489,7 @@ async def test_action_task_error():
             assert traceback_msg.get('message').get('error').startswith('Traceback')
 
             # Task should have error stored as its result
-            result = (await client.get(f'/api/core/tasks/{str(task_id)}', headers=AUTH_HEADERS)).json()
+            result = (await client.get(f'/api/core/tasks/{str(task_id)}', headers=await _get_auth_headers())).json()
             assert 'error' in result
 
 

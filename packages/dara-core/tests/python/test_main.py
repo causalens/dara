@@ -20,8 +20,8 @@ from dara.core.visual.components.router_content import RouterContent
 from dara.core.visual.components.sidebar_frame import SideBarFrame
 
 from tests.python.utils import (
-    AUTH_HEADERS,
     _async_ws_connect,
+    _get_auth_headers,
     _get_template,
     create_app,
 )
@@ -237,7 +237,7 @@ async def test_component_registers_route():
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-        response = await client.get('/api/endpoint', headers=AUTH_HEADERS)
+        response = await client.get('/api/endpoint', headers=await _get_auth_headers())
         assert response.status_code == 200
         assert response.json() == 'ok'
 
@@ -356,7 +356,7 @@ async def test_add_custom_middlewares():
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
         assert side_effect == 1
 
     # Test that a function can be added as a middleware
@@ -372,7 +372,7 @@ async def test_add_custom_middlewares():
     app = _start_application(config)
 
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
         assert side_effect == 2
 
 
@@ -387,7 +387,7 @@ async def test_startup_function(config: Configuration):
     # Start the app and fetch config to make sure everything is executed
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
 
     mock_startup.assert_called_once()
 
@@ -409,7 +409,7 @@ async def test_async_startup_function(config: Configuration):
     # Start the app and fetch config to make sure everything is executed
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
 
     mock_startup.assert_called_once()
     assert a == 2
@@ -426,7 +426,7 @@ async def test_startup_cleanup_function(config: Configuration):
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
         # Cleanup should not have been called yet (app is still running)
         cleanup_mock.assert_not_called()
 
@@ -449,7 +449,7 @@ async def test_async_startup_cleanup_function(config: Configuration):
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
         assert not cleaned_up
 
     assert cleaned_up
@@ -469,7 +469,7 @@ async def test_startup_cleanup_reverse_order(config: Configuration):
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
 
     assert call_order == ['second', 'first']
 
@@ -494,7 +494,7 @@ async def test_startup_cleanup_error_isolation(config: Configuration):
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
 
     # Reverse order: third, failing (error swallowed), first
     assert call_order == ['third', 'first']
@@ -508,6 +508,6 @@ async def test_startup_no_cleanup_when_none_returned(config: Configuration):
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
-        await client.get('/api/core/config', headers=AUTH_HEADERS)
+        await client.get('/api/core/config', headers=await _get_auth_headers())
 
     mock_startup.assert_called_once()

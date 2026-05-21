@@ -15,7 +15,7 @@ from dara.core.main import _start_application
 from dara.core.router import Outlet, PageRoute, Router
 from dara.core.visual.dynamic_component import py_component
 
-from tests.python.utils import AUTH_HEADERS, _get_template, ndjson, normalize_request
+from tests.python.utils import _get_auth_headers, _get_template, ndjson, normalize_request
 
 pytestmark = pytest.mark.anyio
 
@@ -218,7 +218,7 @@ async def test_loader_derived_values():
 
         response = await client.post(
             f'/api/core/route/{route.get_identifier()}',
-            headers=AUTH_HEADERS,
+            headers=await _get_auth_headers(),
             json={
                 'action_payloads': action_payloads,
                 'derived_variable_payloads': dv_payloads,

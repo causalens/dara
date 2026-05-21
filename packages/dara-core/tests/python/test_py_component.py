@@ -24,8 +24,8 @@ from tests.python.tasks import (
     track_task,
 )
 from tests.python.utils import (
-    AUTH_HEADERS,
     _async_ws_connect,
+    _get_auth_headers,
     _get_derived_variable,
     _get_py_component,
     _get_template,
@@ -820,7 +820,7 @@ async def test_derive_var_with_run_as_task_flag():
         assert any([message['message']['task_id'] == task_id for message in messages])
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == {
             'data': {'name': 'MockComponent', 'props': {'text': '15'}, 'uid': 'uid'},
@@ -924,7 +924,7 @@ async def test_chain_derived_var_with_run_as_task_flag():
         assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in updates
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == {
             'data': {'name': 'MockComponent', 'props': {'text': '11'}, 'uid': 'uid'},
@@ -998,7 +998,7 @@ async def test_single_dv_track_progress():
         assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in complete_messages
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == {
             'data': {'name': 'MockComponent', 'props': {'text': 'result'}, 'uid': 'uid'},
@@ -1071,7 +1071,7 @@ async def test_multiple_dv_track_progress():
         assert task_id in completion_messages
 
         # Try to fetch the result via the rest api
-        result = await client.get(f'/api/core/tasks/{task_id}', headers=AUTH_HEADERS)
+        result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
         assert result.status_code == 200
         assert result.json() == {
             'data': {
