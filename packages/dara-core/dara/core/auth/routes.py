@@ -386,6 +386,8 @@ async def _revoke_session(
     """
     Helper to revoke a session and its' associated token
     """
+    token: str | None = None
+
     try:
         token = _get_auth_token(
             request,
@@ -398,6 +400,12 @@ async def _revoke_session(
 
         auth_config: BaseAuthConfig = auth_registry.get('auth_config')
         raw_token = await resolve_raw_auth_token(auth_config, token)
+
+        result = auth_config.revoke_token(raw_token, response)
+        if isawaitable(result):
+            result = await result
+
+        return result
     except HTTPException as err:
         log_auth_request_rejection(
             'Auth session revoke rejected',
@@ -406,7 +414,7 @@ async def _revoke_session(
             detail=err.detail,
             extra=_session_cookie_log_extra(dara_session_token),
         )
-        raise
+        return _build_auth_error_response(err.status_code, err.detail)
     except AuthError as err:
         log_auth_exception(
             'Auth session revoke failed',
@@ -416,15 +424,12 @@ async def _revoke_session(
             detail=err.detail,
             extra=_session_cookie_log_extra(dara_session_token),
         )
-        raise HTTPException(status_code=err.code, detail=err.detail) from err
+        return _build_auth_error_response(err.code, err.detail)
+    finally:
+        if token is not None:
+            await _clear_cached_session_auth_token(token)
 
-    result = auth_config.revoke_token(raw_token, response)
-    if isawaitable(result):
-        result = await result
-
-    await _clear_cached_session_auth_token(token)
-    _clear_auth_cookies(response)
-    return result
+        _clear_auth_cookies(response)
 
 
 # Request to retrieve a session token from the backend. The app does this on startup.

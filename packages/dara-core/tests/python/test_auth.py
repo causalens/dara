@@ -347,6 +347,55 @@ async def test_revoke_session_cookie():
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 
 
+async def test_revoke_session_stale_cookie_clears_auth_cookie():
+    """Check that revoke session clears stale opaque session cookies even when revoke fails"""
+
+    config = ConfigurationBuilder()
+    config.add_auth(BasicAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post(
+            '/api/auth/revoke-session',
+            cookies={SESSION_TOKEN_COOKIE_NAME: 'stale-session-handle'},
+        )
+
+        assert response.status_code == 401
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+
+async def test_revoke_session_hook_error_clears_auth_cookie_and_session():
+    """Check that revoke session clears local auth state when provider revoke fails"""
+
+    class FailingRevokeAuthConfig(BasicAuthConfig):
+        def revoke_token(self, token: str, response):
+            raise HTTPException(status_code=503, detail={'message': 'Revoke failed', 'reason': 'other'})
+
+    config = ConfigurationBuilder()
+    config.add_auth(FailingRevokeAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    _, session_token = await _store_auth_session(
+        TokenData(
+            identity_id='user',
+            identity_name='user',
+            session_id='token1',
+            exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+        )
+    )
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/revoke-session', cookies={SESSION_TOKEN_COOKIE_NAME: session_token})
+
+        assert response.status_code == 503
+        assert await auth_session_store.get(session_token) is None
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+
 async def test_basic_auth(caplog: pytest.LogCaptureFixture):
     caplog.set_level(logging.WARNING, logger='dara.dev')
     config = ConfigurationBuilder()
