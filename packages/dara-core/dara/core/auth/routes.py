@@ -231,10 +231,15 @@ async def _refresh_session(
 
     :return: new session token
     """
-    new_session_token, new_token_data, new_refresh_token = await refresh_auth_session(
-        auth_config,
-        token,
-    )
+    try:
+        new_session_token, new_token_data, new_refresh_token = await refresh_auth_session(
+            auth_config,
+            token,
+        )
+    except (HTTPException, AuthError):
+        await _clear_cached_session_auth_token(token)
+        raise
+
     _cache_session_auth_token(new_token_data)
 
     _set_session_token_cookie(
@@ -288,6 +293,13 @@ async def verify_session(
         from dara.core.internal.registries import auth_registry
 
         auth_config: BaseAuthConfig = auth_registry.get('auth_config')
+
+        if (
+            dara_session_token is not None
+            and token == dara_session_token
+            and await get_stored_auth_session(token) is None
+        ):
+            raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 
         try:
             await verify_auth_token(auth_config, token)

@@ -6,7 +6,7 @@ import time
 import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
-from fastapi import Request
+from fastapi import HTTPException, Request
 
 from dara.core.auth.basic import BasicAuthConfig, MultiBasicAuthConfig
 from dara.core.auth.definitions import (
@@ -16,6 +16,7 @@ from dara.core.auth.definitions import (
     SESSION_ID,
     SESSION_TOKEN_COOKIE_NAME,
     TokenData,
+    UNAUTHORIZED_ERROR,
 )
 from dara.core.auth.session_store import auth_session_store
 from dara.core.auth.utils import token_refresh_cache
@@ -186,9 +187,12 @@ async def test_verify_session_cookie():
         assert response.json() == {'test': 'test'}
 
 
-async def test_verify_session_invalid_cookie_clears_auth_cookies_without_refresh_token():
+async def test_verify_session_invalid_cookie_clears_auth_cookies_without_refresh_token(
+    caplog: pytest.LogCaptureFixture,
+):
     """Check that /verify-session clears stale auth cookies when no refresh token is available."""
 
+    caplog.set_level(logging.WARNING, logger='dara.dev')
     config = ConfigurationBuilder()
     config.add_auth(BasicAuthConfig('test', 'test'))
 
@@ -205,6 +209,10 @@ async def test_verify_session_invalid_cookie_clears_auth_cookies_without_refresh
 
         cleared_cookies = response.headers.getall('set-cookie')
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+        log_content = _get_log_content(caplog, 'Auth session verification rejected')
+        assert log_content['detail_reason'] == 'invalid_token'
+        assert log_content['has_session_cookie'] is True
 
 
 async def test_verify_session_missing_auth_returns_unauthorized(caplog: pytest.LogCaptureFixture):
@@ -688,6 +696,30 @@ async def test_refresh_token_concurrent_requests():
 
         # Only one actual refresh should have occurred
         assert refresh_count == 1
+
+
+async def test_refresh_token_terminal_failure_removes_session():
+    """Test a terminal refresh rejection removes the server-side session."""
+    config = ConfigurationBuilder()
+
+    class AccessLostAuthConfig(BasicAuthConfig):
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            raise HTTPException(status_code=403, detail=UNAUTHORIZED_ERROR)
+
+    config.add_auth(AccessLostAuthConfig('test', 'test'))
+    app = _start_application(config._to_configuration())
+
+    old_session_token = await _store_expired_test_token(refresh_token='lost-access-refresh-token')
+
+    async with AsyncClient(app) as client:
+        response = await client.post(
+            '/api/auth/verify-session',
+            headers={'Authorization': f'Bearer {old_session_token}'},
+        )
+
+        assert response.status_code == 403
+        assert response.json()['detail'] == UNAUTHORIZED_ERROR
+        assert await auth_session_store.get(old_session_token) is None
 
 
 async def test_refresh_token_cache_expiration():
