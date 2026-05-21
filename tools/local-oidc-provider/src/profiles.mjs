@@ -1,6 +1,5 @@
 export const DEFAULT_ISSUER = 'http://localhost:9001';
 export const DEFAULT_REDIRECT_URI = 'http://localhost:8000/sso-callback';
-export const DEFAULT_POST_LOGOUT_REDIRECT_URI = 'http://localhost:8000/logout';
 export const DEFAULT_CLIENT_ID = 'local-oidc-client';
 export const DEFAULT_SCOPES = 'openid profile email groups offline_access';
 export const ALLOWED_GROUP = process.env.QA_OIDC_ALLOWED_GROUP ?? 'qa-users';
@@ -173,7 +172,7 @@ export function groupClaimValue(profile, groups) {
 }
 
 export function isRefreshGrant(ctx) {
-  return ctx?.oidc?.params?.grant_type === 'refresh_token' || Boolean(ctx?.oidc?.entities?.RefreshToken);
+  return ctx?.oidc?.params?.grant_type === 'refresh_token';
 }
 
 export function tokenTtlSeconds(profile, ctx) {

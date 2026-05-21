@@ -191,8 +191,13 @@ async function checkSingleGroupString() {
 async function checkRefreshLosesGroup() {
   await setProfile('refresh-loses-group');
   const { tokens } = await runAuthorizationCodeFlow();
+  const initialClaims = decodeJwtPayload(tokens.id_token);
   const refreshedTokens = await refresh(tokens.refresh_token);
   const refreshedClaims = decodeJwtPayload(refreshedTokens.id_token);
+  assert(
+    initialClaims.groups.includes(ALLOWED_GROUP),
+    'refresh-loses-group profile should include the allowed group on initial login'
+  );
   assert(
     !refreshedClaims.groups.includes(ALLOWED_GROUP),
     'refresh-loses-group profile should remove the allowed group on refresh'
@@ -211,6 +216,23 @@ async function checkMissingIdToken() {
   assert(!tokens.id_token, 'missing-id-token profile should omit id_token');
 }
 
+async function checkLogoutRedirectRegistered() {
+  await setProfile('happy');
+  const { tokens } = await runAuthorizationCodeFlow();
+  const logoutUrl = new URL(`${issuer}/session/end`);
+
+  logoutUrl.search = new URLSearchParams({
+    id_token_hint: tokens.id_token,
+    post_logout_redirect_uri: new URL('/login', redirectUri).toString(),
+  }).toString();
+
+  const response = await http('GET', logoutUrl.toString());
+  assert(
+    response.status !== 400 && !response.body.includes('post_logout_redirect_uri not registered'),
+    'logout should accept the registered /login post_logout_redirect_uri'
+  );
+}
+
 const checks = [
   ['happy', checkHappy],
   ['huge-groups', checkHugeGroups],
@@ -220,6 +242,7 @@ const checks = [
   ['refresh-loses-group', checkRefreshLosesGroup],
   ['no-refresh-token', checkNoRefreshToken],
   ['missing-id-token', checkMissingIdToken],
+  ['logout-redirect', checkLogoutRedirectRegistered],
 ];
 
 for (const [name, check] of checks) {

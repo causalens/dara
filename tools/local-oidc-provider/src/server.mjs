@@ -6,7 +6,6 @@ import {
   ALLOWED_GROUP,
   DEFAULT_CLIENT_ID,
   DEFAULT_ISSUER,
-  DEFAULT_POST_LOGOUT_REDIRECT_URI,
   DEFAULT_REDIRECT_URI,
   DEFAULT_SCOPES,
   buildGroups,
@@ -29,14 +28,26 @@ const redirectUris = (
   .split(',')
   .map((uri) => uri.trim())
   .filter(Boolean);
-const postLogoutRedirectUris = (
-  process.env.QA_OIDC_POST_LOGOUT_REDIRECT_URIS ??
-  process.env.QA_OIDC_POST_LOGOUT_REDIRECT_URI ??
-  DEFAULT_POST_LOGOUT_REDIRECT_URI
-)
-  .split(',')
-  .map((uri) => uri.trim())
-  .filter(Boolean);
+
+function defaultPostLogoutRedirectUris(uris) {
+  return [
+    ...new Set(
+      uris.flatMap((uri) => {
+        const origin = new URL(uri).origin;
+        return [`${origin}/login`, `${origin}/logout`];
+      })
+    ),
+  ];
+}
+
+const configuredPostLogoutRedirectUris =
+  process.env.QA_OIDC_POST_LOGOUT_REDIRECT_URIS ?? process.env.QA_OIDC_POST_LOGOUT_REDIRECT_URI;
+const postLogoutRedirectUris = configuredPostLogoutRedirectUris
+  ? configuredPostLogoutRedirectUris
+      .split(',')
+      .map((uri) => uri.trim())
+      .filter(Boolean)
+  : defaultPostLogoutRedirectUris(redirectUris);
 
 let activeProfileName = process.env.QA_OIDC_PROFILE ?? 'happy';
 let activeProfile = getProfileCase(activeProfileName) ?? getProfileCase('happy');

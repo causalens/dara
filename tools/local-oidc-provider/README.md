@@ -28,7 +28,7 @@ Default provider config:
 | Issuer | `http://localhost:9001` |
 | Client ID | `local-oidc-client` |
 | Redirect URI | `http://localhost:8000/sso-callback` |
-| Post-logout redirect URI | `http://localhost:8000/logout` |
+| Post-logout redirect URIs | `http://localhost:8000/login`, `http://localhost:8000/logout` |
 | Token endpoint auth | public client / PKCE |
 | ID token signing alg | `RS256` |
 | Allowed-group test value | `qa-users` |
@@ -45,7 +45,9 @@ npm start
 ```
 
 Use `QA_OIDC_REDIRECT_URIS` and `QA_OIDC_POST_LOGOUT_REDIRECT_URIS` for
-comma-separated URI lists.
+comma-separated URI lists. When post-logout redirect URIs are not explicitly
+set, the provider registers `/login` and `/logout` for each configured redirect
+URI origin.
 
 ## Dara Demo App
 
