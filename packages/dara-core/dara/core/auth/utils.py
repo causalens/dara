@@ -41,6 +41,25 @@ AUTH_COOKIE_EXPIRATION_GRACE_SECONDS = 60
 RefreshInput = TypeVar('RefreshInput')
 
 
+def get_token_expiration(token: str) -> int | float | None:
+    """
+    Read a token's exp claim without validating the token.
+
+    This is only used to align cookie and session-store retention. Token
+    authenticity is still validated separately by the auth verification path.
+    """
+    try:
+        decoded = jwt.decode(token, options={'verify_signature': False, 'verify_exp': False})
+    except jwt.PyJWTError:
+        return None
+
+    exp_claim = decoded.get('exp')
+    if not isinstance(exp_claim, (int, float)):
+        return None
+
+    return exp_claim
+
+
 def get_cookie_expiration_from_token(
     token: str,
     grace_seconds: int = AUTH_COOKIE_EXPIRATION_GRACE_SECONDS,
@@ -56,13 +75,8 @@ def get_cookie_expiration_from_token(
     :param grace_seconds: additional grace period added after exp
     :returns: (max_age_seconds, expires_datetime_utc) or None when exp is unavailable
     """
-    try:
-        decoded = jwt.decode(token, options={'verify_signature': False, 'verify_exp': False})
-    except jwt.PyJWTError:
-        return None
-
-    exp_claim = decoded.get('exp')
-    if not isinstance(exp_claim, (int, float)):
+    exp_claim = get_token_expiration(token)
+    if exp_claim is None:
         return None
 
     expires_at = datetime.fromtimestamp(exp_claim, tz=timezone.utc) + timedelta(seconds=grace_seconds)

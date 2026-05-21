@@ -35,6 +35,7 @@ from dara.core.auth.oidc.transaction_store import oidc_transaction_store
 from dara.core.auth.session import verify_auth_token
 from dara.core.auth.session_store import AuthSession, AuthSessionStore, ExpiredAuthSession, auth_session_store
 from dara.core.configuration import ConfigurationBuilder
+from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
 
 from tests.python.utils import _async_ws_connect
@@ -157,6 +158,14 @@ async def get_stored_auth_session(session_token: str) -> AuthSession:
     stored_session = await auth_session_store.get(session_token)
     assert stored_session is not None
     return stored_session
+
+
+def get_cookie_max_age(set_cookie: str) -> int:
+    for part in set_cookie.split(';'):
+        key, _, value = part.strip().partition('=')
+        if key.lower() == 'max-age':
+            return int(value)
+    raise AssertionError(f'Max-Age not found in Set-Cookie header: {set_cookie}')
 
 
 async def create_mock_dara_session_token(refresh_token: str = 'mock-refresh-token') -> str:
@@ -462,6 +471,12 @@ async def test_sso_callback_creates_valid_session_token():
 
             assert response.json() == {'success': True, 'redirect_to': '/post-auth'}
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
+            session_cookie = next(
+                cookie
+                for cookie in response.headers.getall('set-cookie')
+                if cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}=')
+            )
+            assert get_cookie_max_age(session_cookie) > 6 * 24 * 60 * 60
             stored_session = await get_stored_auth_session(session_token)
             assert stored_session.refresh_token == mock_idp_response['refresh_token']
             decoded_session_token = stored_session.token_data
@@ -1160,6 +1175,67 @@ async def test_verify_token_decodes_correctly():
         assert getattr(decoded_token, k) == value
 
 
+async def test_verify_session_accepts_raw_oidc_id_token_bearer():
+    """
+    Test verify-session still accepts raw IDP ID tokens from external bearer clients.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            jwk = PyJWK(MOCK_JWK)
+            id_token = jwt.encode(
+                MOCK_ID_TOKEN,
+                jwk.key,
+                algorithm=MOCK_JWK['alg'],
+                headers={'kid': MOCK_JWK['kid']},
+            )
+
+            response = await client.post(
+                '/api/auth/verify-session',
+                headers={'Authorization': f'Bearer {id_token}'},
+            )
+
+            assert response.status_code == 200
+            assert response.json() == MOCK_ID_TOKEN['identity']['id']
+            assert mock_urllib.call_count == 1
+
+
+async def test_verify_session_accepts_raw_dara_token_bearer():
+    """
+    Test verify-session still accepts raw Dara JWTs when no opaque session exists.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    app = _start_application(config._to_configuration())
+    async with AsyncClient(app) as client:
+        token_data = TokenData(
+            session_id='SESSION_ID',
+            exp=int((datetime.now(tz=timezone.utc) + timedelta(hours=2)).timestamp()),
+            identity_id='PERSONA_ID',
+            identity_name='USERNAME',
+            identity_email='username@causalens.com',
+            groups=['dev'],
+            id_token='id_token_123',
+        )
+        raw_token = jwt.encode(token_data.model_dump(), ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
+
+        response = await client.post(
+            '/api/auth/verify-session',
+            headers={'Authorization': f'Bearer {raw_token}'},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == token_data.session_id
+
+
 async def test_verify_token_opaque_token_without_session_data_fails():
     """
     Test opaque Dara OIDC token verification fails when session data is missing.
@@ -1175,9 +1251,9 @@ async def test_verify_token_opaque_token_without_session_data_fails():
     assert error.value.detail == INVALID_TOKEN_ERROR
 
 
-async def test_auth_session_store_retains_session_until_refresh_retention():
+async def test_auth_session_store_retains_session_until_auth_token_retention_without_refresh_token():
     """
-    Test auth session store retention is based only on token expiry plus refresh grace.
+    Test auth session store retention is based on auth token expiry when no refresh token exists.
     """
     store = AuthSessionStore()
     token_data = TokenData(
@@ -1202,6 +1278,68 @@ async def test_auth_session_store_retains_session_until_refresh_retention():
         assert (await store.get('token-1')).token_data == token_data
 
         mock_time.return_value = 260.1
+        assert await store.get('token-1') is None
+
+
+async def test_auth_session_store_retains_session_until_refresh_token_expiry():
+    """
+    Test auth session store retention follows the refresh token expiry when it is later than the auth token expiry.
+    """
+    store = AuthSessionStore()
+    token_data = TokenData(
+        session_id='session-1',
+        exp=200.0,
+        identity_id='PERSONA_ID',
+        identity_name='USERNAME',
+        identity_email='username@causalens.com',
+        groups=['dev'],
+    )
+    refresh_token = jwt.encode({'exp': 500.0}, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
+
+    with (
+        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
+    ):
+        mock_time.return_value = 100.0
+        await store.set('token-1', 'auth-token-1', token_data, refresh_token=refresh_token)
+
+        mock_time.return_value = 260.1
+        stored_session = await store.get('token-1')
+        assert isinstance(stored_session, ExpiredAuthSession)
+        assert stored_session.refresh_token == refresh_token
+
+        mock_time.return_value = 559.0
+        assert (await store.get('token-1')).token_data == token_data
+
+        mock_time.return_value = 560.1
+        assert await store.get('token-1') is None
+
+
+async def test_auth_session_store_uses_max_age_for_refresh_token_without_expiry():
+    """
+    Test auth session store uses a bounded max age when the refresh token has no known expiry.
+    """
+    store = AuthSessionStore()
+    token_data = TokenData(
+        session_id='session-1',
+        exp=100.0,
+        identity_id='PERSONA_ID',
+        identity_name='USERNAME',
+        identity_email='username@causalens.com',
+        groups=['dev'],
+    )
+
+    with (
+        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
+    ):
+        mock_time.return_value = 99.0
+        await store.set('token-1', 'auth-token-1', token_data, refresh_token='opaque-refresh-token')
+
+        mock_time.return_value = 99.0 + get_settings().auth_session_max_age_seconds + 59.0
+        stored_session = await store.get('token-1')
+        assert isinstance(stored_session, ExpiredAuthSession)
+        assert stored_session.refresh_token == 'opaque-refresh-token'
+
+        mock_time.return_value = 99.0 + get_settings().auth_session_max_age_seconds + 60.1
         assert await store.get('token-1') is None
 
 
@@ -1595,9 +1733,9 @@ async def test_revoke_session_opaque_token_uses_stored_raw_id_token():
         assert await auth_session_store.get(session_token) is None
 
 
-async def test_revoke_session_raw_id_token_rejected():
+async def test_revoke_session_accepts_raw_id_token_bearer():
     """
-    Test that revoke session rejects raw ID tokens on the browser-facing auth path.
+    Test that revoke session still accepts raw ID tokens from external bearer clients.
     """
     config = ConfigurationBuilder()
 
@@ -1620,8 +1758,9 @@ async def test_revoke_session_raw_id_token_rejected():
                 headers={'Authorization': f'Bearer {id_token}'},
             )
 
-            assert response.status_code == 401
-            assert response.json()['detail'] == INVALID_TOKEN_ERROR
+            assert response.status_code == 200
+            assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
+            assert response.headers['Set-Cookie'].startswith(f'{SESSION_TOKEN_COOKIE_NAME}=""; expires')
 
 
 async def test_revoke_session_expired_token():

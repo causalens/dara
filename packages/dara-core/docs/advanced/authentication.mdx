@@ -25,11 +25,15 @@ config.add_auth(BasicAuthConfig(username='admin', password='secret'))
 
 ## Session Transport
 
-Dara uses a signed, `HttpOnly` session cookie as the primary transport for authenticated requests.
+Dara uses an opaque, `HttpOnly` session cookie as the primary transport for browser authenticated requests.
 
 Auth endpoints set/rotate cookies and return status payloads (for example `{ "success": true }`) instead of returning raw session tokens.
 
+For sessions with refresh tokens, Dara keeps the opaque cookie and server-side session record until the later of the auth token expiry and refresh token expiry. When a refresh token has no readable `exp` claim, Dara uses `AUTH_SESSION_MAX_AGE_SECONDS` as a sliding cap; the default is 7 days and successful refreshes renew it.
+
 For backwards compatibility, Dara still synthesizes an `Authorization: Bearer ...` header from the session cookie on incoming requests when the header is missing. This allows existing custom extensions that explicitly inspect `Authorization` headers to keep working during migration.
+
+Programmatic callers can still authenticate by sending a raw token in the `Authorization: Bearer ...` header. With `OIDCAuthConfig`, this can be either a Dara-issued session JWT or an ID token issued by the configured OIDC provider.
 
 ## Default Authentication
 

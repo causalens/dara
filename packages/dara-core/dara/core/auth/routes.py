@@ -40,6 +40,7 @@ from dara.core.auth.definitions import (
 from dara.core.auth.request_logging import log_auth_exception, log_auth_request_rejection
 from dara.core.auth.session import (
     create_auth_session,
+    get_auth_session_cookie_expiration,
     get_stored_auth_session,
     refresh_auth_session,
     remove_auth_session,
@@ -236,13 +237,17 @@ async def _refresh_session(
 
     :return: new session token
     """
-    new_session_token, new_token_data = await refresh_auth_session(
+    new_session_token, new_token_data, new_refresh_token = await refresh_auth_session(
         auth_config,
         token,
     )
     _cache_session_auth_token(new_token_data)
 
-    _set_session_token_cookie(response, new_session_token, exp=new_token_data.exp)
+    _set_session_token_cookie(
+        response,
+        new_session_token,
+        exp=get_auth_session_cookie_expiration(new_token_data, new_refresh_token),
+    )
     return new_session_token
 
 
@@ -368,7 +373,7 @@ async def _revoke_session(
         from dara.core.internal.registries import auth_registry
 
         auth_config: BaseAuthConfig = auth_registry.get('auth_config')
-        raw_token = await resolve_raw_auth_token(token)
+        raw_token = await resolve_raw_auth_token(auth_config, token)
     except HTTPException as err:
         log_auth_request_rejection(
             'Auth session revoke rejected',
@@ -484,7 +489,11 @@ async def _get_session(body: SessionRequestBody, request: Request, response: Res
         if 'token' in session_response:
             token_data = await verify_raw_auth_token(auth_config, session_response['token'])
             session_token = await create_auth_session(session_response['token'], token_data)
-            _set_session_token_cookie(response, session_token, exp=token_data.exp)
+            _set_session_token_cookie(
+                response,
+                session_token,
+                exp=get_auth_session_cookie_expiration(token_data, refresh_token=None),
+            )
             return {'success': True}
         _maybe_set_oidc_state_cookie(
             response,

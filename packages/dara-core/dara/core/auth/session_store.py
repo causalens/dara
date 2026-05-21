@@ -24,7 +24,8 @@ from typing import Literal
 import anyio
 
 from dara.core.auth.definitions import TokenData
-from dara.core.auth.utils import AUTH_COOKIE_EXPIRATION_GRACE_SECONDS
+from dara.core.auth.utils import AUTH_COOKIE_EXPIRATION_GRACE_SECONDS, get_token_expiration
+from dara.core.internal.settings import get_settings
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,34 @@ class _SessionEntry:
     retention_expires_at: float
 
 
+def _to_timestamp(exp: datetime | int | float) -> float:
+    if isinstance(exp, datetime):
+        if exp.tzinfo is None:
+            return exp.replace(tzinfo=timezone.utc).timestamp()
+        return exp.timestamp()
+    return float(exp)
+
+
+def get_auth_session_expiration(token_data: TokenData, refresh_token: str | None) -> float:
+    """
+    Return the absolute session handle expiration before auth cookie grace.
+
+    If no refresh token exists, the handle follows the auth token expiry. If a
+    refresh token has an exp claim, the handle follows the later of auth-token
+    and refresh-token expiry. Opaque refresh tokens with no exp claim use the
+    configured sliding max session age.
+    """
+    token_expires_at = _to_timestamp(token_data.exp)
+    if refresh_token is None:
+        return token_expires_at
+
+    refresh_token_expires_at = get_token_expiration(refresh_token)
+    if refresh_token_expires_at is None:
+        return time.time() + get_settings().auth_session_max_age_seconds
+
+    return max(token_expires_at, float(refresh_token_expires_at))
+
+
 class AuthSessionStore:
     """
     In-memory auth session store keyed by opaque browser cookie values.
@@ -78,14 +107,6 @@ class AuthSessionStore:
 
         return secrets.token_urlsafe(32)
 
-    @staticmethod
-    def _to_timestamp(exp: datetime | int | float) -> float:
-        if isinstance(exp, datetime):
-            if exp.tzinfo is None:
-                return exp.replace(tzinfo=timezone.utc).timestamp()
-            return exp.timestamp()
-        return float(exp)
-
     def _prune_expired_locked(self, now: float):
         expired = [session_token for session_token, entry in self._entries.items() if entry.retention_expires_at <= now]
         for session_token in expired:
@@ -99,8 +120,9 @@ class AuthSessionStore:
         refresh_token: str | None,
         now: float,
     ):
-        token_expires_at = self._to_timestamp(token_data.exp)
-        retention_expires_at = token_expires_at + AUTH_COOKIE_EXPIRATION_GRACE_SECONDS
+        token_expires_at = _to_timestamp(token_data.exp)
+        session_expires_at = get_auth_session_expiration(token_data, refresh_token)
+        retention_expires_at = session_expires_at + AUTH_COOKIE_EXPIRATION_GRACE_SECONDS
         if retention_expires_at <= now:
             self._entries.pop(session_token, None)
             raise ValueError('Cannot store an auth session that is already beyond refresh retention')

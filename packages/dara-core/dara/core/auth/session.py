@@ -22,7 +22,7 @@ from fastapi import HTTPException
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import BAD_REQUEST_ERROR, INVALID_TOKEN_ERROR, AuthError, TokenData
-from dara.core.auth.session_store import StoredAuthSession, auth_session_store
+from dara.core.auth.session_store import StoredAuthSession, auth_session_store, get_auth_session_expiration
 from dara.core.auth.utils import cached_refresh_token
 
 
@@ -61,22 +61,30 @@ async def verify_raw_auth_token(auth_config: BaseAuthConfig, token: str) -> Toke
 
 async def verify_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenData:
     """
-    Resolve an opaque browser session token and verify the auth config's raw token.
+    Verify an auth token transported by the browser or an external bearer client.
+
+    Opaque browser session handles are resolved first. If the handle is not present
+    in the server-side store, fall back to verifying the token directly so existing
+    raw bearer token integrations keep working.
     """
     stored_session = await get_stored_auth_session(token)
     if stored_session is None:
-        raise AuthError(INVALID_TOKEN_ERROR, 401)
+        return await verify_raw_auth_token(auth_config, token)
 
     return await verify_raw_auth_token(auth_config, stored_session.auth_token)
 
 
-async def resolve_raw_auth_token(token: str) -> str:
+async def resolve_raw_auth_token(auth_config: BaseAuthConfig, token: str) -> str:
     """
     Return the raw auth token behind an opaque session handle.
+
+    If no opaque session exists, verify the provided bearer token directly and
+    return it as the raw token for auth config operations such as revoke.
     """
     stored_session = await get_stored_auth_session(token)
     if stored_session is None:
-        raise AuthError(INVALID_TOKEN_ERROR, 401)
+        await verify_raw_auth_token(auth_config, token)
+        return token
 
     return stored_session.auth_token
 
@@ -86,6 +94,13 @@ async def create_auth_session(auth_token: str, token_data: TokenData, refresh_to
     Store raw auth token data server-side and return the browser-safe opaque handle.
     """
     return await auth_session_store.create(auth_token, token_data, refresh_token=refresh_token)
+
+
+def get_auth_session_cookie_expiration(token_data: TokenData, refresh_token: str | None) -> float:
+    """
+    Return the auth session cookie expiry before cookie grace.
+    """
+    return get_auth_session_expiration(token_data, refresh_token)
 
 
 async def _get_refresh_subject(token: str) -> _StoredRefreshSubject:
@@ -107,11 +122,11 @@ async def _get_refresh_subject(token: str) -> _StoredRefreshSubject:
 async def refresh_auth_session(
     auth_config: BaseAuthConfig,
     token: str,
-) -> tuple[str, TokenData]:
+) -> tuple[str, TokenData, str]:
     """
     Refresh an opaque auth session.
 
-    :return: opaque browser session token and verified new token data
+    :return: opaque browser session token, verified new token data, and refresh token
     """
     refresh_subject = await _get_refresh_subject(token)
     new_auth_token, new_refresh_token = await cached_refresh_token(
@@ -125,4 +140,4 @@ async def refresh_auth_session(
     session_token = refresh_subject.session_token
     await auth_session_store.set(session_token, new_auth_token, new_token_data, refresh_token=new_refresh_token)
 
-    return session_token, new_token_data
+    return session_token, new_token_data, new_refresh_token

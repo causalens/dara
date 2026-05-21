@@ -30,7 +30,7 @@ from dara.core.auth.definitions import (
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 from dara.core.auth.request_logging import auth_request_log_extra, log_auth_exception, log_auth_request_rejection
-from dara.core.auth.session import create_auth_session
+from dara.core.auth.session import create_auth_session, get_auth_session_cookie_expiration
 from dara.core.auth.utils import set_cookie_from_expiration, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
@@ -175,21 +175,23 @@ async def sso_callback(
             id_token=oidc_tokens.id_token,
             session_id=session_id,
         )
+        token_data = TokenData(
+            session_id=session_id,
+            exp=int(claims.exp),
+            identity_id=user_data.identity_id,
+            identity_name=user_data.identity_name,
+            identity_email=user_data.identity_email,
+            groups=user_data.groups or [],
+            id_token=oidc_tokens.id_token,
+        )
         session_token = await create_auth_session(
             raw_session_token,
-            TokenData(
-                session_id=session_id,
-                exp=int(claims.exp),
-                identity_id=user_data.identity_id,
-                identity_name=user_data.identity_name,
-                identity_email=user_data.identity_email,
-                groups=user_data.groups or [],
-                id_token=oidc_tokens.id_token,
-            ),
+            token_data,
             refresh_token=oidc_tokens.refresh_token,
         )
 
-        set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token, int(claims.exp))
+        session_expires_at = get_auth_session_cookie_expiration(token_data, oidc_tokens.refresh_token)
+        set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token, session_expires_at)
 
         return {'success': True, 'redirect_to': transaction.redirect_to}
 
