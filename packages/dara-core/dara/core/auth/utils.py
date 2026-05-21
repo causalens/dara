@@ -19,7 +19,7 @@ import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypeVar
 
 import jwt
 from fastapi import Response
@@ -37,8 +37,14 @@ from dara.core.auth.definitions import (
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
+AUTH_COOKIE_EXPIRATION_GRACE_SECONDS = 60
+RefreshInput = TypeVar('RefreshInput')
 
-def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tuple[int, datetime] | None:
+
+def get_cookie_expiration_from_token(
+    token: str,
+    grace_seconds: int = AUTH_COOKIE_EXPIRATION_GRACE_SECONDS,
+) -> tuple[int, datetime] | None:
     """
     Derive cookie max-age and expiry from a token's exp claim, with an optional grace period.
 
@@ -66,7 +72,7 @@ def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tup
 
 def get_cookie_expiration_from_exp(
     exp: datetime | int | float,
-    grace_seconds: int = 60,
+    grace_seconds: int = AUTH_COOKIE_EXPIRATION_GRACE_SECONDS,
 ) -> tuple[int, datetime]:
     """
     Derive cookie max-age and expiry from an exp value, with an optional grace period.
@@ -90,7 +96,7 @@ def set_cookie_from_expiration(
     key: str,
     token: str,
     exp: datetime | int | float,
-    grace_seconds: int = 60,
+    grace_seconds: int = AUTH_COOKIE_EXPIRATION_GRACE_SECONDS,
 ) -> None:
     """
     Set a secure auth cookie and align its expiry with a known server-side token expiry.
@@ -109,7 +115,7 @@ def set_cookie_from_token_expiration(
     response: Response,
     key: str,
     token: str,
-    grace_seconds: int = 60,
+    grace_seconds: int = AUTH_COOKIE_EXPIRATION_GRACE_SECONDS,
 ) -> None:
     """
     Set a secure auth cookie and align its expiry with the token's exp claim when available.
@@ -283,8 +289,8 @@ Shared token refresh cache instance
 
 
 async def cached_refresh_token(
-    do_refresh_token: Callable[[TokenData, str], Awaitable[tuple[str, str]]],
-    old_token_data: TokenData,
+    do_refresh_token: Callable[[RefreshInput, str], Awaitable[tuple[str, str]]],
+    refresh_input: RefreshInput,
     refresh_token: str,
 ):
     """
@@ -292,7 +298,7 @@ async def cached_refresh_token(
     and short-term caching to reduce unnecessary refreshes from multiple tabs/windows.
 
     :param do_refresh_token: The function to perform the token refresh
-    :param old_token_data: The old token data
+    :param refresh_input: Previous session data needed by the refresh implementation
     :param refresh_token: The refresh token to use
     """
     cache_key = refresh_token
@@ -312,7 +318,7 @@ async def cached_refresh_token(
             return cached_result
 
         # Run the refresh function
-        result = await do_refresh_token(old_token_data, refresh_token)
+        result = await do_refresh_token(refresh_input, refresh_token)
 
         # update cache
         token_refresh_cache.set_cached_value(cache_key, result)

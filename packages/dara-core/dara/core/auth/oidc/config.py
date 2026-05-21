@@ -537,17 +537,14 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         return self.discovery.token_endpoint
 
-    async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+    async def _refresh_token_for_session_id(self, session_id: str, refresh_token: str) -> tuple[str, str]:
         """
-        Refresh the session using an OIDC refresh token.
+        Refresh the session using an OIDC refresh token and the session id to preserve.
 
         Per RFC 6749 Section 6, sends a refresh token grant to the token endpoint
         to obtain new access/id tokens.
 
-        Note: the new issued session token includes the same session_id as the old token
-        to maintain session continuity.
-
-        :param old_token: Old session token data (used to preserve session_id)
+        :param session_id: session id to preserve
         :param refresh_token: OIDC refresh token
         :return: Tuple of (new_session_token, new_refresh_token)
         :raises HTTPException: If the refresh fails
@@ -590,13 +587,40 @@ class OIDCAuthConfig(BaseAuthConfig):
             groups=user_data.groups or [],
             id_token=oidc_tokens.id_token,
             exp=int(claims.exp),
-            session_id=old_token.session_id,
+            session_id=session_id,
         )
 
         # Return new session token and refresh token (or the old one if not rotated)
         new_refresh_token = oidc_tokens.refresh_token or refresh_token
 
         return new_session_token, new_refresh_token
+
+    async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        """
+        Refresh the session using an OIDC refresh token.
+
+        Note: the new issued session token includes the same session_id as the old token
+        to maintain session continuity.
+
+        :param old_token: Old session token data (used to preserve session_id)
+        :param refresh_token: OIDC refresh token
+        :return: Tuple of (new_session_token, new_refresh_token)
+        :raises HTTPException: If the refresh fails
+        """
+        return await self._refresh_token_for_session_id(old_token.session_id, refresh_token)
+
+    async def refresh_token_from_session_id(self, session_id: str, refresh_token: str) -> tuple[str, str]:
+        """
+        Refresh the session when the previous token data is unavailable.
+
+        The refreshed ID token establishes the identity and authorization claims; only the Dara session id is preserved.
+
+        :param session_id: session id to preserve
+        :param refresh_token: OIDC refresh token
+        :return: Tuple of (new_session_token, new_refresh_token)
+        :raises HTTPException: If the refresh fails
+        """
+        return await self._refresh_token_for_session_id(session_id, refresh_token)
 
     def get_end_session_endpoint(self) -> str | None:
         """

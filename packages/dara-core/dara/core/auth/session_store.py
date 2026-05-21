@@ -21,16 +21,18 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Literal
 
 import anyio
 
 from dara.core.auth.definitions import TokenData
+from dara.core.auth.utils import AUTH_COOKIE_EXPIRATION_GRACE_SECONDS
 from dara.core.internal.settings import get_settings
 
 OPAQUE_SESSION_TOKEN_PATTERN = re.compile(r'^[A-Za-z0-9_-]{20,}$')
 
 
-@dataclass
+@dataclass(frozen=True)
 class AuthSession:
     """Stored auth session data keyed by an opaque browser token."""
 
@@ -38,10 +40,28 @@ class AuthSession:
     token_data: TokenData
 
 
+@dataclass(frozen=True)
+class ActiveAuthSession(AuthSession):
+    """Stored session whose auth token is still within its exp claim."""
+
+    kind: Literal['active'] = 'active'
+
+
+@dataclass(frozen=True)
+class ExpiredAuthSession(AuthSession):
+    """Stored session whose auth token is expired but still retained for refresh continuity."""
+
+    kind: Literal['expired'] = 'expired'
+
+
+StoredAuthSession = ActiveAuthSession | ExpiredAuthSession
+
+
 @dataclass
 class _SessionEntry:
     session: AuthSession
-    hard_expires_at: float
+    token_expires_at: float
+    retention_expires_at: float
     idle_expires_at: float
 
 
@@ -85,26 +105,28 @@ class AuthSessionStore:
         expired = [
             session_token
             for session_token, entry in self._entries.items()
-            if entry.hard_expires_at <= now or entry.idle_expires_at <= now
+            if entry.retention_expires_at <= now or entry.idle_expires_at <= now
         ]
         for session_token in expired:
             self._entries.pop(session_token, None)
 
     def _set_locked(self, session_token: str, auth_token: str, token_data: TokenData, now: float, max_entries: int):
-        hard_expires_at = self._to_timestamp(token_data.exp)
-        if hard_expires_at <= now:
+        token_expires_at = self._to_timestamp(token_data.exp)
+        retention_expires_at = token_expires_at + AUTH_COOKIE_EXPIRATION_GRACE_SECONDS
+        if retention_expires_at <= now:
             self._entries.pop(session_token, None)
-            return
+            raise ValueError('Cannot store an auth session that is already beyond refresh retention')
 
         idle_ttl_seconds, _ = self._limits()
-        idle_expires_at = min(hard_expires_at, now + idle_ttl_seconds)
+        idle_expires_at = min(retention_expires_at, now + idle_ttl_seconds)
 
         self._entries[session_token] = _SessionEntry(
             session=AuthSession(
                 auth_token=auth_token,
                 token_data=token_data.model_copy(deep=True),
             ),
-            hard_expires_at=hard_expires_at,
+            token_expires_at=token_expires_at,
+            retention_expires_at=retention_expires_at,
             idle_expires_at=idle_expires_at,
         )
         self._entries.move_to_end(session_token)
@@ -138,7 +160,15 @@ class AuthSessionStore:
             self._prune_expired_locked(now)
             self._set_locked(session_token, auth_token, token_data, now, max_entries)
 
-    async def get(self, session_token: str, *, touch: bool = True) -> AuthSession | None:
+    @staticmethod
+    def _build_session(entry: _SessionEntry, now: float) -> StoredAuthSession:
+        session_type = ExpiredAuthSession if entry.token_expires_at <= now else ActiveAuthSession
+        return session_type(
+            auth_token=entry.session.auth_token,
+            token_data=entry.session.token_data.model_copy(deep=True),
+        )
+
+    async def get(self, session_token: str, *, touch: bool = True) -> StoredAuthSession | None:
         """Return the server-side auth session for an opaque session token."""
 
         now = time.time()
@@ -152,23 +182,18 @@ class AuthSessionStore:
 
             if touch:
                 idle_ttl_seconds, _ = self._limits()
-                entry.idle_expires_at = min(entry.hard_expires_at, now + idle_ttl_seconds)
+                entry.idle_expires_at = min(entry.retention_expires_at, now + idle_ttl_seconds)
                 self._entries.move_to_end(session_token)
 
-            return AuthSession(
-                auth_token=entry.session.auth_token,
-                token_data=entry.session.token_data.model_copy(deep=True),
-            )
+            return self._build_session(entry, now)
 
-    async def remove(self, session_token: str) -> AuthSession | None:
+    async def remove(self, session_token: str) -> StoredAuthSession | None:
+        now = time.time()
         async with self._lock:
             entry = self._entries.pop(session_token, None)
             if entry is None:
                 return None
-            return AuthSession(
-                auth_token=entry.session.auth_token,
-                token_data=entry.session.token_data.model_copy(deep=True),
-            )
+            return self._build_session(entry, now)
 
     async def clear(self):
         async with self._lock:

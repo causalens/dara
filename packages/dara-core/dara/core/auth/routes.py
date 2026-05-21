@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from dataclasses import dataclass
 from datetime import datetime
 from inspect import isawaitable
 from typing import Annotated, Any
@@ -38,7 +39,7 @@ from dara.core.auth.definitions import (
     SessionRequestBody,
     TokenData,
 )
-from dara.core.auth.session_store import AuthSession, auth_session_store
+from dara.core.auth.session_store import StoredAuthSession, auth_session_store
 from dara.core.auth.utils import (
     cached_refresh_token,
     decode_token,
@@ -48,6 +49,31 @@ from dara.core.auth.utils import (
 from dara.core.logging import dev_logger
 
 auth_router = APIRouter()
+
+
+@dataclass(frozen=True)
+class StoredRefreshSubject:
+    """Refresh subject backed by an opaque browser session entry."""
+
+    session_token: str
+    session: StoredAuthSession
+
+
+@dataclass(frozen=True)
+class RawTokenRefreshSubject:
+    """Refresh subject backed by a decoded raw auth token."""
+
+    token_data: TokenData
+
+
+@dataclass(frozen=True)
+class NewSessionRefreshSubject:
+    """Refresh subject for a missing opaque session where only continuity can be preserved."""
+
+    session_id: str
+
+
+RefreshSubject = StoredRefreshSubject | RawTokenRefreshSubject | NewSessionRefreshSubject
 
 
 def _cache_session_auth_token(token_data: TokenData):
@@ -251,7 +277,7 @@ def _should_attempt_session_refresh(
     return isinstance(auth_config, OIDCAuthConfig)
 
 
-async def _get_stored_auth_session(token: str, *, touch: bool = True) -> AuthSession | None:
+async def _get_stored_auth_session(token: str, *, touch: bool = True) -> StoredAuthSession | None:
     """
     Return a stored auth session when the supplied token is an opaque browser session handle.
     """
@@ -287,30 +313,21 @@ async def _store_auth_session(auth_token: str, token_data: TokenData) -> str:
     return await auth_session_store.create(auth_token, token_data)
 
 
-async def _get_refresh_token_data(auth_config: BaseAuthConfig, token: str) -> tuple[AuthSession | None, TokenData]:
+async def _get_refresh_subject(token: str) -> RefreshSubject:
     """
-    Resolve token data to pass to the auth config refresh method.
+    Resolve the previous auth state for a refresh request.
 
-    OIDC can recover from an in-memory opaque-session miss using only the refresh token. For that case we create a new
-    session id; the refreshed ID token will provide the rest of the user data.
+    A missing opaque session can still preserve session continuity, but it does not have user claims yet. The refreshed
+    token response must establish those claims instead of accepting fake TokenData.
     """
     stored_session = await _get_stored_auth_session(token)
     if stored_session is not None:
-        return stored_session, stored_session.token_data
+        return StoredRefreshSubject(session_token=token, session=stored_session)
 
     if auth_session_store.is_session_token(token):
-        from dara.core.auth.oidc.config import OIDCAuthConfig
+        return NewSessionRefreshSubject(session_id=str(uuid4()))
 
-        if isinstance(auth_config, OIDCAuthConfig):
-            return None, TokenData(
-                session_id=str(uuid4()),
-                exp=0,
-                identity_id='',
-                identity_name='',
-                groups=[],
-            )
-
-    return None, decode_token(token, options={'verify_exp': False})
+    return RawTokenRefreshSubject(token_data=decode_token(token, options={'verify_exp': False}))
 
 
 async def _refresh_session(
@@ -324,14 +341,29 @@ async def _refresh_session(
 
     :return: new session token
     """
-    stored_session, old_token_data = await _get_refresh_token_data(auth_config, token)
-    new_auth_token, new_refresh_token = await cached_refresh_token(
-        auth_config.refresh_token, old_token_data, refresh_token
-    )
+    refresh_subject = await _get_refresh_subject(token)
+    if isinstance(refresh_subject, StoredRefreshSubject):
+        new_auth_token, new_refresh_token = await cached_refresh_token(
+            auth_config.refresh_token,
+            refresh_subject.session.token_data,
+            refresh_token,
+        )
+    elif isinstance(refresh_subject, RawTokenRefreshSubject):
+        new_auth_token, new_refresh_token = await cached_refresh_token(
+            auth_config.refresh_token,
+            refresh_subject.token_data,
+            refresh_token,
+        )
+    else:
+        new_auth_token, new_refresh_token = await cached_refresh_token(
+            auth_config.refresh_token_from_session_id,
+            refresh_subject.session_id,
+            refresh_token,
+        )
     new_token_data = await _verify_raw_auth_token(auth_config, new_auth_token)
 
-    if stored_session is not None:
-        new_session_token = token
+    if isinstance(refresh_subject, StoredRefreshSubject):
+        new_session_token = refresh_subject.session_token
         await auth_session_store.set(new_session_token, new_auth_token, new_token_data)
     else:
         new_session_token = await _store_auth_session(new_auth_token, new_token_data)

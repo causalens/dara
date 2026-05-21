@@ -122,6 +122,22 @@ class BaseAuthConfig(BaseModel, abc.ABC):
         """
         raise HTTPException(400, f'Auth config {self.__class__.__name__} does not support token refresh')
 
+    async def refresh_token_from_session_id(self, session_id: str, refresh_token: str) -> tuple[str, str]:
+        """
+        Create new session and refresh tokens when only the session id can be preserved.
+
+        This is useful for refresh flows where the previous auth token data is unavailable but a refresh token can still
+        establish the user identity with the identity provider.
+
+        :param session_id: session id to preserve
+        :param refresh_token: encoded refresh token
+        :return: new session token, new refresh token
+        """
+        raise HTTPException(
+            400,
+            f'Auth config {self.__class__.__name__} does not support token refresh without previous session data',
+        )
+
     def revoke_token(
         self, token: str, response: Response
     ) -> SuccessResponse | RedirectResponse | Awaitable[SuccessResponse | RedirectResponse]:
