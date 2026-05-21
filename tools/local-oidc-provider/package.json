@@ -1,0 +1,35 @@
+{
+  "name": "local-oidc-provider",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Controllable local OIDC provider for auth and OIDC QA.",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "profile": "node src/profile.mjs",
+    "profile:happy": "node src/profile.mjs happy",
+    "profile:huge-groups": "node src/profile.mjs huge-groups",
+    "profile:missing-group": "node src/profile.mjs missing-group",
+    "profile:no-groups-claim": "node src/profile.mjs no-groups-claim",
+    "profile:groups-string": "node src/profile.mjs groups-string",
+    "profile:single-group-string": "node src/profile.mjs single-group-string",
+    "profile:unverified-email": "node src/profile.mjs unverified-email",
+    "profile:short-expiry": "node src/profile.mjs short-expiry",
+    "profile:refresh-loses-group": "node src/profile.mjs refresh-loses-group",
+    "profile:no-refresh-token": "node src/profile.mjs no-refresh-token",
+    "profile:userinfo-groups": "node src/profile.mjs userinfo-groups",
+    "profile:userinfo-denied": "node src/profile.mjs userinfo-denied",
+    "profile:userinfo-sub-mismatch": "node src/profile.mjs userinfo-sub-mismatch",
+    "profile:refresh-reuses-token": "node src/profile.mjs refresh-reuses-token",
+    "profile:missing-id-token": "node src/profile.mjs missing-id-token",
+    "smoke": "node src/smoke.mjs"
+  },
+  "dependencies": {
+    "koa": "3.2.0",
+    "koa-mount": "4.2.0",
+    "oidc-provider": "9.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -25,4 +25,30 @@ To see other available commands you can run:
 poetry run dara
 ```
 
+## Local OIDC QA
 
+Start the controllable provider from the repository root:
+
+```bash
+cd tools/local-oidc-provider
+npm install --no-package-lock
+npm start
+```
+
+In a second shell, source the demo-app env helper before starting the app:
+
+```bash
+cd packages/demo-app
+source scripts/use-local-oidc.sh
+poetry run dara start --reload
+```
+
+For fish:
+
+```fish
+cd packages/demo-app
+source scripts/use-local-oidc.fish
+poetry run dara start --reload
+```
+
+Use `--userinfo` with either helper to enable `SSO_USE_USERINFO=true`.
