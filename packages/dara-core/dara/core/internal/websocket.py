@@ -449,9 +449,9 @@ async def ws_handler(websocket: WebSocket):
     try:
         auth_config: BaseAuthConfig = auth_registry.get('auth_config')
 
-        from dara.core.auth.routes import _verify_auth_token
+        from dara.core.auth.session import verify_auth_token
 
-        token_content = await _verify_auth_token(auth_config, session_token)
+        token_content = await verify_auth_token(auth_config, session_token)
 
     except DecodeError as err:
         raise WebSocketException(code=403, reason='Invalid or expired token') from err

@@ -32,7 +32,7 @@ from dara.core.auth.oidc.definitions import (
 )
 from dara.core.auth.oidc.settings import get_oidc_settings
 from dara.core.auth.oidc.transaction_store import oidc_transaction_store
-from dara.core.auth.routes import _verify_auth_token
+from dara.core.auth.session import verify_auth_token
 from dara.core.auth.session_store import AuthSession, AuthSessionStore, ExpiredAuthSession, auth_session_store
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.main import _start_application
@@ -1155,7 +1155,7 @@ async def test_verify_token_opaque_token_without_session_data_fails():
     auth_config = make_config()
 
     with pytest.raises(AuthError) as error:
-        await _verify_auth_token(auth_config, session_token)
+        await verify_auth_token(auth_config, session_token)
 
     assert error.value.code == 401
     assert error.value.detail == INVALID_TOKEN_ERROR

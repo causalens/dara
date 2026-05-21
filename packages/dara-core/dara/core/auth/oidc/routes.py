@@ -29,7 +29,7 @@ from dara.core.auth.definitions import (
     TokenData,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
-from dara.core.auth.session_store import auth_session_store
+from dara.core.auth.session import create_auth_session
 from dara.core.auth.utils import set_cookie_from_expiration, set_cookie_from_token_expiration, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
@@ -128,7 +128,7 @@ async def sso_callback(
             id_token=oidc_tokens.id_token,
             session_id=session_id,
         )
-        session_token = await auth_session_store.create(
+        session_token = await create_auth_session(
             raw_session_token,
             TokenData(
                 session_id=session_id,
