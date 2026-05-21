@@ -27,7 +27,6 @@ from dara.core.auth.definitions import (
 from dara.core.auth.oidc.config import OIDCAuthConfig
 from dara.core.auth.oidc.definitions import (
     OIDC_LOGIN_SESSION_COOKIE_NAME,
-    REFRESH_TOKEN_COOKIE_NAME,
     OIDCDiscoveryMetadata,
 )
 from dara.core.auth.oidc.settings import get_oidc_settings
@@ -157,6 +156,14 @@ async def get_stored_auth_session(session_token: str) -> AuthSession:
     stored_session = await auth_session_store.get(session_token)
     assert stored_session is not None
     return stored_session
+
+
+async def create_mock_dara_session_token(refresh_token: str = 'mock-refresh-token') -> str:
+    return await auth_session_store.create(
+        MOCK_DARA_TOKEN,
+        TokenData(**MOCK_DARA_TOKEN_DATA),
+        refresh_token=refresh_token,
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -443,18 +450,10 @@ async def test_sso_callback_creates_valid_session_token():
             # JWKS endpoint should have been called once to retrieve the key
             assert mock_urllib.call_count == 1
 
-            # Check that the refresh token is added as a cookie
-            set_cookies = response.headers.getall('set-cookie')
-            refresh_cookie = next((cookie for cookie in set_cookies if cookie.startswith('dara_refresh_token=')), None)
-            assert refresh_cookie is not None
-            assert refresh_cookie.startswith(f'dara_refresh_token={mock_idp_response["refresh_token"]}')
-            assert 'Max-Age=' in refresh_cookie
-            assert 'expires=' in refresh_cookie.lower()
-
             assert response.json() == {'success': True, 'redirect_to': '/post-auth'}
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
-            assert AuthSessionStore.is_session_token(session_token)
             stored_session = await get_stored_auth_session(session_token)
+            assert stored_session.refresh_token == mock_idp_response['refresh_token']
             decoded_session_token = stored_session.token_data
             decoded_raw_token = jwt.decode(stored_session.auth_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
 
@@ -975,25 +974,25 @@ async def test_refresh_token_creates_valid_session_token():
             respx.post(auth_config.discovery.token_endpoint).mock(
                 return_value=httpx.Response(status_code=200, json=mock_idp_response)
             )
-            old_session_token = await auth_session_store.create(MOCK_DARA_TOKEN, TokenData(**MOCK_DARA_TOKEN_DATA))
+            old_session_token = await auth_session_store.create(
+                MOCK_DARA_TOKEN,
+                TokenData(**MOCK_DARA_TOKEN_DATA),
+                refresh_token=old_refresh_token_mock,
+            )
 
             response = await client.post(
                 '/api/auth/refresh-token',
-                cookies={'dara_refresh_token': old_refresh_token_mock},
                 headers={'Authorization': f'Bearer {old_session_token}'},
             )
 
             # JWKS endpoint should have been called once to retrieve the key
             assert mock_urllib.call_count == 1
 
-            # Check that the refresh token is added as a cookie
-            assert 'set-cookie' in response.headers
-            assert response.headers['set-cookie'].startswith(f'dara_refresh_token={mock_idp_response["refresh_token"]}')
-
             assert response.json() == {'success': True}
             session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
             assert session_token == old_session_token
             stored_session = await get_stored_auth_session(session_token)
+            assert stored_session.refresh_token == mock_idp_response['refresh_token']
             decoded_session_token = stored_session.token_data
 
             assert decoded_session_token.identity_id == MOCK_ID_TOKEN.get('identity').get('id')
@@ -1041,11 +1040,11 @@ async def test_refresh_token_invalid_group():
             respx.post(auth_config.discovery.token_endpoint).mock(
                 return_value=httpx.Response(status_code=200, json=mock_idp_response)
             )
+            old_session_token = await create_mock_dara_session_token(refresh_token=old_refresh_token_mock)
 
             response = await client.post(
                 '/api/auth/refresh-token',
-                cookies={REFRESH_TOKEN_COOKIE_NAME: old_refresh_token_mock},
-                headers={'Authorization': f'Bearer {MOCK_DARA_TOKEN}'},
+                headers={'Authorization': f'Bearer {old_session_token}'},
             )
 
             # JWKS endpoint should have been called once to retrieve the key
@@ -1054,7 +1053,7 @@ async def test_refresh_token_invalid_group():
             # 403 because no intersection between id_token groups and allowed groups
             assert response.status_code == 403
             assert response.json()['detail'] == UNAUTHORIZED_ERROR
-            assert response.headers['set-cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}="";')
+            assert response.headers['set-cookie'].startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";')
 
 
 async def test_refresh_token_idp_error():
@@ -1077,11 +1076,11 @@ async def test_refresh_token_idp_error():
             respx.post(auth_config.discovery.token_endpoint).mock(
                 return_value=httpx.Response(status_code=401, json=mock_idp_response)
             )
+            old_session_token = await create_mock_dara_session_token(refresh_token=str(uuid4()))
 
             response = await client.post(
                 '/api/auth/refresh-token',
-                cookies={REFRESH_TOKEN_COOKIE_NAME: str(uuid4())},
-                headers={'Authorization': f'Bearer {MOCK_DARA_TOKEN}'},
+                headers={'Authorization': f'Bearer {old_session_token}'},
             )
 
             # JWKS endpoint should not have been called, request should've failed before that point
@@ -1090,7 +1089,7 @@ async def test_refresh_token_idp_error():
             # 401 - invalid/expired token
             assert response.status_code == 401
             assert response.json()['detail'] == OTHER_AUTH_ERROR('Identity provider authorization failed')
-            assert response.headers['set-cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}="";')
+            assert response.headers['set-cookie'].startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";')
 
 
 async def test_verify_token_expired():
@@ -1161,9 +1160,9 @@ async def test_verify_token_opaque_token_without_session_data_fails():
     assert error.value.detail == INVALID_TOKEN_ERROR
 
 
-async def test_auth_session_store_sliding_ttl_refreshes_on_read():
+async def test_auth_session_store_retains_session_until_refresh_retention():
     """
-    Test auth session store refreshes idle TTL on read access.
+    Test auth session store retention is based only on token expiry plus refresh grace.
     """
     store = AuthSessionStore()
     token_data = TokenData(
@@ -1176,22 +1175,19 @@ async def test_auth_session_store_sliding_ttl_refreshes_on_read():
     )
 
     with (
-        mock.patch('dara.core.auth.session_store.get_settings') as mock_settings,
         mock.patch('dara.core.auth.session_store.time.time') as mock_time,
     ):
-        mock_settings.return_value = mock.Mock(auth_session_idle_ttl_seconds=2, auth_session_max_entries=10)
-
         mock_time.return_value = 100.0
         await store.set('token-1', 'auth-token-1', token_data)
 
-        mock_time.return_value = 101.5
+        mock_time.return_value = 150.0
         assert (await store.get('token-1')).token_data == token_data
 
-        mock_time.return_value = 103.0
-        assert (await store.get('token-1', touch=False)).token_data == token_data
+        mock_time.return_value = 259.0
+        assert (await store.get('token-1')).token_data == token_data
 
-        mock_time.return_value = 103.6
-        assert await store.get('token-1', touch=False) is None
+        mock_time.return_value = 260.1
+        assert await store.get('token-1') is None
 
 
 async def test_auth_session_store_keeps_expired_session_until_refresh_retention():
@@ -1209,21 +1205,18 @@ async def test_auth_session_store_keeps_expired_session_until_refresh_retention(
     )
 
     with (
-        mock.patch('dara.core.auth.session_store.get_settings') as mock_settings,
         mock.patch('dara.core.auth.session_store.time.time') as mock_time,
     ):
-        mock_settings.return_value = mock.Mock(auth_session_idle_ttl_seconds=120, auth_session_max_entries=10)
-
         mock_time.return_value = 99.0
         await store.set('token-1', 'auth-token-1', token_data)
 
         mock_time.return_value = 100.5
-        stored_session = await store.get('token-1', touch=False)
+        stored_session = await store.get('token-1')
         assert isinstance(stored_session, ExpiredAuthSession)
         assert stored_session.token_data == token_data
 
         mock_time.return_value = 160.1
-        assert await store.get('token-1', touch=False) is None
+        assert await store.get('token-1') is None
 
 
 async def test_auth_session_store_rejects_session_beyond_refresh_retention():
@@ -1241,19 +1234,16 @@ async def test_auth_session_store_rejects_session_beyond_refresh_retention():
     )
 
     with (
-        mock.patch('dara.core.auth.session_store.get_settings') as mock_settings,
         mock.patch('dara.core.auth.session_store.time.time') as mock_time,
     ):
-        mock_settings.return_value = mock.Mock(auth_session_idle_ttl_seconds=120, auth_session_max_entries=10)
-
         mock_time.return_value = 161.0
         with pytest.raises(ValueError):
             await store.create('auth-token-1', token_data)
 
 
-async def test_auth_session_store_evicts_lru_entries_when_max_size_exceeded():
+async def test_auth_session_store_retains_all_unexpired_sessions():
     """
-    Test auth session store evicts the least recently used entry when full.
+    Test auth session store does not evict unexpired sessions based on entry count.
     """
     store = AuthSessionStore()
     token_data = TokenData(
@@ -1266,11 +1256,8 @@ async def test_auth_session_store_evicts_lru_entries_when_max_size_exceeded():
     )
 
     with (
-        mock.patch('dara.core.auth.session_store.get_settings') as mock_settings,
         mock.patch('dara.core.auth.session_store.time.time') as mock_time,
     ):
-        mock_settings.return_value = mock.Mock(auth_session_idle_ttl_seconds=60, auth_session_max_entries=2)
-
         mock_time.return_value = 100.0
         await store.set('token-1', 'auth-token-1', token_data)
 
@@ -1283,11 +1270,9 @@ async def test_auth_session_store_evicts_lru_entries_when_max_size_exceeded():
         mock_time.return_value = 103.0
         await store.set('token-3', 'auth-token-3', token_data.model_copy(update={'session_id': 'session-3'}))
 
-        assert await store.get('token-2', touch=False) is None
-        assert (await store.get('token-1', touch=False)).token_data == token_data
-        assert (await store.get('token-3', touch=False)).token_data == token_data.model_copy(
-            update={'session_id': 'session-3'}
-        )
+        assert (await store.get('token-1')).token_data == token_data
+        assert (await store.get('token-2')).token_data == token_data.model_copy(update={'session_id': 'session-2'})
+        assert (await store.get('token-3')).token_data == token_data.model_copy(update={'session_id': 'session-3'})
 
 
 async def test_verify_session_dara_token_without_id_token_forces_relogin():
@@ -1347,7 +1332,11 @@ async def test_verify_session_expired_opaque_token_refreshes_with_existing_sessi
                 id_token='old-id-token',
             )
             raw_session_token = jwt.encode(old_token_data.model_dump(), ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-            expired_session_token = await auth_session_store.create(raw_session_token, old_token_data)
+            expired_session_token = await auth_session_store.create(
+                raw_session_token,
+                old_token_data,
+                refresh_token='expired-session-refresh-token',
+            )
 
             jwk = PyJWK(MOCK_JWK)
             refreshed_id_token = jwt.encode(
@@ -1370,23 +1359,22 @@ async def test_verify_session_expired_opaque_token_refreshes_with_existing_sessi
             response = await client.post(
                 '/api/auth/verify-session',
                 headers={'Authorization': f'Bearer {expired_session_token}'},
-                cookies={REFRESH_TOKEN_COOKIE_NAME: 'expired-session-refresh-token'},
             )
 
             assert response.status_code == 200
             assert mock_urllib.call_count == 1
 
-            assert response.cookies.get(REFRESH_TOKEN_COOKIE_NAME) == 'rotated-refresh-token'
             assert response.cookies.get(SESSION_TOKEN_COOKIE_NAME) == expired_session_token
 
             stored_session = await get_stored_auth_session(expired_session_token)
+            assert stored_session.refresh_token == 'rotated-refresh-token'
             assert stored_session.token_data.session_id == session_id
             assert stored_session.token_data.id_token == refreshed_id_token
 
 
-async def test_verify_session_opaque_token_refreshes_when_session_store_entry_missing():
+async def test_verify_session_opaque_token_forces_relogin_when_session_store_entry_missing():
     """
-    Test verify-session falls back to the refresh token when an opaque session store entry is missing.
+    Test verify-session fails when an opaque session store entry is missing.
     """
     config = ConfigurationBuilder()
 
@@ -1397,41 +1385,16 @@ async def test_verify_session_opaque_token_refreshes_when_session_store_entry_mi
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
             stale_session_token = AuthSessionStore.generate_session_token()
-            jwk = PyJWK(MOCK_JWK)
-            refreshed_id_token = jwt.encode(
-                MOCK_ID_TOKEN,
-                jwk.key,
-                algorithm=MOCK_JWK['alg'],
-                headers={'kid': MOCK_JWK['kid']},
-            )
-
-            respx.post(auth_config.discovery.token_endpoint).mock(
-                return_value=httpx.Response(
-                    status_code=200,
-                    json={
-                        'id_token': refreshed_id_token,
-                        'refresh_token': 'rotated-refresh-token',
-                    },
-                )
-            )
 
             response = await client.post(
                 '/api/auth/verify-session',
                 headers={'Authorization': f'Bearer {stale_session_token}'},
-                cookies={REFRESH_TOKEN_COOKIE_NAME: 'original-refresh-token'},
             )
 
-            assert response.status_code == 200
-            assert mock_urllib.call_count == 1
-
-            assert response.cookies.get(REFRESH_TOKEN_COOKIE_NAME) == 'rotated-refresh-token'
-            new_session_token = response.cookies.get(SESSION_TOKEN_COOKIE_NAME)
-            assert new_session_token is not None
-            assert AuthSessionStore.is_session_token(new_session_token)
-            stored_session = await get_stored_auth_session(new_session_token)
-            assert stored_session.token_data.id_token == refreshed_id_token
-            decoded_raw_token = jwt.decode(stored_session.auth_token, ENV_OVERRIDE['JWT_SECRET'], algorithms=[JWT_ALGO])
-            assert decoded_raw_token['id_token'] == refreshed_id_token
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
+            assert mock_urllib.call_count == 0
+            assert response.headers['set-cookie'].startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";')
 
 
 async def test_verify_session_malformed_token_forces_relogin():
@@ -1528,7 +1491,7 @@ async def test_verify_token_decodes_id_token_correctly():
 
 async def test_revoke_session():
     """
-    Test that in SSO mode revoke session returns a redirect_uri and deletes the refresh token cookie
+    Test that in SSO mode revoke session returns a redirect_uri and clears the session cookie
     """
     config = ConfigurationBuilder()
 
@@ -1555,15 +1518,16 @@ async def test_revoke_session():
                 'id_token': id_token,
             }
             encoded_test_token = jwt.encode(test_token, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
+            session_token = await auth_session_store.create(encoded_test_token, TokenData(**test_token))
 
             response = await client.post(
                 '/api/auth/revoke-session',
-                headers={'Authorization': f'Bearer {encoded_test_token}'},
+                headers={'Authorization': f'Bearer {session_token}'},
             )
 
             assert response.status_code == 200
             assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
-            assert response.headers['Set-Cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}=""; expires')
+            assert response.headers['Set-Cookie'].startswith(f'{SESSION_TOKEN_COOKIE_NAME}=""; expires')
             assert 'Max-Age=0' in response.headers['Set-Cookie']
 
 
@@ -1616,9 +1580,9 @@ async def test_revoke_session_opaque_token_uses_stored_raw_id_token():
         assert await auth_session_store.get(session_token) is None
 
 
-async def test_revoke_session_raw_id_token():
+async def test_revoke_session_raw_id_token_rejected():
     """
-    Test that revoke session works in SSO mode also when a raw ID token is used
+    Test that revoke session rejects raw ID tokens on the browser-facing auth path.
     """
     config = ConfigurationBuilder()
 
@@ -1641,10 +1605,8 @@ async def test_revoke_session_raw_id_token():
                 headers={'Authorization': f'Bearer {id_token}'},
             )
 
-            assert response.status_code == 200
-            assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
-            assert response.headers['Set-Cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}=""; expires')
-            assert 'Max-Age=0' in response.headers['Set-Cookie']
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
 
 
 async def test_revoke_session_expired_token():
@@ -1668,7 +1630,7 @@ async def test_revoke_session_expired_token():
             )
             test_token = {
                 'session_id': 'SESSION_ID',
-                'exp': (datetime.now(tz=timezone.utc) - timedelta(hours=2)),
+                'exp': (datetime.now(tz=timezone.utc) - timedelta(seconds=10)),
                 'identity_id': 'PERSONA_ID',
                 'identity_name': 'USERNAME',
                 'identity_email': 'joe@causalens.com',
@@ -1676,15 +1638,16 @@ async def test_revoke_session_expired_token():
                 'id_token': id_token,
             }
             encoded_test_token = jwt.encode(test_token, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
+            session_token = await auth_session_store.create(encoded_test_token, TokenData(**test_token))
 
             response = await client.post(
                 '/api/auth/revoke-session',
-                headers={'Authorization': f'Bearer {encoded_test_token}'},
+                headers={'Authorization': f'Bearer {session_token}'},
             )
 
             assert response.status_code == 200
             assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
-            assert response.headers['Set-Cookie'].startswith(f'{REFRESH_TOKEN_COOKIE_NAME}=""; expires')
+            assert response.headers['Set-Cookie'].startswith(f'{SESSION_TOKEN_COOKIE_NAME}=""; expires')
             assert 'Max-Age=0' in response.headers['Set-Cookie']
 
 
@@ -1995,18 +1958,20 @@ async def test_refresh_token_with_userinfo(mock_discovery_with_userinfo):
                 respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
                     return_value=httpx.Response(status_code=200, json=MOCK_USERINFO)
                 )
+                old_session_token = await create_mock_dara_session_token(refresh_token=old_refresh_token_mock)
 
                 response = await client.post(
                     '/api/auth/refresh-token',
-                    cookies={'dara_refresh_token': old_refresh_token_mock},
-                    headers={'Authorization': f'Bearer {MOCK_DARA_TOKEN}'},
+                    headers={'Authorization': f'Bearer {old_session_token}'},
                 )
 
                 assert response.status_code == 200
 
                 assert response.json() == {'success': True}
                 session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
-                decoded_session_token = (await get_stored_auth_session(session_token)).token_data
+                stored_session = await get_stored_auth_session(session_token)
+                assert stored_session.refresh_token == mock_idp_response['refresh_token']
+                decoded_session_token = stored_session.token_data
 
                 # User data should come from userinfo
                 assert decoded_session_token.identity_name == MOCK_USERINFO['name']

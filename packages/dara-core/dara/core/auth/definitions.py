@@ -129,7 +129,6 @@ def BAD_REQUEST_ERROR(msg):
 
 JWT_ALGO = 'HS256'
 SESSION_TOKEN_COOKIE_NAME = 'dara_session_token'
-REFRESH_TOKEN_COOKIE_NAME = 'dara_refresh_token'
 
 
 class AuthCookieKwargs(TypedDict):

@@ -21,7 +21,6 @@ from ..definitions import (
     BAD_REQUEST_ERROR,
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
-    REFRESH_TOKEN_COOKIE_NAME,
     SESSION_ID,
     UNAUTHORIZED_ERROR,
     USER,
@@ -609,19 +608,6 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         return await self._refresh_token_for_session_id(old_token.session_id, refresh_token)
 
-    async def refresh_token_from_session_id(self, session_id: str, refresh_token: str) -> tuple[str, str]:
-        """
-        Refresh the session when the previous token data is unavailable.
-
-        The refreshed ID token establishes the identity and authorization claims; only the Dara session id is preserved.
-
-        :param session_id: session id to preserve
-        :param refresh_token: OIDC refresh token
-        :return: Tuple of (new_session_token, new_refresh_token)
-        :raises HTTPException: If the refresh fails
-        """
-        return await self._refresh_token_for_session_id(session_id, refresh_token)
-
     def get_end_session_endpoint(self) -> str | None:
         """
         Get the end session endpoint URL.
@@ -690,9 +676,6 @@ class OIDCAuthConfig(BaseAuthConfig):
         :return: RedirectResponse to the logout URL
         """
         oidc_settings = get_oidc_settings()
-
-        # Clean up the refresh token cookie
-        response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
 
         # Extract the ID token to use as a hint
         id_token: str | None = None

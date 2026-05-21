@@ -6,14 +6,12 @@ import { request } from '@/api';
 import { SESSION_REFRESHED_EVENT } from '@/api/events';
 import { setSessionIdentifier, waitForOngoingSessionRefresh, withSessionRefreshLock } from '@/auth/session-state';
 
-const REFRESH_TOKEN_NAME = 'dara_refresh_token';
-const REFRESH_TOKEN = 'REFRESH';
-
 const refreshAttempted = vi.fn();
 const requested401 = vi.fn();
 const requested403 = vi.fn();
 
 let delay: Promise<void> | null = null;
+let canRefreshSession = false;
 let hasValidSession = false;
 
 interface LockManagerMock {
@@ -44,10 +42,10 @@ const server = setupServer(
     }),
 
     // mock refresh token endpoint
-    http.post('/api/auth/refresh-token', async (info) => {
+    http.post('/api/auth/refresh-token', async () => {
         refreshAttempted();
 
-        if (info.cookies.dara_refresh_token === REFRESH_TOKEN) {
+        if (canRefreshSession) {
             if (delay) {
                 // simulate a delay in refreshing the token
                 await delay;
@@ -68,12 +66,11 @@ describe('HTTP Utils', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         delay = null;
+        canRefreshSession = false;
         hasValidSession = false;
     });
 
     afterEach(() => {
-        // force delete the cookie by making it expire
-        document.cookie = `${REFRESH_TOKEN_NAME}=; Expires=1 Jan 1970 00:00:00 GMT`;
         setSessionIdentifier(null);
         vi.clearAllTimers();
         vi.useRealTimers();
@@ -83,14 +80,14 @@ describe('HTTP Utils', () => {
 
     afterAll(() => server.close());
 
-    it('attempts to refresh the token on 401, failing if no refresh token is present', async () => {
+    it('attempts to refresh the token on 401, failing if the session cannot be refreshed', async () => {
         const res = await request('/error-401', { method: 'GET' });
         expect(res.status).toBe(401);
         expect(refreshAttempted).toHaveBeenCalledTimes(1);
     });
 
     it('does not attempt to refresh the token on 403', async () => {
-        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+        canRefreshSession = true;
 
         const res = await request('/error-403', { method: 'GET' });
         expect(res.status).toBe(403);
@@ -98,8 +95,7 @@ describe('HTTP Utils', () => {
     });
 
     it('refreshes the token and retries the request', async () => {
-        // set a cookie, in reality it would be http-only etc
-        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+        canRefreshSession = true;
 
         const res = await request('/error-401');
         expect(res.status).toBe(200);
@@ -108,7 +104,7 @@ describe('HTTP Utils', () => {
     });
 
     it('emits a refresh success event when the token refresh succeeds', async () => {
-        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+        canRefreshSession = true;
 
         const refreshEventSpy = vi.fn();
         window.addEventListener(SESSION_REFRESHED_EVENT, refreshEventSpy);
@@ -123,8 +119,7 @@ describe('HTTP Utils', () => {
     });
 
     it('concurrent requests only refresh the token once', async () => {
-        // set a cookie, in reality it would be http-only etc
-        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+        canRefreshSession = true;
 
         const requestCount = 30;
 
@@ -156,7 +151,7 @@ describe('HTTP Utils', () => {
     });
 
     it('uses the web locks api for refresh coordination when available', async () => {
-        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+        canRefreshSession = true;
 
         const nav = navigator as NavigatorWithOptionalLocks;
         const originalLocks = nav.locks;
@@ -186,7 +181,7 @@ describe('HTTP Utils', () => {
     });
 
     it('falls back to in-tab refresh coordination when web locks api is unavailable', async () => {
-        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+        canRefreshSession = true;
 
         const nav = navigator as NavigatorWithOptionalLocks;
         const originalLocks = nav.locks;
@@ -236,8 +231,7 @@ describe('HTTP Utils', () => {
     });
 
     it('request made while refresh is occuring waits for the refresh to complete', async () => {
-        // set a cookie, in reality it would be http-only etc
-        document.cookie = `${REFRESH_TOKEN_NAME}=${REFRESH_TOKEN}; `;
+        canRefreshSession = true;
 
         // set a delay on the refresh to simulate a slow response
         let resolve;

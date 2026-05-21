@@ -24,13 +24,12 @@ from dara.core.auth.definitions import (
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
-    REFRESH_TOKEN_COOKIE_NAME,
     SESSION_TOKEN_COOKIE_NAME,
     TokenData,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 from dara.core.auth.session import create_auth_session
-from dara.core.auth.utils import set_cookie_from_expiration, set_cookie_from_token_expiration, sign_jwt
+from dara.core.auth.utils import set_cookie_from_expiration, sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
@@ -53,7 +52,7 @@ async def sso_callback(
     1. Validates the state parameter (CSRF protection) if provided
     2. Exchanges the authorization code for tokens at the IDP's token endpoint
     3. Verifies the ID token and extracts user information
-    4. Issues a Dara session token and sets the refresh token cookie
+    4. Stores auth token material server-side and sets an opaque session cookie
 
     Per OpenID Connect Core 1.0 Section 3.1.2.5 (Authorization Code Flow).
 
@@ -139,11 +138,8 @@ async def sso_callback(
                 groups=user_data.groups or [],
                 id_token=oidc_tokens.id_token,
             ),
+            refresh_token=oidc_tokens.refresh_token,
         )
-
-        # Set refresh token cookie if provided
-        if oidc_tokens.refresh_token:
-            set_cookie_from_token_expiration(response, REFRESH_TOKEN_COOKIE_NAME, oidc_tokens.refresh_token)
 
         set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token, int(claims.exp))
 
