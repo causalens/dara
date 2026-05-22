@@ -937,6 +937,17 @@ async def test_extract_user_data_accepts_comma_delimited_group_string():
     assert user_data.groups == ['dev, engineering', 'dev', 'engineering']
 
 
+async def test_extract_user_data_accepts_quoted_csv_group_string():
+    auth_config = make_config()
+    group_dn = 'CN=App Users,OU=Groups,DC=example,DC=com'
+    group_claim = f'"{group_dn}", engineering'
+    claims = IdTokenClaims.model_validate({**MOCK_ID_TOKEN, 'groups': group_claim})
+
+    user_data = auth_config.extract_user_data(claims)
+
+    assert user_data.groups == [group_claim, group_dn, 'engineering']
+
+
 async def test_extract_user_data_preserves_full_comma_group_string():
     auth_config = make_config()
     group_dn = 'CN=App Users,OU=Groups,DC=example,DC=com'

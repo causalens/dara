@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import csv
 import hashlib
 import secrets
 from typing import Any, ClassVar
@@ -403,7 +404,9 @@ class OIDCAuthConfig(BaseAuthConfig):
                 return [group]
 
             parsed_groups = [group]
-            parsed_groups.extend(part.strip() for part in group.split(',') if part.strip())
+            parsed_groups.extend(
+                part.strip() for part in next(csv.reader([group], skipinitialspace=True)) if part.strip()
+            )
             return list(dict.fromkeys(parsed_groups))
 
         dev_logger.error(
