@@ -155,13 +155,13 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "cachetools"
-version = "7.1.3"
+version = "7.1.4"
 description = "Extensible memoizing collections and decorators"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "cachetools-7.1.3-py3-none-any.whl", hash = "sha256:9876787e2346e20584d5cca236cb5d49d04e7193de91646f230725b2e1e8b804"},
-    {file = "cachetools-7.1.3.tar.gz", hash = "sha256:135cfe944bc3c1e805505f65dae0bef375a2f96261171ab66c79ef77d0bda39d"},
+    {file = "cachetools-7.1.4-py3-none-any.whl", hash = "sha256:323dc4127934744db5b54eb4924482d7edafbf9554e820d1531c2e08c0e4ef54"},
+    {file = "cachetools-7.1.4.tar.gz", hash = "sha256:437f55a4e0c1b01a4f3077cc470e6991d47430970e36fbcb77e2be0df4fc1cd6"},
 ]
 
 [[package]]
@@ -428,13 +428,13 @@ files = [
 
 [[package]]
 name = "click"
-version = "8.4.0"
+version = "8.4.1"
 description = "Composable command line interface toolkit"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "click-8.4.0-py3-none-any.whl", hash = "sha256:40c50b7c6c6adac2823d411041ec84f3f103f1b280d5e9ce0d7f998995832f81"},
-    {file = "click-8.4.0.tar.gz", hash = "sha256:638f1338fe1235c8f4e008e4a8a254fb5c5fbdcbb40ece3c9142ebb78e792973"},
+    {file = "click-8.4.1-py3-none-any.whl", hash = "sha256:482be17c6991b8c19c5429a1e995d9b0efdbb63172824c41f99965dc0ade8ec2"},
+    {file = "click-8.4.1.tar.gz", hash = "sha256:918b5633eddf6b41c32d4f454bf0de810065c74e3f7dbf8ee5452f8be88d3e96"},
 ]
 
 [package.dependencies]
@@ -550,7 +550,7 @@ rich = "*"
 
 [[package]]
 name = "create-dara-app"
-version = "1.26.12"
+version = "1.26.13"
 description = "CLI to quickly bootstrap a Dara app"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -662,7 +662,7 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dara-components"
-version = "1.26.12"
+version = "1.26.13"
 description = "Components for the Dara Framework"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -673,7 +673,7 @@ develop = true
 bokeh = "3.1.1"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.26.12"
+dara-core = "1.26.13"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -687,7 +687,7 @@ url = "packages/dara-components"
 
 [[package]]
 name = "dara-core"
-version = "1.26.12"
+version = "1.26.13"
 description = "Dara Framework Core"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -732,7 +732,7 @@ uvicorn = {version = ">=0.23.1", extras = ["standard"]}
 xlrd = "*"
 
 [package.extras]
-all = ["dara-components (==1.26.12)"]
+all = ["dara-components (==1.26.13)"]
 
 [package.source]
 type = "directory"
@@ -751,7 +751,7 @@ files = [
 
 [[package]]
 name = "demo-app"
-version = "1.26.12"
+version = "1.26.13"
 description = "Demo App"
 optional = false
 python-versions = ">=3.10.0, <3.13.0"
@@ -759,8 +759,8 @@ files = []
 develop = true
 
 [package.dependencies]
-dara-components = "1.26.12"
-dara-core = "1.26.12"
+dara-components = "1.26.13"
+dara-core = "1.26.13"
 
 [package.source]
 type = "directory"
@@ -783,7 +783,7 @@ profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
 name = "eslint-config"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -1096,13 +1096,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "idna"
-version = "3.15"
+version = "3.16"
 description = "Internationalized Domain Names in Applications (IDNA)"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "idna-3.15-py3-none-any.whl", hash = "sha256:048adeaf8c2d788c40fee287673ccaa74c24ffd8dcf09ffa555a2fbb59f10ac8"},
-    {file = "idna-3.15.tar.gz", hash = "sha256:ca962446ea538f7092a95e057da437618e886f4d349216d2b1e294abfdb65fdc"},
+    {file = "idna-3.16-py3-none-any.whl", hash = "sha256:cc246e3a3f89580c3a951b5ad298ca4638078b2cdd4f115654332b5c26daded5"},
+    {file = "idna-3.16.tar.gz", hash = "sha256:d7a6da03db833450fca25d2358ac9ff06cd624577a4aea3a596d5c0f77b8e03d"},
 ]
 
 [package.extras]
@@ -2036,7 +2036,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "prettier-config"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -2350,13 +2350,13 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyjwt"
-version = "2.12.1"
+version = "2.13.0"
 description = "JSON Web Token implementation in Python"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pyjwt-2.12.1-py3-none-any.whl", hash = "sha256:28ca37c070cad8ba8cd9790cd940535d40274d22f80ab87f3ac6a713e6e8454c"},
-    {file = "pyjwt-2.12.1.tar.gz", hash = "sha256:c74a7a2adf861c04d002db713dd85f84beb242228e671280bf709d765b03672b"},
+    {file = "pyjwt-2.13.0-py3-none-any.whl", hash = "sha256:66adcc2aff09b3f1bbd95fc1e1577df8ac8723c978552fd43304c8a290ac5728"},
+    {file = "pyjwt-2.13.0.tar.gz", hash = "sha256:41571c89ca91598c79e8ef18a2d07367d4810fbbd6f637794879baf1b7703423"},
 ]
 
 [package.dependencies]
@@ -2364,9 +2364,6 @@ typing_extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
 
 [package.extras]
 crypto = ["cryptography (>=3.4.0)"]
-dev = ["coverage[toml] (==7.10.7)", "cryptography (>=3.4.0)", "pre-commit", "pytest (>=8.4.2,<9.0.0)", "sphinx", "sphinx-rtd-theme", "zope.interface"]
-docs = ["sphinx", "sphinx-rtd-theme", "zope.interface"]
-tests = ["coverage[toml] (==7.10.7)", "pytest (>=8.4.2,<9.0.0)"]
 
 [[package]]
 name = "pyparsing"
@@ -2842,7 +2839,7 @@ files = [
 
 [[package]]
 name = "styled-components"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -2855,7 +2852,7 @@ url = "packages/styled-components"
 
 [[package]]
 name = "stylelint-config"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3063,7 +3060,7 @@ files = [
 
 [[package]]
 name = "ui-causal-graph-editor"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3076,7 +3073,7 @@ url = "packages/ui-causal-graph-editor"
 
 [[package]]
 name = "ui-components"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3089,7 +3086,7 @@ url = "packages/ui-components"
 
 [[package]]
 name = "ui-hierarchy-viewer"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3102,7 +3099,7 @@ url = "packages/ui-hierarchy-viewer"
 
 [[package]]
 name = "ui-icons"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3115,7 +3112,7 @@ url = "packages/ui-icons"
 
 [[package]]
 name = "ui-notification"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3128,7 +3125,7 @@ url = "packages/ui-notifications"
 
 [[package]]
 name = "ui-utils"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3141,7 +3138,7 @@ url = "packages/ui-utils"
 
 [[package]]
 name = "ui-widgets"
-version = "1.26.12"
+version = "1.26.13"
 description = ""
 optional = false
 python-versions = "*"
@@ -3477,4 +3474,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<3.13.0"
-content-hash = "139ae18b4e9db027fadb852d3327838f63c05eff5d384ddc009b35cdcb1fdd17"
+content-hash = "14a387c3bd8d5eb15194291a337ea65dedae2d367fd6d132c9851faf54830c63"
