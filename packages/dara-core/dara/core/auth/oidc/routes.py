@@ -161,9 +161,9 @@ async def sso_callback(
             )
             raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 
-        # Fetch userinfo if enabled and we have an access token
+        # Fetch userinfo if enabled. Once enabled, userinfo is part of the auth contract.
         userinfo = None
-        if oidc_settings.use_userinfo and oidc_tokens.access_token:
+        if oidc_settings.use_userinfo:
             userinfo = await auth_config.fetch_userinfo(oidc_tokens.access_token)
 
         # Extract user data from claims (handles both standard OIDC and Causalens identity claim)

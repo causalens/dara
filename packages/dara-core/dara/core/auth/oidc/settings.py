@@ -32,7 +32,7 @@ class OIDCSettings(BaseSettings):
     extra_audience: list[str] | None = None
     allowed_identity_id: str | None = None
     use_userinfo: bool = False
-    """If True, fetch additional claims from the userinfo endpoint when an access token is available."""
+    """If True, require the userinfo endpoint during OIDC login and refresh."""
     discovery_request_timeout_seconds: float = Field(default=5.0, gt=0)
     """Timeout applied to each OIDC discovery HTTP request."""
     discovery_max_attempts: int = Field(default=3, ge=1)

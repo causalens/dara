@@ -2083,7 +2083,7 @@ async def test_sso_callback_rejects_userinfo_subject_mismatch(mock_discovery_wit
 
                 response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
                 assert response.status_code == 401
-                assert response.json()['detail'] == INVALID_TOKEN_ERROR
+                assert response.json()['detail'] == OTHER_AUTH_ERROR('Identity provider userinfo failed')
 
 
 async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_userinfo):
@@ -2147,10 +2147,11 @@ async def test_sso_callback_userinfo_disabled_by_default(mock_discovery_with_use
                 assert decoded_session_token.groups == MOCK_ID_TOKEN['groups']
 
 
-async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_userinfo):
+async def test_sso_callback_userinfo_failure_rejects(mock_discovery_with_userinfo, caplog: pytest.LogCaptureFixture):
     """
-    Test that /sso-callback continues with id_token data if userinfo fetch fails
+    Test that /sso-callback rejects if required userinfo fetch fails
     """
+    caplog.set_level(logging.ERROR, logger='dara.dev')
     with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
         get_oidc_settings.cache_clear()
 
@@ -2158,7 +2159,7 @@ async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_useri
         auth_config = make_config()
         config.add_auth(auth_config)
 
-        with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+        with mocked_urllib(MOCK_JWKS_DATA):
             app = _start_application(config._to_configuration())
             async with AsyncClient(app) as client:
                 state = await start_oidc_login(client)
@@ -2191,17 +2192,99 @@ async def test_sso_callback_userinfo_failure_continues(mock_discovery_with_useri
                 )
 
                 response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
-                # Should still succeed
-                assert response.status_code == 200
+                assert response.status_code == 401
+                assert response.json()['detail'] == OTHER_AUTH_ERROR('Identity provider userinfo failed')
 
-                assert response.json() == {'success': True, 'redirect_to': None}
-                session_token = response.cookies[SESSION_TOKEN_COOKIE_NAME]
-                decoded_session_token = (await get_stored_auth_session(session_token)).token_data
+                log_content = get_log_content(caplog, 'OIDC userinfo fetch failed')
+                assert log_content['reason'] == 'http_error'
+                assert log_content['userinfo_response_status'] == 500
 
-                # User data should fall back to id_token data
-                assert decoded_session_token.identity_name == MOCK_ID_TOKEN['identity']['name']
-                assert decoded_session_token.identity_email == MOCK_ID_TOKEN['identity']['email']
-                assert decoded_session_token.groups == MOCK_ID_TOKEN['groups']
+
+async def test_sso_callback_userinfo_requires_access_token(
+    mock_discovery_with_userinfo, caplog: pytest.LogCaptureFixture
+):
+    """
+    Test that SSO_USE_USERINFO requires an access token from the IDP token response
+    """
+    caplog.set_level(logging.ERROR, logger='dara.dev')
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA):
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+                assert response.status_code == 401
+                assert response.json()['detail'] == OTHER_AUTH_ERROR('Identity provider userinfo failed')
+
+                log_content = get_log_content(caplog, 'OIDC userinfo fetch failed')
+                assert log_content['reason'] == 'missing_access_token'
+
+
+async def test_sso_callback_userinfo_requires_discovery_endpoint(caplog: pytest.LogCaptureFixture):
+    """
+    Test that SSO_USE_USERINFO requires a userinfo endpoint in OIDC discovery
+    """
+    caplog.set_level(logging.ERROR, logger='dara.dev')
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA):
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                state = await start_oidc_login(client)
+                id_token = make_mock_id_token(state)
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    PyJWK(MOCK_JWK).key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        PyJWK(MOCK_JWK).key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                respx.post(MOCK_DISCOVERY.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+
+                response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+                assert response.status_code == 401
+                assert response.json()['detail'] == OTHER_AUTH_ERROR('Identity provider userinfo failed')
+
+                log_content = get_log_content(caplog, 'OIDC userinfo fetch failed')
+                assert log_content['reason'] == 'missing_userinfo_endpoint'
 
 
 async def test_refresh_token_with_userinfo(mock_discovery_with_userinfo):
@@ -2273,3 +2356,64 @@ async def test_refresh_token_with_userinfo(mock_discovery_with_userinfo):
                 assert decoded_session_token.groups == MOCK_USERINFO['groups']
                 # Session ID should be preserved from old token
                 assert decoded_session_token.session_id == MOCK_DARA_TOKEN_DATA.get('session_id')
+
+
+async def test_refresh_token_userinfo_failure_rejects(mock_discovery_with_userinfo, caplog: pytest.LogCaptureFixture):
+    """
+    Test that server-side refresh rejects if required userinfo fetch fails
+    """
+    caplog.set_level(logging.ERROR, logger='dara.dev')
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_USE_USERINFO': 'true'}):
+        get_oidc_settings.cache_clear()
+
+        config = ConfigurationBuilder()
+        auth_config = make_config()
+        config.add_auth(auth_config)
+
+        with mocked_urllib(MOCK_JWKS_DATA):
+            app = _start_application(config._to_configuration())
+            async with AsyncClient(app) as client:
+                jwk = PyJWK(MOCK_JWK)
+                old_refresh_token_mock = str(uuid4())
+                id_token = jwt.encode(
+                    MOCK_ID_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                access_token = jwt.encode(
+                    MOCK_ACCESS_TOKEN,
+                    jwk.key,
+                    algorithm=MOCK_JWK['alg'],
+                    headers={'kid': MOCK_JWK['kid']},
+                )
+                mock_idp_response = {
+                    'id_token': id_token,
+                    'access_token': access_token,
+                    'refresh_token': jwt.encode(
+                        MOCK_REFRESH_TOKEN,
+                        jwk.key,
+                        algorithm=MOCK_JWK['alg'],
+                        headers={'kid': MOCK_JWK['kid']},
+                    ),
+                }
+
+                respx.post(MOCK_DISCOVERY_WITH_USERINFO.token_endpoint).mock(
+                    return_value=httpx.Response(status_code=200, json=mock_idp_response)
+                )
+                respx.get(MOCK_DISCOVERY_WITH_USERINFO.userinfo_endpoint).mock(
+                    return_value=httpx.Response(status_code=500, json={'error': 'Internal Server Error'})
+                )
+                old_session_token = await create_mock_dara_session_token(refresh_token=old_refresh_token_mock)
+
+                response = await client.post(
+                    '/api/auth/verify-session',
+                    headers={'Authorization': f'Bearer {old_session_token}'},
+                )
+
+                assert response.status_code == 401
+                assert response.json()['detail'] == OTHER_AUTH_ERROR('Identity provider userinfo failed')
+
+                log_content = get_log_content(caplog, 'OIDC userinfo fetch failed')
+                assert log_content['reason'] == 'http_error'
+                assert log_content['userinfo_response_status'] == 500

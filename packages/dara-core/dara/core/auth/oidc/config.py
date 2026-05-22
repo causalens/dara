@@ -2,7 +2,7 @@ import asyncio
 import base64
 import hashlib
 import secrets
-from typing import ClassVar
+from typing import Any, ClassVar
 from urllib.parse import urlencode, urlparse
 
 import httpx
@@ -21,6 +21,7 @@ from ..definitions import (
     BAD_REQUEST_ERROR,
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
+    OTHER_AUTH_ERROR,
     SESSION_ID,
     UNAUTHORIZED_ERROR,
     USER,
@@ -51,6 +52,8 @@ OIDCAuthLogout = AuthComponent(js_module='@darajs/core', py_module='dara.core', 
 
 OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthSSOCallback')
 
+USERINFO_ERROR = OTHER_AUTH_ERROR('Identity provider userinfo failed')
+
 
 class _RetryableDiscoveryError(Exception):
     """Transient failure while fetching the OIDC discovery document."""
@@ -75,7 +78,7 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
     - SSO_GROUP_CLAIM_NAME - name of the claim containing user groups, defaults to `groups`
     - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
-    - SSO_USE_USERINFO - if set to `true`, fetch additional claims from the userinfo endpoint when an access token is available
+    - SSO_USE_USERINFO - if set to `true`, require the userinfo endpoint during login and refresh
     """
 
     # NOTE: the config follows OIDC specification, but makes a few concessions
@@ -310,7 +313,7 @@ class OIDCAuthConfig(BaseAuthConfig):
             )
         )
 
-    async def fetch_userinfo(self, access_token: str) -> dict | None:
+    async def fetch_userinfo(self, access_token: str | None) -> dict[str, Any]:
         """
         Fetch user information from the OIDC userinfo endpoint.
 
@@ -318,13 +321,26 @@ class OIDCAuthConfig(BaseAuthConfig):
         about the authenticated user. This is useful when the ID token doesn't contain
         all required claims.
 
-        :param access_token: The access token to authenticate the request
-        :return: Dictionary of userinfo claims, or None if the request fails
+        :param access_token: The access token to authenticate the request.
+        :return: Dictionary of userinfo claims.
+        :raises HTTPException: If userinfo is required but cannot be fetched or parsed.
         """
+        if not access_token:
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=Exception('missing access token'),
+                extra={'reason': 'missing_access_token'},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
+
         userinfo_endpoint = self.discovery.userinfo_endpoint
         if not userinfo_endpoint:
-            dev_logger.warning('Userinfo endpoint not available in OIDC discovery')
-            return None
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=Exception('missing userinfo endpoint'),
+                extra={'reason': 'missing_userinfo_endpoint'},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
 
         try:
             response = await self.client.get(
@@ -333,15 +349,46 @@ class OIDCAuthConfig(BaseAuthConfig):
                 timeout=10,
             )
             response.raise_for_status()
-            return response.json()
+            userinfo = response.json()
         except httpx.HTTPStatusError as e:
-            dev_logger.warning(
-                f'Failed to fetch userinfo: HTTP {e.response.status_code}',
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=e,
+                extra={
+                    'reason': 'http_error',
+                    'userinfo_endpoint': userinfo_endpoint,
+                    'userinfo_response_status': e.response.status_code,
+                },
             )
-            return None
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
         except httpx.RequestError as e:
-            dev_logger.warning(f'Failed to fetch userinfo: {e}')
-            return None
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=e,
+                extra={'reason': 'request_error', 'userinfo_endpoint': userinfo_endpoint},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
+        except ValueError as e:
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=e,
+                extra={'reason': 'invalid_json', 'userinfo_endpoint': userinfo_endpoint},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
+
+        if not isinstance(userinfo, dict):
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=Exception('invalid userinfo response'),
+                extra={
+                    'reason': 'invalid_response_shape',
+                    'userinfo_endpoint': userinfo_endpoint,
+                    'userinfo_response_type': type(userinfo).__name__,
+                },
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
+
+        return userinfo
 
     def _normalize_group_claim(self, groups: list[str] | str, group_claim_name: str) -> list[str]:
         if isinstance(groups, list) and all(isinstance(group, str) for group in groups):
@@ -398,11 +445,19 @@ class OIDCAuthConfig(BaseAuthConfig):
         oidc_settings = get_oidc_settings()
 
         # When userinfo is provided and use_userinfo is enabled, prefer userinfo claims
-        if userinfo and oidc_settings.use_userinfo:
+        if userinfo is not None and oidc_settings.use_userinfo:
             userinfo_sub = userinfo.get('sub')
             if not isinstance(userinfo_sub, str) or userinfo_sub != claims.sub:
-                dev_logger.error('Invalid OIDC userinfo subject', error=Exception('userinfo sub mismatch'))
-                raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+                dev_logger.error(
+                    'Invalid OIDC userinfo subject',
+                    error=Exception('userinfo sub mismatch'),
+                    extra={
+                        'id_token_sub': claims.sub,
+                        'userinfo_sub': userinfo_sub,
+                        'userinfo_sub_type': type(userinfo_sub).__name__,
+                    },
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR)
 
             identity_id = claims.sub
             identity_email = userinfo.get('email') or claims.email
@@ -608,9 +663,9 @@ class OIDCAuthConfig(BaseAuthConfig):
         # Decode and verify the new ID token
         claims = decode_id_token(oidc_tokens.id_token)
 
-        # Fetch userinfo if enabled and we have an access token
+        # Fetch userinfo if enabled. Once enabled, userinfo is part of the auth contract.
         userinfo = None
-        if oidc_settings.use_userinfo and oidc_tokens.access_token:
+        if oidc_settings.use_userinfo:
             userinfo = await self.fetch_userinfo(oidc_tokens.access_token)
 
         # Extract user data from claims

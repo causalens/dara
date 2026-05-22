@@ -118,7 +118,7 @@ The following environment variables are optional:
 | `SSO_VERIFY_AUDIENCE`     | `False`                 | Whether to verify the `aud` claim in ID tokens                                                               |
 | `SSO_EXTRA_AUDIENCE`      | `None`                  | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`)                                         |
 | `SSO_ALLOWED_IDENTITY_ID` | `None`                  | If set, restricts access to a specific identity ID                                                           |
-| `SSO_USE_USERINFO`        | `False`                 | If `true`, fetch additional claims from the userinfo endpoint during login/refresh                           |
+| `SSO_USE_USERINFO`        | `False`                 | If `true`, require the userinfo endpoint during login/refresh and use it for additional claims               |
 
 ### OIDC Authentication Flow
 
@@ -136,7 +136,7 @@ When using OIDC authentication, the following flow occurs:
 
 Identity providers may return claims in non-standard formats or use custom claim names. To handle these cases, you can subclass `OIDCAuthConfig` and override the `extract_user_data` method to customize how claims are mapped to user data.
 
-The `extract_user_data` method receives an `IdTokenClaims` object containing all claims from the ID token, an optional `userinfo` dictionary (when `SSO_USE_USERINFO=true` and an access token is available), and should return a `UserData` object:
+The `extract_user_data` method receives an `IdTokenClaims` object containing all claims from the ID token, an optional `userinfo` dictionary (when `SSO_USE_USERINFO=true` during login/refresh), and should return a `UserData` object:
 
 ```python
 from dara.core import ConfigurationBuilder
@@ -148,7 +148,7 @@ class CustomOIDCAuthConfig(OIDCAuthConfig):
     def extract_user_data(
         self, claims: IdTokenClaims, userinfo: dict | None = None
     ) -> UserData:
-        # When SSO_USE_USERINFO is enabled, userinfo may contain additional claims
+        # When SSO_USE_USERINFO is enabled, userinfo contains additional claims
         # not present in the ID token. You can choose which source to prefer.
 
         # Access standard claims from ID token
@@ -177,7 +177,7 @@ config.add_auth(CustomOIDCAuthConfig())
 ```
 
 :::note
-The `userinfo` parameter is only populated during initial login (`sso_callback`) and token refresh, when an access token is available to call the userinfo endpoint. When verifying raw IDP tokens directly (e.g., for programmatic API access), `userinfo` will be `None`.
+When `SSO_USE_USERINFO=true`, the identity provider must return an access token and expose a userinfo endpoint during initial login (`sso_callback`) and token refresh. If the userinfo request fails or returns a subject that does not match the ID token, authentication is rejected. When verifying raw IDP tokens directly (e.g., for programmatic API access), `userinfo` will be `None` because Dara cannot call the userinfo endpoint without an access token from a login or refresh flow.
 :::
 
 The `IdTokenClaims` model includes all standard OIDC claims such as:
