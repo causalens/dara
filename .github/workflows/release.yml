@@ -244,6 +244,11 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install project dependencies
         run: make deps-project
+      - name: Extract tags (versions)
+        id: extract_tag
+        shell: bash
+        run: |
+          echo "version=$NPM_RECOVERY_VERSION" >> $GITHUB_OUTPUT
       - name: Validate recovery version
         shell: bash
         run: |
@@ -252,6 +257,11 @@ jobs:
             echo "Requested npm recovery for $NPM_RECOVERY_VERSION, but lerna.json is $package_version"
             exit 1
           fi
+      - name: Parse and resolve changelog
+        id: set-changelog
+        run: |
+          changelog=$(tooling/changelog-parser/main.js ${{ steps.extract_tag.outputs.version }})
+          echo "changelog=$changelog" >> $GITHUB_OUTPUT
       - name: Find missing npm packages
         id: npm-missing
         shell: bash
@@ -310,6 +320,33 @@ jobs:
         shell: bash
         run: |
           pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version
+      - uses: 8398a7/action-slack@v3
+        if: env.NPM_RECOVERY_PUBLISH == 'true' && steps.npm-missing.outputs.missing_count != '0'
+        with:
+          status: custom
+          custom_payload: |
+            {
+              username: 'action-slack',
+              blocks: [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Dara changelog for tag ${{ steps.extract_tag.outputs.version }}"
+                  }
+                },
+                ...JSON.parse(${{ toJSON(steps.set-changelog.outputs.changelog) }})
+                  .map(section => ({
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": section
+                      }
+                  }))
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: "${{ secrets.SLACK_TECH_TEAM_CHANNEL_WEBHOOK }}"
       - name: Skip publish
         if: env.NPM_RECOVERY_PUBLISH != 'true'
         run: |
