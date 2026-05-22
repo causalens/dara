@@ -6,7 +6,8 @@ import time
 import jwt
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 
 from dara.core.auth.basic import BasicAuthConfig, MultiBasicAuthConfig
 from dara.core.auth.definitions import (
@@ -419,6 +420,37 @@ async def test_revoke_session_hook_error_clears_auth_cookie_and_session():
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
 
 
+async def test_revoke_session_direct_response_clears_auth_cookie_and_session():
+    """Check that revoke session clears auth cookies when the auth config returns a direct Response."""
+
+    class DirectRevokeAuthConfig(BasicAuthConfig):
+        def revoke_token(self, token: str, response):
+            return Response('revoked', media_type='text/plain')
+
+    config = ConfigurationBuilder()
+    config.add_auth(DirectRevokeAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    _, session_token = await _store_auth_session(
+        TokenData(
+            identity_id='user',
+            identity_name='user',
+            session_id='token1',
+            exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+        )
+    )
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/revoke-session', cookies={SESSION_TOKEN_COOKIE_NAME: session_token})
+
+        assert response.status_code == 200
+        assert response.text == 'revoked'
+        assert await auth_session_store.get(session_token) is None
+        cleared_cookies = response.headers.getall('set-cookie')
+        assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+
+
 async def test_basic_auth(caplog: pytest.LogCaptureFixture):
     caplog.set_level(logging.WARNING, logger='dara.dev')
     config = ConfigurationBuilder()
@@ -595,6 +627,62 @@ async def test_refresh_token_stores_rotated_refresh_token_server_side():
 
         assert response.status_code == 200
         assert await _get_stored_refresh_token(response.cookies[SESSION_TOKEN_COOKIE_NAME]) == refreshed_refresh_token
+
+
+async def test_refresh_cookie_applied_to_direct_response_route():
+    """Check that dependency refresh cookies are applied to direct Response routes."""
+
+    @get('test-ext/direct-response')
+    def handle():
+        return Response('ok', media_type='text/plain')
+
+    class TestAuthConfig(BasicAuthConfig):
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            return _make_refreshed_session_token(old_token, 'direct_response_refresh'), 'new_refresh_token'
+
+    config = ConfigurationBuilder()
+    config.add_auth(TestAuthConfig('test', 'test'))
+    config.add_endpoint(handle)
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        session_token = await _store_expired_test_token(refresh_token='refresh_token')
+        response = await client.get('/api/test-ext/direct-response', cookies={SESSION_TOKEN_COOKIE_NAME: session_token})
+
+        assert response.status_code == 200
+        assert response.text == 'ok'
+        assert response.cookies[SESSION_TOKEN_COOKIE_NAME] == session_token
+        assert await _get_stored_refresh_token(session_token) == 'new_refresh_token'
+
+
+async def test_refresh_cookie_applied_to_streaming_response_route():
+    """Check that dependency refresh cookies are applied to StreamingResponse routes."""
+
+    @get('test-ext/streaming-response')
+    def handle():
+        return StreamingResponse(iter([b'ok']), media_type='text/plain')
+
+    class TestAuthConfig(BasicAuthConfig):
+        async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+            return _make_refreshed_session_token(old_token, 'streaming_response_refresh'), 'new_refresh_token'
+
+    config = ConfigurationBuilder()
+    config.add_auth(TestAuthConfig('test', 'test'))
+    config.add_endpoint(handle)
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        session_token = await _store_expired_test_token(refresh_token='refresh_token')
+        response = await client.get(
+            '/api/test-ext/streaming-response', cookies={SESSION_TOKEN_COOKIE_NAME: session_token}
+        )
+
+        assert response.status_code == 200
+        assert response.text == 'ok'
+        assert response.cookies[SESSION_TOKEN_COOKIE_NAME] == session_token
+        assert await _get_stored_refresh_token(session_token) == 'new_refresh_token'
 
 
 async def test_refresh_token_expired():

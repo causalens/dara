@@ -19,19 +19,19 @@ from typing import Any, NoReturn
 from uuid import uuid4
 
 import jwt
-from fastapi import Depends, HTTPException, Request, Response
+from fastapi import Depends, HTTPException, Request
 
+from dara.core.auth.cookies import stage_auth_cookie_delete, stage_auth_session_cookie
 from dara.core.auth.definitions import (
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
-    SESSION_TOKEN_COOKIE_NAME,
     TokenData,
 )
 from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
 from dara.core.auth.request_logging import auth_request_log_extra, log_auth_exception, log_auth_request_rejection
 from dara.core.auth.session import create_auth_session, get_auth_session_cookie_expiration
-from dara.core.auth.utils import set_cookie_from_expiration, sign_jwt
+from dara.core.auth.utils import sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
 
@@ -78,7 +78,6 @@ def _raise_invalid_state_parameter(request: Request) -> NoReturn:
 async def sso_callback(
     body: AuthCodeRequestBody,
     request: Request,
-    response: Response,
     oidc_settings: OIDCSettings = Depends(get_oidc_settings),
 ):
     """
@@ -93,7 +92,6 @@ async def sso_callback(
     Per OpenID Connect Core 1.0 Section 3.1.2.5 (Authorization Code Flow).
 
     :param body: Request body containing auth_code and optional state
-    :param response: FastAPI response object (for setting cookies)
     :param settings: Application settings
     :return: success response
     """
@@ -200,10 +198,10 @@ async def sso_callback(
         )
 
         session_expires_at = get_auth_session_cookie_expiration(token_data, oidc_tokens.refresh_token)
-        set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, session_token, session_expires_at)
+        stage_auth_session_cookie(request, session_token, exp=session_expires_at)
 
         if not oidc_transaction_store.has_pending_login_session(login_session_id):
-            response.delete_cookie(OIDC_LOGIN_SESSION_COOKIE_NAME)
+            stage_auth_cookie_delete(request, OIDC_LOGIN_SESSION_COOKIE_NAME)
 
         return {'success': True, 'redirect_to': transaction.redirect_to}
 

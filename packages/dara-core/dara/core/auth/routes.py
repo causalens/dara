@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from datetime import datetime
 from inspect import isawaitable
 from typing import Annotated, Any
 from urllib.parse import parse_qs, urlparse
@@ -26,6 +25,12 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
 from dara.core.auth.base import BaseAuthConfig
+from dara.core.auth.cookies import (
+    MaxAgeCookie,
+    stage_auth_cookie_delete,
+    stage_auth_cookie_set,
+    stage_auth_session_cookie,
+)
 from dara.core.auth.definitions import (
     BAD_REQUEST_ERROR,
     EXPIRED_TOKEN_ERROR,
@@ -48,10 +53,6 @@ from dara.core.auth.session import (
     verify_auth_token,
     verify_raw_auth_token,
 )
-from dara.core.auth.utils import (
-    set_cookie_from_expiration,
-    set_cookie_from_token_expiration,
-)
 
 auth_router = APIRouter()
 
@@ -72,7 +73,7 @@ def _cache_session_auth_token(token_data: TokenData):
 
 
 def _maybe_set_oidc_state_cookie(
-    response: Response,
+    request: Request,
     auth_config: BaseAuthConfig,
     redirect_uri: str,
     existing_login_session_id: str | None = None,
@@ -94,14 +95,17 @@ def _maybe_set_oidc_state_cookie(
     if oidc_transaction_store.bind_login_session(state, login_session_id) is None:
         return
 
-    response.set_cookie(
-        key=OIDC_LOGIN_SESSION_COOKIE_NAME,
-        value=login_session_id,
-        httponly=True,
-        max_age=get_oidc_settings().transaction_ttl_seconds,
-        path='/',
-        samesite='lax',
-        secure=True,
+    stage_auth_cookie_set(
+        request,
+        OIDC_LOGIN_SESSION_COOKIE_NAME,
+        login_session_id,
+        expiration=MaxAgeCookie(max_age=get_oidc_settings().transaction_ttl_seconds),
+        cookie_kwargs={
+            'httponly': True,
+            'path': '/',
+            'samesite': 'lax',
+            'secure': True,
+        },
     )
 
 
@@ -170,38 +174,34 @@ def _get_auth_token(
     raise HTTPException(status_code=401, detail=EXPIRED_TOKEN_ERROR)
 
 
-def _set_session_token_cookie(response: Response, token: str, exp: datetime | int | float | None = None):
-    """
-    Set the session token cookie.
-
-    :param response: FastAPI response object
-    :param token: session token value
-    """
-    if exp is None:
-        set_cookie_from_token_expiration(response, SESSION_TOKEN_COOKIE_NAME, token)
-        return
-
-    set_cookie_from_expiration(response, SESSION_TOKEN_COOKIE_NAME, token, exp)
-
-
-def _clear_auth_cookies(response: Response):
+def _clear_auth_cookies(request: Request):
     """
     Clear auth cookies.
 
-    :param response: FastAPI response object
+    :param request: current request
     """
-    response.delete_cookie(SESSION_TOKEN_COOKIE_NAME)
+    stage_auth_cookie_delete(request, SESSION_TOKEN_COOKIE_NAME)
 
 
-def _build_auth_error_response(status_code: int, detail: Any):
+def _build_auth_error_response(
+    request: Request,
+    status_code: int,
+    detail: Any,
+    *,
+    clear_auth_cookies: bool = True,
+):
     """
     Build an auth error response and clear all auth cookies.
 
+    :param request: current request
     :param status_code: HTTP status code
     :param detail: error detail payload
+    :param clear_auth_cookies: whether to clear auth cookies on the response
     """
+    if clear_auth_cookies:
+        _clear_auth_cookies(request)
+
     error_response = JSONResponse(status_code=status_code, content={'detail': detail})
-    _clear_auth_cookies(error_response)
     return error_response
 
 
@@ -224,7 +224,7 @@ def _should_attempt_session_refresh(
 async def _refresh_session(
     auth_config: BaseAuthConfig,
     token: str,
-    response: Response,
+    req: Request,
 ) -> str:
     """
     Refresh a session and update auth cookies.
@@ -242,8 +242,8 @@ async def _refresh_session(
 
     _cache_session_auth_token(new_token_data)
 
-    _set_session_token_cookie(
-        response,
+    stage_auth_session_cookie(
+        req,
         new_session_token,
         exp=get_auth_session_cookie_expiration(new_token_data, new_refresh_token),
     )
@@ -253,7 +253,6 @@ async def _refresh_session(
 @auth_router.post('/verify-session')
 async def handle_verify_session(
     req: Request,
-    response: Response,
     dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
 ):
     """
@@ -262,17 +261,16 @@ async def handle_verify_session(
     Unlike the dependency version, this endpoint can clear stale auth cookies on terminal failures.
     """
     try:
-        return await verify_session(req, response, dara_session_token)
+        return await verify_session(req, dara_session_token)
     except HTTPException as err:
         if _should_clear_auth_cookies_on_verify_failure(err.status_code, err.detail):
-            return _build_auth_error_response(err.status_code, err.detail)
+            return _build_auth_error_response(req, err.status_code, err.detail)
 
         return JSONResponse(status_code=err.status_code, content={'detail': err.detail})
 
 
 async def verify_session(
     req: Request,
-    response: Response,
     dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
 ):
     """
@@ -312,7 +310,7 @@ async def verify_session(
                 raise
 
             try:
-                refreshed_token = await _refresh_session(auth_config, token, response)
+                refreshed_token = await _refresh_session(auth_config, token, req)
             except Exception as refresh_error:
                 if isinstance(refresh_error, HTTPException | AuthError):
                     raise
@@ -414,7 +412,7 @@ async def _revoke_session(
             detail=err.detail,
             extra=_session_cookie_log_extra(dara_session_token),
         )
-        return _build_auth_error_response(err.status_code, err.detail)
+        return _build_auth_error_response(request, err.status_code, err.detail, clear_auth_cookies=False)
     except AuthError as err:
         log_auth_exception(
             'Auth session revoke failed',
@@ -424,17 +422,17 @@ async def _revoke_session(
             detail=err.detail,
             extra=_session_cookie_log_extra(dara_session_token),
         )
-        return _build_auth_error_response(err.code, err.detail)
+        return _build_auth_error_response(request, err.code, err.detail, clear_auth_cookies=False)
     finally:
         if token is not None:
             await _clear_cached_session_auth_token(token)
 
-        _clear_auth_cookies(response)
+        _clear_auth_cookies(request)
 
 
 # Request to retrieve a session token from the backend. The app does this on startup.
 @auth_router.post('/session')
-async def _get_session(body: SessionRequestBody, request: Request, response: Response):
+async def _get_session(body: SessionRequestBody, request: Request):
     try:
         from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME
         from dara.core.internal.registries import auth_registry
@@ -446,14 +444,14 @@ async def _get_session(body: SessionRequestBody, request: Request, response: Res
         if 'token' in session_response:
             token_data = await verify_raw_auth_token(auth_config, session_response['token'])
             session_token = await create_auth_session(session_response['token'], token_data)
-            _set_session_token_cookie(
-                response,
+            stage_auth_session_cookie(
+                request,
                 session_token,
                 exp=get_auth_session_cookie_expiration(token_data, refresh_token=None),
             )
             return {'success': True}
         _maybe_set_oidc_state_cookie(
-            response,
+            request,
             auth_config,
             session_response['redirect_uri'],
             existing_login_session_id=existing_login_session_id,
