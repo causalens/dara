@@ -32,6 +32,7 @@ set -q QA_OIDC_ALLOWED_GROUP; or set -gx QA_OIDC_ALLOWED_GROUP qa-users
 set -q QA_OIDC_SCOPES; or set -gx QA_OIDC_SCOPES "openid profile email groups offline_access"
 
 set -gx SSO_ISSUER_URL $QA_OIDC_ISSUER
+set -gx DARA_DEMO_AUTH oidc
 set -gx SSO_CLIENT_ID $QA_OIDC_CLIENT_ID
 set -gx SSO_CLIENT_AUTH_MODE pkce_public
 set -gx SSO_REDIRECT_URI $QA_OIDC_REDIRECT_URI
@@ -48,6 +49,7 @@ else
 end
 
 echo "Configured demo-app for local OIDC provider:"
+echo "  DARA_DEMO_AUTH=$DARA_DEMO_AUTH"
 echo "  SSO_ISSUER_URL=$SSO_ISSUER_URL"
 echo "  SSO_CLIENT_ID=$SSO_CLIENT_ID"
 echo "  SSO_REDIRECT_URI=$SSO_REDIRECT_URI"
