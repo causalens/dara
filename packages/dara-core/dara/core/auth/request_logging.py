@@ -23,6 +23,17 @@ def _detail_message(detail: Any) -> str | None:
     return None
 
 
+def _authorization_scheme(authorization: str | None) -> str | None:
+    if authorization is None:
+        return None
+
+    scheme, _, _ = authorization.partition(' ')
+    if scheme == 'Bearer':
+        return 'Bearer'
+
+    return 'unknown'
+
+
 def auth_request_log_extra(
     request: Request,
     *,
@@ -36,7 +47,7 @@ def auth_request_log_extra(
     The auth header value, session cookies, and token data are intentionally omitted.
     """
     authorization = request.headers.get('Authorization')
-    auth_scheme = authorization.split(' ', maxsplit=1)[0] if authorization else None
+    auth_scheme = _authorization_scheme(authorization)
 
     return {
         'method': request.method,

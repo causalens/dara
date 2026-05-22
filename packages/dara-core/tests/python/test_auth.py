@@ -238,7 +238,7 @@ async def test_verify_session_missing_auth_returns_unauthorized(caplog: pytest.L
 
 
 async def test_verify_session_invalid_scheme_logs_rejection(caplog: pytest.LogCaptureFixture):
-    """Check that invalid auth schemes are logged with request context."""
+    """Check that invalid auth schemes are logged without preserving the raw scheme value."""
 
     caplog.set_level(logging.WARNING, logger='dara.dev')
     config = ConfigurationBuilder()
@@ -254,7 +254,30 @@ async def test_verify_session_invalid_scheme_logs_rejection(caplog: pytest.LogCa
         log_content = _get_log_content(caplog, 'Auth session verification rejected')
         assert log_content['status_code'] == 400
         assert log_content['detail_reason'] == 'bad_request'
-        assert log_content['authorization_scheme'] == 'Basic'
+        assert log_content['authorization_scheme'] == 'unknown'
+        assert log_content['has_authorization_header'] is True
+        assert log_content['has_session_cookie'] is False
+
+
+async def test_verify_session_malformed_authorization_header_logs_unknown_scheme(caplog: pytest.LogCaptureFixture):
+    """Check that malformed Authorization headers don't leak token material into logs."""
+
+    caplog.set_level(logging.WARNING, logger='dara.dev')
+    config = ConfigurationBuilder()
+    config.add_auth(BasicAuthConfig('test', 'test'))
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app) as client:
+        response = await client.post('/api/auth/verify-session', headers={'Authorization': 'opaque-token-value'})
+
+        assert response.status_code == 400
+
+        log_content = _get_log_content(caplog, 'Auth session verification rejected')
+        assert log_content['status_code'] == 400
+        assert log_content['detail_reason'] == 'bad_request'
+        assert log_content['authorization_scheme'] == 'unknown'
+        assert log_content['authorization_scheme'] != 'opaque-token-value'
         assert log_content['has_authorization_header'] is True
         assert log_content['has_session_cookie'] is False
 
