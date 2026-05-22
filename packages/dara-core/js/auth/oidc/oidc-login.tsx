@@ -51,10 +51,10 @@ function OIDCAuthLogin(): JSX.Element {
 
     useEffect(() => {
         // If we already have a valid session, redirect. Otherwise start OIDC login.
-        verifySessionToken().then((verified) => {
-            if (verified) {
+        verifySessionToken().then((verificationResult) => {
+            if (verificationResult === 'verified') {
                 navigate(decodeURIComponent(previousLocation), { replace: true });
-            } else {
+            } else if (verificationResult === 'login_required') {
                 getNewToken();
             }
         });

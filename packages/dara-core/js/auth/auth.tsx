@@ -34,6 +34,8 @@ export interface HandleAuthErrorsOptions {
     ignoreErrors?: Array<AuthenticationErrorReason>;
 }
 
+export type VerifySessionTokenResult = 'handled_auth_error' | 'login_required' | 'verified';
+
 const AuthenticationErrorSchema = z.object({
     message: z.string(),
     reason: z.enum([
@@ -232,14 +234,26 @@ export function useSession(body: User = {}): UseQueryResult<boolean, RequestErro
 }
 
 /** Api call to verify the session token from the backend */
-export async function verifySessionToken(): Promise<boolean> {
+export async function verifySessionToken(): Promise<VerifySessionTokenResult> {
     const res = await request('/api/auth/verify-session', {
         method: HTTP_METHOD.POST,
     });
 
     if (!res.ok) {
+        const handled = await handleAuthErrors(res, {
+            ignoreErrors: [
+                AuthenticationErrorReason.EXPIRED_TOKEN,
+                AuthenticationErrorReason.INVALID_CREDENTIALS,
+                AuthenticationErrorReason.INVALID_TOKEN,
+            ],
+        });
+
+        if (handled) {
+            return 'handled_auth_error';
+        }
+
         setSessionIdentifier(null);
-        return false;
+        return 'login_required';
     }
 
     try {
@@ -249,5 +263,5 @@ export async function verifySessionToken(): Promise<boolean> {
         setSessionIdentifier(null);
     }
 
-    return true;
+    return 'verified';
 }

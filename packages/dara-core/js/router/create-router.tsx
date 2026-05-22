@@ -222,8 +222,14 @@ export function createRouter(config: DaraData, snapshot: () => Snapshot): Router
                                 }
 
                                 // if we can verify the current cookie/bearer session, we're good to go
-                                if (await verifySessionToken()) {
+                                const verificationResult = await verifySessionToken();
+
+                                if (verificationResult === 'verified') {
                                     verifiedToken = true;
+                                    return;
+                                }
+
+                                if (verificationResult === 'handled_auth_error') {
                                     return;
                                 }
 
