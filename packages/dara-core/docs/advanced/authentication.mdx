@@ -81,7 +81,7 @@ config.add_auth(MultiBasicAuthConfig(users={
 }))
 ```
 
-Both configurations present a login form where users enter their credentials. Upon successful authentication, Dara sets a signed session cookie.
+Both configurations present a login form where users enter their credentials. Upon successful authentication, Dara sets an opaque `HttpOnly` session cookie backed by server-side token data.
 
 ## OIDC Authentication
 
@@ -115,10 +115,13 @@ The following environment variables are optional:
 | `SSO_JWKS_LIFESPAN`       | `86400`                 | Lifespan of the JWKS cache in seconds (default 1 day)                                                        |
 | `SSO_JWT_ALGO`            | `ES256`                 | Algorithm for verifying identity provider JWTs                                                               |
 | `SSO_SCOPES`              | `openid`                | Space-separated list of OAuth scopes to request                                                              |
+| `SSO_GROUP_CLAIM_NAME`    | `groups`                | Claim name to read group membership from. Use this for providers that return groups under a non-standard claim such as `memberOf`. |
 | `SSO_VERIFY_AUDIENCE`     | `False`                 | Whether to verify the `aud` claim in ID tokens                                                               |
 | `SSO_EXTRA_AUDIENCE`      | `None`                  | Additional audiences to verify against (defaults to `SSO_CLIENT_ID`)                                         |
 | `SSO_ALLOWED_IDENTITY_ID` | `None`                  | If set, restricts access to a specific identity ID                                                           |
 | `SSO_USE_USERINFO`        | `False`                 | If `true`, require the userinfo endpoint during login/refresh and use it for additional claims               |
+
+By default, Dara reads group membership from the `groups` claim. Set `SSO_GROUP_CLAIM_NAME` when your identity provider uses a different claim name. The group claim can be a list of strings, a single string, or a comma-delimited string. Comma-delimited values are parsed as CSV, so quoted group names containing commas are preserved.
 
 ### OIDC Authentication Flow
 
@@ -130,11 +133,11 @@ When using OIDC authentication, the following flow occurs:
 4. The identity provider redirects back to your app's callback URL with an authorization code
 5. The app exchanges the authorization code for tokens
 6. The app verifies the ID token and checks group membership
-7. Dara sets a signed session cookie
+7. Dara stores the token data server-side and sets an opaque `HttpOnly` session cookie
 
 ### Handling Custom Claims
 
-Identity providers may return claims in non-standard formats or use custom claim names. To handle these cases, you can subclass `OIDCAuthConfig` and override the `extract_user_data` method to customize how claims are mapped to user data.
+Identity providers may return claims in non-standard formats or use custom claim names. If the only difference is the group claim name, configure `SSO_GROUP_CLAIM_NAME` rather than subclassing. To handle more complex mappings, subclass `OIDCAuthConfig` and override the `extract_user_data` method to customize how claims are mapped to user data.
 
 The `extract_user_data` method receives an `IdTokenClaims` object containing all claims from the ID token, an optional `userinfo` dictionary (when `SSO_USE_USERINFO=true` during login/refresh), and should return a `UserData` object:
 
@@ -185,7 +188,7 @@ The `IdTokenClaims` model includes all standard OIDC claims such as:
 -   `sub` - Subject identifier (required)
 -   `email`, `email_verified` - Email claims
 -   `name`, `given_name`, `family_name`, `nickname`, `preferred_username` - Name-related claims
--   `groups` - Group membership (non-standard but commonly used)
+-   `groups` - Group membership (non-standard but commonly used; configurable with `SSO_GROUP_CLAIM_NAME`)
 
 Since `IdTokenClaims` allows extra fields, you can access any provider-specific claims using `getattr(claims, 'claim_name', default_value)`.
 
