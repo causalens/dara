@@ -105,9 +105,9 @@ const provider = new Provider(issuer, {
   ],
   claims: {
     openid: ['sub'],
-    profile: ['name', 'preferred_username', 'groups', 'identity'],
+    profile: ['name', 'preferred_username', 'groups', 'memberOf', 'identity'],
     email: ['email', 'email_verified'],
-    groups: ['groups'],
+    groups: ['groups', 'memberOf'],
   },
   conformIdTokenClaims: false,
   cookies: {
@@ -126,13 +126,14 @@ const provider = new Provider(issuer, {
         const refresh = isRefreshGrant(ctx);
         const userinfo = use === 'userinfo';
         const groups = buildGroups(profile, { refresh, userinfo });
+        const groupClaimName = profile.groupClaimName ?? 'groups';
+        const groupClaim = groupClaimValue(profile, groups);
         const claims = {
           sub: profile.sub,
           name: profile.name,
           preferred_username: profile.email,
           email: profile.email,
           email_verified: profile.emailVerified,
-          groups: groupClaimValue(profile, groups),
           identity: {
             id: profile.sub,
             name: profile.name,
@@ -140,8 +141,8 @@ const provider = new Provider(issuer, {
           },
         };
 
-        if (claims.groups === undefined) {
-          delete claims.groups;
+        if (groupClaim !== undefined) {
+          claims[groupClaimName] = groupClaim;
         }
 
         return claims;

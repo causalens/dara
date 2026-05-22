@@ -19,6 +19,7 @@ const baseProfile = {
   hugeGroupsCount: 0,
   includeAllowedGroupInHugeGroups: true,
   groupsClaimShape: 'array',
+  groupClaimName: 'groups',
   emailVerified: true,
   issueRefreshToken: true,
   rotateRefreshToken: true,
@@ -55,6 +56,11 @@ export const profileCases = {
     description: 'Provider returns one group as a string instead of an array.',
     groups: [ALLOWED_GROUP],
     groupsClaimShape: 'single-string',
+  },
+  'member-of-groups': {
+    ...baseProfile,
+    description: 'Provider returns group membership in a non-standard memberOf claim.',
+    groupClaimName: 'memberOf',
   },
   'unverified-email': {
     ...baseProfile,

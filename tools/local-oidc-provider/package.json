@@ -13,6 +13,7 @@
     "profile:no-groups-claim": "node src/profile.mjs no-groups-claim",
     "profile:groups-string": "node src/profile.mjs groups-string",
     "profile:single-group-string": "node src/profile.mjs single-group-string",
+    "profile:member-of-groups": "node src/profile.mjs member-of-groups",
     "profile:unverified-email": "node src/profile.mjs unverified-email",
     "profile:short-expiry": "node src/profile.mjs short-expiry",
     "profile:refresh-loses-group": "node src/profile.mjs refresh-loses-group",

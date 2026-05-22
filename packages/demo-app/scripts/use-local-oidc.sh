@@ -1,15 +1,32 @@
 #!/usr/bin/env sh
 
 use_userinfo=false
+group_claim_name=groups
 
-for arg in "$@"; do
+while [ "$#" -gt 0 ]; do
+  arg="$1"
   case "$arg" in
     --userinfo)
       use_userinfo=true
+      shift
+      ;;
+    --group-claim-name)
+      shift
+      if [ "$#" -eq 0 ]; then
+        echo "Missing value for --group-claim-name" >&2
+        echo "Usage: source scripts/use-local-oidc.sh [--userinfo] [--group-claim-name CLAIM]" >&2
+        return 2 2>/dev/null || exit 2
+      fi
+      group_claim_name="$1"
+      shift
+      ;;
+    --group-claim-name=*)
+      group_claim_name="${arg#--group-claim-name=}"
+      shift
       ;;
     *)
       echo "Unknown option: $arg" >&2
-      echo "Usage: source scripts/use-local-oidc.sh [--userinfo]" >&2
+      echo "Usage: source scripts/use-local-oidc.sh [--userinfo] [--group-claim-name CLAIM]" >&2
       return 2 2>/dev/null || exit 2
       ;;
   esac
@@ -26,6 +43,7 @@ export SSO_CLIENT_ID="$QA_OIDC_CLIENT_ID"
 export SSO_CLIENT_AUTH_MODE=pkce_public
 export SSO_REDIRECT_URI="$QA_OIDC_REDIRECT_URI"
 export SSO_GROUPS="$QA_OIDC_ALLOWED_GROUP"
+export SSO_GROUP_CLAIM_NAME="$group_claim_name"
 export SSO_SCOPES="$QA_OIDC_SCOPES"
 export SSO_JWT_ALGO=RS256
 unset SSO_CLIENT_SECRET
@@ -41,4 +59,5 @@ echo "  SSO_ISSUER_URL=$SSO_ISSUER_URL"
 echo "  SSO_CLIENT_ID=$SSO_CLIENT_ID"
 echo "  SSO_REDIRECT_URI=$SSO_REDIRECT_URI"
 echo "  SSO_GROUPS=$SSO_GROUPS"
+echo "  SSO_GROUP_CLAIM_NAME=$SSO_GROUP_CLAIM_NAME"
 echo "  SSO_USE_USERINFO=${SSO_USE_USERINFO:-false}"

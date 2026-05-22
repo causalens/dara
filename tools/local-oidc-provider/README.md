@@ -80,6 +80,16 @@ source scripts/use-local-oidc.fish --userinfo
 source scripts/use-local-oidc.sh --userinfo
 ```
 
+For profiles that use a non-standard group claim name:
+
+```fish
+source scripts/use-local-oidc.fish --group-claim-name memberOf
+```
+
+```sh
+source scripts/use-local-oidc.sh --group-claim-name memberOf
+```
+
 ## Profiles
 
 Switch profiles while the provider is running:
@@ -92,6 +102,7 @@ npm run profile:missing-group
 npm run profile:no-groups-claim
 npm run profile:groups-string
 npm run profile:single-group-string
+npm run profile:member-of-groups
 npm run profile:unverified-email
 npm run profile:short-expiry
 npm run profile:refresh-loses-group
@@ -115,6 +126,7 @@ Use a fresh browser session or log out between login-focused profiles.
 | `no-groups-claim` | Provider omits the groups claim | RP treats missing groups distinctly from an empty/denied group set where relevant. |
 | `groups-string` | Provider returns groups as a comma-delimited string instead of an array | RP accepts the configured group from the split values while preserving the whole string for exact matching. |
 | `single-group-string` | Provider returns one group as a string instead of an array | RP accepts the configured group as a single value. |
+| `member-of-groups` | Provider returns groups under `memberOf` instead of `groups` | RP succeeds only when configured to read `memberOf` as the group claim. |
 | `unverified-email` | Provider sets `email_verified=false` | RP behavior matches its email verification policy. |
 | `short-expiry` | Short-lived ID token | RP refresh path is exercised shortly after login. |
 | `refresh-loses-group` | Group membership changes between login and refresh | RP re-checks authorization on refresh and denies if access is lost. |

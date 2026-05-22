@@ -188,6 +188,15 @@ async function checkSingleGroupString() {
   assert(claims.groups === ALLOWED_GROUP, 'single-group-string profile should return only the allowed group string');
 }
 
+async function checkMemberOfGroups() {
+  await setProfile('member-of-groups');
+  const { tokens } = await runAuthorizationCodeFlow();
+  const claims = decodeJwtPayload(tokens.id_token);
+  assert(!Object.hasOwn(claims, 'groups'), 'member-of-groups profile should omit the standard groups claim');
+  assert(Array.isArray(claims.memberOf), 'member-of-groups profile should return memberOf as an array');
+  assert(claims.memberOf.includes(ALLOWED_GROUP), 'member-of-groups profile should include the allowed memberOf group');
+}
+
 async function checkRefreshLosesGroup() {
   await setProfile('refresh-loses-group');
   const { tokens } = await runAuthorizationCodeFlow();
@@ -239,6 +248,7 @@ const checks = [
   ['no-groups-claim', checkNoGroupsClaim],
   ['groups-string', checkGroupsString],
   ['single-group-string', checkSingleGroupString],
+  ['member-of-groups', checkMemberOfGroups],
   ['refresh-loses-group', checkRefreshLosesGroup],
   ['no-refresh-token', checkNoRefreshToken],
   ['missing-id-token', checkMissingIdToken],
