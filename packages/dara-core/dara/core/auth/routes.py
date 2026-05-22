@@ -236,7 +236,7 @@ async def _refresh_session(
             auth_config,
             token,
         )
-    except (HTTPException, AuthError):
+    except (HTTPException, AuthError, jwt.ExpiredSignatureError):
         await _clear_cached_session_auth_token(token)
         raise
 

@@ -618,6 +618,7 @@ async def test_refresh_token_expired():
         assert 'Session has expired' in response.json()['detail']['message']
         cleared_cookies = response.headers.getall('set-cookie')
         assert any(cookie.startswith(f'{SESSION_TOKEN_COOKIE_NAME}="";') for cookie in cleared_cookies)
+        assert await auth_session_store.get(session_token) is None
 
 
 async def test_refresh_token_error():
