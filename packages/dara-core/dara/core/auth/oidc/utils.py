@@ -40,7 +40,7 @@ class OIDCTokenResponse(BaseModel):
     Token response from the OIDC token endpoint per OIDC Core 1.0 Section 3.1.3.3
     """
 
-    id_token: str
+    id_token: str | None = None
 
     access_token: str | None = None
     """

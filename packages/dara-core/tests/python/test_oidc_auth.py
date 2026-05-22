@@ -1077,6 +1077,42 @@ async def test_sso_callback_expired_id_token():
             assert response.json()['detail'] == EXPIRED_TOKEN_ERROR
 
 
+async def test_sso_callback_missing_id_token():
+    """
+    Make sure /sso-callback rejects token responses without an ID token.
+    """
+    config = ConfigurationBuilder()
+
+    auth_config = make_config()
+    config.add_auth(auth_config)
+
+    with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
+        app = _start_application(config._to_configuration())
+        async with AsyncClient(app) as client:
+            state = await start_oidc_login(client)
+
+            respx.post(auth_config.discovery.token_endpoint).mock(
+                return_value=httpx.Response(
+                    status_code=200,
+                    json={
+                        'access_token': 'access-token',
+                        'refresh_token': jwt.encode(
+                            MOCK_REFRESH_TOKEN,
+                            PyJWK(MOCK_JWK).key,
+                            algorithm=MOCK_JWK['alg'],
+                            headers={'kid': MOCK_JWK['kid']},
+                        ),
+                    },
+                )
+            )
+
+            response = await client.post('/api/auth/sso-callback', json={'auth_code': 'TEST', 'state': state})
+
+            assert mock_urllib.call_count == 0
+            assert response.status_code == 401
+            assert response.json()['detail'] == INVALID_TOKEN_ERROR
+
+
 async def test_sso_callback_idp_error():
     """
     Make sure /sso-callback returns 401 if IDP authorisation fails
