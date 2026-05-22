@@ -7,7 +7,7 @@ format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run 
 format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
 lint = "poetry run pyright ./dara && poetry run ruff check ."
 package = "poetry build -f wheel"
-publish = "poetry publish"
+publish = "poetry publish --skip-existing"
 security-scan = "poetry run bandit dara -r -ll -i"
 test = "poetry run pytest ./tests -n auto -v"
 
@@ -48,5 +48,4 @@ pytest-xdist = "^3.8.0"
 
 [tool.poetry.plugins."dara_assets"]
 dara-components = "dara.components._assets:asset_manifest"
-
 

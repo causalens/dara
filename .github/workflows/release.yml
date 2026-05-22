@@ -9,36 +9,34 @@ permissions:
   id-token: write  # Required for OIDC and npm trusted publishing
   contents: write  # The action-gh-release needs this to write to the release
 
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
-  package-and-publish:
+  prepare-release:
     runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.prepare.outputs.branch }}
+      previous_tag: ${{ steps.prepare.outputs.previous_tag }}
+      release_sha: ${{ steps.prepare.outputs.release_sha }}
+      tag: ${{ steps.prepare.outputs.tag }}
+      version: ${{ steps.prepare.outputs.version }}
     steps:
-      - name: Checkout current branch
+      - name: Checkout tagged commit
         uses: actions/checkout@v4
         with:
-          # Use a PAT with admin privileges, so we can push to main the changes to changelog, lock and toml.
+          # Use a PAT with admin privileges, so we can push release commits to protected branches.
           # https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/34
           token: ${{ secrets.GH_ACTIONS_KEY }}
-          fetch-depth: 0  # 0 fetches all history, apparently needed for push:
-      - name: Extract branch name
-        # This is required for pushing the changes to version, lock and changelog to the correct branch.
-        id: extract_branch
-        shell: bash
-        run: |
-          echo "ref" $REF
-          raw=$(git branch -r --contains $REF | grep -v '\->')
-          echo "raw" $raw
-          processed=$(echo $raw | awk '{print $1;}')
-          echo "processed" $processed
-          branch=${processed/origin\/}
-          echo "branch=$branch" >> $GITHUB_OUTPUT
-          echo "HEAD:$branch" | tr -d '[:space:]'
+          fetch-depth: 0
       - name: Setup git config
         run: |
           git config --global --add safe.directory /__w/dara/dara
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
       - uses: actions/setup-python@v4
+        id: setup-python
         with:
           python-version: "3.10"
       - uses: snok/install-poetry@v1
@@ -52,7 +50,6 @@ jobs:
         with:
             path: .venv
             key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
       - name: Install Python venv if cache was not found
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: |
@@ -79,44 +76,220 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install project dependencies
         run: make deps-project
-      # Extract current and tag versions so that we can do version bump in the right places.
-      - name: Extract tags (versions)
+      - name: Prepare release commit
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          if [ "$tag" = "$version" ]; then
+            echo "Release tags must start with v, got $tag"
+            exit 1
+          fi
+
+          tagged_sha="$(git rev-list -n 1 "$tag")"
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune --tags
+          recovered_prepared_release=false
+          mapfile -t branches < <(
+            git for-each-ref refs/remotes/origin --format='%(refname:short) %(objectname)' |
+              awk -v sha="$tagged_sha" '$1 != "origin/HEAD" && $2 == sha { sub("^origin/", "", $1); print $1 }'
+          )
+
+          if [ "${#branches[@]}" -eq 1 ]; then
+            branch="${branches[0]}"
+            git checkout -B "$branch" "origin/$branch"
+          else
+            # The branch push may have succeeded in a previous attempt while the
+            # tag update failed. In that case, recover by finding the one release
+            # commit whose first parent is the tagged source commit.
+            mapfile -t prepared_branches < <(
+              while read -r remote_ref head_sha; do
+                if [ "$remote_ref" = "origin/HEAD" ]; then
+                  continue
+                fi
+
+                parent_sha="$(git rev-parse "$head_sha^" 2>/dev/null || true)"
+                if [ "$parent_sha" != "$tagged_sha" ]; then
+                  continue
+                fi
+
+                head_version="$(git show "$head_sha:lerna.json" 2>/dev/null | sed -n 's/.*"version": "\(.*\)".*/\1/p')"
+                if [ "$head_version" != "$version" ]; then
+                  continue
+                fi
+
+                subject="$(git log -1 --format=%s "$head_sha")"
+                if [ "$subject" != "Version bump to $tag [skip ci]" ]; then
+                  continue
+                fi
+
+                branch="${remote_ref#origin/}"
+                echo "$branch $head_sha"
+              done < <(git for-each-ref refs/remotes/origin --format='%(refname:short) %(objectname)')
+            )
+
+            if [ "${#prepared_branches[@]}" -ne 1 ]; then
+              echo "Expected tag $tag ($tagged_sha) to point at exactly one remote branch head, found ${#branches[@]}:"
+              printf ' - %s\n' "${branches[@]}"
+              echo "Expected to recover exactly one prepared release branch, found ${#prepared_branches[@]}:"
+              printf ' - %s\n' "${prepared_branches[@]}"
+              exit 1
+            fi
+
+            branch="${prepared_branches[0]%% *}"
+            git checkout -B "$branch" "origin/$branch"
+            recovered_prepared_release=true
+          fi
+
+          current_version="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' lerna.json)"
+          previous_tag="v$current_version"
+          if [ "$current_version" = "$version" ]; then
+            previous_tag="$(git describe --tags --abbrev=0 --exclude="$tag" "${tagged_sha}^" 2>/dev/null || true)"
+            if [ -z "$previous_tag" ]; then
+              echo "Could not infer previous tag for already-prepared release $tag"
+              exit 1
+            fi
+            echo "Release $tag is already prepared on $branch"
+            if [ "$recovered_prepared_release" = "true" ]; then
+              git tag -fa "$tag" -m "Update tag"
+              git push --force origin "refs/tags/$tag"
+            fi
+          else
+            poetry anthology version "$version"
+            poetry anthology install
+            pnpm lerna version "$version" --no-private --no-git-tag-version --force-publish --exact --yes
+            pnpm i --lockfile-only
+            tooling/changelog-parser/main.js "$version" >/tmp/release-changelog.json
+
+            git add .
+            git commit -m "Version bump to $tag [skip ci]"
+
+            git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch"
+            remote_sha="$(git rev-parse "origin/$branch")"
+            if [ "$remote_sha" != "$tagged_sha" ]; then
+              echo "Branch $branch moved from $tagged_sha to $remote_sha while preparing $tag"
+              echo "Move the tag to the intended branch tip and retry the release."
+              exit 1
+            fi
+
+            git push origin "HEAD:$branch"
+            git tag -fa "$tag" -m "Update tag"
+            git push --force origin "refs/tags/$tag"
+          fi
+
+          release_sha="$(git rev-parse HEAD)"
+          {
+            echo "branch=$branch"
+            echo "previous_tag=$previous_tag"
+            echo "release_sha=$release_sha"
+            echo "tag=$tag"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: prepare-release
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-release.outputs.release_sha }}
+          fetch-depth: 0
+      - name: Expose release metadata
         id: extract_tag
+        run: |
+          echo "previous_tag=${{ needs.prepare-release.outputs.previous_tag }}" >> $GITHUB_OUTPUT
+          echo "tag=${{ needs.prepare-release.outputs.tag }}" >> $GITHUB_OUTPUT
+          echo "version=${{ needs.prepare-release.outputs.version }}" >> $GITHUB_OUTPUT
+      - name: Check existing GitHub release
+        id: release_status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ steps.extract_tag.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.extract_tag.outputs.tag }} already exists; skipping publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v4
+        if: steps.release_status.outputs.exists != 'true'
+        id: setup-python
+        with:
+          python-version: "3.10"
+      - uses: snok/install-poetry@v1
+        if: steps.release_status.outputs.exists != 'true'
+        with:
+          version: 1.8.3
+      - name: Install Anthology
+        if: steps.release_status.outputs.exists != 'true'
+        run: poetry self add anthology
+      - name: Setup cached venv
+        if: steps.release_status.outputs.exists != 'true'
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+            path: .venv
+            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install Python venv if cache was not found
+        if: steps.release_status.outputs.exists != 'true' && steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: |
+            poetry anthology install
+      - name: Link venvs if cache was hit
+        if: steps.release_status.outputs.exists != 'true' && steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
+        run: make link
+      - name: Install pnpm
+        if: steps.release_status.outputs.exists != 'true'
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        if: steps.release_status.outputs.exists != 'true'
+        with:
+            node-version: 24
+      - name: Get pnpm store directory
+        if: steps.release_status.outputs.exists != 'true'
+        id: pnpm-cache
         shell: bash
         run: |
-            # Extract previous (current) tag from the lerna.json file
-            previous_tag=v$(sed -n 's/.*"version": "\(.*\)".*/\1/p' lerna.json)
-            echo "previous_tag=$previous_tag" >> $GITHUB_OUTPUT
-            tag=$(git describe --tags --exact-match $GITHUB_SHA)
-            # Remove the v prefix
-            version=${tag#v}
-            echo "tag=$tag" >> $GITHUB_OUTPUT
-            echo "version=$version" >> $GITHUB_OUTPUT
-      - name: Set versions for JS and Python packages
-        shell: bash
-        run: |
-          poetry anthology version ${{ steps.extract_tag.outputs.version }}
-          poetry anthology install
-          pnpm lerna version ${{ steps.extract_tag.outputs.version }} --no-private --no-git-tag-version --force-publish --exact --yes
-          pnpm i --lockfile-only
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        if: steps.release_status.outputs.exists != 'true'
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install project dependencies
+        if: steps.release_status.outputs.exists != 'true'
+        run: make deps-project
       - name: Parse and resolve changelog
+        if: steps.release_status.outputs.exists != 'true'
         id: set-changelog
         run: |
           changelog=$(tooling/changelog-parser/main.js ${{ steps.extract_tag.outputs.version }})
           echo "changelog=$changelog" >> $GITHUB_OUTPUT
       - name: Update READMEs to work on PyPi before publishing
+        if: steps.release_status.outputs.exists != 'true'
         run: |
-          poetry run python ./tooling/scripts/update-readmes.py ${{ github.ref_name }}
+          poetry run python ./tooling/scripts/update-readmes.py ${{ steps.extract_tag.outputs.tag }}
       - name: Prepare resources required for packaging
+        if: steps.release_status.outputs.exists != 'true'
         run: make prepare
-      - name: Make packages
+      - name: Make Python packages
+        if: steps.release_status.outputs.exists != 'true'
         run: poetry anthology run package
-      - name: Publish packages
-        run: make publish
+      - name: Publish Python packages
+        if: steps.release_status.outputs.exists != 'true'
+        run: make publish-python
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          VERSION_TAG: ${{ steps.extract_tag.outputs.tag }}
+      - name: Publish npm packages
+        if: steps.release_status.outputs.exists != 'true'
+        run: make publish-npm
       - name: Package and Publish Docs
+        if: steps.release_status.outputs.exists != 'true'
         run: make publish-docs
         env:
           PROJECT: causalens-internal
@@ -128,19 +301,8 @@ jobs:
           POETRY_HTTP_BASIC_CAUSALENS_USERNAME: _json_key
           POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY_JSON }}'
           VERSION: ${{ steps.extract_tag.outputs.version }}
-
-      - name: Push a committed version bump
-        run: |
-              git push origin $(echo "HEAD:$BRANCH" | tr -d '[:space:]')
-              # Move the tag to the new commit
-              git push --delete origin ${{ steps.extract_tag.outputs.tag }}
-              git tag -fa ${{ steps.extract_tag.outputs.tag }} -m "Update tag"
-              git push origin ${{ steps.extract_tag.outputs.tag }}
-        env:
-          GH_PAT: '${{ secrets.GH_ACTIONS_KEY }}'
-          GH_USERNAME: 'sam-causalens'
-          BRANCH: ${{ steps.extract_branch.outputs.branch }}
       - name: Build Changelog
+        if: steps.release_status.outputs.exists != 'true'
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v4
         with:
@@ -175,12 +337,13 @@ jobs:
                   ]
                 }
       - name: Create release
+        if: steps.release_status.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{steps.build_changelog.outputs.changelog}}
-
       - uses: 8398a7/action-slack@v3
+        if: steps.release_status.outputs.exists != 'true'
         with:
           status: custom
           custom_payload: |
