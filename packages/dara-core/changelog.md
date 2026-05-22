@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.27.0
 
 - Added configurable OIDC group claim names and parsing for single or comma-delimited group strings.
 - Changed auth session cookies to use opaque server-side session handles, avoiding cookie size overflows from large auth claims and refresh tokens while keeping token data server-side. Programmatic callers can still pass raw tokens (IDP- or Dara-issued) via `Authorization: Bearer` header.
