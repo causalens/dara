@@ -33,6 +33,7 @@ import { HTTP_METHOD } from '@darajs/ui-utils';
 
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
+import { handleAuthErrors } from '@/auth/auth';
 import { type GlobalTaskContext, type StreamVariable, isVariable } from '@/types';
 
 import { getUniqueIdentifier } from '../utils/hashing';
@@ -393,6 +394,11 @@ function startStreamConnection(
             if (response.ok) {
                 retryCount = 0; // Reset retry count on successful connection
                 return;
+            }
+
+            const handledAuthError = await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
+            if (handledAuthError) {
+                controller.abort();
             }
 
             const error = new Error(`Stream request failed: ${response.status} ${response.statusText}`);
