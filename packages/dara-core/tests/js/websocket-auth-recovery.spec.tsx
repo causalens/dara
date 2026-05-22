@@ -16,6 +16,8 @@ class FailingWebSocket extends EventTarget {
 
     static CLOSED = 3;
 
+    static connectionCount = 0;
+
     url: string;
 
     lastSentData: string | null = null;
@@ -24,6 +26,7 @@ class FailingWebSocket extends EventTarget {
 
     constructor(url: string | URL) {
         super();
+        FailingWebSocket.connectionCount += 1;
         this.url = url.toString();
 
         setTimeout(() => {
@@ -52,6 +55,7 @@ describe('Websocket auth recovery', () => {
 
     afterEach(() => {
         authServer.resetHandlers();
+        FailingWebSocket.connectionCount = 0;
         Object.defineProperty(window, 'location', {
             configurable: true,
             enumerable: true,
@@ -79,17 +83,6 @@ describe('Websocket auth recovery', () => {
                         },
                     },
                     { status: 401 }
-                );
-            }),
-            http.post('/api/auth/refresh-token', () => {
-                return HttpResponse.json(
-                    {
-                        detail: {
-                            message: 'No refresh token provided',
-                            reason: 'bad_request',
-                        },
-                    },
-                    { status: 400 }
                 );
             })
         );
@@ -119,6 +112,51 @@ describe('Websocket auth recovery', () => {
                 expect(window.location.pathname).toBe('/login');
             });
             expect(window.location.search).toContain('referrer=%2Fapp%3Ffoo%3Dbar');
+
+            client.close();
+        } finally {
+            consoleErrorSpy.mockRestore();
+        }
+    });
+
+    it('restarts a parked reconnect burst once after failed handshake auth verifies successfully', async () => {
+        authServer.use(
+            http.post('/api/auth/verify-session', () => {
+                return HttpResponse.json('session-id');
+            })
+        );
+
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        try {
+            Object.defineProperty(window, 'location', {
+                configurable: true,
+                enumerable: true,
+                value: new URL('http://localhost:8001/app?foo=bar'),
+            });
+            Object.defineProperty(globalThis, 'WebSocket', {
+                configurable: true,
+                writable: true,
+                value: FailingWebSocket,
+            });
+            window.dara = {
+                base_url: 'http://localhost:8001',
+                ws: deferred<WebSocketClient>(),
+            };
+
+            const client = new WebSocketClient('ws://localhost:1234');
+            client.maxAttempts = 0;
+
+            await waitFor(() => {
+                expect(FailingWebSocket.connectionCount).toBe(2);
+            });
+            await waitFor(() => {
+                expect(client.maxAttemptsReached).toBe(true);
+            });
+
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            expect(FailingWebSocket.connectionCount).toBe(2);
+            expect(window.location.pathname).toBe('/app');
 
             client.close();
         } finally {

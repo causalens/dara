@@ -160,10 +160,10 @@ function BasicAuthLogin(): JSX.Element {
 
     useEffect(() => {
         // If we landed on this page with a valid session already, redirect.
-        verifySessionToken().then((verified) => {
-            if (verified) {
+        verifySessionToken().then((verificationResult) => {
+            if (verificationResult === 'verified') {
                 navigate(decodeURIComponent(previousLocation), { replace: true });
-            } else {
+            } else if (verificationResult === 'login_required') {
                 setIsVerifyingToken(false);
             }
         });

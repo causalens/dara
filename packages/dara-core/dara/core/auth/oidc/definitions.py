@@ -2,10 +2,7 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dara.core.auth.definitions import REFRESH_TOKEN_COOKIE_NAME as CORE_REFRESH_TOKEN_COOKIE_NAME
-
 JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
-REFRESH_TOKEN_COOKIE_NAME = CORE_REFRESH_TOKEN_COOKIE_NAME
 OIDC_LOGIN_SESSION_COOKIE_NAME = 'dara_oidc_login_session'
 
 
@@ -280,7 +277,10 @@ class IdTokenClaims(BaseModel):
     address: dict | None = Field(default=None, description="End-User's postal address")
 
     # Groups claim (non-standard but common)
-    groups: list[str] | None = Field(default=None, description='Groups the user belongs to (non-standard claim)')
+    groups: list[str] | str | None = Field(
+        default=None,
+        description='Groups the user belongs to (non-standard claim)',
+    )
 
     # Allow provider-specific claims
     model_config = ConfigDict(extra='allow')

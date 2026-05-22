@@ -1,8 +1,9 @@
 import asyncio
 import base64
+import csv
 import hashlib
 import secrets
-from typing import ClassVar
+from typing import Any, ClassVar
 from urllib.parse import urlencode, urlparse
 
 import httpx
@@ -21,7 +22,7 @@ from ..definitions import (
     BAD_REQUEST_ERROR,
     ID_TOKEN,
     INVALID_TOKEN_ERROR,
-    REFRESH_TOKEN_COOKIE_NAME,
+    OTHER_AUTH_ERROR,
     SESSION_ID,
     UNAUTHORIZED_ERROR,
     USER,
@@ -41,7 +42,6 @@ from .definitions import (
     OIDCDiscoveryMetadata,
     OIDCLoginTransaction,
 )
-from .id_token_cache import oidc_id_token_cache
 from .routes import sso_callback
 from .settings import OIDCSettings, get_oidc_settings
 from .transaction_store import oidc_transaction_store
@@ -52,6 +52,8 @@ OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', j
 OIDCAuthLogout = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogout')
 
 OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthSSOCallback')
+
+USERINFO_ERROR = OTHER_AUTH_ERROR('Identity provider userinfo failed')
 
 
 class _RetryableDiscoveryError(Exception):
@@ -75,8 +77,9 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_VERIFY_AUDIENCE - if set, the ID token will be verified against the configured audience, by default `sso_client_id`
     - SSO_EXTRA_AUDIENCE - if set, extra audiences to verify against the ID token in addition to `sso_client_id`
     - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
+    - SSO_GROUP_CLAIM_NAME - name of the claim containing user groups, defaults to `groups`
     - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
-    - SSO_USE_USERINFO - if set to `true`, fetch additional claims from the userinfo endpoint when an access token is available
+    - SSO_USE_USERINFO - if set to `true`, require the userinfo endpoint during login and refresh
     """
 
     # NOTE: the config follows OIDC specification, but makes a few concessions
@@ -311,7 +314,7 @@ class OIDCAuthConfig(BaseAuthConfig):
             )
         )
 
-    async def fetch_userinfo(self, access_token: str) -> dict | None:
+    async def fetch_userinfo(self, access_token: str | None) -> dict[str, Any]:
         """
         Fetch user information from the OIDC userinfo endpoint.
 
@@ -319,13 +322,26 @@ class OIDCAuthConfig(BaseAuthConfig):
         about the authenticated user. This is useful when the ID token doesn't contain
         all required claims.
 
-        :param access_token: The access token to authenticate the request
-        :return: Dictionary of userinfo claims, or None if the request fails
+        :param access_token: The access token to authenticate the request.
+        :return: Dictionary of userinfo claims.
+        :raises HTTPException: If userinfo is required but cannot be fetched or parsed.
         """
+        if not access_token:
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=Exception('missing access token'),
+                extra={'reason': 'missing_access_token'},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
+
         userinfo_endpoint = self.discovery.userinfo_endpoint
         if not userinfo_endpoint:
-            dev_logger.warning('Userinfo endpoint not available in OIDC discovery')
-            return None
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=Exception('missing userinfo endpoint'),
+                extra={'reason': 'missing_userinfo_endpoint'},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
 
         try:
             response = await self.client.get(
@@ -334,15 +350,87 @@ class OIDCAuthConfig(BaseAuthConfig):
                 timeout=10,
             )
             response.raise_for_status()
-            return response.json()
+            userinfo = response.json()
         except httpx.HTTPStatusError as e:
-            dev_logger.warning(
-                f'Failed to fetch userinfo: HTTP {e.response.status_code}',
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=e,
+                extra={
+                    'reason': 'http_error',
+                    'userinfo_endpoint': userinfo_endpoint,
+                    'userinfo_response_status': e.response.status_code,
+                },
             )
-            return None
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
         except httpx.RequestError as e:
-            dev_logger.warning(f'Failed to fetch userinfo: {e}')
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=e,
+                extra={'reason': 'request_error', 'userinfo_endpoint': userinfo_endpoint},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
+        except ValueError as e:
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=e,
+                extra={'reason': 'invalid_json', 'userinfo_endpoint': userinfo_endpoint},
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
+
+        if not isinstance(userinfo, dict):
+            dev_logger.error(
+                'OIDC userinfo fetch failed',
+                error=Exception('invalid userinfo response'),
+                extra={
+                    'reason': 'invalid_response_shape',
+                    'userinfo_endpoint': userinfo_endpoint,
+                    'userinfo_response_type': type(userinfo).__name__,
+                },
+            )
+            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
+
+        return userinfo
+
+    def _normalize_group_claim(self, groups: list[str] | str, group_claim_name: str) -> list[str]:
+        if isinstance(groups, list) and all(isinstance(group, str) for group in groups):
+            return groups
+
+        if isinstance(groups, str):
+            group = groups.strip()
+            if not group:
+                return []
+
+            if ',' not in group:
+                return [group]
+
+            parsed_groups = [group]
+            parsed_groups.extend(
+                part.strip() for part in next(csv.reader([group], skipinitialspace=True)) if part.strip()
+            )
+            return list(dict.fromkeys(parsed_groups))
+
+        dev_logger.error(
+            'Invalid OIDC group claim',
+            error=Exception('invalid group claim'),
+            extra={'group_claim_name': group_claim_name, 'group_claim_type': type(groups).__name__},
+        )
+        raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+
+    def _extract_group_claim(self, claims: IdTokenClaims | dict) -> list[str] | None:
+        """
+        Extract the configured group claim from ID token claims or userinfo data.
+
+        :param claims: decoded ID token claims or userinfo response
+        :return: normalized configured groups value, or None when the claim is absent
+        """
+        group_claim_name = get_oidc_settings().group_claim_name
+
+        groups = claims.get(group_claim_name) if isinstance(claims, dict) else getattr(claims, group_claim_name, None)
+
+        if groups is None:
             return None
+
+        return self._normalize_group_claim(groups, group_claim_name)
 
     def extract_user_data(self, claims: IdTokenClaims, userinfo: dict | None = None) -> UserData:
         """
@@ -360,11 +448,19 @@ class OIDCAuthConfig(BaseAuthConfig):
         oidc_settings = get_oidc_settings()
 
         # When userinfo is provided and use_userinfo is enabled, prefer userinfo claims
-        if userinfo and oidc_settings.use_userinfo:
+        if userinfo is not None and oidc_settings.use_userinfo:
             userinfo_sub = userinfo.get('sub')
             if not isinstance(userinfo_sub, str) or userinfo_sub != claims.sub:
-                dev_logger.error('Invalid OIDC userinfo subject', error=Exception('userinfo sub mismatch'))
-                raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+                dev_logger.error(
+                    'Invalid OIDC userinfo subject',
+                    error=Exception('userinfo sub mismatch'),
+                    extra={
+                        'id_token_sub': claims.sub,
+                        'userinfo_sub': userinfo_sub,
+                        'userinfo_sub_type': type(userinfo_sub).__name__,
+                    },
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR)
 
             identity_id = claims.sub
             identity_email = userinfo.get('email') or claims.email
@@ -378,7 +474,9 @@ class OIDCAuthConfig(BaseAuthConfig):
                     else None
                 )
             )
-            groups = userinfo.get('groups') or claims.groups
+            groups = self._extract_group_claim(userinfo)
+            if groups is None:
+                groups = self._extract_group_claim(claims)
         else:
             # Check for non-standard 'identity' claim (Causalens IDP)
             # This is a nested object with id, name, email fields
@@ -392,7 +490,7 @@ class OIDCAuthConfig(BaseAuthConfig):
                 identity_id = claims.sub
                 identity_email = claims.email
                 identity_name = None
-            groups = claims.groups
+            groups = self._extract_group_claim(claims)
 
         # Fall back to standard claims for name if not set
         if not identity_name:
@@ -483,11 +581,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         token_data = decode_token(token)
 
         if token_data.id_token is None:
-            cached_id_token = await oidc_id_token_cache.get(token_data.session_id)
-            if not cached_id_token:
-                raise AuthError(code=401, detail=INVALID_TOKEN_ERROR)
-
-            token_data = token_data.model_copy(update={'id_token': cached_id_token})
+            raise AuthError(code=401, detail=INVALID_TOKEN_ERROR)
 
         user_data = UserData.from_token_data(token_data)
 
@@ -542,17 +636,14 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         return self.discovery.token_endpoint
 
-    async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+    async def _refresh_token_for_session_id(self, session_id: str, refresh_token: str) -> tuple[str, str]:
         """
-        Refresh the session using an OIDC refresh token.
+        Refresh the session using an OIDC refresh token and the session id to preserve.
 
         Per RFC 6749 Section 6, sends a refresh token grant to the token endpoint
         to obtain new access/id tokens.
 
-        Note: the new issued session token includes the same session_id as the old token
-        to maintain session continuity.
-
-        :param old_token: Old session token data (used to preserve session_id)
+        :param session_id: session id to preserve
         :param refresh_token: OIDC refresh token
         :return: Tuple of (new_session_token, new_refresh_token)
         :raises HTTPException: If the refresh fails
@@ -575,9 +666,9 @@ class OIDCAuthConfig(BaseAuthConfig):
         # Decode and verify the new ID token
         claims = decode_id_token(oidc_tokens.id_token)
 
-        # Fetch userinfo if enabled and we have an access token
+        # Fetch userinfo if enabled. Once enabled, userinfo is part of the auth contract.
         userinfo = None
-        if oidc_settings.use_userinfo and oidc_tokens.access_token:
+        if oidc_settings.use_userinfo:
             userinfo = await self.fetch_userinfo(oidc_tokens.access_token)
 
         # Extract user data from claims
@@ -586,41 +677,36 @@ class OIDCAuthConfig(BaseAuthConfig):
         # Verify user still has access
         self.verify_user_access(user_data)
 
-        # Cache raw OIDC ID token server-side for compact cookie token hydration.
-        await oidc_id_token_cache.set(old_token.session_id, oidc_tokens.id_token, int(claims.exp))
-
-        # Keep websocket context token data in sync when a session has active channels.
-        from dara.core.internal.registries import session_auth_token_registry
-
-        if session_auth_token_registry.has(old_token.session_id):
-            session_auth_token_registry.set(
-                old_token.session_id,
-                TokenData(
-                    session_id=old_token.session_id,
-                    exp=int(claims.exp),
-                    identity_id=user_data.identity_id,
-                    identity_name=user_data.identity_name,
-                    identity_email=user_data.identity_email,
-                    groups=user_data.groups or [],
-                    id_token=oidc_tokens.id_token,
-                ),
-            )
-
-        # Create a compact Dara session token, preserving the original session_id.
+        # Create a Dara session token, preserving the original session_id. This token stays server-side behind the
+        # generic opaque browser auth session handle.
         new_session_token = sign_jwt(
             identity_id=user_data.identity_id,
             identity_name=user_data.identity_name,
             identity_email=user_data.identity_email,
             groups=user_data.groups or [],
-            id_token=None,
+            id_token=oidc_tokens.id_token,
             exp=int(claims.exp),
-            session_id=old_token.session_id,
+            session_id=session_id,
         )
 
         # Return new session token and refresh token (or the old one if not rotated)
         new_refresh_token = oidc_tokens.refresh_token or refresh_token
 
         return new_session_token, new_refresh_token
+
+    async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
+        """
+        Refresh the session using an OIDC refresh token.
+
+        Note: the new issued session token includes the same session_id as the old token
+        to maintain session continuity.
+
+        :param old_token: Old session token data (used to preserve session_id)
+        :param refresh_token: OIDC refresh token
+        :return: Tuple of (new_session_token, new_refresh_token)
+        :raises HTTPException: If the refresh fails
+        """
+        return await self._refresh_token_for_session_id(old_token.session_id, refresh_token)
 
     def get_end_session_endpoint(self) -> str | None:
         """
@@ -691,9 +777,6 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         oidc_settings = get_oidc_settings()
 
-        # Clean up the refresh token cookie
-        response.delete_cookie(REFRESH_TOKEN_COOKIE_NAME)
-
         # Extract the ID token to use as a hint
         id_token: str | None = None
 
@@ -701,24 +784,9 @@ class OIDCAuthConfig(BaseAuthConfig):
             # Decode without verification to check the issuer
             unverified = jwt.decode(token, options={'verify_signature': False})
 
-            # Raw IDP token -> use directly as the id_token_hint
-            # Dara-issued token -> extract the embedded id_token or resolve from session cache.
-            if unverified.get('iss') == oidc_settings.issuer_url:
-                id_token = token
-            else:
-                id_token = unverified.get('id_token')
-                if not id_token:
-                    session_id = unverified.get('session_id')
-                    if isinstance(session_id, str):
-                        id_token = await oidc_id_token_cache.get(session_id)
-
-                        if not id_token:
-                            from dara.core.internal.registries import session_auth_token_registry
-
-                            if session_auth_token_registry.has(session_id):
-                                cached_token_data = session_auth_token_registry.get(session_id)
-                                if cached_token_data.id_token:
-                                    id_token = cached_token_data.id_token
+            # Raw IDP token -> use directly as the id_token_hint.
+            # Dara-issued token -> extract the embedded id_token.
+            id_token = token if unverified.get('iss') == oidc_settings.issuer_url else unverified.get('id_token')
         except jwt.DecodeError:
             # If we can't decode the token, proceed without id_token_hint
             dev_logger.warning('Failed to decode token for logout, proceeding without id_token_hint')

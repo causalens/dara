@@ -54,6 +54,31 @@ def test_client_secret_not_required_for_pkce_public_auth_mode():
     assert s.client_auth_mode == 'pkce_public'
 
 
+def test_group_claim_name_defaults_to_groups():
+    s = OIDCSettings(
+        _env_file=None,  # type: ignore
+        client_id='client-id',
+        client_secret='client-secret',
+        redirect_uri='http://localhost:8000/sso-callback',
+        groups='dev',
+    )
+
+    assert s.group_claim_name == 'groups'
+
+
+def test_group_claim_name_can_be_configured_from_env(monkeypatch: pytest.MonkeyPatch):
+    with monkeypatch.context() as m:
+        m.delenv('DARA_TEST_FLAG', raising=False)
+        m.setenv('SSO_CLIENT_ID', 'client-id')
+        m.setenv('SSO_CLIENT_SECRET', 'client-secret')
+        m.setenv('SSO_REDIRECT_URI', 'http://localhost:8000/sso-callback')
+        m.setenv('SSO_GROUPS', 'dev')
+        m.setenv('SSO_GROUP_CLAIM_NAME', 'memberOf')
+
+        s = get_oidc_settings()
+        assert s.group_claim_name == 'memberOf'
+
+
 def test_error_on_missing_env():
     """
     Check that the settings error out on missing env vars

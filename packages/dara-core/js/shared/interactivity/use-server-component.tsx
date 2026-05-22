@@ -96,7 +96,7 @@ async function fetchFunctionComponent(
         },
         extras
     );
-    await handleAuthErrors(res, true);
+    await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
     await validateResponse(res, `Failed to fetch the component: ${component}`);
     const result: TaskResponse | NormalizedPayload<ComponentInstance> | null = await res.json();
     return result;

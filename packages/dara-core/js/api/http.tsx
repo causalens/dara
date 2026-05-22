@@ -1,15 +1,6 @@
 /* eslint-disable import/prefer-default-export */
 import cloneDeep from 'lodash/cloneDeep';
 
-import { validateResponse } from '@darajs/ui-utils';
-
-import { notifySessionLoggedOut, runSessionRefresh, waitForOngoingSessionRefresh } from '@/auth/session-state';
-
-import { SESSION_REFRESHED_EVENT } from './events';
-
-/**
- * Extra options to pass to the request function.
- */
 export type RequestExtras = RequestInit;
 
 /**
@@ -67,11 +58,8 @@ export class RequestExtrasSerializable {
  * @param url URL
  * @param options optional fetch options. Multiple option sets can be provided, they will be merged in order with later options overriding earlier ones.
  */
-export async function request(url: string | URL, ...options: RequestInit[]): Promise<Response> {
-    // If another request/tab is currently refreshing the session, wait for it first
-    // so we don't send avoidable 401/403 requests with stale credentials.
-    await waitForOngoingSessionRefresh();
-    const mergedOptions = options.reduce((acc, opt) => ({ ...acc, ...opt }), {});
+export async function request(url: string | URL, ...options: RequestExtras[]): Promise<Response> {
+    const mergedOptions = options.reduce<RequestExtras>((acc, opt) => ({ ...acc, ...opt }), {});
 
     const { headers, credentials: mergedCredentials, ...other } = mergedOptions;
     const credentials = mergedCredentials ?? 'include';
@@ -91,49 +79,9 @@ export async function request(url: string | URL, ...options: RequestInit[]): Pro
     const baseUrl: string = window.dara?.base_url ?? '';
     const urlString = url instanceof URL ? url.pathname + url.search : url;
 
-    const response = await fetch(baseUrl + urlString, {
+    return fetch(baseUrl + urlString, {
         credentials,
         headers: headersInterface,
         ...other,
     });
-
-    // in case of an authentication error, attempt to refresh the token and retry the request
-    if (response.status === 401) {
-        try {
-            // Ensure only one tab refreshes at a time; others wait and reuse the refreshed token.
-            await runSessionRefresh(async () => {
-                const refreshHeaders = new Headers({ Accept: 'application/json' });
-
-                const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-token`, {
-                    credentials,
-                    headers: refreshHeaders,
-                    method: 'POST',
-                });
-                if (refreshResponse.ok) {
-                    window.dispatchEvent(new Event(SESSION_REFRESHED_EVENT));
-                    return;
-                }
-
-                notifySessionLoggedOut();
-                // this will throw an error with the error content
-                await validateResponse(refreshResponse, 'Request auth error, failed to refresh the session token');
-                throw new Error('Request auth error, failed to refresh the session token');
-            });
-
-            // retry the request after refresh
-            return fetch(baseUrl + urlString, {
-                credentials,
-                headers: headersInterface,
-                ...other,
-            });
-        } catch (e) {
-            // refresh failed - return the original request, the caller is supposed to handle the error
-            // however they wish
-            // eslint-disable-next-line no-console
-            console.error('Failed to refresh token', e);
-            return response;
-        }
-    }
-
-    return response;
 }

@@ -23,8 +23,8 @@ from dara.core.internal.tasks import TaskManager
 from dara.core.main import _start_application
 
 from tests.python.utils import (
-    AUTH_HEADERS,
     _async_ws_connect,
+    _get_auth_headers,
     _get_tabular_derived_variable,
     create_app,
     wait_assert,
@@ -108,7 +108,9 @@ async def test_derived_tabular_variable_ws_channel_required():
     app = _start_application(config)
     async with AsyncClient(app) as client:
         data_response = await client.post(
-            '/api/core/tabular-variable/uid', json={'dv_values': {'lookup': {}, 'data': []}}, headers=AUTH_HEADERS
+            '/api/core/tabular-variable/uid',
+            json={'dv_values': {'lookup': {}, 'data': []}},
+            headers=await _get_auth_headers(),
         )
         assert data_response.status_code == 422
 
@@ -402,7 +404,7 @@ async def test_tabular_derived_variable_filter_metatask(cache):
 
         for meta_task_id in meta_task_ids:
             # Check we can get the result of the filter metatask
-            filter_data = await client.get(f'/api/core/tasks/{meta_task_id}', headers=AUTH_HEADERS)
+            filter_data = await client.get(f'/api/core/tasks/{meta_task_id}', headers=await _get_auth_headers())
             expected_data = get_expected_data(1, FINAL_TEST_DATA)
             expected_data = expected_data[expected_data['col1'] == 2]
             assert filter_data.json()['data'] == df_convert_to_internal(expected_data).to_dict(orient='records')

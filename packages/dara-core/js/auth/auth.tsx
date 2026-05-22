@@ -9,7 +9,7 @@ import { type User, type UserData } from '@/types';
 
 import { notifySessionLoggedOut, setSessionIdentifier } from './session-state';
 
-enum AuthenticationErrorReason {
+export enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
     EXPIRED_TOKEN = 'expired',
     INVALID_CREDENTIALS = 'invalid_credentials',
@@ -22,6 +22,19 @@ interface AuthenticationError {
     message: string;
     reason: AuthenticationErrorReason;
 }
+
+export type AuthenticationFailureRedirect = 'login' | 'error';
+
+export interface HandleAuthErrorsOptions {
+    /**
+     * Where to route authentication failures such as expired or invalid tokens.
+     * Authorization, bad request, and provider failures always route to the error page.
+     */
+    authenticationFailureRedirect?: AuthenticationFailureRedirect;
+    ignoreErrors?: Array<AuthenticationErrorReason>;
+}
+
+export type VerifySessionTokenResult = 'handled_auth_error' | 'login_required' | 'verified';
 
 const AuthenticationErrorSchema = z.object({
     message: z.string(),
@@ -55,20 +68,31 @@ function parseAuthenticationError(message: unknown): AuthenticationError | null 
  * @param ignoreErrors error types to ignore
  */
 function shouldIgnoreError(message: AuthenticationError, ignoreErrors: Array<AuthenticationError['reason']>): boolean {
-    return ignoreErrors && ignoreErrors.includes(message.reason);
+    return ignoreErrors.includes(message.reason);
 }
 
 /**
- * Returns true if the error should redirect to login, otherwise it should redirect to the error page
+ * Returns true if an auth error means the user does not have a usable app session.
  *
  * @param message error message
  */
-function shouldRedirectToLogin(message: AuthenticationError): boolean {
+function isAuthenticationFailure(message: AuthenticationError): boolean {
     return [
         AuthenticationErrorReason.INVALID_CREDENTIALS,
         AuthenticationErrorReason.EXPIRED_TOKEN,
         AuthenticationErrorReason.INVALID_TOKEN,
     ].includes(message.reason);
+}
+
+function getAuthErrorRedirect(
+    message: AuthenticationError,
+    authenticationFailureRedirect: AuthenticationFailureRedirect
+): AuthenticationFailureRedirect {
+    if (isAuthenticationFailure(message)) {
+        return authenticationFailureRedirect;
+    }
+
+    return 'error';
 }
 
 interface RedirectResponse {
@@ -126,14 +150,11 @@ export function resolveReferrer(): string {
  * Helper function to handle auth errors in a response
  *
  * @param res the response object to check
- * @param toLogin if true, open the login page, else open the error page
- * @param ignoreErrors if specified, certain reasons for an error will be ignored
+ * @param options auth error handling options
  */
-export async function handleAuthErrors(
-    res: Response,
-    toLogin = false,
-    ignoreErrors: Array<AuthenticationErrorReason> | null = null
-): Promise<boolean> {
+export async function handleAuthErrors(res: Response, options: HandleAuthErrorsOptions = {}): Promise<boolean> {
+    const { authenticationFailureRedirect = 'login', ignoreErrors = [] } = options;
+
     // Bail out if the response is not an auth error, if we don't then non json responses can cause the following
     // code to hang.
     if (res.status >= 500 || res.status < 400) {
@@ -144,15 +165,18 @@ export async function handleAuthErrors(
 
     const authError = parseAuthenticationError(content?.detail);
 
-    if (authError && !shouldIgnoreError(authError, ignoreErrors ?? [])) {
-        notifySessionLoggedOut();
-
+    if (authError && !shouldIgnoreError(authError, ignoreErrors)) {
         // use existing referrer if available in case we were already redirected because of e.g. missing token
         const queryParams = new URLSearchParams(window.location.search);
         const referrer = queryParams.get('referrer') ?? resolveReferrer();
 
-        const path =
-            toLogin || shouldRedirectToLogin(authError) ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
+        const redirect = getAuthErrorRedirect(authError, authenticationFailureRedirect);
+        const path = redirect === 'login' ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
+
+        if (redirect === 'login') {
+            notifySessionLoggedOut();
+        }
+
         window.location.href = `${window.dara.base_url}${path}`;
 
         return true;
@@ -186,7 +210,9 @@ export async function requestSessionToken(body: User = {}): Promise<boolean> {
     });
 
     // check auth errors, but ignore invalid credentials - these will be handled by validateResponse further
-    const loggedOut = await handleAuthErrors(res, false, [AuthenticationErrorReason.INVALID_CREDENTIALS]);
+    const loggedOut = await handleAuthErrors(res, {
+        ignoreErrors: [AuthenticationErrorReason.INVALID_CREDENTIALS],
+    });
 
     if (loggedOut) {
         return false;
@@ -208,14 +234,26 @@ export function useSession(body: User = {}): UseQueryResult<boolean, RequestErro
 }
 
 /** Api call to verify the session token from the backend */
-export async function verifySessionToken(): Promise<boolean> {
+export async function verifySessionToken(): Promise<VerifySessionTokenResult> {
     const res = await request('/api/auth/verify-session', {
         method: HTTP_METHOD.POST,
     });
 
     if (!res.ok) {
+        const handled = await handleAuthErrors(res, {
+            ignoreErrors: [
+                AuthenticationErrorReason.EXPIRED_TOKEN,
+                AuthenticationErrorReason.INVALID_CREDENTIALS,
+                AuthenticationErrorReason.INVALID_TOKEN,
+            ],
+        });
+
+        if (handled) {
+            return 'handled_auth_error';
+        }
+
         setSessionIdentifier(null);
-        return false;
+        return 'login_required';
     }
 
     try {
@@ -225,5 +263,5 @@ export async function verifySessionToken(): Promise<boolean> {
         setSessionIdentifier(null);
     }
 
-    return true;
+    return 'verified';
 }

@@ -8,7 +8,6 @@ import { HTTP_METHOD } from '@darajs/ui-utils';
 import { handleAuthErrors } from '@/auth/auth';
 import type { ActionImpl, AnyVariable } from '@/types';
 
-import { SESSION_REFRESHED_EVENT } from './events';
 import { request } from './http';
 
 const interAttemptTimeout = 500;
@@ -251,6 +250,8 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     #authVerificationPromise: Promise<void> | null;
 
+    #authVerificationReconnectUsed: boolean;
+
     constructor(_socketUrl: string, _liveReload = false) {
         this.liveReload = _liveReload;
         this.messages$ = new Subject();
@@ -265,6 +266,7 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.#visibilityResumeHandler = this.onVisibilityResumeSignal.bind(this);
         this.#resumeListenersAttached = false;
         this.#authVerificationPromise = null;
+        this.#authVerificationReconnectUsed = false;
 
         // Satisfy TSC, channel is set within initialize again
         this.channel = Promise.resolve('');
@@ -304,6 +306,7 @@ export class WebSocketClient implements WebSocketClientInterface {
                     receivedInit = true;
                     this.#reconnectCount = 0;
                     this.maxAttemptsReached = false;
+                    this.#authVerificationReconnectUsed = false;
                     this.removeReconnectResumeListeners();
                     this.messages$.next(msg);
 
@@ -347,7 +350,10 @@ export class WebSocketClient implements WebSocketClientInterface {
 
                 if (!response.ok) {
                     await handleAuthErrors(response);
+                    return;
                 }
+
+                this.resumeAfterSuccessfulAuthVerification();
             } catch {
                 // Ignore transient network/server failures and let the reconnect loop continue.
             } finally {
@@ -358,6 +364,14 @@ export class WebSocketClient implements WebSocketClientInterface {
         return this.#authVerificationPromise;
     }
 
+    resumeAfterSuccessfulAuthVerification(): void {
+        if (this.#authVerificationReconnectUsed) {
+            return;
+        }
+
+        this.resumeReconnectBurst(true);
+    }
+
     addReconnectResumeListeners(): void {
         if (this.#resumeListenersAttached) {
             return;
@@ -366,7 +380,6 @@ export class WebSocketClient implements WebSocketClientInterface {
         document.addEventListener('visibilitychange', this.#visibilityResumeHandler);
         window.addEventListener('focus', this.#resumeSignalHandler);
         window.addEventListener('online', this.#resumeSignalHandler);
-        window.addEventListener(SESSION_REFRESHED_EVENT, this.#resumeSignalHandler);
         this.#resumeListenersAttached = true;
     }
 
@@ -378,17 +391,17 @@ export class WebSocketClient implements WebSocketClientInterface {
         document.removeEventListener('visibilitychange', this.#visibilityResumeHandler);
         window.removeEventListener('focus', this.#resumeSignalHandler);
         window.removeEventListener('online', this.#resumeSignalHandler);
-        window.removeEventListener(SESSION_REFRESHED_EVENT, this.#resumeSignalHandler);
         this.#resumeListenersAttached = false;
     }
 
-    resumeReconnectBurst(): void {
+    resumeReconnectBurst(authVerificationReconnectUsed = false): void {
         if (!this.maxAttemptsReached) {
             return;
         }
 
         this.#reconnectCount = 0;
         this.maxAttemptsReached = false;
+        this.#authVerificationReconnectUsed = authVerificationReconnectUsed;
         this.removeReconnectResumeListeners();
         this.socket = this.initialize(true);
     }

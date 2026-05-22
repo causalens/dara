@@ -14,7 +14,7 @@ type TaskResult<T> = { status: 'not_found' } | { status: 'ok'; result: T };
  */
 export async function fetchTaskResult<T>(taskId: string, extras: RequestExtras): Promise<TaskResult<T>> {
     const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.GET }, extras);
-    await handleAuthErrors(res, true);
+    await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
 
     if (res.status === 404) {
         return { status: 'not_found' };
@@ -39,7 +39,7 @@ export async function fetchTaskResult<T>(taskId: string, extras: RequestExtras):
  */
 export async function cancelTask(taskId: string, extras: RequestExtras): Promise<boolean> {
     const res = await request(`/api/core/tasks/${taskId}`, { method: HTTP_METHOD.DELETE }, extras);
-    await handleAuthErrors(res, true);
+    await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
     await validateResponse(res, `Failed to cancel task with id: ${taskId}`);
     return true;
 }

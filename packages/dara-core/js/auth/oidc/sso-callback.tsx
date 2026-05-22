@@ -36,7 +36,9 @@ export async function getSSOCallbackResult(
             method: HTTP_METHOD.POST,
         });
 
-        const shouldLogOut = await handleAuthErrors(res);
+        const shouldLogOut = await handleAuthErrors(res, {
+            authenticationFailureRedirect: 'error',
+        });
         if (shouldLogOut) {
             return null;
         }

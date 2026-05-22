@@ -19,14 +19,12 @@ import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypeVar
 
 import jwt
-from fastapi import Response
 from pydantic import ValidationError
 
 from dara.core.auth.definitions import (
-    AUTH_COOKIE_KWARGS,
     EXPIRED_TOKEN_ERROR,
     INVALID_TOKEN_ERROR,
     JWT_ALGO,
@@ -37,8 +35,33 @@ from dara.core.auth.definitions import (
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
+AUTH_COOKIE_EXPIRATION_GRACE_SECONDS = 60
+RefreshInput = TypeVar('RefreshInput')
 
-def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tuple[int, datetime] | None:
+
+def get_token_expiration(token: str) -> int | float | None:
+    """
+    Read a token's exp claim without validating the token.
+
+    This is only used to align cookie and session-store retention. Token
+    authenticity is still validated separately by the auth verification path.
+    """
+    try:
+        decoded = jwt.decode(token, options={'verify_signature': False, 'verify_exp': False})
+    except jwt.PyJWTError:
+        return None
+
+    exp_claim = decoded.get('exp')
+    if not isinstance(exp_claim, (int, float)):
+        return None
+
+    return exp_claim
+
+
+def get_cookie_expiration_from_token(
+    token: str,
+    grace_seconds: int = AUTH_COOKIE_EXPIRATION_GRACE_SECONDS,
+) -> tuple[int, datetime] | None:
     """
     Derive cookie max-age and expiry from a token's exp claim, with an optional grace period.
 
@@ -50,13 +73,8 @@ def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tup
     :param grace_seconds: additional grace period added after exp
     :returns: (max_age_seconds, expires_datetime_utc) or None when exp is unavailable
     """
-    try:
-        decoded = jwt.decode(token, options={'verify_signature': False, 'verify_exp': False})
-    except jwt.PyJWTError:
-        return None
-
-    exp_claim = decoded.get('exp')
-    if not isinstance(exp_claim, (int, float)):
+    exp_claim = get_token_expiration(token)
+    if exp_claim is None:
         return None
 
     expires_at = datetime.fromtimestamp(exp_claim, tz=timezone.utc) + timedelta(seconds=grace_seconds)
@@ -64,29 +82,25 @@ def get_cookie_expiration_from_token(token: str, grace_seconds: int = 60) -> tup
     return max_age, expires_at
 
 
-def set_cookie_from_token_expiration(
-    response: Response,
-    key: str,
-    token: str,
-    grace_seconds: int = 60,
-) -> None:
+def get_cookie_expiration_from_exp(
+    exp: datetime | int | float,
+    grace_seconds: int = AUTH_COOKIE_EXPIRATION_GRACE_SECONDS,
+) -> tuple[int, datetime]:
     """
-    Set a secure auth cookie and align its expiry with the token's exp claim when available.
+    Derive cookie max-age and expiry from an exp value, with an optional grace period.
 
-    Falls back to a browser-session cookie when the token is opaque or has no exp claim.
-
-    :param response: FastAPI response object
-    :param key: cookie name
-    :param token: cookie value
-    :param grace_seconds: optional grace period added after token expiry
+    :param exp: expiration timestamp or datetime
+    :param grace_seconds: additional grace period added after exp
+    :returns: (max_age_seconds, expires_datetime_utc)
     """
-    expiration = get_cookie_expiration_from_token(token, grace_seconds=grace_seconds)
-    if expiration is None:
-        response.set_cookie(key=key, value=token, **AUTH_COOKIE_KWARGS)
-        return
+    if isinstance(exp, datetime):
+        expires_at = exp.replace(tzinfo=timezone.utc) if exp.tzinfo is None else exp.astimezone(timezone.utc)
+    else:
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
 
-    max_age, expires = expiration
-    response.set_cookie(key=key, value=token, max_age=max_age, expires=expires, **AUTH_COOKIE_KWARGS)
+    expires_at += timedelta(seconds=grace_seconds)
+    max_age = max(0, int((expires_at - datetime.now(tz=timezone.utc)).total_seconds()))
+    return max_age, expires_at
 
 
 def decode_token(token: str, **kwargs) -> TokenData:
@@ -242,8 +256,8 @@ Shared token refresh cache instance
 
 
 async def cached_refresh_token(
-    do_refresh_token: Callable[[TokenData, str], Awaitable[tuple[str, str]]],
-    old_token_data: TokenData,
+    do_refresh_token: Callable[[RefreshInput, str], Awaitable[tuple[str, str]]],
+    refresh_input: RefreshInput,
     refresh_token: str,
 ):
     """
@@ -251,7 +265,7 @@ async def cached_refresh_token(
     and short-term caching to reduce unnecessary refreshes from multiple tabs/windows.
 
     :param do_refresh_token: The function to perform the token refresh
-    :param old_token_data: The old token data
+    :param refresh_input: Previous session data needed by the refresh implementation
     :param refresh_token: The refresh token to use
     """
     cache_key = refresh_token
@@ -271,7 +285,7 @@ async def cached_refresh_token(
             return cached_result
 
         # Run the refresh function
-        result = await do_refresh_token(old_token_data, refresh_token)
+        result = await do_refresh_token(refresh_input, refresh_token)
 
         # update cache
         token_refresh_cache.set_cached_value(cache_key, result)

@@ -26,11 +26,13 @@ class OIDCSettings(BaseSettings):
     jwks_lifespan: int = 86400  # 1 day
     jwt_algo: str = 'ES256'
     scopes: str = 'openid'
+    group_claim_name: str = 'groups'
+    """Name of the claim containing user groups in ID token or userinfo responses."""
     verify_audience: bool = False
     extra_audience: list[str] | None = None
     allowed_identity_id: str | None = None
     use_userinfo: bool = False
-    """If True, fetch additional claims from the userinfo endpoint when an access token is available."""
+    """If True, require the userinfo endpoint during OIDC login and refresh."""
     discovery_request_timeout_seconds: float = Field(default=5.0, gt=0)
     """Timeout applied to each OIDC discovery HTTP request."""
     discovery_max_attempts: int = Field(default=3, ge=1)
@@ -39,10 +41,6 @@ class OIDCSettings(BaseSettings):
     """TTL used to clean up abandoned OIDC login transactions."""
     transaction_max_entries: int = Field(default=10000, ge=1)
     """Maximum number of outstanding OIDC login transactions kept in memory."""
-    id_token_cache_idle_ttl_seconds: int = Field(default=1800, ge=1)
-    """Sliding TTL for cached OIDC id_tokens used to hydrate compact session tokens."""
-    id_token_cache_max_entries: int = Field(default=10000, ge=1)
-    """Maximum number of cached OIDC id_tokens kept in memory."""
 
     model_config = SettingsConfigDict(env_file='.env', extra='allow', env_prefix='sso_')
 

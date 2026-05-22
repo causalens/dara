@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     dara_base_url: str = ''
     dara_template_extra_js: str = ''
+    auth_session_max_age_seconds: int = 7 * 24 * 60 * 60
 
     # Feature flags
     cgroup_memory_limit_enabled: bool = False

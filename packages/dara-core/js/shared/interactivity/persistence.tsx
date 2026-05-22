@@ -117,7 +117,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
     const getStoreValue = React.useCallback<ReadItem>(async (itemKey) => {
         const serializableExtras = STORE_EXTRAS_MAP.get(itemKey)!;
         const response = await request(`/api/core/store/${itemKey}`, {}, serializableExtras?.extras ?? {});
-        await handleAuthErrors(response, true);
+        await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
         await validateResponse(response, `Failed to fetch the store value for key: ${itemKey}`);
         const { value, sequence_number } = await response.json();
 
@@ -165,7 +165,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                     },
                     serializableExtras.extras
                 );
-                await handleAuthErrors(response, true);
+                await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
                 await validateResponse(response, `Failed to sync the store values`);
             }
 

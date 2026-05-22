@@ -134,7 +134,7 @@ export async function fetchTabularServerVariable({
         ws_channel: await wsClient.getChannel(),
     } satisfies TabularDataRequestBody;
     const response = await request(url, { body: JSON.stringify(body), method: HTTP_METHOD.POST }, extras);
-    await handleAuthErrors(response, true);
+    await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
     await validateTabularResponse(variable.uid, response);
     await validateResponse(response, 'Failed to fetch tabular data');
     return response.json();
@@ -176,7 +176,7 @@ export function useFetchTabularDerivedVariable(
                 dv_values: normalizeRequest(cleanArgs(dvResult.values), variable.variables),
             } satisfies TabularDataRequestBody;
             const response = await request(url, { body: JSON.stringify(body), method: HTTP_METHOD.POST }, extras);
-            await handleAuthErrors(response, true);
+            await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
             await validateTabularResponse(variable.uid, response);
             await validateResponse(response, 'Failed to fetch tabular data');
             const responseJson: TaskResponse | DataResponse = await response.json();

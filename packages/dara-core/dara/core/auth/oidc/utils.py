@@ -40,7 +40,7 @@ class OIDCTokenResponse(BaseModel):
     Token response from the OIDC token endpoint per OIDC Core 1.0 Section 3.1.3.3
     """
 
-    id_token: str
+    id_token: str | None = None
 
     access_token: str | None = None
     """
@@ -90,6 +90,7 @@ def decode_id_token(id_token: str) -> IdTokenClaims:
         algorithms=[oidc_settings.jwt_algo],
         audience=audience,
         issuer=oidc_settings.issuer_url,
+        options={'verify_aud': oidc_settings.verify_audience},
     )
 
     return IdTokenClaims.model_validate(decoded)

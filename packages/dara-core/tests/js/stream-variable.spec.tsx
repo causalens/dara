@@ -8,7 +8,7 @@
  */
 import { HttpResponse, http } from 'msw';
 
-import { setSessionIdentifier } from '@/auth/session-state';
+import { getSessionIdentifier, setSessionIdentifier } from '@/auth/session-state';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 import {
@@ -721,6 +721,60 @@ describe('StreamVariable', () => {
 
             // Controller should be aborted
             expect(controller.signal.aborted).toBe(true);
+        });
+
+        it('routes auth failures on stream open through auth handling', async () => {
+            const originalWindowLocation = window.location;
+            const originalDara = window.dara;
+            Object.defineProperty(window, 'location', {
+                configurable: true,
+                enumerable: true,
+                value: new URL('https://test.com/current-route'),
+            });
+            window.dara = {
+                base_url: 'https://test.com',
+            };
+
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    return HttpResponse.json(
+                        {
+                            detail: {
+                                message: 'Session expired',
+                                reason: 'expired',
+                            },
+                        },
+                        { status: 401 }
+                    );
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const params = createMockParams();
+
+            const { cleanup } = _internal.startStreamConnection(params, callbacks);
+
+            try {
+                await vi.waitFor(() => {
+                    expect(window.location.pathname).toBe('/login');
+                });
+
+                expect(window.location.search).toContain('referrer=%2Fcurrent-route');
+                expect(getSessionIdentifier()).toBeNull();
+                expect(callbacks.onError).not.toHaveBeenCalled();
+            } finally {
+                cleanup();
+                window.dara = originalDara;
+                Object.defineProperty(window, 'location', {
+                    configurable: true,
+                    enumerable: true,
+                    value: originalWindowLocation,
+                });
+            }
         });
 
         it('returns new controller for each connection', () => {

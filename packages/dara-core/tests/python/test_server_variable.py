@@ -10,7 +10,7 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity.server_variable import ServerVariable
 from dara.core.main import _start_application
 
-from tests.python.utils import TEST_JWT_SECRET, _async_ws_connect, get_ws_messages
+from tests.python.utils import TEST_JWT_SECRET, _async_ws_connect, _get_auth_headers, get_ws_messages
 
 pytestmark = pytest.mark.anyio
 
@@ -49,14 +49,10 @@ USER_2_TOKEN = jwt.encode(
 )
 
 
-def get_auth_headers(token: str):
-    return {'Authorization': f'Bearer {token}'}
-
-
 async def _get_seq_number(client: TestClient, sv: ServerVariable, token: str = USER_1_TOKEN):
     response = await client.get(
         f'/api/core/server-variable/{sv.uid}/sequence',
-        headers=get_auth_headers(token),
+        headers=await _get_auth_headers(token),
     )
     assert response.status_code == 200
     content = response.json()

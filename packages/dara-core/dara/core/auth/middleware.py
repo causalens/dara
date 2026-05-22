@@ -17,6 +17,7 @@ limitations under the License.
 
 from fastapi import Request
 
+from dara.core.auth.cookies import apply_staged_auth_cookies
 from dara.core.auth.definitions import SESSION_TOKEN_COOKIE_NAME
 
 
@@ -35,4 +36,6 @@ async def ensure_authorization_header_from_session_cookie(request: Request, call
             headers.append((b'authorization', f'Bearer {session_token}'.encode()))
             request.scope['headers'] = headers
 
-    return await call_next(request)
+    response = await call_next(request)
+    apply_staged_auth_cookies(request, response)
+    return response

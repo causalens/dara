@@ -1,5 +1,41 @@
-import { resolveReferrer } from '@/auth/auth';
+import { HttpResponse, http } from 'msw';
+import { setupServer } from 'msw/node';
+
+import {
+    getSessionIdentifier,
+    handleAuthErrors,
+    resolveReferrer,
+    setSessionIdentifier,
+    verifySessionToken,
+} from '@/auth';
 import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '@/auth/origin-security';
+
+const server = setupServer();
+
+async function handleAuthError(
+    reason: string,
+    status: number,
+    options: Parameters<typeof handleAuthErrors>[1] = {}
+): Promise<boolean> {
+    return handleAuthErrors(
+        Response.json(
+            {
+                detail: {
+                    message: 'Auth failed',
+                    reason,
+                },
+            },
+            { status }
+        ),
+        options
+    );
+}
+
+beforeAll(() => server.listen());
+
+afterEach(() => server.resetHandlers());
+
+afterAll(() => server.close());
 
 describe('resolve_referrer', () => {
     const originalWindowLocation = window.location;
@@ -34,6 +70,167 @@ describe('resolve_referrer', () => {
         };
 
         expect(resolveReferrer()).toBe('%2Froute');
+    });
+});
+
+describe('verifySessionToken', () => {
+    const originalWindowLocation = window.location;
+
+    beforeEach(() => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/test/route'),
+        });
+
+        window.dara = {
+            base_url: 'https://test.com',
+        };
+        setSessionIdentifier('existing-session');
+    });
+
+    afterEach(() => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: originalWindowLocation,
+        });
+        setSessionIdentifier(null);
+    });
+
+    it('returns verified and stores the latest session id when verification succeeds', async () => {
+        server.use(
+            http.post('/api/auth/verify-session', () => {
+                return HttpResponse.json('verified-session');
+            })
+        );
+
+        await expect(verifySessionToken()).resolves.toBe('verified');
+        expect(getSessionIdentifier()).toBe('verified-session');
+    });
+
+    it('returns login required for expired sessions without handling the redirect itself', async () => {
+        server.use(
+            http.post('/api/auth/verify-session', () => {
+                return HttpResponse.json(
+                    {
+                        detail: {
+                            message: 'Session expired',
+                            reason: 'expired',
+                        },
+                    },
+                    { status: 401 }
+                );
+            })
+        );
+
+        await expect(verifySessionToken()).resolves.toBe('login_required');
+        expect(window.location.pathname).toBe('/test/route');
+        expect(getSessionIdentifier()).toBe(null);
+    });
+
+    it('handles authorization failures as errors instead of reporting login required', async () => {
+        server.use(
+            http.post('/api/auth/verify-session', () => {
+                return HttpResponse.json(
+                    {
+                        detail: {
+                            message: 'Unauthorized',
+                            reason: 'unauthorized',
+                        },
+                    },
+                    { status: 403 }
+                );
+            })
+        );
+
+        await expect(verifySessionToken()).resolves.toBe('handled_auth_error');
+        expect(window.location.pathname).toBe('/error');
+        expect(window.location.search).toBe('?code=403');
+        expect(getSessionIdentifier()).toBe('existing-session');
+    });
+
+    it('handles provider failures as errors instead of reporting login required', async () => {
+        server.use(
+            http.post('/api/auth/verify-session', () => {
+                return HttpResponse.json(
+                    {
+                        detail: {
+                            message: 'Identity provider authorization failed',
+                            reason: 'other',
+                        },
+                    },
+                    { status: 401 }
+                );
+            })
+        );
+
+        await expect(verifySessionToken()).resolves.toBe('handled_auth_error');
+        expect(window.location.pathname).toBe('/error');
+        expect(window.location.search).toBe('?code=401');
+        expect(getSessionIdentifier()).toBe('existing-session');
+    });
+});
+
+describe('handleAuthErrors', () => {
+    const originalWindowLocation = window.location;
+
+    beforeEach(() => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/test/route'),
+        });
+
+        window.dara = {
+            base_url: 'https://test.com',
+        };
+        setSessionIdentifier('session-id');
+    });
+
+    afterEach(() => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: originalWindowLocation,
+        });
+        setSessionIdentifier(null);
+    });
+
+    it('redirects authentication failures to login by default', async () => {
+        const handled = await handleAuthError('expired', 401);
+
+        expect(handled).toBe(true);
+        expect(window.location.pathname).toBe('/login');
+        expect(window.location.search).toContain('referrer=%2Ftest%2Froute');
+        expect(getSessionIdentifier()).toBe(null);
+    });
+
+    it('redirects authorization failures to the error page even when login is requested', async () => {
+        const handled = await handleAuthError('unauthorized', 403, { authenticationFailureRedirect: 'login' });
+
+        expect(handled).toBe(true);
+        expect(window.location.pathname).toBe('/error');
+        expect(window.location.search).toBe('?code=403');
+        expect(getSessionIdentifier()).toBe('session-id');
+    });
+
+    it('redirects provider failures to the error page even when login is requested', async () => {
+        const handled = await handleAuthError('other', 401, { authenticationFailureRedirect: 'login' });
+
+        expect(handled).toBe(true);
+        expect(window.location.pathname).toBe('/error');
+        expect(window.location.search).toBe('?code=401');
+        expect(getSessionIdentifier()).toBe('session-id');
+    });
+
+    it('can redirect authentication failures to the error page', async () => {
+        const handled = await handleAuthError('invalid_token', 401, { authenticationFailureRedirect: 'error' });
+
+        expect(handled).toBe(true);
+        expect(window.location.pathname).toBe('/error');
+        expect(window.location.search).toBe('?code=401');
+        expect(getSessionIdentifier()).toBe('session-id');
     });
 });
 
