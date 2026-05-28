@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 - Internal: Removed the Vite Node polyfill plugin from generated production app builds.
+- Internal: Upgraded React Router to `~7.12.0`.
 
 ## 1.27.0
 
