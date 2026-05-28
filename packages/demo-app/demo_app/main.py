@@ -5,7 +5,10 @@ from dara.core import ConfigurationBuilder, MenuLink, Outlet, SideBarFrame
 from dara.core.css import get_icon
 
 from demo_app.pages.components_page import components_page
+from demo_app.pages.download_xlsx_page import download_xlsx_page
 from demo_app.pages.intro_page import intro_page
+from demo_app.pages.markdown_editor_page import markdown_editor_page
+from demo_app.pages.plotting_assets_page import plotting_assets_page
 from demo_app.pages.polling_page import polling_page
 
 # Create the configuration builder
@@ -37,6 +40,21 @@ def RootLayout():
                 Text('Polling Demo'),
                 to='/polling',
             ),
+            MenuLink(
+                Icon(icon=get_icon('download')),
+                Text('Download XLSX QA'),
+                to='/download-xlsx',
+            ),
+            MenuLink(
+                Icon(icon=get_icon('chart-line')),
+                Text('Plotting QA'),
+                to='/plotting-assets',
+            ),
+            MenuLink(
+                Icon(icon=get_icon('code')),
+                Text('Markdown Editor QA'),
+                to='/markdown-editor',
+            ),
         ),
     )
 
@@ -46,3 +64,6 @@ root = config.router.add_layout(content=RootLayout)
 root.add_page(path='/', content=intro_page)
 root.add_page(path='/components', content=components_page)
 root.add_page(path='/polling', content=polling_page)
+root.add_page(path='/download-xlsx', content=download_xlsx_page)
+root.add_page(path='/plotting-assets', content=plotting_assets_page)
+root.add_page(path='/markdown-editor', content=markdown_editor_page)

@@ -1,20 +1,11 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
     base: '',
     plugins: [
         react({
             jsxRuntime: 'classic',
-        }),
-        // Some package we're pulling requires node polyfills for stream
-        nodePolyfills({
-            globals: {
-                process: true,
-                Buffer: true,
-                global: true,
-            },
         }),
     ],
     publicDir: false,

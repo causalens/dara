@@ -15,7 +15,10 @@ declare global {
         export = PixiViewport;
     }
     interface Window {
+        PIXI?: typeof PIXI;
         pixi_js: typeof PIXI;
+        pixi_viewport?: typeof pixi_viewport;
+        pixiLoadPromise?: Promise<void>;
         pixiLoading?: boolean;
     }
 }

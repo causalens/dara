@@ -81,7 +81,7 @@ bandit = "^1.7.5"
 freezegun = "^1.2.2"
 ruff = ">=0.12.2"
 pyright = "^1.1.400"
-pytest = "^7.0.0"
+pytest = "^9.0.3"
 pytest-timeout = "^2.1.0"
 pytest-xdist = "^3.8.0"
 requests = ">=2.25.1, <3.0.0"
@@ -108,5 +108,4 @@ markers = [
 
 [tool.poetry.plugins."dara_assets"]
 dara-core = "dara.core._assets:asset_manifest"
-
 

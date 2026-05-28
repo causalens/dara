@@ -42,11 +42,10 @@ seaborn = ">=0.11.0"
 [tool.poetry.dev-dependencies]
 ruff = ">=0.12.2"
 bandit = "^1.7.5"
-pytest = "^7.0.0"
+pytest = "^9.0.3"
 pyright = "^1.1.400"
 pytest-xdist = "^3.8.0"
 
 [tool.poetry.plugins."dara_assets"]
 dara-components = "dara.components._assets:asset_manifest"
-
 
