@@ -33,6 +33,7 @@ patchedDependencies:
   tinykeys: patches/tinykeys.patch
 overrides:
   form-data: '>=4.0.4 <5'
+  tmp: '>=0.2.6 <0.3'
   lodash: '>=4.18.1 <5'
   minimatch@>=10: '>=10.2.5 <11'
   qs: '>=6.15.2 <7'
