@@ -904,53 +904,74 @@ function makePixiUrl(pkg: 'core' | 'viewport' | 'filters'): string {
 
     return PIXI_URLS[pkg].cdn;
 }
-function CausalGraphEditor(props: CausalGraphEditorProps): React.ReactNode {
-    const [isPixiLoaded, setIsPixiLoaded] = React.useState(() => !!window.PIXI);
 
-    async function waitForPixi(): Promise<void> {
-        return new Promise<void>((resolve) => {
-            const interval = setInterval(() => {
-                if (window.PIXI) {
-                    clearInterval(interval);
-                    resolve();
-                }
-            }, 100);
-        });
-    }
+function isPixiReady(): boolean {
+    return Boolean(window.PIXI?.filters?.DropShadowFilter && window.pixi_viewport?.Viewport);
+}
 
-    function loadPixiLibrary(pkg: 'core' | 'viewport' | 'filters'): Promise<void> {
-        let resolve: () => void;
-        const promise = new Promise<void>((r) => {
-            resolve = r;
-        });
+function loadPixiLibrary(pkg: 'core' | 'viewport' | 'filters'): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
         const script = document.createElement('script');
         script.src = makePixiUrl(pkg);
-        script.onload = () => {
-            resolve();
-        };
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${pkg} Pixi library`));
         document.head.appendChild(script);
-        return promise;
+    });
+}
+
+function ensurePixiLoaded(): Promise<void> {
+    if (isPixiReady()) {
+        return Promise.resolve();
     }
 
-    const initializePixi = React.useCallback(async (): Promise<void> => {
-        if (window.pixiLoading) {
-            await waitForPixi();
-        } else if (!window.PIXI) {
-            window.pixiLoading = true;
-            await loadPixiLibrary('core');
-            // required for pixi-viewport/plugins
-            window.pixi_js = PIXI;
-            await loadPixiLibrary('viewport');
-            await loadPixiLibrary('filters');
-            window.pixiLoading = false;
-        }
+    if (!window.pixiLoadPromise) {
+        window.pixiLoading = true;
+        window.pixiLoadPromise = (async () => {
+            if (!window.PIXI) {
+                await loadPixiLibrary('core');
+            }
 
+            if (!window.PIXI) {
+                throw new Error('Pixi core loaded without setting window.PIXI');
+            }
+
+            // required for pixi-viewport/plugins
+            window.pixi_js = window.PIXI;
+
+            if (!window.pixi_viewport?.Viewport) {
+                await loadPixiLibrary('viewport');
+            }
+
+            if (!window.PIXI?.filters?.DropShadowFilter) {
+                await loadPixiLibrary('filters');
+            }
+
+            if (!isPixiReady()) {
+                throw new Error('Pixi loaded without required viewport or filters globals');
+            }
+        })().finally(() => {
+            window.pixiLoading = false;
+            delete window.pixiLoadPromise;
+        });
+    }
+
+    return window.pixiLoadPromise;
+}
+
+function CausalGraphEditor(props: CausalGraphEditorProps): React.ReactNode {
+    const [isPixiLoaded, setIsPixiLoaded] = React.useState(isPixiReady);
+
+    const initializePixi = React.useCallback(async (): Promise<void> => {
+        await ensurePixiLoaded();
         setIsPixiLoaded(true);
     }, []);
 
     React.useEffect(() => {
         if (!isPixiLoaded) {
-            initializePixi();
+            initializePixi().catch((e) => {
+                // eslint-disable-next-line no-console
+                console.error('Failed to load Pixi libraries', e);
+            });
         }
     }, [isPixiLoaded, initializePixi]);
 

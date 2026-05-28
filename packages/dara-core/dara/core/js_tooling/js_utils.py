@@ -370,7 +370,6 @@ class BuildCache(BaseModel):
             **deps,
             '@vitejs/plugin-react': '4.6.0',
             'vite': '7.3.2',
-            'vite-plugin-node-polyfills': '0.24.0',
         }
 
         return pkg_json

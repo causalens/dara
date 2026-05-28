@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Removed the Vite Node polyfill plugin from generated production app builds.
+
 ## 1.27.0
 
 - Added configurable OIDC group claim names and parsing for single or comma-delimited group strings.

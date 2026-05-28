@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed graph rendering when Pixi viewport and filter globals are still loading.
+
 ## 1.26.12
 
 - Internal: Hardened JavaScript dependency versions and removed unused build and test tooling dependencies.
