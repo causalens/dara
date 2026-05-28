@@ -2,10 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
-- Internal: Removed the Vite Node polyfill plugin from the UMD build.
-
 ## 1.26.12
 
 - Internal: Hardened JavaScript dependency versions and removed unused build and test tooling dependencies.
