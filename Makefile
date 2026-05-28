@@ -75,18 +75,19 @@ run:
 	poetry anthology run $(script)
 
 
-# Publish all the packages to the appropriate repositories, creating a version bump commit
-# Before committing, revert changes to readmes they are only for PyPi
-publish:
+# Publish Python packages to PyPI, skipping artifacts that were already uploaded
+# by a previous release attempt.
+publish-python:
 	poetry config pypi-token.pypi $${PYPI_TOKEN}
 	poetry anthology run publish
 
-	git checkout -- **/README.md
+# Publish JavaScript packages to npm, skipping packages whose version is already
+# present in the registry.
+publish-npm:
 	rm -f .npmrc
-	git add .
-	git commit -m "Version bump to $${VERSION_TAG} [skip ci]"
+	pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version
 
-	pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
+publish: publish-python publish-npm
 
 publish-docs:
 	poetry source add --priority=supplemental causalens https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple

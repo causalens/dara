@@ -7,7 +7,7 @@ format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run 
 format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
 lint = "poetry run pyright ./dara && poetry run ruff check ./dara"
 package = "poetry build -f wheel"
-publish = "poetry publish"
+publish = "poetry publish --skip-existing"
 security-scan = "poetry run bandit dara -r -ll -i"
 # Pool tests are ran after because they don't work well with parallelization
 test = "mkdir -p ./dist && DARA_TEST_FLAG=true poetry run pytest ./tests -n auto -v -m 'not pool' && poetry run pytest ./tests/python/test_pool.py -v"
