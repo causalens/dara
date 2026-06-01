@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Upgraded FastAPI to the latest 0.136 release line and explicitly require Starlette 1.0.1+ for the BadHost CVE fix.
+
 ## 1.27.0
 
 - Added configurable OIDC group claim names and parsing for single or comma-delimited group strings.
