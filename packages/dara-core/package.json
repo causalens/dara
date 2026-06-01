@@ -68,7 +68,7 @@
     "stylelint": "^15.0.0",
     "tsc-alias": "^1.8.5",
     "vite": "7.3.2",
-    "vitest": "^3.2.4",
+    "vitest": "^4.1.0",
     "vitest-websocket-mock": "^0.5.0",
     "whatwg-fetch": "^3.6.20"
   },
