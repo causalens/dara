@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.28.0
 
 - Internal: Upgraded FastAPI to the latest 0.136 release line and explicitly require Starlette 1.0.1+ for the BadHost CVE fix.
 
