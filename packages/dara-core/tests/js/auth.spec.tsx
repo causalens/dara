@@ -4,7 +4,9 @@ import { setupServer } from 'msw/node';
 import {
     getSessionIdentifier,
     handleAuthErrors,
+    parseLoginReferrer,
     resolveReferrer,
+    resolveLoginReferrer,
     setSessionIdentifier,
     verifySessionToken,
 } from '@/auth';
@@ -70,6 +72,40 @@ describe('resolve_referrer', () => {
         };
 
         expect(resolveReferrer()).toBe('%2Froute');
+    });
+});
+
+describe('parseLoginReferrer', () => {
+    it('parses the referrer query param once', () => {
+        const search = '?referrer=%2Ffiles%2Ffoo%252Fbar%3Fx%3Da%252Fb';
+
+        expect(parseLoginReferrer(search, '/default')).toBe('/files/foo%2Fbar?x=a%2Fb');
+    });
+
+    it('falls back to the default path when no referrer is present', () => {
+        expect(parseLoginReferrer('?other=value', '/default')).toBe('/default');
+    });
+});
+
+describe('resolveLoginReferrer', () => {
+    const originalWindowLocation = window.location;
+
+    afterEach(() => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: originalWindowLocation,
+        });
+    });
+
+    it('preserves an existing referrer in encoded form', () => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/login?referrer=%2Ffiles%2Ffoo%252Fbar%3Fx%3Da%252Fb'),
+        });
+
+        expect(resolveLoginReferrer()).toBe('%2Ffiles%2Ffoo%252Fbar%3Fx%3Da%252Fb');
     });
 });
 
@@ -203,6 +239,21 @@ describe('handleAuthErrors', () => {
         expect(handled).toBe(true);
         expect(window.location.pathname).toBe('/login');
         expect(window.location.search).toContain('referrer=%2Ftest%2Froute');
+        expect(getSessionIdentifier()).toBe(null);
+    });
+
+    it('preserves an existing encoded login referrer when redirecting back to login', async () => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/login?referrer=%2Ffiles%2Ffoo%252Fbar%3Fx%3Da%252Fb'),
+        });
+
+        const handled = await handleAuthError('expired', 401);
+
+        expect(handled).toBe(true);
+        expect(window.location.pathname).toBe('/login');
+        expect(window.location.search).toBe('?referrer=%2Ffiles%2Ffoo%252Fbar%3Fx%3Da%252Fb');
         expect(getSessionIdentifier()).toBe(null);
     });
 

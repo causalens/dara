@@ -10,7 +10,7 @@ import DefaultFallback from '@/components/fallback/default';
 import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
-import { requestSessionToken, verifySessionToken } from '../auth';
+import { parseLoginReferrer, requestSessionToken, verifySessionToken } from '../auth';
 
 const Wrapper = styled.div`
     display: flex;
@@ -137,9 +137,8 @@ function BasicAuthLogin(): JSX.Element {
     const location = useLocation();
     const navigate = useNavigate();
     const { defaultPath } = useRouterContext();
-    const queryParams = new URLSearchParams(location.search);
 
-    const previousLocation = queryParams.get('referrer') ?? defaultPath;
+    const previousLocation = parseLoginReferrer(location.search, defaultPath);
 
     const login = async (): Promise<void> => {
         setIsLoggingIn(true);
@@ -149,7 +148,7 @@ function BasicAuthLogin(): JSX.Element {
             const sessionCreated = await requestSessionToken({ password, username });
 
             if (sessionCreated) {
-                navigate(decodeURIComponent(previousLocation));
+                navigate(previousLocation);
             }
         } catch {
             setIsError(true);
@@ -162,7 +161,7 @@ function BasicAuthLogin(): JSX.Element {
         // If we landed on this page with a valid session already, redirect.
         verifySessionToken().then((verificationResult) => {
             if (verificationResult === 'verified') {
-                navigate(decodeURIComponent(previousLocation), { replace: true });
+                navigate(previousLocation, { replace: true });
             } else if (verificationResult === 'login_required') {
                 setIsVerifyingToken(false);
             }

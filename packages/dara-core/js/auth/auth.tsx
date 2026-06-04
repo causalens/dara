@@ -125,7 +125,7 @@ export async function revokeSession(): Promise<RedirectResponse | SuccessRespons
 }
 
 /**
- * Resolve the referrer url to be passed back to login, adjusted for the base path.
+ * Resolve the encoded referrer url to be passed back to login, adjusted for the base path.
  */
 export function resolveReferrer(): string {
     if (!window.dara.base_url) {
@@ -144,6 +144,28 @@ export function resolveReferrer(): string {
     }
 
     return encodeURIComponent(strippedReferrer + window.location.search);
+}
+
+/**
+ * Parse the login referrer query param into the app path used internally for navigation.
+ */
+export function parseLoginReferrer(search: string, defaultPath: string): string {
+    const queryParams = new URLSearchParams(search);
+    return queryParams.get('referrer') ?? defaultPath;
+}
+
+/**
+ * Resolve the encoded login referrer while preserving an existing login referrer if present.
+ */
+export function resolveLoginReferrer(): string {
+    const queryParams = new URLSearchParams(window.location.search);
+    const existingReferrer = queryParams.get('referrer');
+
+    if (existingReferrer !== null) {
+        return encodeURIComponent(existingReferrer);
+    }
+
+    return resolveReferrer();
 }
 
 /**
@@ -167,8 +189,7 @@ export async function handleAuthErrors(res: Response, options: HandleAuthErrorsO
 
     if (authError && !shouldIgnoreError(authError, ignoreErrors)) {
         // use existing referrer if available in case we were already redirected because of e.g. missing token
-        const queryParams = new URLSearchParams(window.location.search);
-        const referrer = queryParams.get('referrer') ?? resolveReferrer();
+        const referrer = resolveLoginReferrer();
 
         const redirect = getAuthErrorRedirect(authError, authenticationFailureRedirect);
         const path = redirect === 'login' ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
