@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.28.1
 
 - Fixed auth login redirects so unauthenticated first loads and referrers containing encoded path/query characters are preserved correctly.
 
