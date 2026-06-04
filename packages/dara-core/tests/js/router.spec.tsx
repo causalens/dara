@@ -1,5 +1,40 @@
 import { findFirstPath } from '@/router';
+import { buildLoginRedirectUrl } from '@/router/create-router';
 import type { RouteDefinition } from '@/types/core';
+
+describe('buildLoginRedirectUrl', () => {
+    const originalWindowLocation = window.location;
+
+    beforeEach(() => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('http://localhost:8000/current'),
+        });
+    });
+
+    afterEach(() => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: originalWindowLocation,
+        });
+    });
+
+    it('preserves an encoded app path referrer without double encoding it', () => {
+        const redirectUrl = buildLoginRedirectUrl('', '%2Fapp%3Ffoo%3Dbar%26baz%3Dqux');
+
+        expect(redirectUrl).toBe('http://localhost:8000/login?referrer=%2Fapp%3Ffoo%3Dbar%26baz%3Dqux');
+        expect(new URL(redirectUrl).searchParams.get('referrer')).toBe('/app?foo=bar&baz=qux');
+    });
+
+    it('includes the app base url when redirecting to login', () => {
+        const redirectUrl = buildLoginRedirectUrl('/base', '%2F');
+
+        expect(redirectUrl).toBe('http://localhost:8000/base/login?referrer=%2F');
+        expect(new URL(redirectUrl).searchParams.get('referrer')).toBe('/');
+    });
+});
 
 describe('findFirstPath', () => {
     describe('simple scenarios', () => {

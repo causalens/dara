@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed auth login redirects so unauthenticated first loads and referrers containing encoded path/query characters are preserved correctly.
+
 ## 1.28.0
 
 - Internal: Upgraded FastAPI to the latest 0.136 release line and explicitly require Starlette 1.0.1+ for the BadHost CVE fix.

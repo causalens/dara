@@ -8,7 +8,7 @@ import DefaultFallback from '@/components/fallback/default';
 import { useRouterContext } from '@/router/context';
 import Center from '@/shared/center/center';
 
-import { handleAuthErrors, verifySessionToken } from '../auth';
+import { handleAuthErrors, parseLoginReferrer, verifySessionToken } from '../auth';
 
 /**
  * The Login component gets the username and password from the user and generates a session token.
@@ -19,8 +19,7 @@ function OIDCAuthLogin(): JSX.Element {
     const { defaultPath } = useRouterContext();
 
     const previousLocation = useMemo(() => {
-        const queryParams = new URLSearchParams(location.search);
-        return queryParams.get('referrer') ?? defaultPath;
+        return parseLoginReferrer(location.search, defaultPath);
     }, [location, defaultPath]);
 
     /**
@@ -53,7 +52,7 @@ function OIDCAuthLogin(): JSX.Element {
         // If we already have a valid session, redirect. Otherwise start OIDC login.
         verifySessionToken().then((verificationResult) => {
             if (verificationResult === 'verified') {
-                navigate(decodeURIComponent(previousLocation), { replace: true });
+                navigate(previousLocation, { replace: true });
             } else if (verificationResult === 'login_required') {
                 getNewToken();
             }

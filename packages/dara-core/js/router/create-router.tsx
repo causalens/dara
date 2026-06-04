@@ -156,6 +156,14 @@ export function findFirstPath(routes: RouteDefinition[]): string {
  */
 let verifiedToken = false;
 
+export function buildLoginRedirectUrl(baseUrl: string, referrer: string): string {
+    const redirectUrl = new URL(`${baseUrl}/login`, window.location.origin);
+    // resolveReferrer returns an encoded path. Assign the raw search string so
+    // URLSearchParams does not encode it a second time.
+    redirectUrl.search = `?referrer=${referrer}`;
+    return redirectUrl.toString();
+}
+
 interface RouterWithRoutes {
     router: ReturnType<typeof createBrowserRouter>;
     routeDefinitions: RouteDefinition[];
@@ -236,11 +244,9 @@ export function createRouter(config: DaraData, snapshot: () => Snapshot): Router
                                 // otherwise there is no valid session, redirect to login
                                 const referrer = resolveReferrer();
                                 const baseUrl: string = window.dara?.base_url ?? '';
-                                const redirectUrl = new URL(`${baseUrl}/login`, window.location.origin);
-                                redirectUrl.searchParams.set('referrer', referrer);
                                 // Intended RR API usage
                                 // eslint-disable-next-line @typescript-eslint/only-throw-error
-                                throw redirect(redirectUrl.toString());
+                                throw redirect(buildLoginRedirectUrl(baseUrl, referrer));
                             },
                         ],
                         // user-defined routes
