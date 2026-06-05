@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Changed OIDC ID token signing algorithm handling to support `SSO_ID_TOKEN_SIGNED_RESPONSE_ALG`, use JWKS-verifiable non-`none` discovery algorithms when no explicit algorithm is configured, and fall back to RS256.
 - Fixed auth login redirects so unauthenticated first loads and referrers containing encoded path/query characters are preserved correctly.
 
 ## 1.28.0

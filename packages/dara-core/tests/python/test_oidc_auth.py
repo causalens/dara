@@ -28,6 +28,7 @@ from dara.core.auth.definitions import (
 )
 from dara.core.auth.oidc.config import OIDCAuthConfig
 from dara.core.auth.oidc.definitions import (
+    ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY,
     JWK_CLIENT_REGISTRY_KEY,
     OIDC_LOGIN_SESSION_COOKIE_NAME,
     IdTokenClaims,
@@ -35,6 +36,7 @@ from dara.core.auth.oidc.definitions import (
 )
 from dara.core.auth.oidc.settings import get_oidc_settings
 from dara.core.auth.oidc.transaction_store import oidc_transaction_store
+from dara.core.auth.oidc.utils import decode_id_token
 from dara.core.auth.session import verify_auth_token
 from dara.core.auth.session_store import AuthSession, AuthSessionStore, ExpiredAuthSession, auth_session_store
 from dara.core.configuration import ConfigurationBuilder
@@ -65,17 +67,34 @@ ENV_OVERRIDE = {
     'SSO_GROUPS': TEST_SSO_GROUPS,
 }
 
-# Sample ES256 key
+# Sample RS256 key
 MOCK_JWK = {
+    'alg': 'RS256',
+    'kty': 'RSA',
+    'n': '0ajtf9xvPKgC24P8d8AOrE91fymB2flnQqgC4U8gHlXPY3NroZsd-0OWG08BjQFYzDPPq9hhDR-XshPCPns4hbRTdE8eccirBUdIWm6kN9mIPh9CP6I2G1tQsgZRijBjrYnj6EbFHWAfwTgx0K6bcvKyFTk7eG7QrCy-Op6GkHbo3WMG3eDTTtoI9Xy4KwBeBrQVz_IIXApxPejEQwYnsNgAPcTRDj_Sxr1dho-MW23JD4Szml0PWPMt_MI6z7jCbqAqRIiLxWTm9DStqCbSSw27_fnjrGgA9ttBfwzcFnSFvFk9esCzJHcGq8zjAHXnjDDd3gyYXxRfXWYqV3Dljw',
+    'e': 'AQAB',
+    'd': 'ZjW57tr6ebIYjoaWNpTxMkycZc1I6ghdsE-y8788070WmQ-kOYkjASLuU0rdYS32abqac9bNXXX44I4kZIxyvi_ufWWy3FqtESoymi-VLEsG0e4wQFBmm0iVmuxcpQc5GNl_u3WA0_TQFkS8eFUfIFczvQgFN42iekVnybENve_v1Jq9veffcDAhvlwo_1s4Bl41bFZmzoJDEaW8pWjJ-2-4cj3qL0G1ek9hBg2L4e8QUiqdWGF--_D4jsc1o2Lo5YDMxhQZLGTI821NOE_Le37vTsaxUL1ANPR2voOuhXD7wJpbRmf6OM-fInKzvDSgKqwl6azr0I9TUytvlr3T3Q',
+    'p': '-Q-SDSDXRysHiSk4XSJ76bLiclDaIc6jkO8Q27D_0b574WxVkESR_fhiky5D5F4akBnCq0zS2vUztQX0IvWbMerZ5p_De8BO5EKeDtUSc30pRJWuF02I-HaMtuh_BuRSW_d2a4zHFSn4rrqGrXJ9mnwxw3C1oaDBXmNmXgfdF_M',
+    'q': '14BUVw9-l-fwb1wrvvNpDVcXFwW8OQb4GtIwL3kfOU_NO1jxCNN8w5MhXXg5sT-R73hdVFS2YzAgeDeHcDb2LRQZxRGgaB50UAWkmvUgC-ELF8yAkaFkRJUWExyaJ-zndwjJzje2omYvSox9Duwen12xTcP6TkH5kU3q5SDrnvU',
+    'dp': 'zVWf9MDhm2QHV3araGV4wWhgtxyfagXh5iiivm0Dy9l-apAVTtapgjgYlP0srgdDYRBL5Ux1_lzvn0vkRjo1FAdqVG_dC5a1tAyUIOhbyOkkb83zdHTQ-v9J7bZqm7T7jaTMdcjfjTxIMU3IoRDmKso_gMDYjgNpyLase9OB3S8',
+    'dq': 'MIcfdvNwSHjcdddFqpxZnb1s36xU9GqTWEbYvvgBhgBocOLYdGpbgBcTvl6ibz2neUubiLAC2lcuGKQ4hZZ63S_Xlb8gZhHlk1eR96sXalVlEBjnIuQ7Fg6Uh_064Z7BiNabyypUoEFuiNUWHFQjmTOaB68IILNOpd_r82j0Zjk',
+    'qi': '4XlwiY0hJuqk3zIWdktPC_lJCCviDmckoui6F4rZqt8khU8W3zyG3si9SrUfucToZoOIOw-KndRxe1RM2wBelBJa6-CD4j_VLg72QYOX9dNFFTlGYGn5bT8iUx71q7O1G2MlKEDBNqZfe8DEIQ9nAMEPgqBaVS5Qp7NHPhP78zQ',
+    'kid': 'test-rs256-key',
+}
+MOCK_JWKS_DATA = {'keys': [{key: MOCK_JWK[key] for key in ('alg', 'kty', 'n', 'e', 'kid')}]}
+MOCK_RSA_JWKS_DATA_WITHOUT_ALG = {'keys': [{key: MOCK_JWK[key] for key in ('kty', 'n', 'e', 'kid')}]}
+
+# Sample ES256 key used by the internal IDP compatibility tests
+MOCK_ES256_JWK = {
     'alg': 'ES256',
     'kty': 'EC',
     'crv': 'P-256',
     'x': 'SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74',
     'y': 'lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI',
     'd': '0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk',
-    'kid': 'NEE1QURBOTM4MzI5RkFDNTYxOTU1MDg2ODgwQ0UzMTk1QjYyRkRFQw',
+    'kid': 'test-es256-key',
 }
-MOCK_JWKS_DATA = {'keys': [MOCK_JWK]}
+MOCK_ES256_JWKS_DATA = {'keys': [{key: MOCK_ES256_JWK[key] for key in ('alg', 'kty', 'crv', 'x', 'y', 'kid')}]}
 
 MOCK_ID_TOKEN = {
     'sub': 'uuid',
@@ -131,7 +150,7 @@ MOCK_DISCOVERY = OIDCDiscoveryMetadata(
     registration_endpoint='http://test-identity-provider.com/api/authentication/register',
     response_types_supported=['code', 'id_token', 'token id_token'],
     token_endpoint_auth_methods_supported=['client_secret_post', 'client_secret_basic'],
-    id_token_signing_alg_values_supported=['ES256'],
+    id_token_signing_alg_values_supported=['RS256'],
     end_session_endpoint='http://test-identity-provider.com/api/authentication/logout',
 )
 
@@ -234,6 +253,206 @@ async def test_startup_hook_rejects_discovery_issuer_mismatch():
     await auth_config.client.aclose()
 
 
+async def test_startup_hook_uses_discovered_id_token_signing_algs_when_unconfigured():
+    auth_config = make_config()
+    discovery = MOCK_DISCOVERY.model_copy(update={'id_token_signing_alg_values_supported': ['ES256', 'PS256']})
+
+    with mock.patch.object(
+        auth_config.client,
+        'get',
+        mock.AsyncMock(
+            return_value=httpx.Response(
+                status_code=200,
+                json=discovery.model_dump(),
+                request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+            )
+        ),
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['ES256', 'PS256']
+
+    await cleanup()
+
+
+async def test_startup_hook_filters_unsupported_discovered_id_token_signing_algs():
+    auth_config = make_config()
+    discovery = MOCK_DISCOVERY.model_copy(update={'id_token_signing_alg_values_supported': ['none', 'HS256', 'ES256']})
+
+    with mock.patch.object(
+        auth_config.client,
+        'get',
+        mock.AsyncMock(
+            return_value=httpx.Response(
+                status_code=200,
+                json=discovery.model_dump(),
+                request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+            )
+        ),
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['ES256']
+
+    await cleanup()
+
+
+async def test_startup_hook_falls_back_to_rs256_when_discovery_omits_id_token_signing_algs():
+    auth_config = make_config()
+    discovery_data = MOCK_DISCOVERY.model_dump()
+    discovery_data.pop('id_token_signing_alg_values_supported')
+
+    with mock.patch.object(
+        auth_config.client,
+        'get',
+        mock.AsyncMock(
+            return_value=httpx.Response(
+                status_code=200,
+                json=discovery_data,
+                request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+            )
+        ),
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['RS256']
+
+    await cleanup()
+
+
+async def test_startup_hook_warns_when_falling_back_after_discovery_has_no_jwks_verifiable_algs(
+    caplog: pytest.LogCaptureFixture,
+):
+    caplog.set_level(logging.WARNING, logger='dara.dev')
+    auth_config = make_config()
+    discovery = MOCK_DISCOVERY.model_copy(update={'id_token_signing_alg_values_supported': ['none', 'HS256']})
+
+    with mock.patch.object(
+        auth_config.client,
+        'get',
+        mock.AsyncMock(
+            return_value=httpx.Response(
+                status_code=200,
+                json=discovery.model_dump(),
+                request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+            )
+        ),
+    ):
+        cleanup = await auth_config.startup_hook()
+
+    assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['RS256']
+    log_content = get_log_content(
+        caplog, 'OIDC discovery metadata does not advertise any JWKS-verifiable ID token signing algorithms'
+    )
+    assert log_content == {'fallback': 'RS256', 'supported': ['none', 'HS256']}
+
+    await cleanup()
+
+
+async def test_startup_hook_accepts_new_id_token_signing_alg_override():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_ID_TOKEN_SIGNED_RESPONSE_ALG': 'ES256'}):
+        get_oidc_settings.cache_clear()
+        auth_config = make_config()
+        discovery = MOCK_DISCOVERY.model_copy(update={'id_token_signing_alg_values_supported': ['ES256']})
+
+        with mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                return_value=httpx.Response(
+                    status_code=200,
+                    json=discovery.model_dump(),
+                    request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+                )
+            ),
+        ):
+            cleanup = await auth_config.startup_hook()
+
+        assert get_oidc_settings().fallback_id_token_signed_response_alg == 'ES256'
+        assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['ES256']
+
+        await cleanup()
+        get_oidc_settings.cache_clear()
+
+
+async def test_startup_hook_uses_new_id_token_signing_alg_when_discovery_omits_it():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_ID_TOKEN_SIGNED_RESPONSE_ALG': 'ES256'}):
+        get_oidc_settings.cache_clear()
+        auth_config = make_config()
+
+        with mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                return_value=httpx.Response(
+                    status_code=200,
+                    json=MOCK_DISCOVERY.model_dump(),
+                    request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+                )
+            ),
+        ):
+            cleanup = await auth_config.startup_hook()
+
+        assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['ES256']
+
+        await cleanup()
+        get_oidc_settings.cache_clear()
+
+
+async def test_startup_hook_uses_new_id_token_signing_alg_over_legacy_jwt_algo():
+    with mock.patch.dict(
+        os.environ,
+        {**os.environ, 'SSO_ID_TOKEN_SIGNED_RESPONSE_ALG': 'RS256', 'SSO_JWT_ALGO': 'ES256'},
+    ):
+        get_oidc_settings.cache_clear()
+        auth_config = make_config()
+
+        with mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                return_value=httpx.Response(
+                    status_code=200,
+                    json=MOCK_DISCOVERY.model_dump(),
+                    request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+                )
+            ),
+        ):
+            cleanup = await auth_config.startup_hook()
+
+        assert get_oidc_settings().fallback_id_token_signed_response_alg == 'RS256'
+        assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['RS256']
+
+        await cleanup()
+        get_oidc_settings.cache_clear()
+
+
+async def test_startup_hook_accepts_legacy_jwt_algo_override():
+    with mock.patch.dict(os.environ, {**os.environ, 'SSO_JWT_ALGO': 'ES256'}):
+        get_oidc_settings.cache_clear()
+        auth_config = make_config()
+        discovery = MOCK_DISCOVERY.model_copy(update={'id_token_signing_alg_values_supported': ['ES256']})
+
+        with mock.patch.object(
+            auth_config.client,
+            'get',
+            mock.AsyncMock(
+                return_value=httpx.Response(
+                    status_code=200,
+                    json=discovery.model_dump(),
+                    request=httpx.Request('GET', f'{TEST_SSO_ISSUER_URL}/.well-known/openid-configuration'),
+                )
+            ),
+        ):
+            cleanup = await auth_config.startup_hook()
+
+        assert get_oidc_settings().fallback_id_token_signed_response_alg == 'ES256'
+        assert utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY) == ['ES256']
+
+        await cleanup()
+        get_oidc_settings.cache_clear()
+
+
 async def test_startup_hook_retries_transient_discovery_request_error():
     auth_config = make_config()
     discovery_response = httpx.Response(
@@ -322,28 +541,68 @@ async def start_oidc_login(client: AsyncClient, redirect_to: str | None = None) 
     return state
 
 
-def make_mock_id_token(state: str, overrides: dict | None = None) -> str:
+def make_mock_id_token(state: str, overrides: dict | None = None, jwk_data: dict | None = None) -> str:
     transaction = oidc_transaction_store.get(state)
     assert transaction is not None
 
+    jwk_data = jwk_data or MOCK_JWK
     claims = {**MOCK_ID_TOKEN, 'nonce': transaction.nonce, **(overrides or {})}
-    jwk = PyJWK(MOCK_JWK)
+    jwk = PyJWK(jwk_data)
     return jwt.encode(
         claims,
         jwk.key,
-        algorithm=MOCK_JWK['alg'],
-        headers={'kid': MOCK_JWK['kid']},
+        algorithm=jwk_data['alg'],
+        headers={'kid': jwk_data['kid']},
     )
 
 
 @contextlib.contextmanager
-def mock_registered_jwks_client():
+def mock_registered_jwks_client(allowed_algs: list[str] | None = None):
     previous_registry = dict(utils_registry.get_all())
+    utils_registry.set(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY, allowed_algs or [MOCK_JWK['alg']])
     utils_registry.set(JWK_CLIENT_REGISTRY_KEY, PyJWKClient(MOCK_DISCOVERY.jwks_uri))
     try:
         yield
     finally:
         utils_registry.replace(previous_registry, deepcopy=False)
+
+
+def make_raw_mock_id_token(jwk_data: dict, overrides: dict | None = None, algorithm: str | None = None) -> str:
+    claims = {**MOCK_ID_TOKEN, **(overrides or {})}
+    jwk = PyJWK(jwk_data)
+    algorithm = algorithm or jwk_data['alg']
+    return jwt.encode(
+        claims,
+        jwk.key,
+        algorithm=algorithm,
+        headers={'kid': jwk_data['kid']},
+    )
+
+
+async def test_decode_id_token_accepts_es256_discovery_algorithm():
+    with mock_registered_jwks_client(['ES256']), mocked_urllib(MOCK_ES256_JWKS_DATA):
+        decoded = decode_id_token(make_raw_mock_id_token(MOCK_ES256_JWK))
+
+    assert decoded.sub == MOCK_ID_TOKEN['sub']
+
+
+async def test_decode_id_token_rejects_signing_key_algorithm_outside_resolved_policy():
+    with mock_registered_jwks_client(['RS256']), mocked_urllib(MOCK_ES256_JWKS_DATA):
+        with pytest.raises(jwt.InvalidAlgorithmError, match='signing algorithm is not allowed'):
+            decode_id_token(make_raw_mock_id_token(MOCK_ES256_JWK))
+
+
+async def test_decode_id_token_accepts_allowed_rsa_algorithm_when_jwk_omits_alg():
+    with mock_registered_jwks_client(['PS256']), mocked_urllib(MOCK_RSA_JWKS_DATA_WITHOUT_ALG):
+        decoded = decode_id_token(make_raw_mock_id_token(MOCK_JWK, algorithm='PS256'))
+
+    assert decoded.sub == MOCK_ID_TOKEN['sub']
+
+
+async def test_decode_id_token_rejects_explicit_jwk_algorithm_mismatch():
+    with mock_registered_jwks_client(['RS256', 'PS256']), mocked_urllib(MOCK_JWKS_DATA):
+        with pytest.raises(jwt.InvalidAlgorithmError, match='JWK alg RS256 does not match token alg PS256'):
+            decode_id_token(make_raw_mock_id_token(MOCK_JWK, algorithm='PS256'))
 
 
 async def test_session_no_state():
@@ -2009,7 +2268,7 @@ MOCK_DISCOVERY_WITH_USERINFO = OIDCDiscoveryMetadata(
     registration_endpoint='http://test-identity-provider.com/api/authentication/register',
     response_types_supported=['code', 'id_token', 'token id_token'],
     token_endpoint_auth_methods_supported=['client_secret_post', 'client_secret_basic'],
-    id_token_signing_alg_values_supported=['ES256'],
+    id_token_signing_alg_values_supported=['RS256'],
     end_session_endpoint='http://test-identity-provider.com/api/authentication/logout',
     userinfo_endpoint='http://test-identity-provider.com/api/authentication/userinfo',
 )

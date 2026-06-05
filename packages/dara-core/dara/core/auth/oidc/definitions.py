@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, Field
 
+ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY = 'OIDCIdTokenSigningAlgs'
 JWK_CLIENT_REGISTRY_KEY = 'PyJWKClient'
 OIDC_LOGIN_SESSION_COOKIE_NAME = 'dara_oidc_login_session'
 
@@ -86,8 +87,14 @@ class OIDCDiscoveryMetadata(BaseModel):
     )
 
     id_token_signing_alg_values_supported: list[str] = Field(
-        ...,
-        description='REQUIRED. JSON array containing a list of the JWS signing algorithms (alg values) supported by the OP for the ID Token to encode the Claims in a JWT. The algorithm RS256 MUST be included. The value none MAY be supported but MUST NOT be used unless the Response Type used returns no ID Token from the Authorization Endpoint.',
+        default_factory=list,
+        description="""
+        REQUIRED. JSON array containing a list of the JWS signing algorithms (alg values) supported by the OP for the
+        ID Token to encode the Claims in a JWT. The algorithm RS256 MUST be included. The value none MAY be supported
+        but MUST NOT be used unless the Response Type used returns no ID Token from the Authorization Endpoint.
+        CONCESSION: accepted as empty so Dara can fall back to RS256 for non-compliant discovery documents that omit
+        this field.
+        """,
     )
 
     id_token_encryption_alg_values_supported: list[str] | None = Field(

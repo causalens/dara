@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from dara.core.auth.oidc.settings import OIDCSettings, get_oidc_settings
+from dara.core.auth.oidc.settings import DEFAULT_ID_TOKEN_SIGNING_ALG, OIDCSettings, get_oidc_settings
 
 
 @pytest.fixture(autouse=True)
@@ -64,6 +64,129 @@ def test_group_claim_name_defaults_to_groups():
     )
 
     assert s.group_claim_name == 'groups'
+
+
+def test_id_token_signing_alg_defaults_to_rs256():
+    s = OIDCSettings(
+        _env_file=None,  # type: ignore
+        client_id='client-id',
+        client_secret='client-secret',
+        redirect_uri='http://localhost:8000/sso-callback',
+        groups='dev',
+    )
+
+    assert s.id_token_signed_response_alg is None
+    assert s.jwt_algo is None
+    assert s.fallback_id_token_signed_response_alg == DEFAULT_ID_TOKEN_SIGNING_ALG
+
+
+def test_id_token_signing_alg_takes_precedence_over_legacy_jwt_algo():
+    s = OIDCSettings(
+        _env_file=None,  # type: ignore
+        client_id='client-id',
+        client_secret='client-secret',
+        redirect_uri='http://localhost:8000/sso-callback',
+        groups='dev',
+        id_token_signed_response_alg='RS256',
+        jwt_algo='ES256',
+    )
+
+    assert s.fallback_id_token_signed_response_alg == 'RS256'
+
+
+def test_legacy_jwt_algo_is_used_when_id_token_signing_alg_is_not_configured():
+    s = OIDCSettings(
+        _env_file=None,  # type: ignore
+        client_id='client-id',
+        client_secret='client-secret',
+        redirect_uri='http://localhost:8000/sso-callback',
+        groups='dev',
+        jwt_algo='ES256',
+    )
+
+    assert s.fallback_id_token_signed_response_alg == 'ES256'
+
+
+@pytest.mark.parametrize('alg_field', ['id_token_signed_response_alg', 'jwt_algo'])
+def test_none_id_token_signing_alg_is_rejected(alg_field: str):
+    with pytest.raises(ValidationError, match='OIDC ID token signing algorithm "none" is not supported'):
+        OIDCSettings(
+            _env_file=None,  # type: ignore
+            client_id='client-id',
+            client_secret='client-secret',
+            redirect_uri='http://localhost:8000/sso-callback',
+            groups='dev',
+            **{alg_field: 'none'},
+        )
+
+
+@pytest.mark.parametrize('alg_field', ['id_token_signed_response_alg', 'jwt_algo'])
+def test_hmac_id_token_signing_alg_is_rejected(alg_field: str):
+    with pytest.raises(ValidationError, match='OIDC ID token HMAC signing algorithms are not supported'):
+        OIDCSettings(
+            _env_file=None,  # type: ignore
+            client_id='client-id',
+            client_secret='client-secret',
+            redirect_uri='http://localhost:8000/sso-callback',
+            groups='dev',
+            **{alg_field: 'HS256'},
+        )
+
+
+def test_id_token_signing_alg_prefers_new_prefixed_env_alias(monkeypatch: pytest.MonkeyPatch):
+    with monkeypatch.context() as m:
+        m.setenv('SSO_ID_TOKEN_SIGNED_RESPONSE_ALG', 'RS256')
+        m.setenv('SSO_JWT_ALGO', 'ES256')
+
+        s = OIDCSettings(
+            _env_file=None,  # type: ignore
+            client_id='client-id',
+            client_secret='client-secret',
+            redirect_uri='http://localhost:8000/sso-callback',
+            groups='dev',
+        )
+
+        assert s.id_token_signed_response_alg == 'RS256'
+        assert s.jwt_algo == 'RS256'
+        assert s.fallback_id_token_signed_response_alg == 'RS256'
+
+
+def test_id_token_signing_alg_accepts_legacy_prefixed_env_alias(monkeypatch: pytest.MonkeyPatch):
+    with monkeypatch.context() as m:
+        m.delenv('SSO_ID_TOKEN_SIGNED_RESPONSE_ALG', raising=False)
+        m.setenv('SSO_JWT_ALGO', 'ES256')
+
+        s = OIDCSettings(
+            _env_file=None,  # type: ignore
+            client_id='client-id',
+            client_secret='client-secret',
+            redirect_uri='http://localhost:8000/sso-callback',
+            groups='dev',
+        )
+
+        assert s.id_token_signed_response_alg == 'ES256'
+        assert s.jwt_algo == 'ES256'
+        assert s.fallback_id_token_signed_response_alg == 'ES256'
+
+
+def test_id_token_signing_alg_ignores_unprefixed_env_aliases(monkeypatch: pytest.MonkeyPatch):
+    with monkeypatch.context() as m:
+        m.delenv('SSO_ID_TOKEN_SIGNED_RESPONSE_ALG', raising=False)
+        m.delenv('SSO_JWT_ALGO', raising=False)
+        m.setenv('ID_TOKEN_SIGNED_RESPONSE_ALG', 'ES256')
+        m.setenv('JWT_ALGO', 'ES256')
+
+        s = OIDCSettings(
+            _env_file=None,  # type: ignore
+            client_id='client-id',
+            client_secret='client-secret',
+            redirect_uri='http://localhost:8000/sso-callback',
+            groups='dev',
+        )
+
+        assert s.id_token_signed_response_alg is None
+        assert s.jwt_algo is None
+        assert s.fallback_id_token_signed_response_alg == DEFAULT_ID_TOKEN_SIGNING_ALG
 
 
 def test_group_claim_name_can_be_configured_from_env(monkeypatch: pytest.MonkeyPatch):
