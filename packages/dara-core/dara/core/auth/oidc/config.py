@@ -37,13 +37,14 @@ from ..definitions import (
 )
 from ..utils import decode_token, sign_jwt
 from .definitions import (
+    ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY,
     JWK_CLIENT_REGISTRY_KEY,
     IdTokenClaims,
     OIDCDiscoveryMetadata,
     OIDCLoginTransaction,
 )
 from .routes import sso_callback
-from .settings import OIDCSettings, get_oidc_settings
+from .settings import DEFAULT_ID_TOKEN_SIGNING_ALG, OIDCSettings, get_oidc_settings
 from .transaction_store import oidc_transaction_store
 from .utils import decode_id_token, get_token_from_idp
 
@@ -54,10 +55,23 @@ OIDCAuthLogout = AuthComponent(js_module='@darajs/core', py_module='dara.core', 
 OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthSSOCallback')
 
 USERINFO_ERROR = OTHER_AUTH_ERROR('Identity provider userinfo failed')
+UNSUPPORTED_JWKS_SIGNING_ALG_PREFIXES = ('HS',)
 
 
 class _RetryableDiscoveryError(Exception):
     """Transient failure while fetching the OIDC discovery document."""
+
+
+def _is_supported_jwks_id_token_signing_alg(alg: str) -> bool:
+    """
+    Whether Dara can verify this ID token JWS alg with the issuer JWKS.
+
+    OpenID Connect Core 1.0 Section 10.1 treats MAC-based signatures as
+    client-secret based. This implementation validates ID tokens with the
+    OP's jwks_uri keys, so HMAC algorithms are out of scope.
+    """
+    alg_upper = alg.upper()
+    return alg.lower() != 'none' and not alg_upper.startswith(UNSUPPORTED_JWKS_SIGNING_ALG_PREFIXES)
 
 
 class OIDCAuthConfig(BaseAuthConfig):
@@ -78,7 +92,8 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_EXTRA_AUDIENCE - if set, extra audiences to verify against the ID token in addition to `sso_client_id`
     - SSO_SCOPES - space-separated list of scopes to request from the identity provider, defaults to `openid`
     - SSO_GROUP_CLAIM_NAME - name of the claim containing user groups, defaults to `groups`
-    - SSO_JWT_ALGO - algorithm to use for verifying IDP-provided JWTs, defaults to `ES256`
+    - SSO_ID_TOKEN_SIGNED_RESPONSE_ALG - ID token signing alg registered for this client; if unset, Dara uses signed algs from discovery or `RS256`
+    - SSO_JWT_ALGO - deprecated alias for `SSO_ID_TOKEN_SIGNED_RESPONSE_ALG`
     - SSO_USE_USERINFO - if set to `true`, require the userinfo endpoint during login and refresh
     """
 
@@ -119,6 +134,73 @@ class OIDCAuthConfig(BaseAuthConfig):
     def get_discovery_url(self) -> str:
         issuer_url = get_oidc_settings().issuer_url
         return f'{issuer_url}/.well-known/openid-configuration'
+
+    def resolve_id_token_signing_algs(
+        self,
+        discovery: OIDCDiscoveryMetadata,
+        oidc_settings: OIDCSettings,
+    ) -> list[str]:
+        """
+        Resolve the relying party's allowed ID token signing algorithms against provider discovery.
+        """
+        configured_alg = oidc_settings.configured_id_token_signed_response_alg
+
+        if configured_alg is not None:
+            # Explicit env config is Dara's local verifier policy and is more
+            # specific than provider capability metadata. Keep accepting it even
+            # when a non-compliant OP omits the alg from discovery.
+            if configured_alg not in discovery.id_token_signing_alg_values_supported:
+                dev_logger.warning(
+                    'OIDC ID token signing algorithm is not advertised by discovery',
+                    {'expected': configured_alg, 'supported': discovery.id_token_signing_alg_values_supported},
+                )
+            return [configured_alg]
+
+        supported_signed_algs = [
+            alg
+            for alg in discovery.id_token_signing_alg_values_supported
+            if _is_supported_jwks_id_token_signing_alg(alg)
+        ]
+        unsupported_signed_algs = [
+            alg for alg in discovery.id_token_signing_alg_values_supported if alg not in supported_signed_algs
+        ]
+        if unsupported_signed_algs:
+            dev_logger.info(
+                'OIDC discovery metadata advertises unsupported ID token signing algorithms',
+                {'unsupported': unsupported_signed_algs, 'supported': discovery.id_token_signing_alg_values_supported},
+            )
+
+        # OpenID Connect Discovery 1.0 Section 3 defines
+        # id_token_signing_alg_values_supported as the OP support set and says
+        # RS256 MUST be included. CONCESSION: an internal IDP currently
+        # advertises only ES256. When no client metadata/env override exists,
+        # accept the OP's discovered JWKS-verifiable signing algorithms rather
+        # than aborting solely because RS256 is absent.
+        if supported_signed_algs:
+            if DEFAULT_ID_TOKEN_SIGNING_ALG not in supported_signed_algs:
+                dev_logger.warning(
+                    'OIDC discovery metadata does not advertise the default ID token signing algorithm',
+                    {
+                        'expected': DEFAULT_ID_TOKEN_SIGNING_ALG,
+                        'supported': discovery.id_token_signing_alg_values_supported,
+                    },
+                )
+            return supported_signed_algs
+
+        # OpenID Connect Discovery 1.0 Section 3 says RS256 MUST be included in
+        # id_token_signing_alg_values_supported. If the OP publishes no usable
+        # JWKS-verifiable signed algorithms, keep RS256 as the last resort
+        # policy. RFC 8725 Section 3.1 still requires selecting allowed algs
+        # independently of the JWT header.
+        if discovery.id_token_signing_alg_values_supported:
+            dev_logger.warning(
+                'OIDC discovery metadata does not advertise any JWKS-verifiable ID token signing algorithms',
+                {
+                    'fallback': DEFAULT_ID_TOKEN_SIGNING_ALG,
+                    'supported': discovery.id_token_signing_alg_values_supported,
+                },
+            )
+        return [DEFAULT_ID_TOKEN_SIGNING_ALG]
 
     async def fetch_discovery_document(self, discovery_url: str, oidc_settings: OIDCSettings) -> httpx.Response:
         """
@@ -181,14 +263,16 @@ class OIDCAuthConfig(BaseAuthConfig):
             raise RuntimeError(
                 f'OIDC discovery issuer mismatch: expected {oidc_settings.issuer_url}, got {self._discovery.issuer}'
             )
+        id_token_signing_algs = self.resolve_id_token_signing_algs(self._discovery, oidc_settings)
 
         dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
 
-        # 3. Register a PyJWKClient instance bound to the jwks_uri from discovery
+        # 3. Store runtime OIDC verifier configuration from discovery
         from dara.core.internal.registries import utils_registry
 
         py_jwk_client = PyJWKClient(self.discovery.jwks_uri, lifespan=oidc_settings.jwks_lifespan)
-        utils_registry.register(JWK_CLIENT_REGISTRY_KEY, py_jwk_client)
+        utils_registry.set(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY, id_token_signing_algs)
+        utils_registry.set(JWK_CLIENT_REGISTRY_KEY, py_jwk_client)
 
         # Return cleanup to close the HTTP client
         async def _cleanup():

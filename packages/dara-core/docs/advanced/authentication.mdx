@@ -113,7 +113,8 @@ The following environment variables are optional:
 | `SSO_CLIENT_AUTH_MODE`    | `client_secret_basic`   | Token endpoint auth mode. Use `pkce_public` for public clients without a client secret.                      |
 | `SSO_CLIENT_SECRET`       | `None`                  | OAuth 2.0 client secret. Required when `SSO_CLIENT_AUTH_MODE=client_secret_basic`. Ignored for `pkce_public`. |
 | `SSO_JWKS_LIFESPAN`       | `86400`                 | Lifespan of the JWKS cache in seconds (default 1 day)                                                        |
-| `SSO_JWT_ALGO`            | `ES256`                 | Algorithm for verifying identity provider JWTs                                                               |
+| `SSO_ID_TOKEN_SIGNED_RESPONSE_ALG` | `None`        | Optional ID token signing algorithm override for non-compliant providers. If unset, Dara uses JWKS-verifiable non-`none` signing algs from discovery, falling back to `RS256`. HMAC ID token algorithms are not supported by this JWKS-based verifier. |
+| `SSO_JWT_ALGO`            | `None`                  | Deprecated alias for `SSO_ID_TOKEN_SIGNED_RESPONSE_ALG`, used only when the new variable is not set.          |
 | `SSO_SCOPES`              | `openid`                | Space-separated list of OAuth scopes to request                                                              |
 | `SSO_GROUP_CLAIM_NAME`    | `groups`                | Claim name to read group membership from. Use this for providers that return groups under a non-standard claim such as `memberOf`. |
 | `SSO_VERIFY_AUDIENCE`     | `False`                 | Whether to verify the `aud` claim in ID tokens                                                               |

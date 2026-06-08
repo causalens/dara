@@ -28,7 +28,7 @@ from pydantic import BaseModel, ConfigDict
 from dara.core.auth.definitions import OTHER_AUTH_ERROR
 from dara.core.logging import dev_logger
 
-from .definitions import JWK_CLIENT_REGISTRY_KEY, IdTokenClaims
+from .definitions import ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY, JWK_CLIENT_REGISTRY_KEY, IdTokenClaims
 from .settings import get_oidc_settings
 
 if TYPE_CHECKING:
@@ -75,6 +75,41 @@ def decode_id_token(id_token: str) -> IdTokenClaims:
 
     jwks_client: jwt.PyJWKClient = utils_registry.get(JWK_CLIENT_REGISTRY_KEY)
     oidc_settings = get_oidc_settings()
+    id_token_signing_algs = (
+        utils_registry.get(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY)
+        if utils_registry.has(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY)
+        else [oidc_settings.fallback_id_token_signed_response_alg]
+    )
+    token_alg = jwt.get_unverified_header(id_token).get('alg')
+
+    if not isinstance(token_alg, str):
+        raise jwt.InvalidAlgorithmError('OIDC ID token signing algorithm is missing')
+
+    if token_alg.upper().startswith('HS'):
+        raise jwt.InvalidAlgorithmError('OIDC ID token HMAC signing algorithms are not supported')
+
+    # The JOSE header is attacker-controlled input, so it is not trusted as
+    # policy. It only states the algorithm the token claims was used. RFC 8725
+    # Section 3.1 requires checking that claimed algorithm against a
+    # caller-controlled allow-list; our allow-list comes from explicit env
+    # policy or validated OIDC discovery metadata resolved during startup.
+    if token_alg not in id_token_signing_algs:
+        raise jwt.InvalidAlgorithmError(
+            'OIDC ID token signing algorithm is not allowed: '
+            f'token alg {token_alg}, allowed algs {id_token_signing_algs}'
+        )
+
+    signing_key = jwks_client.get_signing_key_from_jwt(id_token)
+    key_alg = getattr(signing_key, '_jwk_data', {}).get('alg')
+
+    # The JWK "alg" member is optional. When the OP publishes it, treat it as a
+    # trusted key-level constraint from the issuer's jwks_uri and require it to
+    # match the token's claimed operation. When it is omitted, do not use
+    # PyJWT's algorithm_name as policy: PyJWT supplies key-type defaults such
+    # as RS256 for RSA keys, which would incorrectly reject valid PS256/RS384
+    # tokens that were allowed by env/discovery and signed by the selected key.
+    if isinstance(key_alg, str) and key_alg != token_alg:
+        raise jwt.InvalidAlgorithmError(f'OIDC ID token JWK alg {key_alg} does not match token alg {token_alg}')
 
     # Build audience list for verification if enabled
     audience = None
@@ -83,11 +118,10 @@ def decode_id_token(id_token: str) -> IdTokenClaims:
         if oidc_settings.extra_audience:
             audience.extend(oidc_settings.extra_audience)
 
-    # Decode and verify the token
     decoded = jwt.decode(
         id_token,
-        jwks_client.get_signing_key_from_jwt(id_token).key,
-        algorithms=[oidc_settings.jwt_algo],
+        signing_key.key,
+        algorithms=[token_alg],
         audience=audience,
         issuer=oidc_settings.issuer_url,
         options={'verify_aud': oidc_settings.verify_audience},
