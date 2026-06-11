@@ -171,8 +171,20 @@ export function registerStreamConnection(
     const key = createSubscriptionKey(uid, extras);
     const usage = getOrCreateUsage(key);
 
-    // Abort any existing connection for this atomKey (defensive)
+    // Abort any existing connection for this atomKey (defensive dedup)
     abortExistingConnection(atomKey);
+
+    // Abort and remove stale connections for this subscription key (handles dependency changes).
+    // When deps change, a new atomKey is produced for the same uid+extras.
+    // Only one connection should be active per subscription key at a time.
+    for (const [existingAtomKey, conn] of usage.connections) {
+        if (existingAtomKey !== atomKey) {
+            if (conn.active && conn.controller) {
+                conn.controller.abort();
+            }
+            usage.connections.delete(existingAtomKey);
+        }
+    }
 
     // Start the connection immediately
     const { cleanup, controller } = start();

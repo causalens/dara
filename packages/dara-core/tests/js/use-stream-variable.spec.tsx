@@ -771,6 +771,86 @@ describe('useVariable with StreamVariable', () => {
             expect(getActiveConnectionCount()).toBe(0);
         });
 
+        it('aborts stale connections when a new connection registers for the same uid with different atomKey', () => {
+            // Simulates dependency change: same stream uid, different resolved values → different atomKey
+            const controllerA = new AbortController();
+            const mockStartA = vi.fn().mockReturnValue({
+                cleanup: vi.fn(),
+                controller: controllerA,
+            });
+
+            const controllerB = new AbortController();
+            const mockStartB = vi.fn().mockReturnValue({
+                cleanup: vi.fn(),
+                controller: controllerB,
+            });
+
+            // Register first connection (e.g. page=1)
+            registerStreamConnection('stream-uid', {}, 'atom-key-page1', mockStartA);
+            expect(getActiveConnectionCount()).toBe(1);
+            expect(controllerA.signal.aborted).toBe(false);
+
+            // Register second connection for same uid but different atomKey (e.g. page=2)
+            registerStreamConnection('stream-uid', {}, 'atom-key-page2', mockStartB);
+
+            // Old connection should be aborted
+            expect(controllerA.signal.aborted).toBe(true);
+
+            // Only the new connection should be active
+            expect(getActiveConnectionCount()).toBe(1);
+            expect(getActiveConnectionKeys()).toEqual(['atom-key-page2']);
+            expect(controllerB.signal.aborted).toBe(false);
+        });
+
+        it('does not abort connections for different uids when a new connection registers', () => {
+            const controllerA = new AbortController();
+            const mockStartA = vi.fn().mockReturnValue({
+                cleanup: vi.fn(),
+                controller: controllerA,
+            });
+
+            const controllerB = new AbortController();
+            const mockStartB = vi.fn().mockReturnValue({
+                cleanup: vi.fn(),
+                controller: controllerB,
+            });
+
+            // Register connections for two different stream variables
+            registerStreamConnection('stream-uid-A', {}, 'atom-key-A', mockStartA);
+            registerStreamConnection('stream-uid-B', {}, 'atom-key-B', mockStartB);
+
+            // Both should be active - different uids don't interfere
+            expect(getActiveConnectionCount()).toBe(2);
+            expect(controllerA.signal.aborted).toBe(false);
+            expect(controllerB.signal.aborted).toBe(false);
+        });
+
+        it('aborts stale connections across multiple dependency changes', () => {
+            // Simulates rapid pagination: page 1 → 2 → 3
+            const controllers = [new AbortController(), new AbortController(), new AbortController()];
+            const mockStarts = controllers.map((ctrl) =>
+                vi.fn().mockReturnValue({ cleanup: vi.fn(), controller: ctrl })
+            );
+
+            // page=1
+            registerStreamConnection('stream-uid', {}, 'atom-key-page1', mockStarts[0]);
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // page=2 — should abort page=1
+            registerStreamConnection('stream-uid', {}, 'atom-key-page2', mockStarts[1]);
+            expect(controllers[0].signal.aborted).toBe(true);
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // page=3 — should abort page=2
+            registerStreamConnection('stream-uid', {}, 'atom-key-page3', mockStarts[2]);
+            expect(controllers[1].signal.aborted).toBe(true);
+            expect(getActiveConnectionCount()).toBe(1);
+
+            // Only page=3 should be active
+            expect(getActiveConnectionKeys()).toEqual(['atom-key-page3']);
+            expect(controllers[2].signal.aborted).toBe(false);
+        });
+
         it('cleans up orphaned connections after timeout', async () => {
             // Use fake timers for this test
             vi.useFakeTimers();
