@@ -603,19 +603,6 @@ async def test_stream_endpoint_custom_event_with_key_accessor_errors():
 # --- run_stream unit tests ---
 
 
-class MockRequest:
-    """Mock Starlette Request with controllable is_disconnected()."""
-
-    def __init__(self):
-        self._disconnected = asyncio.Event()
-
-    async def is_disconnected(self) -> bool:
-        return self._disconnected.is_set()
-
-    def simulate_disconnect(self):
-        self._disconnected.set()
-
-
 def _make_entry(func, key_accessor=None):
     """Create a StreamVariableRegistryEntry for testing."""
     return StreamVariableRegistryEntry(
@@ -640,7 +627,6 @@ async def test_run_stream_disconnect_cancels_blocked_generator():
     async operation (simulating an upstream HTTP connection) is cancelled
     when the client disconnects.
     """
-    inner_blocked = asyncio.Event()
     generator_cleaned_up = asyncio.Event()
     inner_was_cancelled = asyncio.Event()
 
@@ -649,20 +635,20 @@ async def test_run_stream_disconnect_cancels_blocked_generator():
             yield StreamEvent.json_snapshot({'first': True})
             # Simulate an inner HTTP connection that blocks indefinitely
             try:
-                await inner_blocked.wait()
+                await asyncio.Event().wait()
             except asyncio.CancelledError:
                 inner_was_cancelled.set()
                 raise
         finally:
             generator_cleaned_up.set()
 
-    request = MockRequest()
+    disconnect_event = asyncio.Event()
     entry = _make_entry(blocking_stream)
 
     collected: list[str] = []
 
     async def consume():
-        async for event in run_stream(entry, request, [], Mock(), Mock()):
+        async for event in run_stream(entry, disconnect_event, [], Mock(), Mock()):
             collected.append(event)
 
     task = asyncio.create_task(consume())
@@ -673,7 +659,7 @@ async def test_run_stream_disconnect_cancels_blocked_generator():
     assert 'first' in collected[0]
 
     # Simulate client disconnect
-    request.simulate_disconnect()
+    disconnect_event.set()
 
     # Wait for run_stream to detect disconnect and cancel the generator
     await asyncio.wait_for(task, timeout=3.0)
@@ -694,45 +680,44 @@ async def test_run_stream_normal_exhaustion():
         finally:
             generator_cleaned_up.set()
 
-    request = MockRequest()
+    disconnect_event = asyncio.Event()
     entry = _make_entry(finite_stream)
 
-    events = await _collect_events(run_stream(entry, request, [], Mock(), Mock()))
+    events = await _collect_events(run_stream(entry, disconnect_event, [], Mock(), Mock()))
 
     assert len(events) == 3
-    assert '"a": 1' in events[0]
-    assert '"b": 2' in events[1]
-    assert '"c": 3' in events[2]
+    parsed = [json.loads(e.removeprefix('data: ').strip()) for e in events]
+    assert parsed[0]['data'] == {'a': 1}
+    assert parsed[1]['data'] == {'b': 2}
+    assert parsed[2]['data'] == {'c': 3}
     assert generator_cleaned_up.is_set()
 
 
 async def test_run_stream_disconnect_between_yields():
     """Disconnect detected between yields when generator is not blocked."""
     generator_cleaned_up = asyncio.Event()
-    second_event_yielded = False
 
     async def two_event_stream():
-        nonlocal second_event_yielded
         try:
             yield StreamEvent.json_snapshot({'first': True})
-            await asyncio.sleep(0.1)
-            second_event_yielded = True
+            # Block until cancelled — simulates a generator waiting for the next event
+            await asyncio.Event().wait()
             yield StreamEvent.json_snapshot({'second': True})
         finally:
             generator_cleaned_up.set()
 
-    request = MockRequest()
+    disconnect_event = asyncio.Event()
     entry = _make_entry(two_event_stream)
 
     collected: list[str] = []
 
     async def consume():
-        async for event in run_stream(entry, request, [], Mock(), Mock()):
+        async for event in run_stream(entry, disconnect_event, [], Mock(), Mock()):
             collected.append(event)
             # Disconnect right after receiving the first event
-            request.simulate_disconnect()
+            disconnect_event.set()
 
-    await consume()
+    await asyncio.wait_for(consume(), timeout=3.0)
 
     assert len(collected) == 1
     assert 'first' in collected[0]
@@ -746,10 +731,10 @@ async def test_run_stream_generator_exception_produces_error_event():
         yield StreamEvent.json_snapshot({'ok': True})
         raise RuntimeError('upstream failure')
 
-    request = MockRequest()
+    disconnect_event = asyncio.Event()
     entry = _make_entry(failing_stream)
 
-    events = await _collect_events(run_stream(entry, request, [], Mock(), Mock()))
+    events = await _collect_events(run_stream(entry, disconnect_event, [], Mock(), Mock()))
 
     assert len(events) == 2
     assert 'ok' in events[0]
@@ -765,10 +750,10 @@ async def test_run_stream_reconnect_exception():
         raise ReconnectException()
         yield  # noqa: RET503 -- unreachable, but required to make this an async generator
 
-    request = MockRequest()
+    disconnect_event = asyncio.Event()
     entry = _make_entry(reconnecting_stream)
 
-    events = await _collect_events(run_stream(entry, request, [], Mock(), Mock()))
+    events = await _collect_events(run_stream(entry, disconnect_event, [], Mock(), Mock()))
 
     assert len(events) == 1
     parsed = json.loads(events[0].removeprefix('data: ').strip())

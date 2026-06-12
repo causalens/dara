@@ -23,7 +23,6 @@ from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, Literal
 
-from fastapi import Request
 from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 from typing_extensions import TypeVar
 
@@ -315,14 +314,12 @@ def _validate_event_mode(event: StreamEvent, key_accessor: str | None) -> None:
         )
 
 
-async def _wait_for_disconnect(request: Request, interval: float = 0.5):
-    """Poll request.is_disconnected() until the client disconnects."""
-    while not await request.is_disconnected():
-        await asyncio.sleep(interval)
-
-
 async def run_stream(
-    entry: StreamVariableRegistryEntry, request: Request, values: list[Any], store: CacheStore, task_mgr: TaskManager
+    entry: StreamVariableRegistryEntry,
+    disconnect_event: asyncio.Event,
+    values: list[Any],
+    store: CacheStore,
+    task_mgr: TaskManager,
 ):
     """Run a StreamVariable."""
     # dynamic import due to circular import
@@ -353,18 +350,26 @@ async def run_stream(
         # runs and the inner connection stays open indefinitely -- one leaked connection
         # per stream restart.
         #
-        # To fix this we race each `generator.__anext__()` call against a disconnect
-        # watcher using `asyncio.wait(return_when=FIRST_COMPLETED)`. If the client
-        # disconnects while the generator is blocked, the disconnect watcher completes
-        # first, and we cancel the pending `__anext__()` task. The resulting
-        # `CancelledError` propagates into whatever `await` the generator is suspended
-        # in, triggering cleanup via standard Python `finally` blocks -- which is what
-        # closes the inner HTTP connection.
+        # To fix this we race each `generator.__anext__()` call against a
+        # `disconnect_event.wait()` using `asyncio.wait(return_when=FIRST_COMPLETED)`.
+        # If the client disconnects while the generator is blocked, the disconnect
+        # event completes first, and we cancel the pending `__anext__()` task. The
+        # resulting `CancelledError` propagates into whatever `await` the generator is
+        # suspended in, triggering cleanup via standard Python `finally` blocks -- which
+        # is what closes the inner HTTP connection.
         #
-        # Performance: the only overhead is the disconnect watcher -- a single
-        # long-lived task that calls `is_disconnected()` (a boolean flag check on the
-        # Starlette request object) every ~500ms. This costs microseconds per poll.
-        disconnect_task: asyncio.Task[None] = asyncio.ensure_future(_wait_for_disconnect(request))
+        # We use an `asyncio.Event` rather than polling `request.is_disconnected()`
+        # because the latter reads from the ASGI receive channel. Polling it from a
+        # background task would steal messages from the channel, interfering with
+        # Starlette's own request/response handling. The event is set by the caller
+        # (the stream endpoint in routing.py) when it detects the client has
+        # disconnected.
+        #
+        # Performance: the only overhead is a single `disconnect_event.wait()` future
+        # reused across iterations and the `asyncio.wait` call -- both standard
+        # event-loop machinery with negligible cost compared to the HTTP I/O the
+        # generator performs (hundreds of ms to seconds per event).
+        disconnect_task = asyncio.ensure_future(disconnect_event.wait())
         try:
             while True:
                 next_task: asyncio.Task[StreamEvent] = asyncio.ensure_future(generator.__anext__())
