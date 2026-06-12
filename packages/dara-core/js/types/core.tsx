@@ -490,6 +490,7 @@ export enum ConditionOperator {
 }
 
 export interface Condition<T> {
+    __typename: 'Condition';
     operator: ConditionOperator;
     other: any;
     variable: Variable<T>;

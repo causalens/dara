@@ -12,6 +12,8 @@ export { default as getIcon } from './get-icon';
 export { default as useComponentStyles, parseRawCss } from './use-component-styles';
 export { default as useUrlSync } from './use-url-sync';
 export { normalizeRequest } from './normalization';
+export { getVariableHookSignature } from './variable-hook-signature';
+export type { VariableHookSignature } from './variable-hook-signature';
 export { injectCss } from './inject-css';
 export * from './deferred';
 export type { RawCssProp };
