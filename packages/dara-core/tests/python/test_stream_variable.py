@@ -2,6 +2,7 @@
 Tests for StreamVariable functionality.
 """
 
+import asyncio
 import json
 from typing import Any
 from unittest.mock import Mock
@@ -13,7 +14,7 @@ from dara.core import DerivedVariable, Variable
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.stream_event import ReconnectException, StreamEvent, StreamEventType
-from dara.core.interactivity.stream_variable import StreamVariable
+from dara.core.interactivity.stream_variable import StreamVariable, StreamVariableRegistryEntry, run_stream
 from dara.core.internal.dependency_resolution import ResolvedDerivedVariable
 from dara.core.main import _start_application
 
@@ -597,3 +598,163 @@ async def test_stream_endpoint_custom_event_with_key_accessor_errors():
         assert len(events) == 1
         assert events[0]['type'] == 'error'
         assert 'key_accessor' in events[0]['data']
+
+
+# --- run_stream unit tests ---
+
+
+def _make_entry(func, key_accessor=None):
+    """Create a StreamVariableRegistryEntry for testing."""
+    return StreamVariableRegistryEntry(
+        uid='test-uid',
+        func=func,
+        variables=[],
+        key_accessor=key_accessor,
+    )
+
+
+async def _collect_events(run_stream_gen) -> list[str]:
+    """Collect all yielded SSE strings from a run_stream generator."""
+    events = []
+    async for event in run_stream_gen:
+        events.append(event)
+    return events
+
+
+async def test_run_stream_disconnect_cancels_blocked_generator():
+    """
+    Core scenario from the leak document: a generator blocked on an inner
+    async operation (simulating an upstream HTTP connection) is cancelled
+    when the client disconnects.
+    """
+    generator_cleaned_up = asyncio.Event()
+    inner_was_cancelled = asyncio.Event()
+
+    async def blocking_stream():
+        try:
+            yield StreamEvent.json_snapshot({'first': True})
+            # Simulate an inner HTTP connection that blocks indefinitely
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                inner_was_cancelled.set()
+                raise
+        finally:
+            generator_cleaned_up.set()
+
+    disconnect_event = asyncio.Event()
+    entry = _make_entry(blocking_stream)
+
+    collected: list[str] = []
+
+    async def consume():
+        async for event in run_stream(entry, disconnect_event, [], Mock(), Mock()):
+            collected.append(event)
+
+    task = asyncio.create_task(consume())
+
+    # Wait briefly for the first event to be yielded
+    await asyncio.sleep(0.1)
+    assert len(collected) == 1
+    assert 'first' in collected[0]
+
+    # Simulate client disconnect
+    disconnect_event.set()
+
+    # Wait for run_stream to detect disconnect and cancel the generator
+    await asyncio.wait_for(task, timeout=3.0)
+
+    assert generator_cleaned_up.is_set(), 'Generator finally block should have run'
+    assert inner_was_cancelled.is_set(), 'CancelledError should have propagated into the blocked await'
+
+
+async def test_run_stream_normal_exhaustion():
+    """Generator that yields multiple events and finishes naturally."""
+    generator_cleaned_up = asyncio.Event()
+
+    async def finite_stream():
+        try:
+            yield StreamEvent.json_snapshot({'a': 1})
+            yield StreamEvent.json_snapshot({'b': 2})
+            yield StreamEvent.json_snapshot({'c': 3})
+        finally:
+            generator_cleaned_up.set()
+
+    disconnect_event = asyncio.Event()
+    entry = _make_entry(finite_stream)
+
+    events = await _collect_events(run_stream(entry, disconnect_event, [], Mock(), Mock()))
+
+    assert len(events) == 3
+    parsed = [json.loads(e.removeprefix('data: ').strip()) for e in events]
+    assert parsed[0]['data'] == {'a': 1}
+    assert parsed[1]['data'] == {'b': 2}
+    assert parsed[2]['data'] == {'c': 3}
+    assert generator_cleaned_up.is_set()
+
+
+async def test_run_stream_disconnect_between_yields():
+    """Disconnect detected between yields when generator is not blocked."""
+    generator_cleaned_up = asyncio.Event()
+
+    async def two_event_stream():
+        try:
+            yield StreamEvent.json_snapshot({'first': True})
+            # Block until cancelled — simulates a generator waiting for the next event
+            await asyncio.Event().wait()
+            yield StreamEvent.json_snapshot({'second': True})
+        finally:
+            generator_cleaned_up.set()
+
+    disconnect_event = asyncio.Event()
+    entry = _make_entry(two_event_stream)
+
+    collected: list[str] = []
+
+    async def consume():
+        async for event in run_stream(entry, disconnect_event, [], Mock(), Mock()):
+            collected.append(event)
+            # Disconnect right after receiving the first event
+            disconnect_event.set()
+
+    await asyncio.wait_for(consume(), timeout=3.0)
+
+    assert len(collected) == 1
+    assert 'first' in collected[0]
+    assert generator_cleaned_up.is_set()
+
+
+async def test_run_stream_generator_exception_produces_error_event():
+    """Generator that raises an exception still produces an error SSE event."""
+
+    async def failing_stream():
+        yield StreamEvent.json_snapshot({'ok': True})
+        raise RuntimeError('upstream failure')
+
+    disconnect_event = asyncio.Event()
+    entry = _make_entry(failing_stream)
+
+    events = await _collect_events(run_stream(entry, disconnect_event, [], Mock(), Mock()))
+
+    assert len(events) == 2
+    assert 'ok' in events[0]
+    parsed_error = json.loads(events[1].removeprefix('data: ').strip())
+    assert parsed_error['type'] == 'error'
+    assert 'upstream failure' in parsed_error['data']
+
+
+async def test_run_stream_reconnect_exception():
+    """ReconnectException produces a reconnect SSE event."""
+
+    async def reconnecting_stream():
+        raise ReconnectException()
+        yield  # noqa: RET503 -- unreachable, but required to make this an async generator
+
+    disconnect_event = asyncio.Event()
+    entry = _make_entry(reconnecting_stream)
+
+    events = await _collect_events(run_stream(entry, disconnect_event, [], Mock(), Mock()))
+
+    assert len(events) == 1
+    parsed = json.loads(events[0].removeprefix('data: ').strip())
+    assert parsed['type'] == 'reconnect'

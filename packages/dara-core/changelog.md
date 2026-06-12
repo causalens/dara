@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed StreamVariable inner HTTP connections not being cancelled when the client disconnects, preventing connection leaks when generators are blocked on upstream requests
+
 ## 1.28.3
 
 - Fixed StreamVariable SSE connections accumulating when dependency values changed, causing stale data fetching and degraded performance

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import asyncio
 import inspect
 import json
 import math
@@ -546,10 +547,18 @@ async def stream_endpoint(
     # Denormalize the values (resolve any nested structures)
     values = denormalize(body.values.data, body.values.lookup)
 
+    disconnect_event = asyncio.Event()
+
     @track_stream
     async def stream():
-        async for event in run_stream(entry, request, values, store, task_mgr):
-            yield event
+        try:
+            async for event in run_stream(entry, disconnect_event, values, store, task_mgr):
+                yield event
+        finally:
+            # Signal disconnect so run_stream's race loop can cancel a blocked generator.
+            # This fires when StreamingResponse stops consuming (client disconnect,
+            # generator exhaustion, or task cancellation).
+            disconnect_event.set()
 
     return StreamingResponse(
         stream(),

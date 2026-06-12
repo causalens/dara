@@ -23,7 +23,6 @@ from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, Literal
 
-from fastapi import Request
 from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 from typing_extensions import TypeVar
 
@@ -316,7 +315,11 @@ def _validate_event_mode(event: StreamEvent, key_accessor: str | None) -> None:
 
 
 async def run_stream(
-    entry: StreamVariableRegistryEntry, request: Request, values: list[Any], store: CacheStore, task_mgr: TaskManager
+    entry: StreamVariableRegistryEntry,
+    disconnect_event: asyncio.Event,
+    values: list[Any],
+    store: CacheStore,
+    task_mgr: TaskManager,
 ):
     """Run a StreamVariable."""
     # dynamic import due to circular import
@@ -333,12 +336,68 @@ async def run_stream(
     generator = None
     try:
         generator = entry.func(*resolved_values)
-        async for event in generator:
-            if await request.is_disconnected():
-                break
-            # Validate event type matches the StreamVariable mode
-            _validate_event_mode(event, entry.key_accessor)
-            yield f'data: {event.model_dump_json()}\n\n'
+
+        # --- Disconnect-aware iteration ---
+        #
+        # A StreamVariable generator may open its own long-lived HTTP connections
+        # internally (e.g. connecting to an upstream SSE endpoint). The naive loop:
+        #
+        #     async for event in generator:
+        #         if await request.is_disconnected(): break
+        #
+        # only checks for disconnection *after* the generator yields. If the generator
+        # is suspended in an `await` on an inner HTTP read, `is_disconnected()` never
+        # runs and the inner connection stays open indefinitely -- one leaked connection
+        # per stream restart.
+        #
+        # To fix this we race each `generator.__anext__()` call against a
+        # `disconnect_event.wait()` using `asyncio.wait(return_when=FIRST_COMPLETED)`.
+        # If the client disconnects while the generator is blocked, the disconnect
+        # event completes first, and we cancel the pending `__anext__()` task. The
+        # resulting `CancelledError` propagates into whatever `await` the generator is
+        # suspended in, triggering cleanup via standard Python `finally` blocks -- which
+        # is what closes the inner HTTP connection.
+        #
+        # We use an `asyncio.Event` rather than polling `request.is_disconnected()`
+        # because the latter reads from the ASGI receive channel. Polling it from a
+        # background task would steal messages from the channel, interfering with
+        # Starlette's own request/response handling. The event is set by the caller
+        # (the stream endpoint in routing.py) when it detects the client has
+        # disconnected.
+        #
+        # Performance: the only overhead is a single `disconnect_event.wait()` future
+        # reused across iterations and the `asyncio.wait` call -- both standard
+        # event-loop machinery with negligible cost compared to the HTTP I/O the
+        # generator performs (hundreds of ms to seconds per event).
+        disconnect_task = asyncio.ensure_future(disconnect_event.wait())
+        try:
+            while True:
+                next_task: asyncio.Task[StreamEvent] = asyncio.ensure_future(generator.__anext__())
+                done, _ = await asyncio.wait(
+                    {next_task, disconnect_task},
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                if disconnect_task in done:
+                    next_task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await next_task
+                    break
+
+                try:
+                    event = next_task.result()
+                except StopAsyncIteration:
+                    break
+
+                _validate_event_mode(event, entry.key_accessor)
+                yield f'data: {event.model_dump_json()}\n\n'
+        except StopAsyncIteration:
+            pass
+        finally:
+            disconnect_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await disconnect_task
+
     except ReconnectException:
         yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
     except StreamVariableModeError as e:
