@@ -643,3 +643,67 @@ async def test_dynamic_worker_spawn():
             task_3 = pool.submit('test_uid3', 'add', (2, 4), {'delay': 1})
             await wait_assert(lambda: task_3.worker_id is not None, timeout=2)
             assert await task_3 == 6
+
+
+async def test_min_workers_floor_on_startup():
+    """
+    Test that min_workers warm floor brings up the pool to min_workers on startup
+    even with zero running tasks.
+    """
+    async with create_task_group() as tg:
+        async with TaskPool(task_group=tg, max_workers=4, worker_parameters=WORKER_PARAMS, min_workers=3) as pool:
+            # desired_workers should respect the floor with no running tasks
+            assert pool.desired_workers == 3
+            await wait_assert(lambda: assert_workers_started(pool, 3), timeout=5)
+
+
+async def test_no_reaping_below_min_workers():
+    """
+    Test that idle excess workers reap back down to min_workers (not 1) after the timeout.
+    """
+    async with create_task_group() as tg:
+        async with TaskPool(
+            task_group=tg, max_workers=4, worker_parameters=WORKER_PARAMS, worker_timeout=2, min_workers=2
+        ) as pool:
+            # Floor of 2 on startup
+            await wait_assert(lambda: assert_workers_started(pool, 2), timeout=5)
+            assert pool.desired_workers == 2
+
+            # Fire off tasks to scale up
+            task_1 = pool.submit('test_uid', 'add', (1, 2), {'delay': 2})
+            await wait_assert(lambda: task_1.worker_id is not None, timeout=2)
+            task_2 = pool.submit('test_uid2', 'add', (2, 3), {'delay': 2})
+            await wait_assert(lambda: task_2.worker_id is not None, timeout=2)
+
+            # Scaled up above the floor
+            await wait_assert(lambda: len(pool.workers) == 3, timeout=2)
+
+            # Tasks complete
+            assert await task_1 == 3
+            assert await task_2 == 5
+
+            # Excess workers reaped, but never below the floor of 2
+            await wait_assert(lambda: len(pool.workers) == 2, timeout=4)
+            await sleep_for(3)
+            assert len(pool.workers) == 2
+
+
+async def test_worker_timeout_override_prevents_reaping():
+    """
+    Test that a high worker_timeout prevents idle excess workers from being reaped.
+    """
+    async with create_task_group() as tg:
+        async with TaskPool(task_group=tg, max_workers=4, worker_parameters=WORKER_PARAMS, worker_timeout=3600) as pool:
+            # Starts at 1 with default min_workers=0
+            await wait_assert(lambda: len(pool.workers) == 1, timeout=5)
+
+            # Fire off a task to scale up
+            task_1 = pool.submit('test_uid', 'add', (1, 2), {'delay': 1})
+            await wait_assert(lambda: task_1.worker_id is not None, timeout=2)
+            await wait_assert(lambda: len(pool.workers) == 2, timeout=2)
+
+            assert await task_1 == 3
+
+            # Idle excess worker should NOT be reaped due to high timeout
+            await sleep_for(3)
+            assert len(pool.workers) == 2

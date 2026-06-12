@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added `DARA_POOL_MIN_WORKERS` env var to keep a minimum number of warm task pool workers alive at all times, avoiding repeated cold worker spawns for apps with expensive task-module imports.
+- Added `DARA_POOL_WORKER_TIMEOUT` env var (float seconds) to configure how long idle excess task pool workers are kept alive before being reaped.
+
 ## 1.28.4
 
 - Fixed StreamVariable inner HTTP connections not being cancelled when the client disconnects, preventing connection leaks when generators are blocked on upstream requests
