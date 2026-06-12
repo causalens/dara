@@ -35,6 +35,15 @@ from tests.python.utils import (
 pytestmark = pytest.mark.anyio
 
 
+def _exception_contains(exc: BaseException, text: str) -> bool:
+    """Check if an exception (or any sub-exception in an ExceptionGroup) contains the given text."""
+    if text in str(exc):
+        return True
+    if isinstance(exc, ExceptionGroup):
+        return any(_exception_contains(sub, text) for sub in exc.exceptions)
+    return False
+
+
 class MockComponent(ComponentInstance):
     text: str | Variable | DerivedVariable
 
@@ -1414,10 +1423,10 @@ async def test_non_task_immediate_reuse():
             await tg.start(run_coro_until_result, response_1_coro, 'response_1')
             tg.start_soon(run_coro_until_result, response_2_coro, 'response_2')
 
-        assert isinstance(results['response_1'], Exception)
-        assert 'test exception' in str(results['response_1'])
-        assert isinstance(results['response_2'], Exception)
-        assert 'test exception' in str(results['response_2'])
+        assert isinstance(results['response_1'], BaseException)
+        assert _exception_contains(results['response_1'], 'test exception')
+        assert isinstance(results['response_2'], BaseException)
+        assert _exception_contains(results['response_2'], 'test exception')
 
 
 async def test_force_key_prevents_double_execution():
