@@ -578,6 +578,27 @@ If you have long-running tasks, it helps to let the end-user know the progress t
 
 Alternatively, you can use the `run_task` action to run a task imperatively upon a user action. Check out [run_task](./actions#run_task) to learn more.
 
+#### Configuring the task worker pool
+
+Tasks run in a pool of worker processes that Dara manages for you. The pool is elastic: it scales workers up as tasks are submitted and reaps idle workers back down when the app is quiet. You can tune this behavior with the following environment variables:
+
+| Environment variable | Default | Description |
+| --- | --- | --- |
+| `DARA_POOL_MAX_WORKERS` | number of CPUs - 1 (minimum 1) | Maximum number of worker processes the pool can scale up to under load. |
+| `DARA_POOL_MIN_WORKERS` | `0` | Minimum number of "warm" workers to keep alive at all times, regardless of idle time. The pool starts these on startup and never reaps below this floor. |
+| `DARA_POOL_WORKER_TIMEOUT` | `5` | Number of seconds an idle excess worker (above `DARA_POOL_MIN_WORKERS`) is kept alive before it is reaped. |
+
+Each worker imports your `task_module` when it spawns. If that module is expensive to import (for example, it loads a large dataset at import time), then frequently spawning fresh workers means repeatedly paying that import cost, which can make interactive task submissions feel sluggish.
+
+To keep workers warm and avoid these repeated cold starts, set a minimum number of workers and a long idle timeout:
+
+```bash
+# Keep 2 workers alive at all times, and don't reap idle excess workers for an hour
+export DARA_POOL_MIN_WORKERS=2
+export DARA_POOL_WORKER_TIMEOUT=3600
+```
+
+The defaults preserve the original elastic behavior (collapse to a single worker when idle, reap excess workers after 5 seconds).
 
 </details>
 
