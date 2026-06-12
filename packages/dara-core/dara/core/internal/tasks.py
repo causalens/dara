@@ -655,12 +655,7 @@ class TaskManager:
                             if isinstance(task, Task) and task.on_progress:
                                 await run_user_handler(task.on_progress, args=(message,))
                         elif isinstance(message, TaskResult):
-                            # Handle dual coordination patterns:
-                            # 1. Direct-coordinated tasks: resolve via active_tasks registry
-                            if message.task_id in self.tasks:
-                                self.tasks[message.task_id].resolve(message.result)
-
-                            # 2. Cache-coordinated tasks: resolve via cache store (CacheStore.set handles PendingTask resolution)
+                            # 1. Cache-coordinated tasks: resolve via cache store (CacheStore.set handles PendingTask resolution)
                             if (
                                 message.cache_key is not None
                                 and message.reg_entry is not None
@@ -683,6 +678,12 @@ class TaskManager:
                                 ],
                                 variable_task_id=False,
                             )
+
+                            # Resolve the pending task AFTER sending the COMPLETE notification
+                            # so that any code awaiting the result sees the notification in the buffer
+                            # 2. Direct-coordinated tasks: resolve via active_tasks registry
+                            if message.task_id in self.tasks:
+                                self.tasks[message.task_id].resolve(message.result)
 
                             # Remove the task from the registered tasks - it finished running
                             self.tasks.pop(message.task_id, None)
