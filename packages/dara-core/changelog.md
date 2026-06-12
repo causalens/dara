@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed a race condition where the COMPLETE notification was sent after resolving the pending task, causing consumers awaiting the result to miss the completion message
+- Fixed `ExceptionGroup` handling in DerivedVariable error reuse test assertions for Python 3.10 compatibility
+
 ## 1.28.3
 
 - Fixed StreamVariable SSE connections accumulating when dependency values changed, causing stale data fetching and degraded performance
