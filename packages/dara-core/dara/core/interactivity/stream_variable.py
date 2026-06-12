@@ -315,6 +315,12 @@ def _validate_event_mode(event: StreamEvent, key_accessor: str | None) -> None:
         )
 
 
+async def _wait_for_disconnect(request: Request, interval: float = 0.5):
+    """Poll request.is_disconnected() until the client disconnects."""
+    while not await request.is_disconnected():
+        await asyncio.sleep(interval)
+
+
 async def run_stream(
     entry: StreamVariableRegistryEntry, request: Request, values: list[Any], store: CacheStore, task_mgr: TaskManager
 ):
@@ -333,12 +339,60 @@ async def run_stream(
     generator = None
     try:
         generator = entry.func(*resolved_values)
-        async for event in generator:
-            if await request.is_disconnected():
-                break
-            # Validate event type matches the StreamVariable mode
-            _validate_event_mode(event, entry.key_accessor)
-            yield f'data: {event.model_dump_json()}\n\n'
+
+        # --- Disconnect-aware iteration ---
+        #
+        # A StreamVariable generator may open its own long-lived HTTP connections
+        # internally (e.g. connecting to an upstream SSE endpoint). The naive loop:
+        #
+        #     async for event in generator:
+        #         if await request.is_disconnected(): break
+        #
+        # only checks for disconnection *after* the generator yields. If the generator
+        # is suspended in an `await` on an inner HTTP read, `is_disconnected()` never
+        # runs and the inner connection stays open indefinitely -- one leaked connection
+        # per stream restart.
+        #
+        # To fix this we race each `generator.__anext__()` call against a disconnect
+        # watcher using `asyncio.wait(return_when=FIRST_COMPLETED)`. If the client
+        # disconnects while the generator is blocked, the disconnect watcher completes
+        # first, and we cancel the pending `__anext__()` task. The resulting
+        # `CancelledError` propagates into whatever `await` the generator is suspended
+        # in, triggering cleanup via standard Python `finally` blocks -- which is what
+        # closes the inner HTTP connection.
+        #
+        # Performance: the only overhead is the disconnect watcher -- a single
+        # long-lived task that calls `is_disconnected()` (a boolean flag check on the
+        # Starlette request object) every ~500ms. This costs microseconds per poll.
+        disconnect_task: asyncio.Task[None] = asyncio.ensure_future(_wait_for_disconnect(request))
+        try:
+            while True:
+                next_task: asyncio.Task[StreamEvent] = asyncio.ensure_future(generator.__anext__())
+                done, _ = await asyncio.wait(
+                    {next_task, disconnect_task},
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                if disconnect_task in done:
+                    next_task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await next_task
+                    break
+
+                try:
+                    event = next_task.result()
+                except StopAsyncIteration:
+                    break
+
+                _validate_event_mode(event, entry.key_accessor)
+                yield f'data: {event.model_dump_json()}\n\n'
+        except StopAsyncIteration:
+            pass
+        finally:
+            disconnect_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await disconnect_task
+
     except ReconnectException:
         yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
     except StreamVariableModeError as e:
