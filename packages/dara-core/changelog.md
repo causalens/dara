@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.28.4
 
 - Fixed StreamVariable inner HTTP connections not being cancelled when the client disconnects, preventing connection leaks when generators are blocked on upstream requests
 
