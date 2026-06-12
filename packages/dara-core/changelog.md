@@ -6,6 +6,7 @@ title: Changelog
 
 - Added `DARA_POOL_MIN_WORKERS` env var to keep a minimum number of warm task pool workers alive at all times, avoiding repeated cold worker spawns for apps with expensive task-module imports.
 - Added `DARA_POOL_WORKER_TIMEOUT` env var (float seconds) to configure how long idle excess task pool workers are kept alive before being reaped.
+- Fixed a case where the `Link` component would resuspend despite `suspend_render=False`.
 
 ## 1.28.4
 

@@ -8,6 +8,7 @@ import { DisplayCtx } from '@/shared/context';
 import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
 import { useVariable } from '@/shared/interactivity';
 import useComponentStyles from '@/shared/utils/use-component-styles';
+import { getVariableHookSignature } from '@/shared/utils/variable-hook-signature';
 import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable } from '@/types';
 
 type MaybeVariable<T> = T | Variable<T>;
@@ -30,6 +31,14 @@ type ResolvedLinkProps = Omit<LinkProps, 'to'> & {
     to: string | Partial<RouterPath>;
     children: Array<ComponentInstance>;
 };
+
+function getResolvedToHookKey(to: string | Partial<RouterPath>): string {
+    if (typeof to === 'string' || !to.pathname || !to.params || Object.keys(to.params).length === 0) {
+        return 'no-param-hooks';
+    }
+
+    return JSON.stringify(Object.entries(to.params).map(([key, value]) => [key, getVariableHookSignature(value)]));
+}
 
 const NavLinkWrapper = React.forwardRef(
     (
@@ -176,9 +185,10 @@ function LinkResolveImpl(props: ResolvedLinkProps): React.ReactNode {
 function Link(props: LinkProps): React.ReactNode {
     // unwrap variable -> value
     const [to] = useVariable(props.to);
+    const linkKey = getResolvedToHookKey(to);
 
-    // key required to ensure we remount since we call hooks in a loop on props.to
-    return <LinkResolveImpl {...props} to={to} key={JSON.stringify(to)} />;
+    // key required to remount when resolved params would change useResolvedTo's hook order
+    return <LinkResolveImpl {...props} to={to} key={linkKey} />;
 }
 
 export default Link;
