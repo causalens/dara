@@ -39,7 +39,7 @@ def _exception_contains(exc: BaseException, text: str) -> bool:
     """Check if an exception (or any sub-exception in an ExceptionGroup) contains the given text."""
     if text in str(exc):
         return True
-    if isinstance(exc, ExceptionGroup):
+    if hasattr(exc, 'exceptions'):
         return any(_exception_contains(sub, text) for sub in exc.exceptions)
     return False
 
