@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed a case where the `Link` component would resuspend despite `suspend_render=False`.
+
 ## 1.28.4
 
 - Fixed StreamVariable inner HTTP connections not being cancelled when the client disconnects, preventing connection leaks when generators are blocked on upstream requests
