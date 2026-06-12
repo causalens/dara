@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.28.3
 
 - Fixed StreamVariable SSE connections accumulating when dependency values changed, causing stale data fetching and degraded performance
 
