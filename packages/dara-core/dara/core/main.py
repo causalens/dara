@@ -177,10 +177,14 @@ def _start_application(config: Configuration):
                 # Default to number of CPUs - 1 (with minimum of 1)
                 cpu_count = get_cpu_count()
                 max_workers = int(os.environ.get('DARA_POOL_MAX_WORKERS', max(1, cpu_count - 1)))
+                worker_timeout = float(os.environ.get('DARA_POOL_WORKER_TIMEOUT', '5'))
+                min_workers = int(os.environ.get('DARA_POOL_MIN_WORKERS', '0'))
                 dev_logger.info(
                     'Initializing task pool...',
                     {
                         'max_workers': max_workers,
+                        'min_workers': min_workers,
+                        'worker_timeout': worker_timeout,
                         'task_module': config.task_module,
                     },
                 )
@@ -188,6 +192,8 @@ def _start_application(config: Configuration):
                     task_group=task_group,
                     worker_parameters={'task_module': config.task_module},
                     max_workers=max_workers,
+                    worker_timeout=worker_timeout,
+                    min_workers=min_workers,
                 )
                 await task_pool.start(60)  # timeout after 60s
                 utils_registry.set('TaskPool', task_pool)

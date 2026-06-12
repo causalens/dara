@@ -57,6 +57,9 @@ class TaskPool:
     task_group: TaskGroup
     status: PoolStatus
     max_workers: int
+    min_workers: int
+    """Minimum number of warm workers to keep alive at all times, regardless of idle time"""
+
     worker_timeout: float
     """Number of seconds worker is allowed to be idle before it is killed, if there are too many workers alive"""
 
@@ -65,12 +68,18 @@ class TaskPool:
     tasks: dict[str, TaskDefinition] = {}
 
     def __init__(
-        self, task_group: TaskGroup, worker_parameters: WorkerParameters, max_workers: int, worker_timeout: float = 5
+        self,
+        task_group: TaskGroup,
+        worker_parameters: WorkerParameters,
+        max_workers: int,
+        worker_timeout: float = 5,
+        min_workers: int = 0,
     ):
         self.task_group = task_group
         self.status = PoolStatus.CREATED
         self.loop_stopped = anyio.Event()
         self.max_workers = max_workers
+        self.min_workers = min_workers
         self.worker_parameters = worker_parameters
         self.worker_timeout = worker_timeout
 
@@ -90,7 +99,7 @@ class TaskPool:
         """
         Get the desired number of workers based on the current workload
         """
-        return min(len(self.running_tasks) + 1, self.max_workers)
+        return min(max(len(self.running_tasks) + 1, self.min_workers), self.max_workers)
 
     async def start(self, timeout: float = 5):
         """
