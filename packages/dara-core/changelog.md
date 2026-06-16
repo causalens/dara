@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added implicit batching for `@action` handlers: all `ctx.update()`, `ctx.trigger()`, and `ctx.reset_variables()` calls within a single action execution are now collected and applied as one atomic React render on the client, instead of N separate re-renders for N updates.
+- Added `ctx.flush()` escape hatch to `ActionCtx` for actions that need progressive UI feedback (e.g. showing a loading state before slow work). Calling `flush()` delivers all buffered updates immediately and starts a new batch.
+
 ## 1.28.5
 
 - Added `DARA_POOL_MIN_WORKERS` env var to keep a minimum number of warm task pool workers alive at all times, avoiding repeated cold worker spawns for apps with expensive task-module imports.

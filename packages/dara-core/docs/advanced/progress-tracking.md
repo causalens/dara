@@ -149,8 +149,11 @@ status = Variable('Not started')
 @action
 async def run_my_task(ctx: ActionCtx):
     # whenever a status update is sent from the task, update the status message
+    # flush() delivers each progress update to the UI immediately rather than
+    # waiting until the action finishes (updates are batched by default)
     async def on_progress(update: TaskProgressUpdate):
         await ctx.update(status, f'Progress: {update.progress}% - {update.message}')
+        await ctx.flush()
 
     # Run the task with 5 as kwarg and update the status message with the result or error
     try:

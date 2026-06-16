@@ -31,6 +31,8 @@ from dara.core.interactivity.actions import (
     BOUND_PREFIX,
     ActionCtx,
     ActionImpl,
+    BatchEnd,
+    BatchStart,
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
@@ -93,16 +95,28 @@ async def _stream_action(
     - The handler itself
     - A stream consumer which sends the results to the frontend
 
+    All updates from the action handler are implicitly batched: a BatchStart marker is sent
+    before the handler runs, and a BatchEnd marker is sent after it completes. The client
+    buffers state-mutating actions (UpdateVariable, ResetVariables, TriggerVariable) received
+    between these markers and applies them atomically in a single React render cycle.
+
+    The handler can call ``ctx.flush()`` to end the current batch early and start a new one,
+    for progressive UI feedback (e.g. showing a loading state before slow work).
+
     :param handler: the action handler to execute
     :param ctx: the action context to use
     :param values: the resolved values to pass to the handler
     """
     try:
+        # Open an implicit batch before the handler runs
+        await ctx._on_action(BatchStart())
         async with anyio.create_task_group() as tg:
             # Execute the handler and a stream consumer in parallel
             tg.start_soon(partial(_execute_action, _on_error=_on_error), handler, ctx, values)
             tg.start_soon(ctx._handle_results)
     finally:
+        # Close the implicit batch, then send the sentinel to signal completion
+        await ctx._on_action(BatchEnd())
         # None is treated as a sentinel value to stop waiting for new actions to come in on the client
         await ctx._on_action(None)
 
@@ -131,9 +145,11 @@ async def execute_action_sync(
 
     results = []
 
-    # Construct a context which handles action messages by accumulating them in an array
+    # Construct a context which handles action messages by accumulating them in an array.
+    # Batch framing markers are filtered out since on_load results are sent to the client
+    # all at once (batching is handled at the WS streaming level, not here).
     async def handle_action(act_impl: ActionImpl | None):
-        if act_impl is not None:
+        if act_impl is not None and not isinstance(act_impl, (BatchStart, BatchEnd)):
             results.append(act_impl)
 
     ctx = ActionCtx(inp, handle_action)

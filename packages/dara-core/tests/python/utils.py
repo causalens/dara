@@ -518,9 +518,13 @@ async def get_ws_messages(ws: WebSocketSession, timeout: float = 3, count: int |
     return messages
 
 
+_BATCH_MARKER_NAMES = frozenset({'BatchStart', 'BatchEnd'})
+
+
 async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: float = 3) -> list[dict]:
     """
     Wait for action results until timeout is passed.
+    Batch framing markers (BatchStart/BatchEnd) are filtered out by default.
     """
     actions = []
 
@@ -532,6 +536,9 @@ async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: f
                 # Sentinel to end listening
                 if (action := msg['message']['action']) is None:
                     break
+                # Skip batch framing markers
+                elif action.get('name') in _BATCH_MARKER_NAMES:
+                    continue
                 else:
                     actions.append(action)
 
@@ -539,6 +546,29 @@ async def get_action_results(ws: WebSocketSession, execution_id: str, timeout: f
             break
 
     return actions
+
+
+async def get_raw_action_messages(ws: WebSocketSession, execution_id: str, timeout: float = 3) -> list[dict | None]:
+    """
+    Wait for action results until timeout is passed.
+    Returns all action messages including batch markers and the None sentinel.
+    """
+    messages = []
+
+    while True:
+        with anyio.move_on_after(timeout) as scope:
+            msg = await ws.receive_json()
+            if 'message' in msg and 'action' in msg['message'] and msg['message']['uid'] == execution_id:
+                action = msg['message']['action']
+                messages.append(action)
+                # Sentinel to end listening
+                if action is None:
+                    break
+
+        if scope.cancel_called:
+            break
+
+    return messages
 
 
 def create_app(configuration: ConfigurationBuilder, use_tasks=False):

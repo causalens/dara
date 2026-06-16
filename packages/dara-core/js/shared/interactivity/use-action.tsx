@@ -2,7 +2,7 @@ import groupBy from 'lodash/groupBy';
 import { nanoid } from 'nanoid';
 import { useContext, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { type CallbackInterface, useRecoilCallback } from 'recoil';
+import { type CallbackInterface, type RecoilState, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 
@@ -28,6 +28,111 @@ import { useEventBus } from '../event-bus/event-bus';
 import { normalizeRequest } from '../utils/normalization';
 import { cleanKwargs, getOrRegisterPlainVariable, resolveVariable } from './internal';
 import { useVariable } from './use-variable';
+
+// Names of batch framing markers sent by the server
+const BATCH_START = 'BatchStart';
+const BATCH_END = 'BatchEnd';
+
+// Action names whose handlers mutate Recoil state (ctx.set / ctx.reset) and should
+// be buffered during a batch so they can be applied atomically in a single render cycle.
+const STATE_MUTATING_ACTIONS = new Set(['UpdateVariable', 'ResetVariables', 'TriggerVariable']);
+
+/**
+ * A recorded `set` or `reset` call captured during a batch.
+ * Replayed inside `transact_UNSTABLE` when the batch ends.
+ */
+type RecordedRecoilOp =
+    | { type: 'set'; atom: RecoilState<unknown>; value: unknown }
+    | { type: 'reset'; atom: RecoilState<unknown> };
+
+/**
+ * Mutable batch state shared across an action execution.
+ * When `active` is true, state-mutating action handlers write to `ops`
+ * and side-effect handlers (Notify, NavigateTo, etc.) are forwarded to
+ * `deferredSideEffects` to be run after the batch is applied.
+ */
+interface BatchState {
+    /** Whether we are currently inside a batch (between BatchStart and BatchEnd). */
+    active: boolean;
+    /** Recorded Recoil set/reset operations to replay atomically. */
+    ops: RecordedRecoilOp[];
+    /** Side-effect callbacks (from event bus publishes etc.) deferred until after the batch is applied. */
+    deferredCallbacks: Array<() => void>;
+}
+
+/**
+ * Recording `set` implementation for batching.
+ * Uses `function` declaration to avoid TSX generic-arrow-function ambiguity.
+ */
+function recordingSet(realCtx: ActionContext, batch: BatchState): ActionContext['set'] {
+    return function batchSet<T>(atom: RecoilState<T>, valOrUpdater: T | ((prev: T) => T)): void {
+        if (typeof valOrUpdater === 'function') {
+            // Updater form: evaluate against the latest batched value or snapshot
+            const updater = valOrUpdater as (prev: T) => T;
+            // Check if we already have a pending set for this atom
+            const existingIdx = batch.ops.findLastIndex(
+                (op) => op.type === 'set' && op.atom === (atom as RecoilState<unknown>)
+            );
+            if (existingIdx >= 0) {
+                const existing = batch.ops[existingIdx] as { type: 'set'; atom: RecoilState<unknown>; value: unknown };
+                existing.value = updater(existing.value as T);
+            } else {
+                // Read current value from snapshot for the updater
+                const currentValue = realCtx.snapshot.getLoadable(atom).getValue();
+                batch.ops.push({ type: 'set', atom: atom as RecoilState<unknown>, value: updater(currentValue) });
+            }
+        } else {
+            batch.ops.push({ type: 'set', atom: atom as RecoilState<unknown>, value: valOrUpdater });
+        }
+    };
+}
+
+/**
+ * Create an `ActionContext` that records `set` / `reset` calls into `batch.ops`
+ * instead of applying them immediately. All other fields are forwarded from `realCtx`.
+ */
+function createBatchingContext(realCtx: ActionContext, batch: BatchState): ActionContext {
+    return {
+        ...realCtx,
+        set: recordingSet(realCtx, batch),
+        reset: (atom: RecoilState<unknown>) => {
+            batch.ops.push({ type: 'reset', atom });
+        },
+        // eventBus is wrapped so that publishes are deferred until after the batch
+        eventBus: {
+            ...realCtx.eventBus,
+            publish: (...args: Parameters<typeof realCtx.eventBus.publish>) => {
+                batch.deferredCallbacks.push(() => realCtx.eventBus.publish(...args));
+            },
+        },
+    };
+}
+
+/**
+ * Apply all recorded operations atomically via `transact_UNSTABLE`, then run deferred callbacks.
+ */
+function applyBatch(realCtx: ActionContext, batch: BatchState): void {
+    if (batch.ops.length > 0) {
+        realCtx.transact_UNSTABLE(({ set, reset }) => {
+            for (const op of batch.ops) {
+                if (op.type === 'set') {
+                    set(op.atom, op.value);
+                } else {
+                    reset(op.atom);
+                }
+            }
+        });
+    }
+
+    // Run deferred side-effect callbacks (event bus publishes, etc.)
+    for (const cb of batch.deferredCallbacks) {
+        cb();
+    }
+
+    // Clear the batch
+    batch.ops = [];
+    batch.deferredCallbacks = [];
+}
 
 /**
  * Invoke a server-side action.
@@ -209,6 +314,9 @@ async function executeAction(
 
         let sub: Subscription;
 
+        // Batch state: when active, state-mutating actions are buffered and applied atomically on BatchEnd
+        const batch: BatchState = { active: false, ops: [], deferredCallbacks: [] };
+
         const checkForCompletion = (): void => {
             if (!isSettled && streamCompleted && activeTasks === 0) {
                 isSettled = true;
@@ -230,8 +338,7 @@ async function executeAction(
                 // eslint-disable-next-line @typescript-eslint/require-await
                 concatMap(async (actionImpl) => {
                     if (actionImpl) {
-                        const handler = resolveActionImpl(actionImpl, actionCtx);
-                        return [handler, actionImpl] as const;
+                        return actionImpl;
                     }
 
                     return null;
@@ -244,15 +351,40 @@ async function executeAction(
                     checkForCompletion();
                 },
                 error: onError, // Reject the promise if there's an error in the stream
-                next: async ([handler, actionImpl]) => {
+                next: async (actionImpl) => {
                     try {
+                        // Handle batch framing markers
+                        if (actionImpl.name === BATCH_START) {
+                            batch.active = true;
+                            return;
+                        }
+
+                        if (actionImpl.name === BATCH_END) {
+                            applyBatch(actionCtx, batch);
+                            batch.active = false;
+                            return;
+                        }
+
                         activeTasks += 1;
 
-                        const result = handler(actionCtx, actionImpl);
+                        // Decide whether to buffer or execute immediately
+                        const isStateMutating = STATE_MUTATING_ACTIONS.has(actionImpl.name);
+                        const handler = resolveActionImpl(actionImpl, actionCtx);
 
-                        // If it's a promise, await it to ensure sequential execution
-                        if (result instanceof Promise) {
-                            await result;
+                        if (batch.active && isStateMutating) {
+                            // Execute the handler with a batching context that records set/reset calls
+                            const batchCtx = createBatchingContext(actionCtx, batch);
+                            const result = handler(batchCtx, actionImpl);
+                            if (result instanceof Promise) {
+                                await result;
+                            }
+                        } else {
+                            // Non-state-mutating actions (Notify, NavigateTo, etc.) or
+                            // actions outside a batch are executed immediately
+                            const result = handler(actionCtx, actionImpl);
+                            if (result instanceof Promise) {
+                                await result;
+                            }
                         }
                     } catch (error) {
                         onError(error as Error);
