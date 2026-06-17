@@ -2,7 +2,7 @@ import groupBy from 'lodash/groupBy';
 import { nanoid } from 'nanoid';
 import { useContext, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { type CallbackInterface, type RecoilState, useRecoilCallback } from 'recoil';
+import { type CallbackInterface, type RecoilState, type Snapshot, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 
@@ -38,8 +38,8 @@ const BATCH_END = 'BatchEnd';
  *
  * Between BatchStart and BatchEnd, ActionImpl objects are buffered without
  * executing their handlers. On BatchEnd, all buffered handlers are executed
- * sequentially with a recording `ActionContext`, then all recorded Recoil
- * operations are committed atomically via `transact_UNSTABLE`.
+ * sequentially with a batching `ActionContext`, then final atom values are
+ * committed atomically via `transact_UNSTABLE`.
  *
  * This ensures **all** side effects are deferred -- not just Recoil state
  * mutations but also notifications, navigation, clipboard operations, etc.
@@ -50,39 +50,29 @@ const BATCH_END = 'BatchEnd';
  * UpdateVariable with TOGGLE reads current value via
  * `await ctx.snapshot.getLoadable(atom).toPromise()`). Instead we use a
  * two-phase approach:
+ *
  *   1. On BatchEnd, run all buffered handlers sequentially (supporting async)
- *      with a recording ActionContext that captures `set` / `reset` /
- *      `eventBus.publish` calls into arrays.
- *   2. After all handlers have run, replay all recorded Recoil operations
- *      inside a single synchronous `transact_UNSTABLE` call, then run
- *      deferred callbacks (event bus publishes, etc.).
+ *      with a batching ActionContext. Handlers' `set` / `reset` calls are
+ *      applied to a transaction snapshot (via `snapshot.map`) rather than to
+ *      the live Recoil store. Handlers read from this transaction snapshot, so
+ *      reads within the batch see writes from earlier handlers -- including
+ *      correct defaults after `reset` (since `MutableSnapshot.reset` knows
+ *      atom defaults natively). `eventBus.publish` calls are deferred.
  *
- * ── Stale snapshot reads ─────────────────────────────────────────────────────
+ *   2. After all handlers have run, read the final value of each touched atom
+ *      from the transaction snapshot and apply them atomically to the live
+ *      store via a single `transact_UNSTABLE` call. This avoids using
+ *      `gotoSnapshot` which would replace the entire store state and could
+ *      clobber concurrent modifications (e.g. server variable pushes, stream
+ *      updates). Then run deferred callbacks (event bus publishes, etc.).
  *
- * Because `set` / `reset` calls are recorded rather than applied, the `snapshot`
- * on the recording context reflects pre-batch state. A handler that writes an
- * atom and then reads it back via `ctx.snapshot.getLoadable(atom)` within the
- * same batch will see a stale value. This pattern does not occur in any built-in
- * handler and is unlikely in custom ones (Python @action code cannot read client
- * state at all), but as a safeguard the recording context wraps `snapshot` to
- * emit a dev warning when `getLoadable` or `getPromise` is called on an atom
- * that has a pending batched write.
+ * ── snapshot.map cost ────────────────────────────────────────────────────────
+ *
+ * Each `set` / `reset` call creates a new snapshot via `snapshot.map`. This
+ * could be expensive with many mutations, but in practice actions update a
+ * handful of variables, not hundreds. Recoil snapshots are structurally
+ * shared so each `map` call is a lightweight clone.
  */
-
-/**
- * A recorded Recoil operation captured during a batch.
- * Replayed inside `transact_UNSTABLE` when the batch ends.
- *
- * - `set`: direct value assignment, e.g. `ctx.set(atom, 42)`
- * - `set-update`: updater function, e.g. `ctx.set(atom, prev => prev + 1)`.
- *    The updater is stored as-is and resolved at replay time via the transaction's
- *    `get`, which correctly chains multiple updaters on the same atom.
- * - `reset`: atom reset to default value
- */
-type RecordedRecoilOp =
-    | { type: 'set'; atom: RecoilState<unknown>; value: unknown }
-    | { type: 'set-update'; atom: RecoilState<unknown>; updater: (prev: unknown) => unknown }
-    | { type: 'reset'; atom: RecoilState<unknown> };
 
 /**
  * Mutable batch state shared across an action execution.
@@ -94,70 +84,40 @@ interface BatchState {
     active: boolean;
     /** Buffered ActionImpl objects awaiting handler execution on BatchEnd. */
     bufferedActions: ActionImpl[];
-    /** Recorded Recoil set/reset operations to replay atomically (populated during handler execution on BatchEnd). */
-    ops: RecordedRecoilOp[];
-    /** Atoms that have pending writes in this batch, used to warn on stale snapshot reads. */
-    dirtyAtoms: Set<RecoilState<unknown>>;
+    /** Transaction snapshot maintained via `snapshot.map`. Handlers read from and write to this. */
+    txSnapshot: Snapshot | null;
+    /** Atoms modified during this batch. Used to read final values from txSnapshot on BatchEnd. */
+    touchedAtoms: Set<RecoilState<unknown>>;
     /** Side-effect callbacks (from event bus publishes etc.) deferred until after the batch is applied. */
     deferredCallbacks: Array<() => void>;
 }
 
 /**
- * Create an `ActionContext` that records `set` / `reset` / `eventBus.publish`
- * calls into `batch` instead of applying them immediately.
+ * Create an `ActionContext` backed by a transaction snapshot.
  *
- * The recording is intentionally simple: values and updater functions are stored
- * as-is with no attempt to resolve or chain them here. Resolution happens at
- * replay time inside `transact_UNSTABLE` (see `applyBatch`), where the
- * transaction's `get` provides correct read-after-write semantics for chained
- * updaters on the same atom.
+ * `set` and `reset` calls update the transaction snapshot (via `snapshot.map`)
+ * so that subsequent reads within the same batch see the updated values.
+ * `eventBus.publish` calls are deferred until after the batch is applied.
  */
 function createBatchingContext(realCtx: ActionContext, batch: BatchState): ActionContext {
     // `function` declaration (not arrow) to avoid TSX generic-arrow-function ambiguity with <T>
     function batchSet<T>(atom: RecoilState<T>, valOrUpdater: T | ((prev: T) => T)): void {
-        const typedAtom = atom as RecoilState<unknown>;
-        batch.dirtyAtoms.add(typedAtom);
-        if (typeof valOrUpdater === 'function') {
-            batch.ops.push({
-                type: 'set-update',
-                atom: typedAtom,
-                updater: valOrUpdater as (prev: unknown) => unknown,
-            });
-        } else {
-            batch.ops.push({ type: 'set', atom: typedAtom, value: valOrUpdater });
-        }
+        batch.touchedAtoms.add(atom as RecoilState<unknown>);
+        // eslint-disable-next-line array-callback-return -- Snapshot.map, not Array.map
+        batch.txSnapshot = batch.txSnapshot!.map((ms) => {
+            ms.set(atom, valOrUpdater);
+        });
     }
 
-    // Wrap snapshot to warn when reading an atom that has a pending batched write.
-    // The snapshot reflects pre-batch state, so the read would return a stale value.
-    const wrappedSnapshot = new Proxy(realCtx.snapshot, {
-        get(target, prop, receiver) {
-            if (prop === 'getLoadable' || prop === 'getPromise') {
-                const original = Reflect.get(target, prop, receiver) as (...args: unknown[]) => unknown;
-                return function warnOnStaleRead(recoilValue: RecoilState<unknown>, ...rest: unknown[]) {
-                    if (batch.dirtyAtoms.has(recoilValue)) {
-                        // eslint-disable-next-line no-console
-                        console.warn(
-                            `[Dara] Reading atom "${String(recoilValue.key)}" via snapshot inside a batch, ` +
-                                'but this atom has a pending batched write. The snapshot reflects pre-batch state ' +
-                                'so the value returned will be stale. Use ctx.flush() before this read if you need ' +
-                                'the updated value.'
-                        );
-                    }
-                    return original.call(target, recoilValue, ...rest);
-                };
-            }
-            return Reflect.get(target, prop, receiver);
-        },
-    });
-
-    return {
+    const ctx: ActionContext = {
         ...realCtx,
-        snapshot: wrappedSnapshot,
         set: batchSet,
         reset: (atom: RecoilState<unknown>) => {
-            batch.dirtyAtoms.add(atom);
-            batch.ops.push({ type: 'reset', atom });
+            batch.touchedAtoms.add(atom);
+            // eslint-disable-next-line array-callback-return -- Snapshot.map, not Array.map
+            batch.txSnapshot = batch.txSnapshot!.map((ms) => {
+                ms.reset(atom);
+            });
         },
         // eventBus is wrapped so that publishes are deferred until after the batch
         eventBus: {
@@ -167,22 +127,27 @@ function createBatchingContext(realCtx: ActionContext, batch: BatchState): Actio
             },
         },
     };
+
+    // snapshot must be a live getter so handlers always read the latest transaction snapshot,
+    // not the one captured at context creation time
+    Object.defineProperty(ctx, 'snapshot', { get: () => batch.txSnapshot! });
+
+    return ctx;
 }
 
 /**
- * Flush the batch: run all buffered handlers, then commit Recoil ops atomically.
+ * Flush the batch: run all buffered handlers, then commit final atom values atomically.
  *
- * Phase 1: Execute each buffered handler sequentially with a recording context.
- *   Handlers may be async (awaited one at a time). Their `set` / `reset` /
- *   `eventBus.publish` calls are captured, not applied.
+ * Phase 1: Execute each buffered handler sequentially with a batching context.
+ *   Handlers may be async (awaited one at a time). Their `set` / `reset` calls
+ *   update the transaction snapshot. Their `eventBus.publish` calls are deferred.
  *
- * Phase 2: Replay all recorded Recoil ops inside a single `transact_UNSTABLE`.
- *   Inside the transaction, `get` reads the latest value *within the transaction*,
- *   so chained updaters on the same atom resolve correctly.
+ * Phase 2: Read final values of all touched atoms from the transaction snapshot
+ *   and apply them atomically via a single `transact_UNSTABLE` call.
  *
  * Phase 3: Run deferred side-effect callbacks (event bus publishes, etc.).
  *
- * @param realCtx the real (non-recording) ActionContext
+ * @param realCtx the real (non-batching) ActionContext
  * @param batch the batch state to flush
  * @param resolver function to resolve an ActionImpl into its handler
  */
@@ -191,7 +156,7 @@ async function applyBatch(
     batch: BatchState,
     resolver: (actionImpl: ActionImpl, ctx: ActionContext) => ActionHandler<ActionImpl>
 ): Promise<void> {
-    // Phase 1: run buffered handlers with recording context
+    // Phase 1: run buffered handlers with batching context
     const batchCtx = createBatchingContext(realCtx, batch);
     for (const actionImpl of batch.bufferedActions) {
         const handler = resolver(actionImpl, realCtx);
@@ -202,18 +167,13 @@ async function applyBatch(
         }
     }
 
-    // Phase 2: commit all Recoil operations atomically
-    if (batch.ops.length > 0) {
-        realCtx.transact_UNSTABLE(({ set, reset, get }) => {
-            for (const op of batch.ops) {
-                if (op.type === 'set') {
-                    set(op.atom, op.value);
-                } else if (op.type === 'set-update') {
-                    const current = get(op.atom);
-                    set(op.atom, op.updater(current));
-                } else {
-                    reset(op.atom);
-                }
+    // Phase 2: read final values from transaction snapshot, apply atomically
+    if (batch.touchedAtoms.size > 0) {
+        const txSnap = batch.txSnapshot!;
+        realCtx.transact_UNSTABLE(({ set }) => {
+            for (const atom of batch.touchedAtoms) {
+                const finalValue = txSnap.getLoadable(atom).getValue();
+                set(atom, finalValue);
             }
         });
     }
@@ -225,8 +185,8 @@ async function applyBatch(
 
     // Clear the batch
     batch.bufferedActions = [];
-    batch.ops = [];
-    batch.dirtyAtoms.clear();
+    batch.txSnapshot = null;
+    batch.touchedAtoms.clear();
     batch.deferredCallbacks = [];
 }
 
@@ -414,8 +374,8 @@ async function executeAction(
         const batch: BatchState = {
             active: false,
             bufferedActions: [],
-            ops: [],
-            dirtyAtoms: new Set(),
+            txSnapshot: null,
+            touchedAtoms: new Set(),
             deferredCallbacks: [],
         };
 
@@ -458,6 +418,8 @@ async function executeAction(
                         // Handle batch framing markers
                         if (actionImpl.name === BATCH_START) {
                             batch.active = true;
+                            // Capture the current snapshot as the transaction starting point
+                            batch.txSnapshot = actionCtx.snapshot;
                             return;
                         }
 
