@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.28.6
 
 - Added implicit batching for `@action` handlers: all actions within a single action execution are now collected and applied atomically, so dependent `DerivedVariable` chains only recompute once against the final consistent state.
 - Added `ctx.flush()` escape hatch to `ActionCtx` for actions that need progressive UI feedback (e.g. showing a loading state before slow work). Calling `flush()` delivers all buffered updates immediately and starts a new batch.
