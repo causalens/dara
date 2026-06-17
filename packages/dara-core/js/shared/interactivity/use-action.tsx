@@ -36,19 +36,37 @@ const BATCH_END = 'BatchEnd';
 /*
  * ── Batch buffering ──────────────────────────────────────────────────────────
  *
- * `transact_UNSTABLE` requires a **synchronous** callback, and some action
- * handlers are async so we cannot buffer all ActionImpl objects and execute
- * them inside a single `transact_UNSTABLE` call.
+ * Between BatchStart and BatchEnd, ActionImpl objects are buffered without
+ * executing their handlers. On BatchEnd, all buffered handlers are executed
+ * sequentially with a recording `ActionContext`, then all recorded Recoil
+ * operations are committed atomically via `transact_UNSTABLE`.
  *
- * Instead we:
- *   1. Run handlers normally as they arrive, but with a recording `ActionContext`
- *      that captures `set` / `reset` / `eventBus.publish` calls into arrays
- *      instead of applying them.
- *   2. On `BatchEnd`, replay all recorded Recoil operations inside a single
- *      synchronous `transact_UNSTABLE` call, then run deferred callbacks.
+ * This ensures **all** side effects are deferred -- not just Recoil state
+ * mutations but also notifications, navigation, clipboard operations, etc.
+ * Nothing executes until the batch ends (or `ctx.flush()` is called).
  *
- * This gives us atomic Recoil updates (one React render) while still supporting
- * async handlers.
+ * We cannot run handlers directly inside `transact_UNSTABLE` because it
+ * requires a synchronous callback and some handlers are async (e.g.
+ * UpdateVariable with TOGGLE reads current value via
+ * `await ctx.snapshot.getLoadable(atom).toPromise()`). Instead we use a
+ * two-phase approach:
+ *   1. On BatchEnd, run all buffered handlers sequentially (supporting async)
+ *      with a recording ActionContext that captures `set` / `reset` /
+ *      `eventBus.publish` calls into arrays.
+ *   2. After all handlers have run, replay all recorded Recoil operations
+ *      inside a single synchronous `transact_UNSTABLE` call, then run
+ *      deferred callbacks (event bus publishes, etc.).
+ *
+ * ── Stale snapshot reads ─────────────────────────────────────────────────────
+ *
+ * Because `set` / `reset` calls are recorded rather than applied, the `snapshot`
+ * on the recording context reflects pre-batch state. A handler that writes an
+ * atom and then reads it back via `ctx.snapshot.getLoadable(atom)` within the
+ * same batch will see a stale value. This pattern does not occur in any built-in
+ * handler and is unlikely in custom ones (Python @action code cannot read client
+ * state at all), but as a safeguard the recording context wraps `snapshot` to
+ * emit a dev warning when `getLoadable` or `getPromise` is called on an atom
+ * that has a pending batched write.
  */
 
 /**
@@ -68,14 +86,18 @@ type RecordedRecoilOp =
 
 /**
  * Mutable batch state shared across an action execution.
- * When `active` is true, all action handlers write to `ops` via a recording
- * context, and side-effect callbacks are deferred until the batch is applied.
+ * When `active` is true, incoming ActionImpl objects are buffered and their
+ * handlers are deferred until BatchEnd.
  */
 interface BatchState {
     /** Whether we are currently inside a batch (between BatchStart and BatchEnd). */
     active: boolean;
-    /** Recorded Recoil set/reset operations to replay atomically. */
+    /** Buffered ActionImpl objects awaiting handler execution on BatchEnd. */
+    bufferedActions: ActionImpl[];
+    /** Recorded Recoil set/reset operations to replay atomically (populated during handler execution on BatchEnd). */
     ops: RecordedRecoilOp[];
+    /** Atoms that have pending writes in this batch, used to warn on stale snapshot reads. */
+    dirtyAtoms: Set<RecoilState<unknown>>;
     /** Side-effect callbacks (from event bus publishes etc.) deferred until after the batch is applied. */
     deferredCallbacks: Array<() => void>;
 }
@@ -93,21 +115,48 @@ interface BatchState {
 function createBatchingContext(realCtx: ActionContext, batch: BatchState): ActionContext {
     // `function` declaration (not arrow) to avoid TSX generic-arrow-function ambiguity with <T>
     function batchSet<T>(atom: RecoilState<T>, valOrUpdater: T | ((prev: T) => T)): void {
+        const typedAtom = atom as RecoilState<unknown>;
+        batch.dirtyAtoms.add(typedAtom);
         if (typeof valOrUpdater === 'function') {
             batch.ops.push({
                 type: 'set-update',
-                atom: atom as RecoilState<unknown>,
+                atom: typedAtom,
                 updater: valOrUpdater as (prev: unknown) => unknown,
             });
         } else {
-            batch.ops.push({ type: 'set', atom: atom as RecoilState<unknown>, value: valOrUpdater });
+            batch.ops.push({ type: 'set', atom: typedAtom, value: valOrUpdater });
         }
     }
 
+    // Wrap snapshot to warn when reading an atom that has a pending batched write.
+    // The snapshot reflects pre-batch state, so the read would return a stale value.
+    const wrappedSnapshot = new Proxy(realCtx.snapshot, {
+        get(target, prop, receiver) {
+            if (prop === 'getLoadable' || prop === 'getPromise') {
+                const original = Reflect.get(target, prop, receiver) as (...args: unknown[]) => unknown;
+                return function warnOnStaleRead(recoilValue: RecoilState<unknown>, ...rest: unknown[]) {
+                    if (batch.dirtyAtoms.has(recoilValue)) {
+                        // eslint-disable-next-line no-console
+                        console.warn(
+                            `[Dara] Reading atom "${String(recoilValue.key)}" via snapshot inside a batch, ` +
+                                'but this atom has a pending batched write. The snapshot reflects pre-batch state ' +
+                                'so the value returned will be stale. Use ctx.flush() before this read if you need ' +
+                                'the updated value.'
+                        );
+                    }
+                    return original.call(target, recoilValue, ...rest);
+                };
+            }
+            return Reflect.get(target, prop, receiver);
+        },
+    });
+
     return {
         ...realCtx,
+        snapshot: wrappedSnapshot,
         set: batchSet,
         reset: (atom: RecoilState<unknown>) => {
+            batch.dirtyAtoms.add(atom);
             batch.ops.push({ type: 'reset', atom });
         },
         // eventBus is wrapped so that publishes are deferred until after the batch
@@ -121,13 +170,39 @@ function createBatchingContext(realCtx: ActionContext, batch: BatchState): Actio
 }
 
 /**
- * Apply all recorded operations atomically via `transact_UNSTABLE`, then run deferred callbacks.
+ * Flush the batch: run all buffered handlers, then commit Recoil ops atomically.
  *
- * Inside the transaction, `get` reads the latest value *within the transaction*,
- * so chained updaters on the same atom resolve correctly: the first updater sets
- * the value, and the second updater's `get` sees the first's result.
+ * Phase 1: Execute each buffered handler sequentially with a recording context.
+ *   Handlers may be async (awaited one at a time). Their `set` / `reset` /
+ *   `eventBus.publish` calls are captured, not applied.
+ *
+ * Phase 2: Replay all recorded Recoil ops inside a single `transact_UNSTABLE`.
+ *   Inside the transaction, `get` reads the latest value *within the transaction*,
+ *   so chained updaters on the same atom resolve correctly.
+ *
+ * Phase 3: Run deferred side-effect callbacks (event bus publishes, etc.).
+ *
+ * @param realCtx the real (non-recording) ActionContext
+ * @param batch the batch state to flush
+ * @param resolver function to resolve an ActionImpl into its handler
  */
-function applyBatch(realCtx: ActionContext, batch: BatchState): void {
+async function applyBatch(
+    realCtx: ActionContext,
+    batch: BatchState,
+    resolver: (actionImpl: ActionImpl, ctx: ActionContext) => ActionHandler<ActionImpl>
+): Promise<void> {
+    // Phase 1: run buffered handlers with recording context
+    const batchCtx = createBatchingContext(realCtx, batch);
+    for (const actionImpl of batch.bufferedActions) {
+        const handler = resolver(actionImpl, realCtx);
+        const result = handler(batchCtx, actionImpl);
+        if (result instanceof Promise) {
+            // eslint-disable-next-line no-await-in-loop
+            await result;
+        }
+    }
+
+    // Phase 2: commit all Recoil operations atomically
     if (batch.ops.length > 0) {
         realCtx.transact_UNSTABLE(({ set, reset, get }) => {
             for (const op of batch.ops) {
@@ -143,13 +218,15 @@ function applyBatch(realCtx: ActionContext, batch: BatchState): void {
         });
     }
 
-    // Run deferred side-effect callbacks (event bus publishes, etc.)
+    // Phase 3: run deferred side-effect callbacks (event bus publishes, etc.)
     for (const cb of batch.deferredCallbacks) {
         cb();
     }
 
     // Clear the batch
+    batch.bufferedActions = [];
     batch.ops = [];
+    batch.dirtyAtoms.clear();
     batch.deferredCallbacks = [];
 }
 
@@ -333,8 +410,14 @@ async function executeAction(
 
         let sub: Subscription;
 
-        // Batch state: when active, state-mutating actions are buffered and applied atomically on BatchEnd
-        const batch: BatchState = { active: false, ops: [], deferredCallbacks: [] };
+        // Batch state: when active, ActionImpl objects are buffered and their handlers deferred until BatchEnd
+        const batch: BatchState = {
+            active: false,
+            bufferedActions: [],
+            ops: [],
+            dirtyAtoms: new Set(),
+            deferredCallbacks: [],
+        };
 
         const checkForCompletion = (): void => {
             if (!isSettled && streamCompleted && activeTasks === 0) {
@@ -379,18 +462,22 @@ async function executeAction(
                         }
 
                         if (actionImpl.name === BATCH_END) {
-                            applyBatch(actionCtx, batch);
+                            // Run all buffered handlers and commit Recoil ops atomically
+                            await applyBatch(actionCtx, batch, resolveActionImpl);
                             batch.active = false;
                             return;
                         }
 
-                        activeTasks += 1;
+                        if (batch.active) {
+                            // Buffer the ActionImpl; handler execution is deferred until BatchEnd
+                            batch.bufferedActions.push(actionImpl);
+                            return;
+                        }
 
+                        // Outside a batch, execute immediately (fallback for unbatched messages)
+                        activeTasks += 1;
                         const handler = resolveActionImpl(actionImpl, actionCtx);
-                        // When inside a batch, all handlers receive a recording context that
-                        // captures set/reset/eventBus calls for atomic application on BatchEnd
-                        const ctx = batch.active ? createBatchingContext(actionCtx, batch) : actionCtx;
-                        const result = handler(ctx, actionImpl);
+                        const result = handler(actionCtx, actionImpl);
                         if (result instanceof Promise) {
                             await result;
                         }
