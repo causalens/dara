@@ -32,6 +32,7 @@ from tests.python.utils import (
     _call_action,
     _get_auth_headers,
     create_app,
+    get_action_results,
     get_ws_messages,
     wait_for,
 )
@@ -415,21 +416,25 @@ async def test_action_handler_error():
         init = await websocket.receive_json()
         ws_channel = init.get('message').get('channel')
 
+        exec_uid = 'exec_err'
+
         # The error will be send as a websocket message
         await _call_action(
             client,
             action,
-            {'ws_channel': ws_channel, 'input': 'test', 'values': {'old': 'current', 'kwarg_0': 'val2'}},
+            {
+                'ws_channel': ws_channel,
+                'input': 'test',
+                'values': {'old': 'current', 'kwarg_0': 'val2'},
+                'execution_id': exec_uid,
+            },
         )
 
-        # Websocket should receive a Notify action about the error
-        msg = await websocket.receive_json()
-
-        assert 'action' in msg.get('message')
-        action = msg.get('message').get('action')
-
-        assert action.get('name') == 'Notify'
-        assert action.get('status') == 'ERROR'
+        # Websocket should receive a Notify action about the error (batch markers are filtered)
+        actions = await get_action_results(websocket, exec_uid)
+        assert len(actions) == 1
+        assert actions[0].get('name') == 'Notify'
+        assert actions[0].get('status') == 'ERROR'
 
 
 async def test_action_task_error():

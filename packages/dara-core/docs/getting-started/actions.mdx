@@ -53,6 +53,17 @@ The example above shows how to use the `@action` decorator to create an action t
 
 Similarly to `py_component`s, the `@action`-decorated function can take a mixture of regular Python variables and Dara `Variable`-based arguments in any combination. The `@action` decorator will automatically resolve the `Variable`-based arguments so your function will receive the current value of the `Variable` instead of the `Variable` instance.
 
+:::tip Automatic Batching
+
+All actions within a single `@action` execution are **automatically batched**.
+Instead of each action being applied to the client independently, the framework collects them and applies them
+as a single atomic operation when the action finishes. This means that any `DerivedVariable` chains depending on updated variables
+only recompute once against the final consistent state, rather than recomputing for each intermediate update.
+
+If you need progressive UI feedback (e.g. showing a loading state before slow work), use [`ctx.flush()`](#flush) to deliver all buffered actions immediately and start a new batch.
+
+:::
+
 The `ActionCtx` instance injected into the decorated function has the following attributes:
 
 ### `input`
@@ -473,8 +484,11 @@ status = Variable('Not started')
 @action
 async def my_task(ctx: ActionCtx):
     # whenever a status update is sent from the task, update the status message
+    # flush() delivers each progress update to the UI immediately rather than
+    # waiting until the action finishes (updates are batched by default)
     async def on_progress(update: TaskProgressUpdate):
         await ctx.update(status, f'Progress: {update.progress}% - {update.message}')
+        await ctx.flush()
 
     # Run the task with [1, 10] as arguments and update the status message with the result or error
     try:
@@ -488,6 +502,53 @@ def task_page():
 
 config.router.add_page(path='task', content=task_page)
 ```
+
+### `flush`
+
+```python
+async def flush()
+```
+
+`flush` ends the current implicit batch and starts a new one. All actions buffered since the start of the action (or the last `flush`) are delivered to the client immediately and applied as a single atomic update.
+
+This is useful when you need the user to see an intermediate state before the action finishes. Without `flush`, all updates are held until the action completes.
+
+```python
+from dara.core import action, Variable
+from dara.components import Button, Stack, Text
+from .tasks import expensive_computation
+
+loading = Variable(False)
+result = Variable(None)
+
+@action
+async def load_data(ctx: action.Ctx):
+    # Show loading state immediately
+    await ctx.update(loading, True)
+    await ctx.flush()
+
+    # Run slow work as a task (recommended for CPU-bound operations)
+    data = await ctx.run_task(expensive_computation)
+
+    # These updates are delivered together when the action finishes
+    await ctx.update(loading, False)
+    await ctx.update(result, data)
+
+def page():
+    return Stack(
+        Text(loading),
+        Text(result),
+        Button('Load', onclick=load_data()),
+    )
+```
+
+In the example above, the first `ctx.update(loading, True)` is delivered to the client immediately when `ctx.flush()` is called. The subsequent updates to `loading` and `result` are batched together and delivered as a single atomic update when the action finishes.
+
+:::note
+
+Most actions do not need `flush`. It is only necessary when you want the user to see an intermediate visual state (e.g. a loading spinner) before the action completes.
+
+:::
 
 
 ## Shortcut actions

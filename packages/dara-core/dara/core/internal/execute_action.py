@@ -31,6 +31,8 @@ from dara.core.interactivity.actions import (
     BOUND_PREFIX,
     ActionCtx,
     ActionImpl,
+    BatchEnd,
+    BatchStart,
 )
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.dependency_resolution import resolve_dependency
@@ -85,7 +87,12 @@ async def _execute_action(
 
 
 async def _stream_action(
-    handler: Callable, ctx: ActionCtx, _on_error: Literal['raise', 'notify'] = 'notify', **values: Mapping[str, Any]
+    handler: Callable,
+    ctx: ActionCtx,
+    _on_error: Literal['raise', 'notify'] = 'notify',
+    *,
+    batch: bool = True,
+    **values: Mapping[str, Any],
 ):
     """
     Run the action handler and stream the results to the frontend.
@@ -93,16 +100,34 @@ async def _stream_action(
     - The handler itself
     - A stream consumer which sends the results to the frontend
 
+    When ``batch`` is True (the default), all actions from the handler are implicitly
+    batched: a BatchStart marker is sent before the handler runs, and a BatchEnd marker
+    is sent after it completes. The client buffers all actions received between these
+    markers and applies them atomically, so dependent variable chains only recompute once
+    against the final consistent state.
+
+    The handler can call ``ctx.flush()`` to end the current batch early and start a new one,
+    for progressive UI feedback (e.g. showing a loading state before slow work).
+
+    When ``batch`` is False, no batch framing markers are emitted. This is used by
+    ``execute_action_sync`` where results are accumulated and sent in one HTTP response,
+    making client-side batching unnecessary.
+
     :param handler: the action handler to execute
     :param ctx: the action context to use
+    :param batch: whether to emit batch framing markers (default True)
     :param values: the resolved values to pass to the handler
     """
     try:
+        if batch:
+            await ctx._on_action(BatchStart())
         async with anyio.create_task_group() as tg:
             # Execute the handler and a stream consumer in parallel
             tg.start_soon(partial(_execute_action, _on_error=_on_error), handler, ctx, values)
             tg.start_soon(ctx._handle_results)
     finally:
+        if batch:
+            await ctx._on_action(BatchEnd())
         # None is treated as a sentinel value to stop waiting for new actions to come in on the client
         await ctx._on_action(None)
 
@@ -161,8 +186,9 @@ async def execute_action_sync(
     if has_tasks:
         raise ValueError('This action does not support tasks')
 
-    # Run until completion, raising on errors
-    await _stream_action(action, ctx, _on_error='raise', **resolved_kwargs)
+    # Run until completion, raising on errors.
+    # batch=False since results are accumulated and sent in one HTTP response.
+    await _stream_action(action, ctx, _on_error='raise', batch=False, **resolved_kwargs)
 
     return results
 

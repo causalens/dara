@@ -42,6 +42,7 @@ from tests.python.utils import (
     _call_action,
     create_app,
     get_action_results,
+    get_raw_action_messages,
 )
 
 pytestmark = pytest.mark.anyio
@@ -1156,3 +1157,181 @@ async def test_calling_action_with_nested_derived_variable_missing_path():
         assert len(actions) == 1
         assert actions[0]['name'] == 'UpdateVariable'
         assert actions[0]['value'] is None
+
+
+async def test_action_sends_batch_framing():
+    """
+    Test that an @action execution wraps its output in BatchStart/BatchEnd framing markers.
+    The raw message sequence should be: BatchStart, <actions...>, BatchEnd, None (sentinel).
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var1 = Variable(0)
+    var2 = Variable('')
+
+    @action
+    async def multi_update(ctx: action.Ctx):
+        await ctx.update(var1, 42)
+        await ctx.update(var2, 'hello')
+
+    action_instance = multi_update()
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_batch'
+        res = await _call_action(
+            client,
+            action_instance,
+            {
+                'input': None,
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
+
+        raw_messages = await get_raw_action_messages(websocket, exec_uid)
+
+        # Expected sequence: BatchStart, UpdateVariable, UpdateVariable, BatchEnd, None
+        assert len(raw_messages) == 5
+        assert raw_messages[0]['name'] == 'BatchStart'
+        assert raw_messages[1]['name'] == 'UpdateVariable'
+        assert raw_messages[1]['value'] == 42
+        assert raw_messages[2]['name'] == 'UpdateVariable'
+        assert raw_messages[2]['value'] == 'hello'
+        assert raw_messages[3]['name'] == 'BatchEnd'
+        assert raw_messages[4] is None
+
+
+async def test_action_batch_framing_filtered_by_default():
+    """
+    Test that get_action_results (used by most tests) filters out batch markers
+    so existing tests continue to work unchanged.
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var = Variable(0)
+
+    @action
+    async def single_update(ctx: action.Ctx):
+        await ctx.update(var, 99)
+
+    action_instance = single_update()
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_filter'
+        res = await _call_action(
+            client,
+            action_instance,
+            {
+                'input': None,
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
+
+        actions = await get_action_results(websocket, exec_uid)
+        # Batch markers should be filtered out, only the actual action remains
+        assert len(actions) == 1
+        assert actions[0]['name'] == 'UpdateVariable'
+        assert actions[0]['value'] == 99
+
+
+async def test_action_flush_splits_batches():
+    """
+    Test that ctx.flush() ends the current batch and starts a new one.
+    The raw message sequence should be: BatchStart, action, BatchEnd, BatchStart, action, BatchEnd, None.
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    var1 = Variable(0)
+    var2 = Variable('')
+
+    @action
+    async def flush_action(ctx: action.Ctx):
+        await ctx.update(var1, 1)
+        await ctx.flush()
+        await ctx.update(var2, 'after_flush')
+
+    action_instance = flush_action()
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_flush'
+        res = await _call_action(
+            client,
+            action_instance,
+            {
+                'input': None,
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
+
+        raw_messages = await get_raw_action_messages(websocket, exec_uid)
+
+        # Expected sequence: BatchStart, UpdateVariable(1), BatchEnd, BatchStart, UpdateVariable('after_flush'), BatchEnd, None
+        assert len(raw_messages) == 7
+        assert raw_messages[0]['name'] == 'BatchStart'
+        assert raw_messages[1]['name'] == 'UpdateVariable'
+        assert raw_messages[1]['value'] == 1
+        assert raw_messages[2]['name'] == 'BatchEnd'
+        assert raw_messages[3]['name'] == 'BatchStart'
+        assert raw_messages[4]['name'] == 'UpdateVariable'
+        assert raw_messages[4]['value'] == 'after_flush'
+        assert raw_messages[5]['name'] == 'BatchEnd'
+        assert raw_messages[6] is None
+
+
+async def test_action_empty_batch():
+    """
+    Test that an action that does nothing still sends proper batch framing.
+    The raw message sequence should be: BatchStart, BatchEnd, None.
+    """
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    @action
+    async def noop_action(ctx: action.Ctx):
+        pass
+
+    action_instance = noop_action()
+
+    app = _start_application(config)
+
+    async with AsyncClient(app) as client, _async_ws_connect(client) as websocket:
+        init = await websocket.receive_json()
+        exec_uid = 'exec_noop'
+        res = await _call_action(
+            client,
+            action_instance,
+            {
+                'input': None,
+                'values': {},
+                'ws_channel': init.get('message', {}).get('channel'),
+                'execution_id': exec_uid,
+            },
+        )
+        assert res.status_code == 200
+
+        raw_messages = await get_raw_action_messages(websocket, exec_uid)
+
+        assert len(raw_messages) == 3
+        assert raw_messages[0]['name'] == 'BatchStart'
+        assert raw_messages[1]['name'] == 'BatchEnd'
+        assert raw_messages[2] is None

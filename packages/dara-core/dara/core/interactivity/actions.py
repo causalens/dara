@@ -731,6 +731,24 @@ class DownloadVariable(ActionImpl):
 CopyToClipboardDef = ActionDef(name='CopyToClipboard', js_module='@darajs/core', py_module='dara.core')
 
 
+class BatchStart(ActionImpl):
+    """
+    Batch framing marker sent before an action handler runs.
+    Signals the client to start buffering state-mutating actions.
+    """
+
+    py_name = 'BatchStart'
+
+
+class BatchEnd(ActionImpl):
+    """
+    Batch framing marker sent after an action handler completes.
+    Signals the client to apply all buffered state-mutating actions atomically.
+    """
+
+    py_name = 'BatchEnd'
+
+
 class CopyToClipboard(ActionImpl):
     """
     CopyToClipboard action copies the provided value to the user's clipboard.
@@ -1331,6 +1349,46 @@ class ActionCtx:
         task_mgr.register_task(task)
         pending_task = await task_mgr.run_task(task)
         return await pending_task.value()
+
+    async def flush(self):
+        """
+        Flush buffered actions to the client immediately.
+
+        Within an ``@action`` handler, all actions are implicitly batched --
+        they are collected and applied as a single atomic unit on the client,
+        so dependent variable chains only recompute once.
+
+        Calling ``ctx.flush()`` ends the current batch (delivering all buffered actions) and
+        starts a new one. This is useful for actions that need progressive UI feedback, e.g.
+        showing a loading state before performing slow work:
+
+        ```python
+
+        from dara.core import action, Variable
+        from dara.components import Button
+        from .tasks import expensive_computation
+
+        loading = Variable(False)
+        result = Variable(None)
+
+        @action
+        async def load_data(ctx: action.Ctx):
+            # Show loading state immediately
+            await ctx.update(loading, True)
+            await ctx.flush()
+
+            # Run slow work as a task
+            data = await ctx.run_task(expensive_computation)
+
+            await ctx.update(loading, False)
+            await ctx.update(result, data)
+            # These two updates are delivered together at the end of the action
+
+        Button('Load', onclick=load_data())
+        ```
+        """
+        await self._push_action(BatchEnd())
+        await self._push_action(BatchStart())
 
     async def execute_action(self, action: ActionImpl):
         """

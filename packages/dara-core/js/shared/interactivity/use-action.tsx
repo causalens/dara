@@ -2,7 +2,7 @@ import groupBy from 'lodash/groupBy';
 import { nanoid } from 'nanoid';
 import { useContext, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { type CallbackInterface, useRecoilCallback } from 'recoil';
+import { type CallbackInterface, type RecoilState, type Snapshot, useRecoilCallback } from 'recoil';
 import { Subscription } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 
@@ -28,6 +28,167 @@ import { useEventBus } from '../event-bus/event-bus';
 import { normalizeRequest } from '../utils/normalization';
 import { cleanKwargs, getOrRegisterPlainVariable, resolveVariable } from './internal';
 import { useVariable } from './use-variable';
+
+// Names of batch framing markers sent by the server
+const BATCH_START = 'BatchStart';
+const BATCH_END = 'BatchEnd';
+
+/*
+ * ── Batch buffering ──────────────────────────────────────────────────────────
+ *
+ * Between BatchStart and BatchEnd, ActionImpl objects are buffered without
+ * executing their handlers. On BatchEnd, all buffered handlers are executed
+ * sequentially with a batching `ActionContext`, then final atom values are
+ * committed atomically via `transact_UNSTABLE`.
+ *
+ * This ensures **all** side effects are deferred -- not just Recoil state
+ * mutations but also notifications, navigation, clipboard operations, etc.
+ * Nothing executes until the batch ends (or `ctx.flush()` is called).
+ *
+ * We cannot run handlers directly inside `transact_UNSTABLE` because it
+ * requires a synchronous callback and some handlers are async (e.g.
+ * UpdateVariable with TOGGLE reads current value via
+ * `await ctx.snapshot.getLoadable(atom).toPromise()`). Instead we use a
+ * two-phase approach:
+ *
+ *   1. On BatchEnd, run all buffered handlers sequentially (supporting async)
+ *      with a batching ActionContext. Handlers' `set` / `reset` calls are
+ *      applied to a transaction snapshot (via `snapshot.map`) rather than to
+ *      the live Recoil store. Handlers read from this transaction snapshot, so
+ *      reads within the batch see writes from earlier handlers -- including
+ *      correct defaults after `reset` (since `MutableSnapshot.reset` knows
+ *      atom defaults natively). `eventBus.publish` calls are deferred.
+ *
+ *   2. After all handlers have run, read the final value of each touched atom
+ *      from the transaction snapshot and apply them atomically to the live
+ *      store via a single `transact_UNSTABLE` call. This avoids using
+ *      `gotoSnapshot` which would replace the entire store state and could
+ *      clobber concurrent modifications (e.g. server variable pushes, stream
+ *      updates). Then run deferred callbacks (event bus publishes, etc.).
+ *
+ * ── snapshot.map cost ────────────────────────────────────────────────────────
+ *
+ * Each `set` / `reset` call creates a new snapshot via `snapshot.map`. This
+ * could be expensive with many mutations, but in practice actions update a
+ * handful of variables, not hundreds. Recoil snapshots are structurally
+ * shared so each `map` call is a lightweight clone.
+ */
+
+/**
+ * Mutable batch state shared across an action execution.
+ * When `active` is true, incoming ActionImpl objects are buffered and their
+ * handlers are deferred until BatchEnd.
+ */
+interface BatchState {
+    /** Whether we are currently inside a batch (between BatchStart and BatchEnd). */
+    active: boolean;
+    /** Buffered ActionImpl objects awaiting handler execution on BatchEnd. */
+    bufferedActions: ActionImpl[];
+    /** Transaction snapshot maintained via `snapshot.map`. Handlers read from and write to this. */
+    txSnapshot: Snapshot | null;
+    /** Atoms modified during this batch. Used to read final values from txSnapshot on BatchEnd. */
+    touchedAtoms: Set<RecoilState<unknown>>;
+    /** Side-effect callbacks (from event bus publishes etc.) deferred until after the batch is applied. */
+    deferredCallbacks: Array<() => void>;
+}
+
+/**
+ * Create an `ActionContext` backed by a transaction snapshot.
+ *
+ * `set` and `reset` calls update the transaction snapshot (via `snapshot.map`)
+ * so that subsequent reads within the same batch see the updated values.
+ * `eventBus.publish` calls are deferred until after the batch is applied.
+ */
+function createBatchingContext(realCtx: ActionContext, batch: BatchState): ActionContext {
+    // `function` declaration (not arrow) to avoid TSX generic-arrow-function ambiguity with <T>
+    function batchSet<T>(atom: RecoilState<T>, valOrUpdater: T | ((prev: T) => T)): void {
+        batch.touchedAtoms.add(atom as RecoilState<unknown>);
+        // eslint-disable-next-line array-callback-return -- Snapshot.map, not Array.map
+        batch.txSnapshot = batch.txSnapshot!.map((ms) => {
+            ms.set(atom, valOrUpdater);
+        });
+    }
+
+    const ctx: ActionContext = {
+        ...realCtx,
+        set: batchSet,
+        reset: (atom: RecoilState<unknown>) => {
+            batch.touchedAtoms.add(atom);
+            // eslint-disable-next-line array-callback-return -- Snapshot.map, not Array.map
+            batch.txSnapshot = batch.txSnapshot!.map((ms) => {
+                ms.reset(atom);
+            });
+        },
+        // eventBus is wrapped so that publishes are deferred until after the batch
+        eventBus: {
+            ...realCtx.eventBus,
+            publish: (...args: Parameters<typeof realCtx.eventBus.publish>) => {
+                batch.deferredCallbacks.push(() => realCtx.eventBus.publish(...args));
+            },
+        },
+    };
+
+    // snapshot must be a live getter so handlers always read the latest transaction snapshot,
+    // not the one captured at context creation time
+    Object.defineProperty(ctx, 'snapshot', { get: () => batch.txSnapshot! });
+
+    return ctx;
+}
+
+/**
+ * Flush the batch: run all buffered handlers, then commit final atom values atomically.
+ *
+ * Phase 1: Execute each buffered handler sequentially with a batching context.
+ *   Handlers may be async (awaited one at a time). Their `set` / `reset` calls
+ *   update the transaction snapshot. Their `eventBus.publish` calls are deferred.
+ *
+ * Phase 2: Read final values of all touched atoms from the transaction snapshot
+ *   and apply them atomically via a single `transact_UNSTABLE` call.
+ *
+ * Phase 3: Run deferred side-effect callbacks (event bus publishes, etc.).
+ *
+ * @param realCtx the real (non-batching) ActionContext
+ * @param batch the batch state to flush
+ * @param resolver function to resolve an ActionImpl into its handler
+ */
+async function applyBatch(
+    realCtx: ActionContext,
+    batch: BatchState,
+    resolver: (actionImpl: ActionImpl, ctx: ActionContext) => ActionHandler<ActionImpl>
+): Promise<void> {
+    // Phase 1: run buffered handlers with batching context
+    const batchCtx = createBatchingContext(realCtx, batch);
+    for (const actionImpl of batch.bufferedActions) {
+        const handler = resolver(actionImpl, realCtx);
+        const result = handler(batchCtx, actionImpl);
+        if (result instanceof Promise) {
+            // eslint-disable-next-line no-await-in-loop
+            await result;
+        }
+    }
+
+    // Phase 2: read final values from transaction snapshot, apply atomically
+    if (batch.touchedAtoms.size > 0) {
+        const txSnap = batch.txSnapshot!;
+        realCtx.transact_UNSTABLE(({ set }) => {
+            for (const atom of batch.touchedAtoms) {
+                const finalValue = txSnap.getLoadable(atom).getValue();
+                set(atom, finalValue);
+            }
+        });
+    }
+
+    // Phase 3: run deferred side-effect callbacks (event bus publishes, etc.)
+    for (const cb of batch.deferredCallbacks) {
+        cb();
+    }
+
+    // Clear the batch
+    batch.bufferedActions = [];
+    batch.txSnapshot = null;
+    batch.touchedAtoms.clear();
+    batch.deferredCallbacks = [];
+}
 
 /**
  * Invoke a server-side action.
@@ -209,6 +370,15 @@ async function executeAction(
 
         let sub: Subscription;
 
+        // Batch state: when active, ActionImpl objects are buffered and their handlers deferred until BatchEnd
+        const batch: BatchState = {
+            active: false,
+            bufferedActions: [],
+            txSnapshot: null,
+            touchedAtoms: new Set(),
+            deferredCallbacks: [],
+        };
+
         const checkForCompletion = (): void => {
             if (!isSettled && streamCompleted && activeTasks === 0) {
                 isSettled = true;
@@ -230,8 +400,7 @@ async function executeAction(
                 // eslint-disable-next-line @typescript-eslint/require-await
                 concatMap(async (actionImpl) => {
                     if (actionImpl) {
-                        const handler = resolveActionImpl(actionImpl, actionCtx);
-                        return [handler, actionImpl] as const;
+                        return actionImpl;
                     }
 
                     return null;
@@ -244,13 +413,33 @@ async function executeAction(
                     checkForCompletion();
                 },
                 error: onError, // Reject the promise if there's an error in the stream
-                next: async ([handler, actionImpl]) => {
+                next: async (actionImpl) => {
                     try {
+                        // Handle batch framing markers
+                        if (actionImpl.name === BATCH_START) {
+                            batch.active = true;
+                            // Capture the current snapshot as the transaction starting point
+                            batch.txSnapshot = actionCtx.snapshot;
+                            return;
+                        }
+
+                        if (actionImpl.name === BATCH_END) {
+                            // Run all buffered handlers and commit Recoil ops atomically
+                            await applyBatch(actionCtx, batch, resolveActionImpl);
+                            batch.active = false;
+                            return;
+                        }
+
+                        if (batch.active) {
+                            // Buffer the ActionImpl; handler execution is deferred until BatchEnd
+                            batch.bufferedActions.push(actionImpl);
+                            return;
+                        }
+
+                        // Outside a batch, execute immediately (fallback for unbatched messages)
                         activeTasks += 1;
-
+                        const handler = resolveActionImpl(actionImpl, actionCtx);
                         const result = handler(actionCtx, actionImpl);
-
-                        // If it's a promise, await it to ensure sequential execution
                         if (result instanceof Promise) {
                             await result;
                         }

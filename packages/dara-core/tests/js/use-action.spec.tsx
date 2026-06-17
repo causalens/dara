@@ -1293,4 +1293,442 @@ describe('useAction', () => {
             customAction
         );
     });
+
+    describe('batch framing', () => {
+        /**
+         * Helper to send a sequence of batch-framed action messages via the mock WS client.
+         * Wraps the actions in BatchStart/BatchEnd markers and terminates with null sentinel.
+         */
+        function sendBatchedActions(
+            wsClient: MockWebSocketClient,
+            executionId: string,
+            actions: Array<ActionImpl | null>
+        ): void {
+            for (const action of actions) {
+                wsClient.receiveMessage({
+                    message: { action, uid: executionId },
+                    type: 'message',
+                });
+            }
+        }
+
+        /** Shorthand for batch marker ActionImpl objects */
+        const BATCH_START_IMPL: ActionImpl = { __typename: 'ActionImpl', name: 'BatchStart' };
+        const BATCH_END_IMPL: ActionImpl = { __typename: 'ActionImpl', name: 'BatchEnd' };
+
+        it('should batch multiple UpdateVariable actions atomically', async () => {
+            const wsClient = new MockWebSocketClient('uid');
+
+            const varA: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: 'a-default',
+                nested: [],
+                uid: 'var-a',
+            };
+
+            const varB: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: 'b-default',
+                nested: [],
+                uid: 'var-b',
+            };
+
+            const annotated: AnnotatedAction = {
+                definition_uid: 'definition',
+                dynamic_kwargs: {},
+                loading: LOADING_VARIABLE,
+                uid: 'uid',
+            };
+
+            // Track render count to verify atomicity
+            let renderCount = 0;
+
+            const MockComponent = (props: {
+                action: Action;
+                varA: Variable<any>;
+                varB: Variable<any>;
+            }): JSX.Element => {
+                const [a] = useVariable(props.varA);
+                const [b] = useVariable(props.varB);
+                const trigger = useAction(props.action);
+                renderCount++;
+
+                return (
+                    <>
+                        <span data-testid="a">{a}</span>
+                        <span data-testid="b">{b}</span>
+                        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                        <button data-testid="trigger" onClick={() => trigger('input')} type="button">
+                            trigger
+                        </button>
+                    </>
+                );
+            };
+
+            let serverReceivedMessage: Record<string, any> | null = null;
+            server.use(
+                http.post('/api/core/action/:uid', async (info) => {
+                    serverReceivedMessage = (await info.request.json()) as any;
+                    return HttpResponse.json({ execution_id: 'exec-1' });
+                })
+            );
+
+            const { getByTestId } = render(
+                <Wrapper client={wsClient}>
+                    <MockComponent action={annotated} varA={varA} varB={varB} />
+                </Wrapper>
+            );
+
+            await waitFor(() => expect(getByTestId('a').innerHTML).toBe('a-default'));
+
+            // Reset render count after initial render
+            renderCount = 0;
+
+            // Trigger the action
+            act(() => {
+                fireEvent.click(getByTestId('trigger'));
+            });
+
+            await waitFor(() => expect(serverReceivedMessage).not.toBeNull());
+
+            const executionId = serverReceivedMessage!.execution_id;
+
+            // Send batched updates: BatchStart, two UpdateVariables, BatchEnd, null
+            act(() => {
+                sendBatchedActions(wsClient, executionId, [
+                    BATCH_START_IMPL,
+                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varA, value: 'a-updated' } as any,
+                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varB, value: 'b-updated' } as any,
+                    BATCH_END_IMPL,
+                    null as any,
+                ]);
+            });
+
+            // Both variables should be updated
+            await waitFor(() => {
+                expect(getByTestId('a').innerHTML).toBe('a-updated');
+                expect(getByTestId('b').innerHTML).toBe('b-updated');
+            });
+
+            // Should have rendered only once for the batch (not twice for each update)
+            // renderCount === 1 means both updates were applied atomically
+            expect(renderCount).toBe(1);
+        });
+
+        it('should handle flush splitting batches into separate atomic groups', async () => {
+            const wsClient = new MockWebSocketClient('uid');
+
+            const varA: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: 'a-default',
+                nested: [],
+                uid: 'var-a-flush',
+            };
+
+            const varB: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: 'b-default',
+                nested: [],
+                uid: 'var-b-flush',
+            };
+
+            const annotated: AnnotatedAction = {
+                definition_uid: 'definition',
+                dynamic_kwargs: {},
+                loading: LOADING_VARIABLE,
+                uid: 'uid-flush',
+            };
+
+            const MockComponent = (props: {
+                action: Action;
+                varA: Variable<any>;
+                varB: Variable<any>;
+            }): JSX.Element => {
+                const [a] = useVariable(props.varA);
+                const [b] = useVariable(props.varB);
+                const trigger = useAction(props.action);
+
+                return (
+                    <>
+                        <span data-testid="a">{a}</span>
+                        <span data-testid="b">{b}</span>
+                        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                        <button data-testid="trigger" onClick={() => trigger('input')} type="button">
+                            trigger
+                        </button>
+                    </>
+                );
+            };
+
+            let serverReceivedMessage: Record<string, any> | null = null;
+            server.use(
+                http.post('/api/core/action/:uid', async (info) => {
+                    serverReceivedMessage = (await info.request.json()) as any;
+                    return HttpResponse.json({ execution_id: 'exec-flush' });
+                })
+            );
+
+            const { getByTestId } = render(
+                <Wrapper client={wsClient}>
+                    <MockComponent action={annotated} varA={varA} varB={varB} />
+                </Wrapper>
+            );
+
+            await waitFor(() => expect(getByTestId('a').innerHTML).toBe('a-default'));
+
+            act(() => {
+                fireEvent.click(getByTestId('trigger'));
+            });
+
+            await waitFor(() => expect(serverReceivedMessage).not.toBeNull());
+
+            const executionId = serverReceivedMessage!.execution_id;
+
+            // First batch: update varA
+            act(() => {
+                sendBatchedActions(wsClient, executionId, [
+                    BATCH_START_IMPL,
+                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varA, value: 'a-first' } as any,
+                    BATCH_END_IMPL,
+                ]);
+            });
+
+            // varA should be updated after the first batch
+            await waitFor(() => expect(getByTestId('a').innerHTML).toBe('a-first'));
+            // varB should still be at default
+            expect(getByTestId('b').innerHTML).toBe('b-default');
+
+            // Second batch: update varB
+            act(() => {
+                sendBatchedActions(wsClient, executionId, [
+                    BATCH_START_IMPL,
+                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varB, value: 'b-second' } as any,
+                    BATCH_END_IMPL,
+                    null as any,
+                ]);
+            });
+
+            await waitFor(() => {
+                expect(getByTestId('a').innerHTML).toBe('a-first');
+                expect(getByTestId('b').innerHTML).toBe('b-second');
+            });
+        });
+
+        it('should handle empty batch without errors', async () => {
+            const wsClient = new MockWebSocketClient('uid');
+
+            const variable: SingleVariable<string> = {
+                __typename: 'Variable',
+                default: 'unchanged',
+                nested: [],
+                uid: 'var-empty',
+            };
+
+            const annotated: AnnotatedAction = {
+                definition_uid: 'definition',
+                dynamic_kwargs: {},
+                loading: LOADING_VARIABLE,
+                uid: 'uid-empty',
+            };
+
+            const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
+                const [a] = useVariable(props.var);
+                const trigger = useAction(props.action);
+
+                return (
+                    <>
+                        <span data-testid="result">{a}</span>
+                        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                        <button data-testid="trigger" onClick={() => trigger('input')} type="button">
+                            trigger
+                        </button>
+                    </>
+                );
+            };
+
+            let serverReceivedMessage: Record<string, any> | null = null;
+            server.use(
+                http.post('/api/core/action/:uid', async (info) => {
+                    serverReceivedMessage = (await info.request.json()) as any;
+                    return HttpResponse.json({ execution_id: 'exec-empty' });
+                })
+            );
+
+            const { getByTestId } = render(
+                <Wrapper client={wsClient}>
+                    <MockComponent action={annotated} var={variable} />
+                </Wrapper>
+            );
+
+            await waitFor(() => expect(getByTestId('result').innerHTML).toBe('unchanged'));
+
+            act(() => {
+                fireEvent.click(getByTestId('trigger'));
+            });
+
+            await waitFor(() => expect(serverReceivedMessage).not.toBeNull());
+
+            const executionId = serverReceivedMessage!.execution_id;
+
+            // Send empty batch: BatchStart, BatchEnd, null
+            act(() => {
+                sendBatchedActions(wsClient, executionId, [BATCH_START_IMPL, BATCH_END_IMPL, null as any]);
+            });
+
+            // Value should remain unchanged
+            await waitFor(() => expect(getByTestId('result').innerHTML).toBe('unchanged'));
+        });
+
+        it('should defer non-Recoil actions until BatchEnd', async () => {
+            const wsClient = new MockWebSocketClient('uid');
+
+            const annotated: AnnotatedAction = {
+                definition_uid: 'definition',
+                dynamic_kwargs: {},
+                loading: LOADING_VARIABLE,
+                uid: 'uid-defer',
+            };
+
+            const onUnhandledAction = vi.fn();
+
+            const { result } = renderHook(
+                () =>
+                    useAction(annotated, {
+                        onUnhandledAction,
+                    }),
+                { wrapper: ({ children }) => <Wrapper client={wsClient}>{children}</Wrapper> }
+            );
+
+            let serverReceivedMessage: Record<string, any> | null = null;
+            server.use(
+                http.post('/api/core/action/:uid', async (info) => {
+                    serverReceivedMessage = (await info.request.json()) as any;
+                    return HttpResponse.json({ execution_id: 'exec-defer' });
+                })
+            );
+
+            // Execute action
+            act(() => {
+                result.current('input');
+            });
+
+            await waitFor(() => expect(serverReceivedMessage).not.toBeNull());
+
+            const executionId = serverReceivedMessage!.execution_id;
+
+            // Send a custom action inside a batch
+            const customAction: ActionImpl = {
+                __typename: 'ActionImpl',
+                name: 'CustomAction',
+            };
+
+            act(() => {
+                // Send BatchStart and custom action but NOT BatchEnd yet
+                wsClient.receiveMessage({
+                    message: { action: BATCH_START_IMPL, uid: executionId },
+                    type: 'message',
+                });
+                wsClient.receiveMessage({
+                    message: { action: customAction, uid: executionId },
+                    type: 'message',
+                });
+            });
+
+            // The custom action handler should NOT have been called yet (buffered)
+            expect(onUnhandledAction).not.toHaveBeenCalled();
+
+            // Now send BatchEnd and null
+            act(() => {
+                wsClient.receiveMessage({
+                    message: { action: BATCH_END_IMPL, uid: executionId },
+                    type: 'message',
+                });
+                wsClient.receiveMessage({
+                    message: { action: null, uid: executionId },
+                    type: 'message',
+                });
+            });
+
+            // Now the handler should have been called
+            await waitFor(() => expect(onUnhandledAction).toHaveBeenCalledTimes(1));
+            expect(onUnhandledAction).toHaveBeenCalledWith(
+                expect.objectContaining({ input: 'input' }),
+                customAction
+            );
+        });
+
+        it('should support read-after-write within a batch via transaction snapshot', async () => {
+            const wsClient = new MockWebSocketClient('uid');
+
+            const variable: SingleVariable<boolean> = {
+                __typename: 'Variable',
+                default: true,
+                nested: [],
+                uid: 'var-toggle',
+            };
+
+            const annotated: AnnotatedAction = {
+                definition_uid: 'definition',
+                dynamic_kwargs: {},
+                loading: LOADING_VARIABLE,
+                uid: 'uid-toggle',
+            };
+
+            const MockComponent = (props: { action: Action; var: Variable<any> }): JSX.Element => {
+                const [a] = useVariable(props.var);
+                const trigger = useAction(props.action);
+
+                return (
+                    <>
+                        <span data-testid="result">{String(a)}</span>
+                        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+                        <button data-testid="trigger" onClick={() => trigger('input')} type="button">
+                            trigger
+                        </button>
+                    </>
+                );
+            };
+
+            let serverReceivedMessage: Record<string, any> | null = null;
+            server.use(
+                http.post('/api/core/action/:uid', async (info) => {
+                    serverReceivedMessage = (await info.request.json()) as any;
+                    return HttpResponse.json({ execution_id: 'exec-toggle' });
+                })
+            );
+
+            const { getByTestId } = render(
+                <Wrapper client={wsClient}>
+                    <MockComponent action={annotated} var={variable} />
+                </Wrapper>
+            );
+
+            // Default is true
+            await waitFor(() => expect(getByTestId('result').innerHTML).toBe('true'));
+
+            act(() => {
+                fireEvent.click(getByTestId('trigger'));
+            });
+
+            await waitFor(() => expect(serverReceivedMessage).not.toBeNull());
+
+            const executionId = serverReceivedMessage!.execution_id;
+
+            // Batch: set to false, then toggle (should read false from transaction snapshot and produce true)
+            act(() => {
+                sendBatchedActions(wsClient, executionId, [
+                    BATCH_START_IMPL,
+                    // First: set variable to false
+                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable, value: false } as any,
+                    // Second: toggle (reads current value via snapshot.getLoadable, should see false, toggle to true)
+                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable, value: TOGGLE } as any,
+                    BATCH_END_IMPL,
+                    null as any,
+                ]);
+            });
+
+            // set(false) then toggle should produce true
+            await waitFor(() => expect(getByTestId('result').innerHTML).toBe('true'));
+        });
+    });
 });
