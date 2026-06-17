@@ -33,10 +33,6 @@ import { useVariable } from './use-variable';
 const BATCH_START = 'BatchStart';
 const BATCH_END = 'BatchEnd';
 
-// Action names whose handlers mutate Recoil state (ctx.set / ctx.reset) and should
-// be buffered during a batch so they can be applied atomically in a single render cycle.
-const STATE_MUTATING_ACTIONS = new Set(['UpdateVariable', 'ResetVariables', 'TriggerVariable']);
-
 /**
  * A recorded `set` or `reset` call captured during a batch.
  * Replayed inside `transact_UNSTABLE` when the batch ends.
@@ -47,9 +43,8 @@ type RecordedRecoilOp =
 
 /**
  * Mutable batch state shared across an action execution.
- * When `active` is true, state-mutating action handlers write to `ops`
- * and side-effect handlers (Notify, NavigateTo, etc.) are forwarded to
- * `deferredSideEffects` to be run after the batch is applied.
+ * When `active` is true, all action handlers write to `ops` via a recording
+ * context, and side-effect callbacks are deferred until the batch is applied.
  */
 interface BatchState {
     /** Whether we are currently inside a batch (between BatchStart and BatchEnd). */
@@ -367,24 +362,13 @@ async function executeAction(
 
                         activeTasks += 1;
 
-                        // Decide whether to buffer or execute immediately
-                        const isStateMutating = STATE_MUTATING_ACTIONS.has(actionImpl.name);
                         const handler = resolveActionImpl(actionImpl, actionCtx);
-
-                        if (batch.active && isStateMutating) {
-                            // Execute the handler with a batching context that records set/reset calls
-                            const batchCtx = createBatchingContext(actionCtx, batch);
-                            const result = handler(batchCtx, actionImpl);
-                            if (result instanceof Promise) {
-                                await result;
-                            }
-                        } else {
-                            // Non-state-mutating actions (Notify, NavigateTo, etc.) or
-                            // actions outside a batch are executed immediately
-                            const result = handler(actionCtx, actionImpl);
-                            if (result instanceof Promise) {
-                                await result;
-                            }
+                        // When inside a batch, all handlers receive a recording context that
+                        // captures set/reset/eventBus calls for atomic application on BatchEnd
+                        const ctx = batch.active ? createBatchingContext(actionCtx, batch) : actionCtx;
+                        const result = handler(ctx, actionImpl);
+                        if (result instanceof Promise) {
+                            await result;
                         }
                     } catch (error) {
                         onError(error as Error);

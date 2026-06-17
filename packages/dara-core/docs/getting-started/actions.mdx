@@ -55,14 +55,12 @@ Similarly to `py_component`s, the `@action`-decorated function can take a mixtur
 
 :::tip Automatic Batching
 
-All `ctx.update()`, `ctx.trigger()`, and `ctx.reset_variables()` calls within a single `@action` execution are **automatically batched**.
-Instead of each call triggering a separate React re-render on the client, the framework collects all state-mutating updates and applies them
+All actions within a single `@action` execution are **automatically batched**.
+Instead of each action being applied to the client independently, the framework collects them and applies them
 as a single atomic operation when the action finishes. This means an action that updates N variables only causes **one** React render cycle
 instead of N, which can significantly improve performance for actions that update multiple variables.
 
-Non-state-mutating methods like `ctx.notify()`, `ctx.navigate()`, `ctx.download_file()` etc. are not affected by batching and are applied immediately.
-
-If you need progressive UI feedback (e.g. showing a loading state before slow work), use [`ctx.flush()`](#flush) to send all buffered updates immediately and start a new batch.
+If you need progressive UI feedback (e.g. showing a loading state before slow work), use [`ctx.flush()`](#flush) to deliver all buffered actions immediately and start a new batch.
 
 :::
 
@@ -511,7 +509,7 @@ config.router.add_page(path='task', content=task_page)
 async def flush()
 ```
 
-`flush` ends the current implicit batch and starts a new one. All state-mutating updates buffered since the start of the action (or the last `flush`) are delivered to the client immediately and applied as a single atomic React render.
+`flush` ends the current implicit batch and starts a new one. All actions buffered since the start of the action (or the last `flush`) are delivered to the client immediately and applied as a single atomic React render.
 
 This is useful when you need the user to see an intermediate state before the action finishes. Without `flush`, all updates are held until the action completes.
 
