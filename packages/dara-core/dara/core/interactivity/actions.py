@@ -1352,13 +1352,13 @@ class ActionCtx:
 
     async def flush(self):
         """
-        Flush buffered updates to the client immediately.
+        Flush buffered actions to the client immediately.
 
-        Within an ``@action`` handler, all ``ctx.update()`` calls are implicitly batched --
-        they are collected and applied as a single atomic unit on the client, producing one
-        React re-render instead of N.
+        Within an ``@action`` handler, all actions are implicitly batched --
+        they are collected and applied as a single atomic unit on the client,
+        so dependent variable chains only recompute once.
 
-        Calling ``ctx.flush()`` ends the current batch (delivering all buffered updates) and
+        Calling ``ctx.flush()`` ends the current batch (delivering all buffered actions) and
         starts a new one. This is useful for actions that need progressive UI feedback, e.g.
         showing a loading state before performing slow work:
 
@@ -1366,6 +1366,7 @@ class ActionCtx:
 
         from dara.core import action, Variable
         from dara.components import Button
+        from .tasks import expensive_computation
 
         loading = Variable(False)
         result = Variable(None)
@@ -1376,10 +1377,11 @@ class ActionCtx:
             await ctx.update(loading, True)
             await ctx.flush()
 
-            # ... slow work ...
+            # Run slow work as a task
+            data = await ctx.run_task(expensive_computation)
 
             await ctx.update(loading, False)
-            await ctx.update(result, 'done')
+            await ctx.update(result, data)
             # These two updates are delivered together at the end of the action
 
         Button('Load', onclick=load_data())

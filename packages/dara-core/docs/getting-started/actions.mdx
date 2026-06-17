@@ -57,8 +57,8 @@ Similarly to `py_component`s, the `@action`-decorated function can take a mixtur
 
 All actions within a single `@action` execution are **automatically batched**.
 Instead of each action being applied to the client independently, the framework collects them and applies them
-as a single atomic operation when the action finishes. This means an action that updates N variables only causes **one** React render cycle
-instead of N, which can significantly improve performance for actions that update multiple variables.
+as a single atomic operation when the action finishes. This means that any `DerivedVariable` chains depending on updated variables
+only recompute once against the final consistent state, rather than recomputing for each intermediate update.
 
 If you need progressive UI feedback (e.g. showing a loading state before slow work), use [`ctx.flush()`](#flush) to deliver all buffered actions immediately and start a new batch.
 
@@ -509,13 +509,14 @@ config.router.add_page(path='task', content=task_page)
 async def flush()
 ```
 
-`flush` ends the current implicit batch and starts a new one. All actions buffered since the start of the action (or the last `flush`) are delivered to the client immediately and applied as a single atomic React render.
+`flush` ends the current implicit batch and starts a new one. All actions buffered since the start of the action (or the last `flush`) are delivered to the client immediately and applied as a single atomic update.
 
 This is useful when you need the user to see an intermediate state before the action finishes. Without `flush`, all updates are held until the action completes.
 
 ```python
 from dara.core import action, Variable
 from dara.components import Button, Stack, Text
+from .tasks import expensive_computation
 
 loading = Variable(False)
 result = Variable(None)
@@ -526,8 +527,8 @@ async def load_data(ctx: action.Ctx):
     await ctx.update(loading, True)
     await ctx.flush()
 
-    # ... slow work (e.g. API call, computation) ...
-    data = expensive_computation()
+    # Run slow work as a task (recommended for CPU-bound operations)
+    data = await ctx.run_task(expensive_computation)
 
     # These updates are delivered together when the action finishes
     await ctx.update(loading, False)

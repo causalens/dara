@@ -103,7 +103,8 @@ async def _stream_action(
     When ``batch`` is True (the default), all actions from the handler are implicitly
     batched: a BatchStart marker is sent before the handler runs, and a BatchEnd marker
     is sent after it completes. The client buffers all actions received between these
-    markers and applies them atomically in a single React render cycle.
+    markers and applies them atomically, so dependent variable chains only recompute once
+    against the final consistent state.
 
     The handler can call ``ctx.flush()`` to end the current batch early and start a new one,
     for progressive UI feedback (e.g. showing a loading state before slow work).

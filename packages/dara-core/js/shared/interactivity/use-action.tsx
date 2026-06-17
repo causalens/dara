@@ -33,12 +33,37 @@ import { useVariable } from './use-variable';
 const BATCH_START = 'BatchStart';
 const BATCH_END = 'BatchEnd';
 
+/*
+ * ── Batch buffering ──────────────────────────────────────────────────────────
+ *
+ * `transact_UNSTABLE` requires a **synchronous** callback, and some action
+ * handlers are async so we cannot buffer all ActionImpl objects and execute
+ * them inside a single `transact_UNSTABLE` call.
+ *
+ * Instead we:
+ *   1. Run handlers normally as they arrive, but with a recording `ActionContext`
+ *      that captures `set` / `reset` / `eventBus.publish` calls into arrays
+ *      instead of applying them.
+ *   2. On `BatchEnd`, replay all recorded Recoil operations inside a single
+ *      synchronous `transact_UNSTABLE` call, then run deferred callbacks.
+ *
+ * This gives us atomic Recoil updates (one React render) while still supporting
+ * async handlers.
+ */
+
 /**
- * A recorded `set` or `reset` call captured during a batch.
+ * A recorded Recoil operation captured during a batch.
  * Replayed inside `transact_UNSTABLE` when the batch ends.
+ *
+ * - `set`: direct value assignment, e.g. `ctx.set(atom, 42)`
+ * - `set-update`: updater function, e.g. `ctx.set(atom, prev => prev + 1)`.
+ *    The updater is stored as-is and resolved at replay time via the transaction's
+ *    `get`, which correctly chains multiple updaters on the same atom.
+ * - `reset`: atom reset to default value
  */
 type RecordedRecoilOp =
     | { type: 'set'; atom: RecoilState<unknown>; value: unknown }
+    | { type: 'set-update'; atom: RecoilState<unknown>; updater: (prev: unknown) => unknown }
     | { type: 'reset'; atom: RecoilState<unknown> };
 
 /**
@@ -56,40 +81,32 @@ interface BatchState {
 }
 
 /**
- * Recording `set` implementation for batching.
- * Uses `function` declaration to avoid TSX generic-arrow-function ambiguity.
+ * Create an `ActionContext` that records `set` / `reset` / `eventBus.publish`
+ * calls into `batch` instead of applying them immediately.
+ *
+ * The recording is intentionally simple: values and updater functions are stored
+ * as-is with no attempt to resolve or chain them here. Resolution happens at
+ * replay time inside `transact_UNSTABLE` (see `applyBatch`), where the
+ * transaction's `get` provides correct read-after-write semantics for chained
+ * updaters on the same atom.
  */
-function recordingSet(realCtx: ActionContext, batch: BatchState): ActionContext['set'] {
-    return function batchSet<T>(atom: RecoilState<T>, valOrUpdater: T | ((prev: T) => T)): void {
+function createBatchingContext(realCtx: ActionContext, batch: BatchState): ActionContext {
+    // `function` declaration (not arrow) to avoid TSX generic-arrow-function ambiguity with <T>
+    function batchSet<T>(atom: RecoilState<T>, valOrUpdater: T | ((prev: T) => T)): void {
         if (typeof valOrUpdater === 'function') {
-            // Updater form: evaluate against the latest batched value or snapshot
-            const updater = valOrUpdater as (prev: T) => T;
-            // Check if we already have a pending set for this atom
-            const existingIdx = batch.ops.findLastIndex(
-                (op) => op.type === 'set' && op.atom === (atom as RecoilState<unknown>)
-            );
-            if (existingIdx >= 0) {
-                const existing = batch.ops[existingIdx] as { type: 'set'; atom: RecoilState<unknown>; value: unknown };
-                existing.value = updater(existing.value as T);
-            } else {
-                // Read current value from snapshot for the updater
-                const currentValue = realCtx.snapshot.getLoadable(atom).getValue();
-                batch.ops.push({ type: 'set', atom: atom as RecoilState<unknown>, value: updater(currentValue) });
-            }
+            batch.ops.push({
+                type: 'set-update',
+                atom: atom as RecoilState<unknown>,
+                updater: valOrUpdater as (prev: unknown) => unknown,
+            });
         } else {
             batch.ops.push({ type: 'set', atom: atom as RecoilState<unknown>, value: valOrUpdater });
         }
-    };
-}
+    }
 
-/**
- * Create an `ActionContext` that records `set` / `reset` calls into `batch.ops`
- * instead of applying them immediately. All other fields are forwarded from `realCtx`.
- */
-function createBatchingContext(realCtx: ActionContext, batch: BatchState): ActionContext {
     return {
         ...realCtx,
-        set: recordingSet(realCtx, batch),
+        set: batchSet,
         reset: (atom: RecoilState<unknown>) => {
             batch.ops.push({ type: 'reset', atom });
         },
@@ -105,13 +122,20 @@ function createBatchingContext(realCtx: ActionContext, batch: BatchState): Actio
 
 /**
  * Apply all recorded operations atomically via `transact_UNSTABLE`, then run deferred callbacks.
+ *
+ * Inside the transaction, `get` reads the latest value *within the transaction*,
+ * so chained updaters on the same atom resolve correctly: the first updater sets
+ * the value, and the second updater's `get` sees the first's result.
  */
 function applyBatch(realCtx: ActionContext, batch: BatchState): void {
     if (batch.ops.length > 0) {
-        realCtx.transact_UNSTABLE(({ set, reset }) => {
+        realCtx.transact_UNSTABLE(({ set, reset, get }) => {
             for (const op of batch.ops) {
                 if (op.type === 'set') {
                     set(op.atom, op.value);
+                } else if (op.type === 'set-update') {
+                    const current = get(op.atom);
+                    set(op.atom, op.updater(current));
                 } else {
                     reset(op.atom);
                 }

@@ -422,7 +422,12 @@ async def test_action_handler_error():
         await _call_action(
             client,
             action,
-            {'ws_channel': ws_channel, 'input': 'test', 'values': {'old': 'current', 'kwarg_0': 'val2'}, 'execution_id': exec_uid},
+            {
+                'ws_channel': ws_channel,
+                'input': 'test',
+                'values': {'old': 'current', 'kwarg_0': 'val2'},
+                'execution_id': exec_uid,
+            },
         )
 
         # Websocket should receive a Notify action about the error (batch markers are filtered)
