@@ -18,7 +18,7 @@ limitations under the License.
 import time
 
 from prometheus_client import Counter, Histogram
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -43,7 +43,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
     label to avoid unbounded cardinality from dynamic path segments.
     """
 
-    async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         start = time.monotonic()
         response = await call_next(request)
         duration = time.monotonic() - start
