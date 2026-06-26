@@ -267,6 +267,12 @@ def _start_application(config: Configuration):
     if os.environ.get('DARA_TEST_FLAG', None) is None:
         app.add_middleware(LoggingMiddleware, logger=http_logger)
 
+    # Setup Prometheus HTTP request metrics middleware
+    if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
+        from dara.core.metrics.http import PrometheusMiddleware
+
+        app.add_middleware(PrometheusMiddleware)
+
     # Add custom middlewares
     for middleware in config.middlewares:
         app.user_middleware.insert(0, middleware)

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.28.7
+
+- Extended metrics to include HTTP request stats
+
 ## 1.28.6
 
 - Added implicit batching for `@action` handlers: all actions within a single action execution are now collected and applied atomically, so dependent `DerivedVariable` chains only recompute once against the final consistent state.
