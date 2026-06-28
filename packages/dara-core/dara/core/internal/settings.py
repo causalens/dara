@@ -22,11 +22,11 @@ from secrets import token_hex
 from dotenv import dotenv_values
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from dara.core.logging import dev_logger
+from dara.core.internal.signing_key import PROCESS_JWT_SECRET, resolve_jwt_secret
 
 
 class Settings(BaseSettings):
-    jwt_secret: str = token_hex(32)
+    jwt_secret: str = PROCESS_JWT_SECRET
     project_name: str = ''
 
     dara_base_url: str = ''
@@ -63,27 +63,14 @@ def generate_env_file(filename='.env'):
 def get_settings():
     """
     Get a cached instance of the settings, loading values from the .env if present.
-    If .env is not present, prints a warning and generates one for the user.
+    If JWT_SECRET is not configured in local development, use a persistent
+    Dara-owned development secret outside the project directory.
     """
 
     # Test purposes - if DARA_TEST_FLAG is set then override env with .env.test
     if os.environ.get('DARA_TEST_FLAG', None) is not None:
         return Settings(**dotenv_values('.env.test'))  # type: ignore
 
-    env_error = False
-
-    # Generate .env file if it's missing - this is to persistn the JWT_SECRET so
-    # tokens are valid across restarts
-    if not os.path.isfile(os.path.join(os.getcwd(), '.env')):
-        dev_logger.debug('.env file not found, generating the file...')
-        try:
-            generate_env_file()
-        except Exception as e:
-            dev_logger.error('Failed to generate .env file, falling back to default settings', error=e)
-            env_error = True
-
-    settings_kwargs = {}
-    if env_error:
-        settings_kwargs['_env_file'] = None
-
-    return Settings(**settings_kwargs)
+    settings = Settings()
+    settings.jwt_secret = resolve_jwt_secret(settings.jwt_secret, env_file='.env')
+    return settings

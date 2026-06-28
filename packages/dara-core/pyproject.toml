@@ -64,6 +64,7 @@ pydantic-settings = "^2.8.1"
 h11 = ">=0.16.0"
 jsonpatch = ">=1.33"
 backoff = "^2.2.1"
+platformdirs = ">=4.0.0,<5.0.0"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
