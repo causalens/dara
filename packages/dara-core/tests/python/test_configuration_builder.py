@@ -3,7 +3,7 @@ from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from dara.core.auth import BasicAuthConfig
-from dara.core.auth.session_store import InMemoryAuthSessionBackend
+from dara.core.auth.session_store import AuthSessionBackend, InMemoryAuthSessionBackend, auto_auth_session_backend
 from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance, HttpMethod, JsComponentDef, Page
@@ -267,12 +267,12 @@ def test_add_auth_config():
     assert config.auth_config.users == {'test': 'test'}
 
 
-def test_auth_session_backend_defaults_to_in_memory():
-    """Test the auth session backend defaults to a concrete in-memory backend."""
+def test_auth_session_backend_defaults_to_auto_factory():
+    """Test the auth session backend defaults to the auto factory."""
     builder = ConfigurationBuilder()
     config = builder._to_configuration()
 
-    assert isinstance(config.auth_session_backend, InMemoryAuthSessionBackend)
+    assert config.auth_session_backend is auto_auth_session_backend
 
 
 def test_auth_session_backend_can_be_configured():
@@ -284,6 +284,19 @@ def test_auth_session_backend_can_be_configured():
     config = builder._to_configuration()
 
     assert config.auth_session_backend is backend
+
+
+def test_auth_session_backend_factory_can_be_configured():
+    """Test a custom auth session backend factory is mapped through correctly."""
+    builder = ConfigurationBuilder()
+
+    def backend_factory(config) -> AuthSessionBackend:
+        return InMemoryAuthSessionBackend()
+
+    builder.auth_session_backend = backend_factory
+    config = builder._to_configuration()
+
+    assert config.auth_session_backend is backend_factory
 
 
 def test_config_scheduler():

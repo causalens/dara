@@ -22,11 +22,12 @@ import re
 import secrets
 import tempfile
 import time
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Literal, Protocol, runtime_checkable
 
 import anyio
 from pydantic import ValidationError
@@ -35,6 +36,9 @@ from dara.core.auth.definitions import TokenData
 from dara.core.auth.utils import AUTH_COOKIE_EXPIRATION_GRACE_SECONDS, get_token_expiration
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
+
+if TYPE_CHECKING:
+    from dara.core.configuration import Configuration
 
 AUTH_SESSION_BACKEND_REGISTRY_KEY = 'AuthSessionBackend'
 AUTH_SESSION_FILE_ENV_VAR = 'DARA_AUTH_SESSION_FILE_PATH'
@@ -174,6 +178,10 @@ class AuthSessionBackend(Protocol):
     async def clear_expired(self):
         """Remove expired auth sessions."""
         ...
+
+
+AuthSessionBackendFactory = Callable[['Configuration'], AuthSessionBackend]
+AuthSessionBackendConfig = AuthSessionBackend | AuthSessionBackendFactory
 
 
 class InMemoryAuthSessionBackend:
@@ -639,6 +647,65 @@ class FileAuthSessionBackend:
             entry = self._read_entry_file(path)
             if entry is not None and entry.retention_expires_at <= now:
                 self._remove_file(path)
+
+
+def _is_local_reload(config: 'Configuration') -> bool:
+    is_reload = (
+        config.live_reload or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE' or os.environ.get('DARA_HMR_MODE') == 'TRUE'
+    )
+    is_deploy_mode = os.environ.get('DARA_DOCKER_MODE') == 'TRUE' or os.environ.get('DARA_PRODUCTION_MODE') == 'TRUE'
+
+    return is_reload and not is_deploy_mode
+
+
+def auto_auth_session_backend(config: 'Configuration') -> AuthSessionBackend:
+    """
+    Select the default auth session backend for the current runtime.
+
+    Local reload development uses file-backed sessions so browser auth handles
+    survive process restarts. Other modes use process-local in-memory sessions.
+    """
+
+    if _is_local_reload(config):
+        return FileAuthSessionBackend()
+
+    return InMemoryAuthSessionBackend()
+
+
+def resolve_auth_session_backend(
+    auth_session_backend: AuthSessionBackendConfig,
+    config: 'Configuration',
+) -> AuthSessionBackend:
+    """
+    Resolve a configured auth session backend object or factory into a concrete backend.
+
+    The factory path is called once during application startup so auth requests
+    always use a stable concrete backend for the lifetime of the process.
+    """
+
+    if isinstance(auth_session_backend, AuthSessionBackend):
+        backend = auth_session_backend
+    else:
+        backend = auth_session_backend(config)
+
+    if not isinstance(backend, AuthSessionBackend):
+        raise TypeError('auth_session_backend must be an AuthSessionBackend or a factory returning one')
+
+    dev_logger.info('Using auth session backend', {'backend': backend.__class__.__name__})
+
+    if isinstance(backend, FileAuthSessionBackend) and not _is_local_reload(config):
+        dev_logger.warning(
+            'File auth session backend is local disk storage and stores raw auth session material',
+            {
+                'path': str(backend.root),
+                'recommendation': (
+                    'Use the in-memory backend when restart continuity is not required. For shared or durable '
+                    'production sessions, prefer a database or shared cache backend when available.'
+                ),
+            },
+        )
+
+    return backend
 
 
 def get_auth_session_backend() -> AuthSessionBackend:

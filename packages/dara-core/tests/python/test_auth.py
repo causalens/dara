@@ -20,7 +20,13 @@ from dara.core.auth.definitions import (
     UNAUTHORIZED_ERROR,
     TokenData,
 )
-from dara.core.auth.session_store import InMemoryAuthSessionBackend, get_auth_session_backend, set_auth_session_backend
+from dara.core.auth.session_store import (
+    AuthSessionBackend,
+    FileAuthSessionBackend,
+    InMemoryAuthSessionBackend,
+    get_auth_session_backend,
+    set_auth_session_backend,
+)
 from dara.core.auth.utils import token_refresh_cache
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.http import get
@@ -109,6 +115,108 @@ async def test_startup_installs_configured_auth_session_backend():
                 exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
             )
             assert await get_auth_session_backend().create(TEST_TOKEN, token_data) == 'configured-session'
+
+
+async def test_startup_auto_auth_session_backend_defaults_to_memory(monkeypatch, caplog: pytest.LogCaptureFixture):
+    """Check the default auto factory preserves non-reload memory behavior."""
+    monkeypatch.delenv('DARA_LIVE_RELOAD', raising=False)
+    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    caplog.set_level(logging.INFO, logger='dara.dev')
+
+    app = _start_application(ConfigurationBuilder()._to_configuration())
+
+    async with AsyncClient(app):
+        assert isinstance(get_auth_session_backend(), InMemoryAuthSessionBackend)
+        assert _get_log_content(caplog, 'Using auth session backend') == {'backend': 'InMemoryAuthSessionBackend'}
+
+
+async def test_startup_auto_auth_session_backend_uses_file_for_local_reload(monkeypatch, tmp_path):
+    """Check the default auto factory preserves sessions across local reloads."""
+    monkeypatch.setenv('DARA_LIVE_RELOAD', 'TRUE')
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    monkeypatch.setenv('DARA_AUTH_SESSION_FILE_PATH', str(tmp_path))
+
+    app = _start_application(ConfigurationBuilder()._to_configuration())
+
+    async with AsyncClient(app):
+        backend = get_auth_session_backend()
+        assert isinstance(backend, FileAuthSessionBackend)
+        assert backend.root == tmp_path
+
+
+async def test_startup_explicit_memory_auth_session_backend_overrides_reload(monkeypatch):
+    """Check explicit concrete backends win over the auto factory."""
+    monkeypatch.setenv('DARA_LIVE_RELOAD', 'TRUE')
+    backend = InMemoryAuthSessionBackend()
+    config = ConfigurationBuilder()
+    config.auth_session_backend = backend
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app):
+        assert get_auth_session_backend() is backend
+
+
+async def test_startup_explicit_file_auth_session_backend_is_honored_outside_reload(
+    monkeypatch,
+    tmp_path,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Check users can explicitly select file storage outside reload."""
+    monkeypatch.delenv('DARA_LIVE_RELOAD', raising=False)
+    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
+    caplog.set_level(logging.WARNING, logger='dara.dev')
+    backend = FileAuthSessionBackend(path=tmp_path)
+    config = ConfigurationBuilder()
+    config.auth_session_backend = backend
+
+    app = _start_application(config._to_configuration())
+
+    async with AsyncClient(app):
+        assert get_auth_session_backend() is backend
+        assert _get_log_content(
+            caplog, 'File auth session backend is local disk storage and stores raw auth session material'
+        ) == {
+            'path': str(tmp_path),
+            'recommendation': (
+                'Use the in-memory backend when restart continuity is not required. For shared or durable '
+                'production sessions, prefer a database or shared cache backend when available.'
+            ),
+        }
+
+
+async def test_startup_custom_auth_session_backend_factory_is_called_once():
+    """Check custom factories receive Configuration and install their returned backend."""
+    config = ConfigurationBuilder()
+    backend = InMemoryAuthSessionBackend()
+    calls = []
+
+    def auth_session_backend_factory(runtime_config) -> AuthSessionBackend:
+        calls.append(runtime_config)
+        return backend
+
+    config.auth_session_backend = auth_session_backend_factory
+    runtime_config = config._to_configuration()
+    app = _start_application(runtime_config)
+
+    async with AsyncClient(app):
+        assert get_auth_session_backend() is backend
+        assert calls == [runtime_config]
+
+
+async def test_startup_auto_auth_session_backend_keeps_memory_for_deploy_reload(monkeypatch):
+    """Check reload only selects file storage for local development."""
+    monkeypatch.setenv('DARA_LIVE_RELOAD', 'TRUE')
+    monkeypatch.setenv('DARA_DOCKER_MODE', 'TRUE')
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+
+    app = _start_application(ConfigurationBuilder()._to_configuration())
+
+    async with AsyncClient(app):
+        assert isinstance(get_auth_session_backend(), InMemoryAuthSessionBackend)
 
 
 def _make_refreshed_session_token(old_token: TokenData, marker: str) -> str:

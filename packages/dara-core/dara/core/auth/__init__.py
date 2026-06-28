@@ -19,7 +19,13 @@ from .base import BaseAuthConfig
 from .basic import BasicAuthConfig, DefaultAuthConfig, MultiBasicAuthConfig
 from .oidc import OIDCAuthConfig
 from .routes import auth_router
-from .session_store import AuthSessionBackend, FileAuthSessionBackend, InMemoryAuthSessionBackend
+from .session_store import (
+    AuthSessionBackend,
+    AuthSessionBackendFactory,
+    FileAuthSessionBackend,
+    InMemoryAuthSessionBackend,
+    auto_auth_session_backend,
+)
 
 __all__ = [
     'BaseAuthConfig',
@@ -28,7 +34,9 @@ __all__ = [
     'DefaultAuthConfig',
     'OIDCAuthConfig',
     'AuthSessionBackend',
+    'AuthSessionBackendFactory',
     'FileAuthSessionBackend',
     'InMemoryAuthSessionBackend',
+    'auto_auth_session_backend',
     'auth_router',
 ]
