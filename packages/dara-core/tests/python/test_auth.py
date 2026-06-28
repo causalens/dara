@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 import time
+from unittest import mock
 
 import jwt
 import pytest
@@ -92,21 +93,22 @@ async def _store_expired_test_token(refresh_token: str | None = None, session_id
 async def test_startup_installs_configured_auth_session_backend():
     """Check lifespan installs the auth session backend from configuration."""
     config = ConfigurationBuilder()
-    backend = InMemoryAuthSessionBackend(session_token_factory=lambda: 'configured-session')
+    backend = InMemoryAuthSessionBackend()
     config.auth_session_backend = backend
 
     app = _start_application(config._to_configuration())
 
-    async with AsyncClient(app):
-        assert get_auth_session_backend() is backend
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', return_value='configured-session'):
+        async with AsyncClient(app):
+            assert get_auth_session_backend() is backend
 
-        token_data = TokenData(
-            identity_id='user',
-            identity_name='user',
-            session_id='token1',
-            exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
-        )
-        assert await get_auth_session_backend().create(TEST_TOKEN, token_data) == 'configured-session'
+            token_data = TokenData(
+                identity_id='user',
+                identity_name='user',
+                session_id='token1',
+                exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1),
+            )
+            assert await get_auth_session_backend().create(TEST_TOKEN, token_data) == 'configured-session'
 
 
 def _make_refreshed_session_token(old_token: TokenData, marker: str) -> str:
@@ -558,7 +560,9 @@ async def test_refresh_token_success():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        old_session_token = await get_auth_session_backend().create(old_token, old_token_data, refresh_token='refresh_token')
+        old_session_token = await get_auth_session_backend().create(
+            old_token, old_token_data, refresh_token='refresh_token'
+        )
         response = await client.post(
             '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},
@@ -602,7 +606,9 @@ async def test_refresh_token_success_with_session_cookie():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        old_session_token = await get_auth_session_backend().create(old_token, old_token_data, refresh_token='refresh_token')
+        old_session_token = await get_auth_session_backend().create(
+            old_token, old_token_data, refresh_token='refresh_token'
+        )
         response = await client.post(
             '/api/auth/verify-session',
             cookies={
@@ -639,7 +645,9 @@ async def test_refresh_token_stores_rotated_refresh_token_server_side():
     app = _start_application(config._to_configuration())
 
     async with AsyncClient(app) as client:
-        old_session_token = await get_auth_session_backend().create(old_token, old_token_data, refresh_token='refresh_token')
+        old_session_token = await get_auth_session_backend().create(
+            old_token, old_token_data, refresh_token='refresh_token'
+        )
         response = await client.post(
             '/api/auth/verify-session',
             headers={'Authorization': f'Bearer {old_session_token}'},

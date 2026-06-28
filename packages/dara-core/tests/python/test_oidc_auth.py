@@ -43,6 +43,7 @@ from dara.core.auth.session_store import (
     AuthSession,
     ExpiredAuthSession,
     InMemoryAuthSessionBackend,
+    generate_auth_session_token,
     get_auth_session_backend,
     set_auth_session_backend,
 )
@@ -75,17 +76,34 @@ ENV_OVERRIDE = {
 }
 
 
+class PredictableAuthSessionBackend(InMemoryAuthSessionBackend):
+    """
+    In-memory backend that patches the core session-token generator for deterministic tests.
+    """
+
+    def __init__(self, *session_tokens: str):
+        super().__init__()
+        self._session_tokens = iter(session_tokens)
+
+    async def create(self, auth_token: str, token_data: TokenData, refresh_token: str | None = None) -> str:
+        with mock.patch(
+            'dara.core.auth.session_store.generate_auth_session_token',
+            side_effect=lambda: next(self._session_tokens),
+        ):
+            return await super().create(auth_token, token_data, refresh_token=refresh_token)
+
+
 def auth_session_store_with_tokens(*session_tokens: str) -> InMemoryAuthSessionBackend:
     """
     Create an auth session store that issues predictable opaque session tokens.
     """
 
-    token_iterator = iter(session_tokens)
-    return InMemoryAuthSessionBackend(session_token_factory=lambda: next(token_iterator))
+    return PredictableAuthSessionBackend(*session_tokens)
 
 
 def timestamp_datetime(timestamp: float) -> datetime:
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+
 
 # Sample RS256 key
 MOCK_JWK = {
@@ -1686,7 +1704,7 @@ async def test_verify_token_opaque_token_without_session_data_fails():
     """
     Test opaque Dara OIDC token verification fails when session data is missing.
     """
-    session_token = InMemoryAuthSessionBackend.generate_session_token()
+    session_token = generate_auth_session_token()
 
     auth_config = make_config()
 
@@ -1917,13 +1935,17 @@ async def test_auth_session_store_retains_all_unexpired_sessions():
         assert await store.create('auth-token-1', token_data) == 'token-1'
 
         frozen_time.move_to(timestamp_datetime(101.0))
-        assert await store.create('auth-token-2', token_data.model_copy(update={'session_id': 'session-2'})) == 'token-2'
+        assert (
+            await store.create('auth-token-2', token_data.model_copy(update={'session_id': 'session-2'})) == 'token-2'
+        )
 
         frozen_time.move_to(timestamp_datetime(102.0))
         assert (await store.get('token-1')).token_data == token_data
 
         frozen_time.move_to(timestamp_datetime(103.0))
-        assert await store.create('auth-token-3', token_data.model_copy(update={'session_id': 'session-3'})) == 'token-3'
+        assert (
+            await store.create('auth-token-3', token_data.model_copy(update={'session_id': 'session-3'})) == 'token-3'
+        )
 
         assert (await store.get('token-1')).token_data == token_data
         assert (await store.get('token-2')).token_data == token_data.model_copy(update={'session_id': 'session-2'})
@@ -2039,7 +2061,7 @@ async def test_verify_session_opaque_token_forces_relogin_when_session_store_ent
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
-            stale_session_token = InMemoryAuthSessionBackend.generate_session_token()
+            stale_session_token = generate_auth_session_token()
 
             response = await client.post(
                 '/api/auth/verify-session',

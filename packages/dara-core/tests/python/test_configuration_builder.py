@@ -278,7 +278,7 @@ def test_auth_session_backend_defaults_to_in_memory():
 def test_auth_session_backend_can_be_configured():
     """Test a custom auth session backend is mapped through correctly."""
     builder = ConfigurationBuilder()
-    backend = InMemoryAuthSessionBackend(session_token_factory=lambda: 'configured-session')
+    backend = InMemoryAuthSessionBackend()
 
     builder.auth_session_backend = backend
     config = builder._to_configuration()
