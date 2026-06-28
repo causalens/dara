@@ -37,6 +37,7 @@ from starlette.templating import Jinja2Templates, _TemplateResponse
 from starlette.types import Scope
 
 from dara.core.auth import auth_router
+from dara.core.auth.session_store import InMemoryAuthSessionBackend, set_auth_session_backend
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import (
     blank_template,
@@ -144,6 +145,8 @@ def _start_application(config: Configuration):
             setup_signal_handlers()
         except Exception as e:
             dev_logger.warning(f'Failed to set up signal handlers: {e}')
+
+        set_auth_session_backend(InMemoryAuthSessionBackend())
 
         # Retrieve the existing Store instance for the application
         # Store must exist before the app starts as instantiating e.g. Variables

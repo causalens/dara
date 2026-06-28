@@ -27,6 +27,8 @@ from dara.core.auth.definitions import TokenData
 from dara.core.auth.utils import AUTH_COOKIE_EXPIRATION_GRACE_SECONDS, get_token_expiration
 from dara.core.internal.settings import get_settings
 
+AUTH_SESSION_BACKEND_REGISTRY_KEY = 'AuthSessionBackend'
+
 
 @dataclass(frozen=True)
 class AuthSession:
@@ -247,54 +249,20 @@ class InMemoryAuthSessionBackend:
             self._prune_expired_locked(now)
 
 
-class AuthSessionStore:
-    """Facade used by auth routes to access the configured auth session backend."""
+def get_auth_session_backend() -> AuthSessionBackend:
+    """Return the configured auth session backend."""
 
-    def __init__(self, backend: AuthSessionBackend | None = None):
-        self._backend = backend or InMemoryAuthSessionBackend()
+    from dara.core.internal.registries import utils_registry
 
-    @staticmethod
-    def generate_session_token() -> str:
-        """Generate a high-entropy opaque token safe for cookie values."""
+    if not utils_registry.has(AUTH_SESSION_BACKEND_REGISTRY_KEY):
+        raise RuntimeError('Auth session backend has not been configured')
 
-        return InMemoryAuthSessionBackend.generate_session_token()
-
-    def set_backend(self, backend: AuthSessionBackend):
-        """Install the auth session backend used by this store."""
-
-        self._backend = backend
-
-    async def create(self, auth_token: str, token_data: TokenData, refresh_token: str | None = None) -> str:
-        """Store an auth token under a new opaque session token."""
-
-        return await self._backend.create(auth_token, token_data, refresh_token=refresh_token)
-
-    async def set(
-        self,
-        session_token: str,
-        auth_token: str,
-        token_data: TokenData,
-        refresh_token: str | None = None,
-    ) -> bool:
-        """Replace the auth token for an existing opaque session token."""
-
-        return await self._backend.set(session_token, auth_token, token_data, refresh_token=refresh_token)
-
-    async def get(self, session_token: str) -> StoredAuthSession | None:
-        """Return the server-side auth session for an opaque session token."""
-
-        return await self._backend.get(session_token)
-
-    async def remove(self, session_token: str) -> StoredAuthSession | None:
-        """Remove and return the server-side auth session for an opaque session token."""
-
-        return await self._backend.remove(session_token)
-
-    async def clear(self):
-        await self._backend.clear()
-
-    async def clear_expired(self):
-        await self._backend.clear_expired()
+    return utils_registry.get(AUTH_SESSION_BACKEND_REGISTRY_KEY)
 
 
-auth_session_store = AuthSessionStore()
+def set_auth_session_backend(backend: AuthSessionBackend):
+    """Set the auth session backend used by auth routes."""
+
+    from dara.core.internal.registries import utils_registry
+
+    utils_registry.set(AUTH_SESSION_BACKEND_REGISTRY_KEY, backend)

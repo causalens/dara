@@ -265,15 +265,16 @@ Implement this as small vertical slices that each preserve today's behavior unti
 
 Refactor the existing in-memory store into the first concrete backend without changing behavior:
 
-- keep the current module-level `auth_session_store` facade used by auth routes
 - introduce an internal `AuthSessionBackend` protocol matching the current async operations
 - move the existing dictionary and lock implementation behind `InMemoryAuthSessionBackend`
+- expose small internal helpers to set and get the configured backend through Dara's runtime registry
+- have auth routes resolve the backend through that registry helper instead of holding a module-level store singleton
 - preserve current memory-backed retention, lookup, removal, clearing, and expired-session pruning behavior
 - keep the existing internal `set` method name, but change its semantics from upsert to replace-existing before adding additional backends
 - update refresh callers to check `set`'s return value and treat `False` as an invalid, missing, or revoked session
 - add focused tests proving the in-memory backend still handles retention, refresh, removal, and expired-session behavior as it does today
 
-This keeps the route layer stable while giving startup code a single place to install a different backend.
+This keeps the route layer stable while giving startup code a single registry-backed place to install a different backend.
 
 ### Slice 2: Add The File Auth Session Backend
 

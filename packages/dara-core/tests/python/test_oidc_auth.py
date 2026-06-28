@@ -41,10 +41,10 @@ from dara.core.auth.oidc.utils import decode_id_token
 from dara.core.auth.session import verify_auth_token
 from dara.core.auth.session_store import (
     AuthSession,
-    AuthSessionStore,
     ExpiredAuthSession,
     InMemoryAuthSessionBackend,
-    auth_session_store,
+    get_auth_session_backend,
+    set_auth_session_backend,
 )
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.internal.registries import utils_registry
@@ -75,13 +75,13 @@ ENV_OVERRIDE = {
 }
 
 
-def auth_session_store_with_tokens(*session_tokens: str) -> AuthSessionStore:
+def auth_session_store_with_tokens(*session_tokens: str) -> InMemoryAuthSessionBackend:
     """
     Create an auth session store that issues predictable opaque session tokens.
     """
 
     token_iterator = iter(session_tokens)
-    return AuthSessionStore(InMemoryAuthSessionBackend(session_token_factory=lambda: next(token_iterator)))
+    return InMemoryAuthSessionBackend(session_token_factory=lambda: next(token_iterator))
 
 
 def timestamp_datetime(timestamp: float) -> datetime:
@@ -192,13 +192,13 @@ def mock_discovery():
 
 @pytest.fixture(autouse=True)
 async def clear_auth_session_store():
-    await auth_session_store.clear()
+    set_auth_session_backend(InMemoryAuthSessionBackend())
     yield
-    await auth_session_store.clear()
+    await get_auth_session_backend().clear()
 
 
 async def get_stored_auth_session(session_token: str) -> AuthSession:
-    stored_session = await auth_session_store.get(session_token)
+    stored_session = await get_auth_session_backend().get(session_token)
     assert stored_session is not None
     return stored_session
 
@@ -219,7 +219,7 @@ async def create_mock_dara_session_token(refresh_token: str = 'mock-refresh-toke
         }
     )
     raw_token = jwt.encode(token_data.model_dump(), ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-    return await auth_session_store.create(
+    return await get_auth_session_backend().create(
         raw_token,
         token_data,
         refresh_token=refresh_token,
@@ -1686,7 +1686,7 @@ async def test_verify_token_opaque_token_without_session_data_fails():
     """
     Test opaque Dara OIDC token verification fails when session data is missing.
     """
-    session_token = AuthSessionStore.generate_session_token()
+    session_token = InMemoryAuthSessionBackend.generate_session_token()
 
     auth_config = make_config()
 
@@ -1810,7 +1810,7 @@ async def test_auth_session_store_rejects_session_beyond_refresh_retention():
     """
     Test auth session store does not return handles for sessions it refuses to store.
     """
-    store = AuthSessionStore()
+    store = InMemoryAuthSessionBackend()
     token_data = TokenData(
         session_id='session-1',
         exp=100.0,
@@ -1856,7 +1856,7 @@ async def test_auth_session_store_set_does_not_create_missing_session():
     """
     Test auth session store set does not recreate missing or revoked sessions.
     """
-    store = AuthSessionStore()
+    store = InMemoryAuthSessionBackend()
     token_data = TokenData(
         session_id='session-1',
         exp=200.0,
@@ -1987,7 +1987,7 @@ async def test_verify_session_expired_opaque_token_refreshes_with_existing_sessi
                 id_token='old-id-token',
             )
             raw_session_token = jwt.encode(old_token_data.model_dump(), ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-            expired_session_token = await auth_session_store.create(
+            expired_session_token = await get_auth_session_backend().create(
                 raw_session_token,
                 old_token_data,
                 refresh_token='expired-session-refresh-token',
@@ -2039,7 +2039,7 @@ async def test_verify_session_opaque_token_forces_relogin_when_session_store_ent
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
-            stale_session_token = AuthSessionStore.generate_session_token()
+            stale_session_token = InMemoryAuthSessionBackend.generate_session_token()
 
             response = await client.post(
                 '/api/auth/verify-session',
@@ -2107,7 +2107,7 @@ async def test_websocket_disconnect_preserves_auth_session_store_for_verify_sess
             ENV_OVERRIDE['JWT_SECRET'],
             algorithm=JWT_ALGO,
         )
-        session_token = await auth_session_store.create(raw_token, token_data)
+        session_token = await get_auth_session_backend().create(raw_token, token_data)
 
         async with _async_ws_connect(client, session_token) as websocket:
             # consume websocket init payload
@@ -2193,7 +2193,7 @@ async def test_revoke_session():
                 'id_token': id_token,
             }
             encoded_test_token = jwt.encode(test_token, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-            session_token = await auth_session_store.create(encoded_test_token, TokenData(**test_token))
+            session_token = await get_auth_session_backend().create(encoded_test_token, TokenData(**test_token))
 
             response = await client.post(
                 '/api/auth/revoke-session',
@@ -2232,7 +2232,7 @@ async def test_revoke_session_opaque_token_uses_stored_raw_id_token():
             ENV_OVERRIDE['JWT_SECRET'],
             algorithm=JWT_ALGO,
         )
-        session_token = await auth_session_store.create(
+        session_token = await get_auth_session_backend().create(
             raw_token,
             TokenData(
                 session_id=session_id,
@@ -2252,7 +2252,7 @@ async def test_revoke_session_opaque_token_uses_stored_raw_id_token():
 
         assert response.status_code == 200
         assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
-        assert await auth_session_store.get(session_token) is None
+        assert await get_auth_session_backend().get(session_token) is None
 
 
 async def test_revoke_session_accepts_raw_id_token_bearer():
@@ -2314,7 +2314,7 @@ async def test_revoke_session_expired_token():
                 'id_token': id_token,
             }
             encoded_test_token = jwt.encode(test_token, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-            session_token = await auth_session_store.create(encoded_test_token, TokenData(**test_token))
+            session_token = await get_auth_session_backend().create(encoded_test_token, TokenData(**test_token))
 
             response = await client.post(
                 '/api/auth/revoke-session',
