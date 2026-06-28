@@ -23,3 +23,7 @@ DATA = pandas.read_csv(os.path.join(DATA_ROOT, 'my_dataset.csv'))
 :::tip
 Loading your data path this way ensures that it will read data from the path specified in the `DATA_ROOT` environment variable. If it is not set, it will default to the path: `/data`. This default can be useful in local development when a `DATA_ROOT` environment variable is not set, though it should always be set in production.
 :::
+
+### Secrets
+
+Environment variables are also commonly used for production secrets. For authenticated Dara apps, set `JWT_SECRET` explicitly in production through your environment or secret-management system. Local development can use Dara's generated development signing key, but production deployments should provide their own stable secret. See [Signing Key](../advanced/authentication#signing-key) for details.
