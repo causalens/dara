@@ -33,6 +33,7 @@ from typing_extensions import deprecated
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.basic import DefaultAuthConfig
+from dara.core.auth.session_store import AuthSessionBackend, InMemoryAuthSessionBackend
 from dara.core.base_definitions import Action, ActionDef
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.definitions import (
@@ -67,6 +68,7 @@ class Configuration(BaseModel):
     """Definition of the main framework configuration"""
 
     auth_config: BaseAuthConfig
+    auth_session_backend: AuthSessionBackend
     registry_lookup: CustomRegistryLookup
     actions: list[ActionDef]
     endpoint_configurations: list[EndpointConfiguration]
@@ -137,6 +139,7 @@ class ConfigurationBuilder:
     """
 
     auth_config: BaseAuthConfig
+    _auth_session_backend: AuthSessionBackend | None
     registry_lookup: CustomRegistryLookup
     _actions: list[ActionDef]
     _components: list[ComponentTypeAnnotation]
@@ -166,6 +169,7 @@ class ConfigurationBuilder:
 
     def __init__(self):
         self.auth_config = DefaultAuthConfig()
+        self._auth_session_backend = None
         self.registry_lookup = {}
         self._actions = []
         self._components = []
@@ -216,6 +220,21 @@ class ConfigurationBuilder:
     )
     def powered_by_causalens(self, value):
         self._powered_by_causalens = value
+
+    @property
+    def auth_session_backend(self) -> AuthSessionBackend:
+        """
+        Backend used to store opaque browser auth sessions.
+        """
+
+        if self._auth_session_backend is None:
+            self._auth_session_backend = InMemoryAuthSessionBackend()
+
+        return self._auth_session_backend
+
+    @auth_session_backend.setter
+    def auth_session_backend(self, backend: AuthSessionBackend):
+        self._auth_session_backend = backend
 
     def add_action(self, action: type[ActionImpl], local: bool = False):
         """
@@ -605,6 +624,7 @@ class ConfigurationBuilder:
         return Configuration(
             actions=self._actions,
             auth_config=self.auth_config,
+            auth_session_backend=self._auth_session_backend or InMemoryAuthSessionBackend(),
             registry_lookup=self.registry_lookup,
             components=self._components,
             context_components=self.context_components,

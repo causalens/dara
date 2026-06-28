@@ -19,7 +19,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Literal, Protocol
+from typing import Callable, Literal, Protocol, runtime_checkable
 
 import anyio
 
@@ -91,6 +91,7 @@ def get_auth_session_expiration(token_data: TokenData, refresh_token: str | None
     return max(token_expires_at, float(refresh_token_expires_at))
 
 
+@runtime_checkable
 class AuthSessionBackend(Protocol):
     """Storage backend for opaque browser auth sessions."""
 
