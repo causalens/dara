@@ -59,12 +59,13 @@ Introduce an internal auth session backend boundary close to the existing store 
 ```python
 class AuthSessionBackend(Protocol):
     async def create(self, auth_token: str, token_data: TokenData, refresh_token: str | None = None) -> str: ...
-    async def update(
+    async def set(
         self, session_token: str, auth_token: str, token_data: TokenData, refresh_token: str | None = None
     ) -> bool: ...
     async def get(self, session_token: str) -> StoredAuthSession | None: ...
     async def remove(self, session_token: str) -> StoredAuthSession | None: ...
     async def clear(self): ...
+    async def clear_expired(self): ...
 ```
 
 Implementations in this proposal:
@@ -182,7 +183,7 @@ Implementation principles:
 - treat missing, expired, malformed, or unreadable files as absent sessions
 - use last-writer-wins semantics for concurrent writes
 - make `create` the only operation that creates a new session file
-- make `update` update an existing session file and return `False` for missing sessions so refresh cannot recreate a logged-out or revoked session
+- make `set` replace an existing session file and return `False` for missing sessions so refresh cannot recreate a logged-out or revoked session
 - make no multi-host consistency guarantees
 
 Writes should be as atomic as the underlying filesystem permits:
@@ -267,9 +268,9 @@ Refactor the existing in-memory store into the first concrete backend without ch
 - keep the current module-level `auth_session_store` facade used by auth routes
 - introduce an internal `AuthSessionBackend` protocol matching the current async operations
 - move the existing dictionary and lock implementation behind `InMemoryAuthSessionBackend`
-- preserve current memory-backed retention, lookup, removal, and clearing behavior
-- split the current internal `set` behavior into explicit `create` and `update` semantics before adding additional backends
-- update refresh callers to use `update` and treat `False` as an invalid, missing, or revoked session
+- preserve current memory-backed retention, lookup, removal, clearing, and expired-session pruning behavior
+- keep the existing internal `set` method name, but change its semantics from upsert to replace-existing before adding additional backends
+- update refresh callers to check `set`'s return value and treat `False` as an invalid, missing, or revoked session
 - add focused tests proving the in-memory backend still handles retention, refresh, removal, and expired-session behavior as it does today
 
 This keeps the route layer stable while giving startup code a single place to install a different backend.
@@ -284,8 +285,9 @@ Add `FileAuthSessionBackend` behind the same interface:
 - derive filenames from `sha256(session_token.encode()).hexdigest() + ".json"`
 - write via temporary file, flush/fsync where practical, then `os.replace`
 - read only parsed `<64 lowercase hex>.json` session files and treat missing, expired, malformed, oversized, or unreadable files as absent
-- make `create` create new session files and make `update` update only an existing session file
+- make `create` create new session files and make `set` replace only an existing session file
 - implement `clear()` by removing all valid session files for the app key
+- implement `clear_expired()` by removing valid expired session files for the app key
 - validate the resolved root at startup, require explicit roots to be existing writable directories, create default app directories and files with owner-only permissions where supported, avoid following symlinks, and emit sanitized warnings or metrics for malformed, unreadable, or oversized files
 - remove files on logout/revoke and expose `clear_expired()` for maintenance
 
@@ -296,8 +298,9 @@ Test this backend directly with `tmp_path`:
 - expired sessions are ignored or removed according to existing retention behavior
 - malformed, oversized, unreadable, and missing files do not authenticate a request
 - concurrent-ish writes leave either the old complete file or the new complete file, never a partial JSON file
-- `update` does not recreate a deleted session
+- `set` does not recreate a deleted session
 - `clear()` removes all valid session files for that backend scope
+- `clear_expired()` removes expired sessions while preserving active sessions
 - root validation, owner-only permissions where supported, symlink handling, and sanitized warning behavior are covered
 
 ### Slice 3: Wire Backend Selection Into Startup

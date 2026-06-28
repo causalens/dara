@@ -19,7 +19,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Callable, Literal, Protocol
 
 import anyio
 
@@ -89,17 +89,52 @@ def get_auth_session_expiration(token_data: TokenData, refresh_token: str | None
     return max(token_expires_at, float(refresh_token_expires_at))
 
 
-class AuthSessionStore:
-    """
-    In-memory auth session store keyed by opaque browser cookie values.
+class AuthSessionBackend(Protocol):
+    """Storage backend for opaque browser auth sessions."""
 
-    Auth configs keep issuing and verifying their normal tokens. This store only
+    async def create(self, auth_token: str, token_data: TokenData, refresh_token: str | None = None) -> str:
+        """Store an auth token under a new opaque session token."""
+        ...
+
+    async def set(
+        self,
+        session_token: str,
+        auth_token: str,
+        token_data: TokenData,
+        refresh_token: str | None = None,
+    ) -> bool:
+        """Replace an existing opaque session token."""
+        ...
+
+    async def get(self, session_token: str) -> StoredAuthSession | None:
+        """Return the server-side auth session for an opaque session token."""
+        ...
+
+    async def remove(self, session_token: str) -> StoredAuthSession | None:
+        """Remove and return the server-side auth session for an opaque session token."""
+        ...
+
+    async def clear(self):
+        """Remove all stored auth sessions."""
+        ...
+
+    async def clear_expired(self):
+        """Remove expired auth sessions."""
+        ...
+
+
+class InMemoryAuthSessionBackend:
+    """
+    In-memory auth session backend keyed by opaque browser cookie values.
+
+    Auth configs keep issuing and verifying their normal tokens. This backend only
     keeps those tokens server-side and gives the browser a random handle.
     """
 
-    def __init__(self):
+    def __init__(self, session_token_factory: Callable[[], str] | None = None):
         self._entries: dict[str, _SessionEntry] = {}
         self._lock = anyio.Lock()
+        self._session_token_factory = session_token_factory or self.generate_session_token
 
     @staticmethod
     def generate_session_token() -> str:
@@ -145,9 +180,9 @@ class AuthSessionStore:
         async with self._lock:
             self._prune_expired_locked(now)
 
-            session_token = self.generate_session_token()
+            session_token = self._session_token_factory()
             while session_token in self._entries:
-                session_token = self.generate_session_token()
+                session_token = self._session_token_factory()
 
             self._set_locked(session_token, auth_token, token_data, refresh_token, now)
             return session_token
@@ -158,14 +193,18 @@ class AuthSessionStore:
         auth_token: str,
         token_data: TokenData,
         refresh_token: str | None = None,
-    ):
-        """Store or replace the auth token for an existing opaque session token."""
+    ) -> bool:
+        """Replace the auth token for an existing opaque session token."""
 
         now = time.time()
 
         async with self._lock:
             self._prune_expired_locked(now)
+            if session_token not in self._entries:
+                return False
+
             self._set_locked(session_token, auth_token, token_data, refresh_token, now)
+            return True
 
     @staticmethod
     def _build_session(entry: _SessionEntry, now: float) -> StoredAuthSession:
@@ -201,6 +240,61 @@ class AuthSessionStore:
     async def clear(self):
         async with self._lock:
             self._entries.clear()
+
+    async def clear_expired(self):
+        now = time.time()
+        async with self._lock:
+            self._prune_expired_locked(now)
+
+
+class AuthSessionStore:
+    """Facade used by auth routes to access the configured auth session backend."""
+
+    def __init__(self, backend: AuthSessionBackend | None = None):
+        self._backend = backend or InMemoryAuthSessionBackend()
+
+    @staticmethod
+    def generate_session_token() -> str:
+        """Generate a high-entropy opaque token safe for cookie values."""
+
+        return InMemoryAuthSessionBackend.generate_session_token()
+
+    def set_backend(self, backend: AuthSessionBackend):
+        """Install the auth session backend used by this store."""
+
+        self._backend = backend
+
+    async def create(self, auth_token: str, token_data: TokenData, refresh_token: str | None = None) -> str:
+        """Store an auth token under a new opaque session token."""
+
+        return await self._backend.create(auth_token, token_data, refresh_token=refresh_token)
+
+    async def set(
+        self,
+        session_token: str,
+        auth_token: str,
+        token_data: TokenData,
+        refresh_token: str | None = None,
+    ) -> bool:
+        """Replace the auth token for an existing opaque session token."""
+
+        return await self._backend.set(session_token, auth_token, token_data, refresh_token=refresh_token)
+
+    async def get(self, session_token: str) -> StoredAuthSession | None:
+        """Return the server-side auth session for an opaque session token."""
+
+        return await self._backend.get(session_token)
+
+    async def remove(self, session_token: str) -> StoredAuthSession | None:
+        """Remove and return the server-side auth session for an opaque session token."""
+
+        return await self._backend.remove(session_token)
+
+    async def clear(self):
+        await self._backend.clear()
+
+    async def clear_expired(self):
+        await self._backend.clear_expired()
 
 
 auth_session_store = AuthSessionStore()

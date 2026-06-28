@@ -935,7 +935,12 @@ async def test_refresh_token_cache_expiration():
 
         # Wait for cache to expire (6 seconds to be safe)
         await asyncio.sleep(6)
-        await auth_session_store.set(old_session_token, old_token, old_token_data, refresh_token='test_refresh_token')
+        assert await auth_session_store.set(
+            old_session_token,
+            old_token,
+            old_token_data,
+            refresh_token='test_refresh_token',
+        )
 
         # Third request should get new tokens
         response3 = await client.post(

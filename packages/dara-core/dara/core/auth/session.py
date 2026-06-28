@@ -138,6 +138,8 @@ async def refresh_auth_session(
     new_token_data = await verify_raw_auth_token(auth_config, new_auth_token)
 
     session_token = refresh_subject.session_token
-    await auth_session_store.set(session_token, new_auth_token, new_token_data, refresh_token=new_refresh_token)
+    updated = await auth_session_store.set(session_token, new_auth_token, new_token_data, refresh_token=new_refresh_token)
+    if not updated:
+        raise AuthError(INVALID_TOKEN_ERROR, 401)
 
     return session_token, new_token_data, new_refresh_token
