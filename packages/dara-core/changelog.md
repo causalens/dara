@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.0
 
 - `dara start --reload` now preserves browser auth sessions across backend reloads via a local file-backed session store. Normal runtime, Docker, and production keep in-memory auth sessions by default, so existing deployments are unchanged unless they configure another backend.
 - Added configurable auth session storage via `config.auth_session_backend`, with `InMemoryAuthSessionBackend` and `FileAuthSessionBackend` built in. The file backend persists one session per file with a bounded in-process cache, and supports `path` / `DARA_AUTH_SESSION_FILE_PATH` and `cache_size` options.
