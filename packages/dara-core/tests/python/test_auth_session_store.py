@@ -89,6 +89,22 @@ async def test_file_auth_session_backend_set_updates_existing_session(tmp_path):
     assert stored_session.token_data == new_token_data
 
 
+async def test_file_auth_session_backend_set_updates_memory_cache(tmp_path):
+    backend = FileAuthSessionBackend(path=tmp_path)
+    new_token_data = token_data(session_id='session-2')
+
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', return_value='token-1'):
+        session_token = await backend.create('auth-token-1', token_data(session_id='session-1'))
+
+    assert await backend.set(session_token, 'auth-token-2', new_token_data)
+    session_file(tmp_path, session_token).unlink()
+
+    stored_session = await backend.get(session_token)
+    assert stored_session is not None
+    assert stored_session.auth_token == 'auth-token-2'
+    assert stored_session.token_data == new_token_data
+
+
 async def test_file_auth_session_backend_set_does_not_create_missing_session(tmp_path):
     backend = FileAuthSessionBackend(path=tmp_path)
 
@@ -96,6 +112,18 @@ async def test_file_auth_session_backend_set_does_not_create_missing_session(tmp
         assert not await backend.set('missing-token', 'auth-token-1', token_data())
 
     assert not list(tmp_path.iterdir())
+
+
+async def test_file_auth_session_backend_set_does_not_recreate_session_removed_outside_cache(tmp_path):
+    backend = FileAuthSessionBackend(path=tmp_path)
+
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', return_value='token-1'):
+        session_token = await backend.create('auth-token-1', token_data())
+
+    session_file(tmp_path, session_token).unlink()
+
+    assert not await backend.set(session_token, 'auth-token-2', token_data(session_id='session-2'))
+    assert await backend.get(session_token) is None
 
 
 async def test_file_auth_session_backend_remove_deletes_session_file(tmp_path):
@@ -109,6 +137,17 @@ async def test_file_auth_session_backend_remove_deletes_session_file(tmp_path):
     assert removed_session is not None
     assert removed_session.auth_token == 'raw-auth-token'
     assert not session_file(tmp_path, session_token).exists()
+
+
+async def test_file_auth_session_backend_remove_evicts_memory_cache(tmp_path):
+    backend = FileAuthSessionBackend(path=tmp_path)
+
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', return_value='token-1'):
+        session_token = await backend.create('raw-auth-token', token_data())
+
+    await backend.remove(session_token)
+
+    assert await backend.get(session_token) is None
 
 
 async def test_file_auth_session_backend_ignores_malformed_and_oversized_files(tmp_path):
@@ -136,6 +175,17 @@ async def test_file_auth_session_backend_clear_removes_valid_session_files(tmp_p
     assert not list(tmp_path.iterdir())
 
 
+async def test_file_auth_session_backend_clear_evicts_memory_cache(tmp_path):
+    backend = FileAuthSessionBackend(path=tmp_path)
+
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', return_value='token-1'):
+        session_token = await backend.create('auth-token-1', token_data())
+
+    await backend.clear()
+
+    assert await backend.get(session_token) is None
+
+
 async def test_file_auth_session_backend_clear_expired_preserves_active_sessions(tmp_path):
     backend = FileAuthSessionBackend(path=tmp_path)
 
@@ -149,6 +199,55 @@ async def test_file_auth_session_backend_clear_expired_preserves_active_sessions
 
     assert not session_file(tmp_path, expired_session_token).exists()
     assert session_file(tmp_path, active_session_token).exists()
+
+
+async def test_file_auth_session_backend_reads_from_memory_cache_after_file_load(tmp_path):
+    writer = FileAuthSessionBackend(path=tmp_path)
+
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', return_value='token-1'):
+        session_token = await writer.create('auth-token-1', token_data())
+
+    reader = FileAuthSessionBackend(path=tmp_path)
+    assert await reader.get(session_token) is not None
+
+    session_file(tmp_path, session_token).unlink()
+
+    stored_session = await reader.get(session_token)
+    assert stored_session is not None
+    assert stored_session.auth_token == 'auth-token-1'
+
+
+async def test_file_auth_session_backend_cache_can_be_disabled(tmp_path):
+    backend = FileAuthSessionBackend(path=tmp_path, cache_size=0)
+
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', return_value='token-1'):
+        session_token = await backend.create('auth-token-1', token_data())
+
+    assert await backend.get(session_token) is not None
+    session_file(tmp_path, session_token).unlink()
+
+    assert await backend.get(session_token) is None
+
+
+async def test_file_auth_session_backend_evicts_least_recently_used_cache_entry(tmp_path):
+    backend = FileAuthSessionBackend(path=tmp_path, cache_size=1)
+
+    with mock.patch('dara.core.auth.session_store.generate_auth_session_token', side_effect=['token-1', 'token-2']):
+        first_session_token = await backend.create('auth-token-1', token_data(session_id='session-1'))
+        second_session_token = await backend.create('auth-token-2', token_data(session_id='session-2'))
+
+    session_file(tmp_path, first_session_token).unlink()
+    session_file(tmp_path, second_session_token).unlink()
+
+    assert await backend.get(first_session_token) is None
+    stored_session = await backend.get(second_session_token)
+    assert stored_session is not None
+    assert stored_session.auth_token == 'auth-token-2'
+
+
+def test_file_auth_session_backend_rejects_negative_cache_size(tmp_path):
+    with pytest.raises(ValueError, match='cache_size must be greater than or equal to 0'):
+        FileAuthSessionBackend(path=tmp_path, cache_size=-1)
 
 
 async def test_file_auth_session_backend_writes_complete_json_snapshots(tmp_path):

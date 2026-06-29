@@ -21,6 +21,7 @@ import re
 import secrets
 import tempfile
 import time
+from collections import OrderedDict
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
@@ -294,15 +295,22 @@ class FileAuthSessionBackend:
     from the opaque session handle hash and never contain the raw handle.
     """
 
-    def __init__(self, path: str | Path | None = None):
+    def __init__(self, path: str | Path | None = None, cache_size: int = 1024):
         """
         Create a file-backed auth session store.
 
         :param path: Existing directory to use for session files. When omitted,
             `DARA_AUTH_SESSION_FILE_PATH` is used if set; otherwise a Dara-owned
             app-scoped directory under the platform temp directory is created.
+        :param cache_size: Maximum number of sessions to keep in the in-process
+            read-through cache. Set to 0 to disable caching.
         """
+        if cache_size < 0:
+            raise ValueError('cache_size must be greater than or equal to 0')
+
         self.root = self._resolve_root(path)
+        self.cache_size = cache_size
+        self._cache: OrderedDict[str, _SessionEntry] = OrderedDict()
         # Serialize public operations within this backend instance so a
         # refresh-time set cannot recreate a session removed by logout/revoke.
         self._lock = anyio.Lock()
@@ -381,6 +389,22 @@ class FileAuthSessionBackend:
         :param session_token: Opaque browser session handle.
         """
         return anyio.Path(self.root / self._session_file_name(session_token))
+
+    def _cache_entry(self, session_token: str, entry: _SessionEntry):
+        """
+        Store an entry in the in-process read-through cache.
+
+        :param session_token: Opaque browser session handle.
+        :param entry: Parsed session entry to cache.
+        """
+        if self.cache_size == 0:
+            return
+
+        self._cache[session_token] = entry
+        self._cache.move_to_end(session_token)
+
+        while len(self._cache) > self.cache_size:
+            self._cache.popitem(last=False)
 
     @staticmethod
     def _is_session_file(path: anyio.Path) -> bool:
@@ -553,13 +577,23 @@ class FileAuthSessionBackend:
         except OSError as e:
             raise RuntimeError(f'Failed to list auth session file backend root: {self.root}') from e
 
-    async def _get_unlocked(self, session_token: str, now: float) -> StoredAuthSession | None:
+    async def _get_entry_unlocked(self, session_token: str, now: float) -> _SessionEntry | None:
         """
-        Return a stored session without acquiring the backend lock.
+        Return a session entry without acquiring the backend lock.
 
         :param session_token: Opaque browser session handle.
         :param now: Current timestamp used for expiration checks.
         """
+        cached_entry = self._cache.get(session_token)
+        if cached_entry is not None:
+            if cached_entry.retention_expires_at <= now:
+                self._cache.pop(session_token, None)
+                await self._remove_file(self._session_file_path(session_token))
+                return None
+
+            self._cache.move_to_end(session_token)
+            return cached_entry
+
         path = self._session_file_path(session_token)
         entry = await self._read_entry_file(path)
         if entry is None:
@@ -567,6 +601,20 @@ class FileAuthSessionBackend:
 
         if entry.retention_expires_at <= now:
             await self._remove_file(path)
+            return None
+
+        self._cache_entry(session_token, entry)
+        return entry
+
+    async def _get_unlocked(self, session_token: str, now: float) -> StoredAuthSession | None:
+        """
+        Return a stored session without acquiring the backend lock.
+
+        :param session_token: Opaque browser session handle.
+        :param now: Current timestamp used for expiration checks.
+        """
+        entry = await self._get_entry_unlocked(session_token, now)
+        if entry is None:
             return None
 
         return _build_stored_session(entry, now)
@@ -593,6 +641,7 @@ class FileAuthSessionBackend:
                 path = self._session_file_path(session_token)
 
             await self._write_entry_file(path, entry)
+            self._cache_entry(session_token, entry)
             return session_token
 
     async def set(
@@ -614,8 +663,8 @@ class FileAuthSessionBackend:
         now = time.time()
         async with self._lock:
             path = self._session_file_path(session_token)
-            existing = await self._get_unlocked(session_token, now)
-            if existing is None:
+            existing_entry = await self._get_entry_unlocked(session_token, now)
+            if existing_entry is None:
                 return False
 
             try:
@@ -625,9 +674,11 @@ class FileAuthSessionBackend:
                 raise
 
             if not await path.exists():
+                self._cache.pop(session_token, None)
                 return False
 
             await self._write_entry_file(path, entry)
+            self._cache_entry(session_token, entry)
             return True
 
     async def get(self, session_token: str) -> StoredAuthSession | None:
@@ -652,6 +703,7 @@ class FileAuthSessionBackend:
             path = self._session_file_path(session_token)
             stored_session = await self._get_unlocked(session_token, now)
             await self._remove_file(path)
+            self._cache.pop(session_token, None)
             return stored_session
 
     async def clear(self):
@@ -663,6 +715,7 @@ class FileAuthSessionBackend:
                 if await path.is_symlink():
                     continue
                 await self._remove_file(path)
+            self._cache.clear()
 
     async def clear_expired(self):
         """
@@ -670,6 +723,13 @@ class FileAuthSessionBackend:
         """
         now = time.time()
         async with self._lock:
+            expired_cache_tokens = [
+                session_token for session_token, entry in self._cache.items() if entry.retention_expires_at <= now
+            ]
+            for session_token in expired_cache_tokens:
+                self._cache.pop(session_token, None)
+                await self._remove_file(self._session_file_path(session_token))
+
             async for path in self._valid_session_files():
                 entry = await self._read_entry_file(path)
                 if entry is not None and entry.retention_expires_at <= now:
