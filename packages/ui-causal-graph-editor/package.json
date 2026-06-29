@@ -67,7 +67,7 @@
     "ts-jest": "^29.1.0",
     "tsc-alias": "^1.8.5",
     "typescript": "^5.8.2",
-    "vite": "7.3.2"
+    "vite": "7.3.5"
   },
   "dependencies": {
     "@darajs/styled-components": "1.29.0",
