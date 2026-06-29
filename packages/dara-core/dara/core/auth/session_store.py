@@ -301,6 +301,9 @@ class FileAuthSessionBackend:
             app-scoped directory under the platform temp directory is created.
         """
         self.root = self._resolve_root(path)
+        # Serialize public operations within this backend instance so a
+        # refresh-time set cannot recreate a session removed by logout/revoke.
+        self._lock = anyio.Lock()
 
     @staticmethod
     def _default_root() -> Path:
@@ -542,6 +545,24 @@ class FileAuthSessionBackend:
         except OSError as e:
             raise RuntimeError(f'Failed to list auth session file backend root: {self.root}') from e
 
+    def _get_unlocked(self, session_token: str, now: float) -> StoredAuthSession | None:
+        """
+        Return a stored session without acquiring the backend lock.
+
+        :param session_token: Opaque browser session handle.
+        :param now: Current timestamp used for expiration checks.
+        """
+        path = self._session_file_path(session_token)
+        entry = self._read_entry_file(path)
+        if entry is None:
+            return None
+
+        if entry.retention_expires_at <= now:
+            self._remove_file(path)
+            return None
+
+        return _build_stored_session(entry, now)
+
     async def create(self, auth_token: str, token_data: TokenData, refresh_token: str | None = None) -> str:
         """
         Store an auth token under a new opaque session token.
@@ -554,16 +575,17 @@ class FileAuthSessionBackend:
         now = time.time()
         entry = _build_session_entry(auth_token, token_data, refresh_token, now)
 
-        session_token = generate_auth_session_token()
-        path = self._session_file_path(session_token)
-        # Token collisions are cryptographically unlikely, but create must never
-        # overwrite an existing session file when one does happen.
-        while path.exists():
+        async with self._lock:
             session_token = generate_auth_session_token()
             path = self._session_file_path(session_token)
+            # Token collisions are cryptographically unlikely, but create must never
+            # overwrite an existing session file when one does happen.
+            while path.exists():
+                session_token = generate_auth_session_token()
+                path = self._session_file_path(session_token)
 
-        self._write_entry_file(path, entry)
-        return session_token
+            self._write_entry_file(path, entry)
+            return session_token
 
     async def set(
         self,
@@ -582,22 +604,23 @@ class FileAuthSessionBackend:
         """
 
         now = time.time()
-        path = self._session_file_path(session_token)
-        existing = await self.get(session_token)
-        if existing is None:
-            return False
+        async with self._lock:
+            path = self._session_file_path(session_token)
+            existing = self._get_unlocked(session_token, now)
+            if existing is None:
+                return False
 
-        try:
-            entry = _build_session_entry(auth_token, token_data, refresh_token, now)
-        except ValueError:
-            self._remove_file(path)
-            raise
+            try:
+                entry = _build_session_entry(auth_token, token_data, refresh_token, now)
+            except ValueError:
+                self._remove_file(path)
+                raise
 
-        if not path.exists():
-            return False
+            if not path.exists():
+                return False
 
-        self._write_entry_file(path, entry)
-        return True
+            self._write_entry_file(path, entry)
+            return True
 
     async def get(self, session_token: str) -> StoredAuthSession | None:
         """
@@ -607,16 +630,8 @@ class FileAuthSessionBackend:
         """
 
         now = time.time()
-        path = self._session_file_path(session_token)
-        entry = self._read_entry_file(path)
-        if entry is None:
-            return None
-
-        if entry.retention_expires_at <= now:
-            self._remove_file(path)
-            return None
-
-        return _build_stored_session(entry, now)
+        async with self._lock:
+            return self._get_unlocked(session_token, now)
 
     async def remove(self, session_token: str) -> StoredAuthSession | None:
         """
@@ -624,29 +639,33 @@ class FileAuthSessionBackend:
 
         :param session_token: Opaque browser session handle to remove.
         """
-        path = self._session_file_path(session_token)
-        stored_session = await self.get(session_token)
-        self._remove_file(path)
-        return stored_session
+        now = time.time()
+        async with self._lock:
+            path = self._session_file_path(session_token)
+            stored_session = self._get_unlocked(session_token, now)
+            self._remove_file(path)
+            return stored_session
 
     async def clear(self):
         """
         Remove all valid session files in this backend root.
         """
-        for path in self._valid_session_files():
-            if path.is_symlink():
-                continue
-            self._remove_file(path)
+        async with self._lock:
+            for path in self._valid_session_files():
+                if path.is_symlink():
+                    continue
+                self._remove_file(path)
 
     async def clear_expired(self):
         """
         Remove valid session files whose retention window has expired.
         """
         now = time.time()
-        for path in self._valid_session_files():
-            entry = self._read_entry_file(path)
-            if entry is not None and entry.retention_expires_at <= now:
-                self._remove_file(path)
+        async with self._lock:
+            for path in self._valid_session_files():
+                entry = self._read_entry_file(path)
+                if entry is not None and entry.retention_expires_at <= now:
+                    self._remove_file(path)
 
 
 def _is_local_reload(config: 'Configuration') -> bool:
