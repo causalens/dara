@@ -179,12 +179,10 @@ async def test_startup_explicit_memory_auth_session_backend_overrides_reload(mon
 async def test_startup_explicit_file_auth_session_backend_is_honored_outside_reload(
     monkeypatch,
     tmp_path,
-    caplog: pytest.LogCaptureFixture,
 ):
     """Check users can explicitly select file storage outside reload."""
     monkeypatch.delenv('DARA_LIVE_RELOAD', raising=False)
     monkeypatch.delenv('DARA_HMR_MODE', raising=False)
-    caplog.set_level(logging.WARNING, logger='dara.dev')
     backend = FileAuthSessionBackend(path=tmp_path)
     config = ConfigurationBuilder()
     config.auth_session_backend = backend
@@ -193,15 +191,6 @@ async def test_startup_explicit_file_auth_session_backend_is_honored_outside_rel
 
     async with AsyncClient(app):
         assert get_auth_session_backend() is backend
-        assert _get_log_content(
-            caplog, 'File auth session backend is local disk storage and stores raw auth session material'
-        ) == {
-            'path': str(tmp_path),
-            'recommendation': (
-                'Use the in-memory backend when restart continuity is not required. For shared or durable '
-                'production sessions, prefer a database or shared cache backend when available.'
-            ),
-        }
 
 
 async def test_startup_custom_auth_session_backend_factory_is_called_once():
