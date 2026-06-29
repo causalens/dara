@@ -1,3 +1,10 @@
+## Repo Basics
+
+- This is a Python 3.11 monorepo managed by Poetry + Anthology.
+    - If dependencies change, run `poetry antho install` from repo root.
+    - `poetry antho install` collects all dependencies into top-level `pyproject.toml`, installs them and symlinks each package's `.venv` to the top-level `.venv`
+- First-party packages live in `packages/*`.
+
 ## Changelog
 
 Before submitting a PR, make sure to update the `changelog.md` file for the relevant package.
