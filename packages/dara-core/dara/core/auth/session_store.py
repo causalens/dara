@@ -406,30 +406,30 @@ class FileAuthSessionBackend:
             },
         )
 
-    def _read_entry_file(self, path: Path) -> _SessionEntry | None:
+    async def _read_entry_file(self, path: Path) -> _SessionEntry | None:
         """
-        Read and parse a session file.
+        Read and parse a session file without blocking the event loop.
 
         :param path: Expected session file path.
         """
         if not self._is_session_file(path):
             return None
-        if path.is_symlink():
+        async_path = anyio.Path(path)
+        if await async_path.is_symlink():
             self._warn_ignored_file(path, 'symlink')
             return None
 
         try:
-            if not path.exists():
+            if not await async_path.exists():
                 return None
-            if not path.is_file():
+            if not await async_path.is_file():
                 self._warn_ignored_file(path, 'not_file')
                 return None
-            if path.stat().st_size > MAX_AUTH_SESSION_FILE_BYTES:
+            if (await async_path.stat()).st_size > MAX_AUTH_SESSION_FILE_BYTES:
                 self._warn_ignored_file(path, 'oversized')
                 return None
 
-            with path.open('r', encoding='utf-8') as file:
-                payload = json.load(file)
+            payload = json.loads(await async_path.read_text(encoding='utf-8'))
 
             if not isinstance(payload, dict):
                 raise ValueError('Payload is not an object')
@@ -546,7 +546,7 @@ class FileAuthSessionBackend:
         except OSError as e:
             raise RuntimeError(f'Failed to list auth session file backend root: {self.root}') from e
 
-    def _get_unlocked(self, session_token: str, now: float) -> StoredAuthSession | None:
+    async def _get_unlocked(self, session_token: str, now: float) -> StoredAuthSession | None:
         """
         Return a stored session without acquiring the backend lock.
 
@@ -554,7 +554,7 @@ class FileAuthSessionBackend:
         :param now: Current timestamp used for expiration checks.
         """
         path = self._session_file_path(session_token)
-        entry = self._read_entry_file(path)
+        entry = await self._read_entry_file(path)
         if entry is None:
             return None
 
@@ -607,7 +607,7 @@ class FileAuthSessionBackend:
         now = time.time()
         async with self._lock:
             path = self._session_file_path(session_token)
-            existing = self._get_unlocked(session_token, now)
+            existing = await self._get_unlocked(session_token, now)
             if existing is None:
                 return False
 
@@ -632,7 +632,7 @@ class FileAuthSessionBackend:
 
         now = time.time()
         async with self._lock:
-            return self._get_unlocked(session_token, now)
+            return await self._get_unlocked(session_token, now)
 
     async def remove(self, session_token: str) -> StoredAuthSession | None:
         """
@@ -643,7 +643,7 @@ class FileAuthSessionBackend:
         now = time.time()
         async with self._lock:
             path = self._session_file_path(session_token)
-            stored_session = self._get_unlocked(session_token, now)
+            stored_session = await self._get_unlocked(session_token, now)
             self._remove_file(path)
             return stored_session
 
@@ -664,7 +664,7 @@ class FileAuthSessionBackend:
         now = time.time()
         async with self._lock:
             for path in self._valid_session_files():
-                entry = self._read_entry_file(path)
+                entry = await self._read_entry_file(path)
                 if entry is not None and entry.retention_expires_at <= now:
                     self._remove_file(path)
 
