@@ -62,11 +62,40 @@ config.auth_session_backend = FileAuthSessionBackend()
 
 # Or choose the directory explicitly
 config.auth_session_backend = FileAuthSessionBackend(path='/secure/session-dir')
+
+# Tune or disable the in-process cache
+config.auth_session_backend = FileAuthSessionBackend(path='/secure/session-dir', cache_size=2048)
 ```
 
-`FileAuthSessionBackend()` also accepts `DARA_AUTH_SESSION_FILE_PATH` as its default directory override when no `path` is passed. Explicit and environment-provided directories must already exist. When no path is configured, Dara creates an app-scoped directory under the platform temporary directory.
+### File Backend
 
-The file backend stores one complete session snapshot per file. Filenames are hashes of the opaque browser session token, but file contents include raw auth token material and should be treated as sensitive. The file backend is local, single-host storage. It is useful for local reload loops, demos, and single-host proof-of-concept deployments. For production deployments, use the in-memory backend if logging users out on restart is acceptable; if sessions must survive restarts, prefer a durable database or shared cache backend when available.
+#### Path
+
+When `FileAuthSessionBackend()` is configured without a `path`, Dara resolves the session directory in this order:
+
+1.  The `path` argument, if provided.
+2.  The `DARA_AUTH_SESSION_FILE_PATH` environment variable, if set.
+3.  An app-scoped directory under the platform temporary directory.
+
+Explicit and environment-provided directories must already exist. Dara only creates the default temporary directory, which may be ephemeral in deployed environments. If sessions need to survive restarts outside local development, configure a durable mounted path.
+
+#### Storage And Cache
+
+The file backend stores one complete session snapshot per file and keeps a bounded read-through cache for active sessions. The default `cache_size` is 1024 sessions; set `cache_size=0` to disable the memory cache.
+
+Filenames are hashes of the opaque browser session token and never contain the raw token.
+
+::::caution
+File contents include raw auth token material. Treat session files as secrets and store them on access-controlled disk.
+::::
+
+#### When To Use It
+
+The file backend is local, single-host storage. It is reasonable where restart continuity is worth local-disk persistence.
+
+-   Use `InMemoryAuthSessionBackend` when restart continuity is not required.
+-   Use `FileAuthSessionBackend` for single-host persistence. In deployed environments, configure a durable mounted path and run `clear_expired()` from your own maintenance process if expired-session cleanup matters.
+-   Prefer a database or shared-cache backend when you need shared storage across hosts, stronger operational controls, or managed expiry.
 
 ## Signing Key
 

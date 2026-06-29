@@ -775,18 +775,6 @@ def resolve_auth_session_backend(
 
     dev_logger.info('Using auth session backend', {'backend': backend.__class__.__name__})
 
-    if isinstance(backend, FileAuthSessionBackend) and not _should_use_file_auth_sessions_by_default():
-        dev_logger.warning(
-            'File auth session backend is local disk storage and stores raw auth session material',
-            {
-                'path': str(backend.root),
-                'recommendation': (
-                    'Use the in-memory backend when restart continuity is not required. For shared or durable '
-                    'production sessions, prefer a database or shared cache backend when available.'
-                ),
-            },
-        )
-
     return backend
 
 
