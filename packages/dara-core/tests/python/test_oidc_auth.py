@@ -13,6 +13,7 @@ import pytest
 import respx
 from async_asgi_testclient import TestClient as AsyncClient
 from fastapi import HTTPException
+from freezegun import freeze_time
 from jwt import PyJWK, PyJWKClient
 
 from dara.core.auth.definitions import (
@@ -38,7 +39,14 @@ from dara.core.auth.oidc.settings import get_oidc_settings
 from dara.core.auth.oidc.transaction_store import oidc_transaction_store
 from dara.core.auth.oidc.utils import decode_id_token
 from dara.core.auth.session import verify_auth_token
-from dara.core.auth.session_store import AuthSession, AuthSessionStore, ExpiredAuthSession, auth_session_store
+from dara.core.auth.session_store import (
+    AuthSession,
+    ExpiredAuthSession,
+    InMemoryAuthSessionBackend,
+    generate_auth_session_token,
+    get_auth_session_backend,
+    set_auth_session_backend,
+)
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.internal.registries import utils_registry
 from dara.core.internal.settings import get_settings
@@ -66,6 +74,36 @@ ENV_OVERRIDE = {
     'SSO_REDIRECT_URI': TEST_SSO_REDIRECT_URI,
     'SSO_GROUPS': TEST_SSO_GROUPS,
 }
+
+
+class PredictableAuthSessionBackend(InMemoryAuthSessionBackend):
+    """
+    In-memory backend that patches the core session-token generator for deterministic tests.
+    """
+
+    def __init__(self, *session_tokens: str):
+        super().__init__()
+        self._session_tokens = iter(session_tokens)
+
+    async def create(self, auth_token: str, token_data: TokenData, refresh_token: str | None = None) -> str:
+        with mock.patch(
+            'dara.core.auth.session_store.generate_auth_session_token',
+            side_effect=lambda: next(self._session_tokens),
+        ):
+            return await super().create(auth_token, token_data, refresh_token=refresh_token)
+
+
+def auth_session_store_with_tokens(*session_tokens: str) -> InMemoryAuthSessionBackend:
+    """
+    Create an auth session store that issues predictable opaque session tokens.
+    """
+
+    return PredictableAuthSessionBackend(*session_tokens)
+
+
+def timestamp_datetime(timestamp: float) -> datetime:
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+
 
 # Sample RS256 key
 MOCK_JWK = {
@@ -172,13 +210,13 @@ def mock_discovery():
 
 @pytest.fixture(autouse=True)
 async def clear_auth_session_store():
-    await auth_session_store.clear()
+    set_auth_session_backend(InMemoryAuthSessionBackend())
     yield
-    await auth_session_store.clear()
+    await get_auth_session_backend().clear()
 
 
 async def get_stored_auth_session(session_token: str) -> AuthSession:
-    stored_session = await auth_session_store.get(session_token)
+    stored_session = await get_auth_session_backend().get(session_token)
     assert stored_session is not None
     return stored_session
 
@@ -199,7 +237,7 @@ async def create_mock_dara_session_token(refresh_token: str = 'mock-refresh-toke
         }
     )
     raw_token = jwt.encode(token_data.model_dump(), ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-    return await auth_session_store.create(
+    return await get_auth_session_backend().create(
         raw_token,
         token_data,
         refresh_token=refresh_token,
@@ -1666,7 +1704,7 @@ async def test_verify_token_opaque_token_without_session_data_fails():
     """
     Test opaque Dara OIDC token verification fails when session data is missing.
     """
-    session_token = AuthSessionStore.generate_session_token()
+    session_token = generate_auth_session_token()
 
     auth_config = make_config()
 
@@ -1681,7 +1719,7 @@ async def test_auth_session_store_retains_session_until_auth_token_retention_wit
     """
     Test auth session store retention is based on auth token expiry when no refresh token exists.
     """
-    store = AuthSessionStore()
+    store = auth_session_store_with_tokens('token-1')
     token_data = TokenData(
         session_id='session-1',
         exp=200.0,
@@ -1691,19 +1729,16 @@ async def test_auth_session_store_retains_session_until_auth_token_retention_wit
         groups=['dev'],
     )
 
-    with (
-        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
-    ):
-        mock_time.return_value = 100.0
-        await store.set('token-1', 'auth-token-1', token_data)
+    with freeze_time(timestamp_datetime(100.0)) as frozen_time:
+        assert await store.create('auth-token-1', token_data) == 'token-1'
 
-        mock_time.return_value = 150.0
+        frozen_time.move_to(timestamp_datetime(150.0))
         assert (await store.get('token-1')).token_data == token_data
 
-        mock_time.return_value = 259.0
+        frozen_time.move_to(timestamp_datetime(259.0))
         assert (await store.get('token-1')).token_data == token_data
 
-        mock_time.return_value = 260.1
+        frozen_time.move_to(timestamp_datetime(260.1))
         assert await store.get('token-1') is None
 
 
@@ -1711,7 +1746,7 @@ async def test_auth_session_store_retains_session_until_refresh_token_expiry():
     """
     Test auth session store retention follows the refresh token expiry when it is later than the auth token expiry.
     """
-    store = AuthSessionStore()
+    store = auth_session_store_with_tokens('token-1')
     token_data = TokenData(
         session_id='session-1',
         exp=200.0,
@@ -1722,21 +1757,18 @@ async def test_auth_session_store_retains_session_until_refresh_token_expiry():
     )
     refresh_token = jwt.encode({'exp': 500.0}, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
 
-    with (
-        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
-    ):
-        mock_time.return_value = 100.0
-        await store.set('token-1', 'auth-token-1', token_data, refresh_token=refresh_token)
+    with freeze_time(timestamp_datetime(100.0)) as frozen_time:
+        assert await store.create('auth-token-1', token_data, refresh_token=refresh_token) == 'token-1'
 
-        mock_time.return_value = 260.1
+        frozen_time.move_to(timestamp_datetime(260.1))
         stored_session = await store.get('token-1')
         assert isinstance(stored_session, ExpiredAuthSession)
         assert stored_session.refresh_token == refresh_token
 
-        mock_time.return_value = 559.0
+        frozen_time.move_to(timestamp_datetime(559.0))
         assert (await store.get('token-1')).token_data == token_data
 
-        mock_time.return_value = 560.1
+        frozen_time.move_to(timestamp_datetime(560.1))
         assert await store.get('token-1') is None
 
 
@@ -1744,7 +1776,7 @@ async def test_auth_session_store_uses_max_age_for_refresh_token_without_expiry(
     """
     Test auth session store uses a bounded max age when the refresh token has no known expiry.
     """
-    store = AuthSessionStore()
+    store = auth_session_store_with_tokens('token-1')
     token_data = TokenData(
         session_id='session-1',
         exp=100.0,
@@ -1754,18 +1786,15 @@ async def test_auth_session_store_uses_max_age_for_refresh_token_without_expiry(
         groups=['dev'],
     )
 
-    with (
-        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
-    ):
-        mock_time.return_value = 99.0
-        await store.set('token-1', 'auth-token-1', token_data, refresh_token='opaque-refresh-token')
+    with freeze_time(timestamp_datetime(99.0)) as frozen_time:
+        assert await store.create('auth-token-1', token_data, refresh_token='opaque-refresh-token') == 'token-1'
 
-        mock_time.return_value = 99.0 + get_settings().auth_session_max_age_seconds + 59.0
+        frozen_time.move_to(timestamp_datetime(99.0 + get_settings().auth_session_max_age_seconds + 59.0))
         stored_session = await store.get('token-1')
         assert isinstance(stored_session, ExpiredAuthSession)
         assert stored_session.refresh_token == 'opaque-refresh-token'
 
-        mock_time.return_value = 99.0 + get_settings().auth_session_max_age_seconds + 60.1
+        frozen_time.move_to(timestamp_datetime(99.0 + get_settings().auth_session_max_age_seconds + 60.1))
         assert await store.get('token-1') is None
 
 
@@ -1773,7 +1802,7 @@ async def test_auth_session_store_keeps_expired_session_until_refresh_retention(
     """
     Test auth session store represents expired-but-refreshable sessions explicitly.
     """
-    store = AuthSessionStore()
+    store = auth_session_store_with_tokens('token-1')
     token_data = TokenData(
         session_id='session-1',
         exp=100.0,
@@ -1783,18 +1812,15 @@ async def test_auth_session_store_keeps_expired_session_until_refresh_retention(
         groups=['dev'],
     )
 
-    with (
-        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
-    ):
-        mock_time.return_value = 99.0
-        await store.set('token-1', 'auth-token-1', token_data)
+    with freeze_time(timestamp_datetime(99.0)) as frozen_time:
+        assert await store.create('auth-token-1', token_data) == 'token-1'
 
-        mock_time.return_value = 100.5
+        frozen_time.move_to(timestamp_datetime(100.5))
         stored_session = await store.get('token-1')
         assert isinstance(stored_session, ExpiredAuthSession)
         assert stored_session.token_data == token_data
 
-        mock_time.return_value = 160.1
+        frozen_time.move_to(timestamp_datetime(160.1))
         assert await store.get('token-1') is None
 
 
@@ -1802,7 +1828,7 @@ async def test_auth_session_store_rejects_session_beyond_refresh_retention():
     """
     Test auth session store does not return handles for sessions it refuses to store.
     """
-    store = AuthSessionStore()
+    store = InMemoryAuthSessionBackend()
     token_data = TokenData(
         session_id='session-1',
         exp=100.0,
@@ -1812,19 +1838,43 @@ async def test_auth_session_store_rejects_session_beyond_refresh_retention():
         groups=['dev'],
     )
 
-    with (
-        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
-    ):
-        mock_time.return_value = 161.0
+    with freeze_time(timestamp_datetime(161.0)):
         with pytest.raises(ValueError):
             await store.create('auth-token-1', token_data)
 
 
-async def test_auth_session_store_retains_all_unexpired_sessions():
+async def test_auth_session_store_set_updates_existing_session():
     """
-    Test auth session store does not evict unexpired sessions based on entry count.
+    Test auth session store set replaces an existing opaque session.
     """
-    store = AuthSessionStore()
+    store = auth_session_store_with_tokens('token-1')
+    old_token_data = TokenData(
+        session_id='session-1',
+        exp=200.0,
+        identity_id='PERSONA_ID',
+        identity_name='USERNAME',
+        identity_email='username@causalens.com',
+        groups=['dev'],
+    )
+    new_token_data = old_token_data.model_copy(update={'identity_name': 'UPDATED_USERNAME'})
+
+    with freeze_time(timestamp_datetime(100.0)) as frozen_time:
+        assert await store.create('auth-token-1', old_token_data) == 'token-1'
+
+        frozen_time.move_to(timestamp_datetime(110.0))
+        assert await store.set('token-1', 'auth-token-2', new_token_data)
+
+        stored_session = await store.get('token-1')
+        assert stored_session is not None
+        assert stored_session.auth_token == 'auth-token-2'
+        assert stored_session.token_data == new_token_data
+
+
+async def test_auth_session_store_set_does_not_create_missing_session():
+    """
+    Test auth session store set does not recreate missing or revoked sessions.
+    """
+    store = InMemoryAuthSessionBackend()
     token_data = TokenData(
         session_id='session-1',
         exp=200.0,
@@ -1834,20 +1884,68 @@ async def test_auth_session_store_retains_all_unexpired_sessions():
         groups=['dev'],
     )
 
-    with (
-        mock.patch('dara.core.auth.session_store.time.time') as mock_time,
-    ):
-        mock_time.return_value = 100.0
-        await store.set('token-1', 'auth-token-1', token_data)
+    with freeze_time(timestamp_datetime(100.0)):
+        assert not await store.set('token-1', 'auth-token-1', token_data)
+        assert await store.get('token-1') is None
 
-        mock_time.return_value = 101.0
-        await store.set('token-2', 'auth-token-2', token_data.model_copy(update={'session_id': 'session-2'}))
 
-        mock_time.return_value = 102.0
+async def test_auth_session_store_clear_expired_removes_only_expired_sessions():
+    """
+    Test auth session store clear_expired removes expired sessions without clearing active sessions.
+    """
+    store = auth_session_store_with_tokens('token-1', 'token-2')
+    expired_token_data = TokenData(
+        session_id='session-1',
+        exp=100.0,
+        identity_id='PERSONA_ID',
+        identity_name='USERNAME',
+        identity_email='username@causalens.com',
+        groups=['dev'],
+    )
+    active_token_data = expired_token_data.model_copy(update={'session_id': 'session-2', 'exp': 300.0})
+
+    with freeze_time(timestamp_datetime(99.0)) as frozen_time:
+        assert await store.create('auth-token-1', expired_token_data) == 'token-1'
+        assert await store.create('auth-token-2', active_token_data) == 'token-2'
+
+        frozen_time.move_to(timestamp_datetime(160.1))
+        await store.clear_expired()
+
+        assert await store.get('token-1') is None
+        active_session = await store.get('token-2')
+        assert active_session is not None
+        assert active_session.token_data == active_token_data
+
+
+async def test_auth_session_store_retains_all_unexpired_sessions():
+    """
+    Test auth session store does not evict unexpired sessions based on entry count.
+    """
+    store = auth_session_store_with_tokens('token-1', 'token-2', 'token-3')
+    token_data = TokenData(
+        session_id='session-1',
+        exp=200.0,
+        identity_id='PERSONA_ID',
+        identity_name='USERNAME',
+        identity_email='username@causalens.com',
+        groups=['dev'],
+    )
+
+    with freeze_time(timestamp_datetime(100.0)) as frozen_time:
+        assert await store.create('auth-token-1', token_data) == 'token-1'
+
+        frozen_time.move_to(timestamp_datetime(101.0))
+        assert (
+            await store.create('auth-token-2', token_data.model_copy(update={'session_id': 'session-2'})) == 'token-2'
+        )
+
+        frozen_time.move_to(timestamp_datetime(102.0))
         assert (await store.get('token-1')).token_data == token_data
 
-        mock_time.return_value = 103.0
-        await store.set('token-3', 'auth-token-3', token_data.model_copy(update={'session_id': 'session-3'}))
+        frozen_time.move_to(timestamp_datetime(103.0))
+        assert (
+            await store.create('auth-token-3', token_data.model_copy(update={'session_id': 'session-3'})) == 'token-3'
+        )
 
         assert (await store.get('token-1')).token_data == token_data
         assert (await store.get('token-2')).token_data == token_data.model_copy(update={'session_id': 'session-2'})
@@ -1911,7 +2009,7 @@ async def test_verify_session_expired_opaque_token_refreshes_with_existing_sessi
                 id_token='old-id-token',
             )
             raw_session_token = jwt.encode(old_token_data.model_dump(), ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-            expired_session_token = await auth_session_store.create(
+            expired_session_token = await get_auth_session_backend().create(
                 raw_session_token,
                 old_token_data,
                 refresh_token='expired-session-refresh-token',
@@ -1963,7 +2061,7 @@ async def test_verify_session_opaque_token_forces_relogin_when_session_store_ent
     with mocked_urllib(MOCK_JWKS_DATA) as mock_urllib:
         app = _start_application(config._to_configuration())
         async with AsyncClient(app) as client:
-            stale_session_token = AuthSessionStore.generate_session_token()
+            stale_session_token = generate_auth_session_token()
 
             response = await client.post(
                 '/api/auth/verify-session',
@@ -2031,7 +2129,7 @@ async def test_websocket_disconnect_preserves_auth_session_store_for_verify_sess
             ENV_OVERRIDE['JWT_SECRET'],
             algorithm=JWT_ALGO,
         )
-        session_token = await auth_session_store.create(raw_token, token_data)
+        session_token = await get_auth_session_backend().create(raw_token, token_data)
 
         async with _async_ws_connect(client, session_token) as websocket:
             # consume websocket init payload
@@ -2117,7 +2215,7 @@ async def test_revoke_session():
                 'id_token': id_token,
             }
             encoded_test_token = jwt.encode(test_token, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-            session_token = await auth_session_store.create(encoded_test_token, TokenData(**test_token))
+            session_token = await get_auth_session_backend().create(encoded_test_token, TokenData(**test_token))
 
             response = await client.post(
                 '/api/auth/revoke-session',
@@ -2156,7 +2254,7 @@ async def test_revoke_session_opaque_token_uses_stored_raw_id_token():
             ENV_OVERRIDE['JWT_SECRET'],
             algorithm=JWT_ALGO,
         )
-        session_token = await auth_session_store.create(
+        session_token = await get_auth_session_backend().create(
             raw_token,
             TokenData(
                 session_id=session_id,
@@ -2176,7 +2274,7 @@ async def test_revoke_session_opaque_token_uses_stored_raw_id_token():
 
         assert response.status_code == 200
         assert response.json()['redirect_uri'] == auth_config.get_logout_url(id_token)
-        assert await auth_session_store.get(session_token) is None
+        assert await get_auth_session_backend().get(session_token) is None
 
 
 async def test_revoke_session_accepts_raw_id_token_bearer():
@@ -2238,7 +2336,7 @@ async def test_revoke_session_expired_token():
                 'id_token': id_token,
             }
             encoded_test_token = jwt.encode(test_token, ENV_OVERRIDE['JWT_SECRET'], algorithm=JWT_ALGO)
-            session_token = await auth_session_store.create(encoded_test_token, TokenData(**test_token))
+            session_token = await get_auth_session_backend().create(encoded_test_token, TokenData(**test_token))
 
             response = await client.post(
                 '/api/auth/revoke-session',

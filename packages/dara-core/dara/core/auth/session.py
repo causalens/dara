@@ -22,7 +22,7 @@ from fastapi import HTTPException
 
 from dara.core.auth.base import BaseAuthConfig
 from dara.core.auth.definitions import BAD_REQUEST_ERROR, INVALID_TOKEN_ERROR, AuthError, TokenData
-from dara.core.auth.session_store import StoredAuthSession, auth_session_store, get_auth_session_expiration
+from dara.core.auth.session_store import StoredAuthSession, get_auth_session_backend, get_auth_session_expiration
 from dara.core.auth.utils import cached_refresh_token
 
 
@@ -39,14 +39,14 @@ async def get_stored_auth_session(token: str) -> StoredAuthSession | None:
     """
     Return a stored auth session for an opaque browser session handle.
     """
-    return await auth_session_store.get(token)
+    return await get_auth_session_backend().get(token)
 
 
 async def remove_auth_session(token: str) -> StoredAuthSession | None:
     """
     Remove and return a stored auth session for an opaque browser session handle.
     """
-    return await auth_session_store.remove(token)
+    return await get_auth_session_backend().remove(token)
 
 
 async def verify_raw_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenData:
@@ -93,7 +93,7 @@ async def create_auth_session(auth_token: str, token_data: TokenData, refresh_to
     """
     Store raw auth token data server-side and return the browser-safe opaque handle.
     """
-    return await auth_session_store.create(auth_token, token_data, refresh_token=refresh_token)
+    return await get_auth_session_backend().create(auth_token, token_data, refresh_token=refresh_token)
 
 
 def get_auth_session_cookie_expiration(token_data: TokenData, refresh_token: str | None) -> float:
@@ -138,6 +138,10 @@ async def refresh_auth_session(
     new_token_data = await verify_raw_auth_token(auth_config, new_auth_token)
 
     session_token = refresh_subject.session_token
-    await auth_session_store.set(session_token, new_auth_token, new_token_data, refresh_token=new_refresh_token)
+    updated = await get_auth_session_backend().set(
+        session_token, new_auth_token, new_token_data, refresh_token=new_refresh_token
+    )
+    if not updated:
+        raise AuthError(INVALID_TOKEN_ERROR, 401)
 
     return session_token, new_token_data, new_refresh_token

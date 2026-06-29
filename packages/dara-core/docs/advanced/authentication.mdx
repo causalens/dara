@@ -35,6 +35,76 @@ For backwards compatibility, Dara still synthesizes an `Authorization: Bearer ..
 
 Programmatic callers can still authenticate by sending a raw token in the `Authorization: Bearer ...` header. With `OIDCAuthConfig`, this can be either a Dara-issued session JWT or an ID token issued by the configured OIDC provider.
 
+## Auth Session Storage
+
+Dara stores browser auth sessions server-side. The browser receives an opaque `HttpOnly` cookie, while Dara keeps the raw auth token material in an auth session backend.
+
+By default, Dara chooses the backend for the current runtime:
+
+-   Normal runtime uses `InMemoryAuthSessionBackend`. Sessions are process-local and users must log in again after a server restart.
+-   Local `dara start --reload` uses `FileAuthSessionBackend`. Sessions are written to local disk so code reloads do not force repeated logins during development.
+-   Docker and production modes keep using the in-memory backend unless you explicitly configure another backend.
+
+You can configure the backend directly on `ConfigurationBuilder`:
+
+```python
+from dara.core import ConfigurationBuilder
+from dara.core.auth import BasicAuthConfig, FileAuthSessionBackend, InMemoryAuthSessionBackend
+
+config = ConfigurationBuilder()
+config.add_auth(BasicAuthConfig(username='admin', password='secret'))
+
+# Always use process-local sessions
+config.auth_session_backend = InMemoryAuthSessionBackend()
+
+# Persist sessions to the default local file path
+config.auth_session_backend = FileAuthSessionBackend()
+
+# Or choose the directory explicitly
+config.auth_session_backend = FileAuthSessionBackend(path='/secure/session-dir')
+
+# Tune or disable the in-process cache
+config.auth_session_backend = FileAuthSessionBackend(path='/secure/session-dir', cache_size=2048)
+```
+
+### File Backend
+
+#### Path
+
+When `FileAuthSessionBackend()` is configured without a `path`, Dara resolves the session directory in this order:
+
+1.  The `path` argument, if provided.
+2.  The `DARA_AUTH_SESSION_FILE_PATH` environment variable, if set.
+3.  An app-scoped directory under the platform temporary directory.
+
+Explicit and environment-provided directories must already exist. Dara only creates the default temporary directory, which may be ephemeral in deployed environments. If sessions need to survive restarts outside local development, configure a durable mounted path.
+
+#### Storage And Cache
+
+The file backend stores one complete session snapshot per file and keeps a bounded read-through cache for active sessions. The default `cache_size` is 1024 sessions; set `cache_size=0` to disable the memory cache.
+
+Filenames are hashes of the opaque browser session token and never contain the raw token.
+
+::::caution
+File contents include raw auth token material. Treat session files as secrets and store them on access-controlled disk.
+::::
+
+#### When To Use It
+
+The file backend is local, single-host storage. It is reasonable where restart continuity is worth local-disk persistence.
+
+-   Use `InMemoryAuthSessionBackend` when restart continuity is not required.
+-   Use `FileAuthSessionBackend` for single-host persistence. In deployed environments, configure a durable mounted path and run `clear_expired()` from your own maintenance process if expired-session cleanup matters.
+-   Prefer a database or shared-cache backend when you need shared storage across hosts, stronger operational controls, or managed expiry.
+
+## Signing Key
+
+Dara uses `JWT_SECRET` to sign Dara-issued auth tokens. In production, set `JWT_SECRET` explicitly through your environment or secret-management system.
+
+In local development, if `JWT_SECRET` is not configured, Dara generates and reuses a development signing key in the platform user cache. This keeps local auth sessions valid across reloads. You can also provide your own stable `JWT_SECRET`, for example in a local `.env` file.
+
+Clearing the Dara user cache invalidates local development sessions. In Docker or production mode, a missing `JWT_SECRET` uses a process-local fallback and logs a warning because sessions may be invalidated on restart.
+
 ## Default Authentication
 
 The `DefaultAuthConfig` is the default authentication mode when no authentication is explicitly configured. It is useful for local development as it automatically creates a session without requiring any credentials.

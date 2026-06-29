@@ -37,6 +37,7 @@ from starlette.templating import Jinja2Templates, _TemplateResponse
 from starlette.types import Scope
 
 from dara.core.auth import auth_router
+from dara.core.auth.session_store import resolve_auth_session_backend, set_auth_session_backend
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import (
     blank_template,
@@ -66,6 +67,7 @@ from dara.core.internal.registries import (
 )
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import core_api_router, create_loader_route, error_decorator
+from dara.core.internal.runtime_env import is_backend_reload_enabled, is_docker_mode, is_hmr_enabled
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
@@ -117,14 +119,14 @@ def _start_application(config: Configuration):
     import fastapi_vite_dara.config
 
     # If --enable-hmr or --reload enabled, set live reload to true
-    if os.environ.get('DARA_HMR_MODE') == 'TRUE' or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE':
+    if is_hmr_enabled() or is_backend_reload_enabled():
         config.live_reload = True
 
     # Configure the default executor for threads run via the async loop
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', '8'))))
 
-    is_production = os.environ.get('DARA_DOCKER_MODE') == 'TRUE'
+    is_production = is_docker_mode()
 
     # Setup registries:
     # 1) cleanup ones which store results etc so if Dara is ran in a thread and restarted we get a fresh state
@@ -144,6 +146,8 @@ def _start_application(config: Configuration):
             setup_signal_handlers()
         except Exception as e:
             dev_logger.warning(f'Failed to set up signal handlers: {e}')
+
+        set_auth_session_backend(resolve_auth_session_backend(config.auth_session_backend, config))
 
         # Retrieve the existing Store instance for the application
         # Store must exist before the app starts as instantiating e.g. Variables

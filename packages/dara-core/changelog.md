@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+- `dara start --reload` now preserves browser auth sessions across backend reloads via a local file-backed session store. Normal runtime, Docker, and production keep in-memory auth sessions by default, so existing deployments are unchanged unless they configure another backend.
+- Added configurable auth session storage via `config.auth_session_backend`, with `InMemoryAuthSessionBackend` and `FileAuthSessionBackend` built in. The file backend persists one session per file with a bounded in-process cache, and supports `path` / `DARA_AUTH_SESSION_FILE_PATH` and `cache_size` options.
+- Local `JWT_SECRET` handling now reuses a generated development signing key from the user cache when no secret is set, so reloads no longer invalidate local sessions. Production and Docker should still set `JWT_SECRET`; if missing, Dara keeps the compatibility fallback and logs a warning.
+
 ## 1.28.7
 
 - Extended metrics to include HTTP request stats
