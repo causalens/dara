@@ -16,14 +16,13 @@ limitations under the License.
 """
 
 import os
-from hashlib import sha256
-from importlib.util import find_spec
 from pathlib import Path
 from secrets import token_hex
 
 from dotenv import dotenv_values
 from platformdirs import user_cache_path
 
+from dara.core.internal.app_scope import get_app_key
 from dara.core.logging import dev_logger
 
 JWT_SECRET_ENV_VAR = 'JWT_SECRET'
@@ -38,37 +37,8 @@ def _has_configured_jwt_secret(env_file: str) -> bool:
     return _has_jwt_secret_value(dict(os.environ)) or _has_jwt_secret_value(dotenv_values(env_file))
 
 
-def _get_config_module_scope() -> str | None:
-    config_path = os.environ.get('DARA_CONFIG_PATH')
-    if config_path is None:
-        return None
-
-    module_name = config_path.split(':', maxsplit=1)[0]
-
-    try:
-        module_spec = find_spec(module_name)
-    except (ImportError, ValueError):
-        return config_path
-
-    if module_spec is None:
-        return config_path
-
-    if module_spec.origin:
-        return str(Path(module_spec.origin).resolve())
-
-    if module_spec.submodule_search_locations:
-        return os.path.commonpath([str(Path(path).resolve()) for path in module_spec.submodule_search_locations])
-
-    return config_path
-
-
-def _get_dev_signing_key_scope() -> str:
-    return _get_config_module_scope() or str(Path.cwd().resolve())
-
-
 def get_dev_signing_key_path() -> Path:
-    app_key = sha256(_get_dev_signing_key_scope().encode()).hexdigest()
-    return user_cache_path('dara') / 'dev-signing-keys' / app_key / 'jwt-secret'
+    return user_cache_path('dara') / 'dev-signing-keys' / get_app_key() / 'jwt-secret'
 
 
 def _read_dev_signing_key(secret_path: Path) -> str | None:

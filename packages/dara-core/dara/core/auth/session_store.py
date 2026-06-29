@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import hashlib
 import json
 import os
 import re
@@ -26,6 +25,7 @@ from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from hashlib import sha256
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Protocol, runtime_checkable
 
@@ -34,6 +34,7 @@ from pydantic import ValidationError
 
 from dara.core.auth.definitions import TokenData
 from dara.core.auth.utils import AUTH_COOKIE_EXPIRATION_GRACE_SECONDS, get_token_expiration
+from dara.core.internal.app_scope import get_app_key
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
@@ -306,8 +307,7 @@ class FileAuthSessionBackend:
         """
         Return the default app-scoped temp directory for auth session files.
         """
-        project_key = hashlib.sha256(str(Path.cwd().resolve()).encode()).hexdigest()
-        return Path(tempfile.gettempdir()) / 'dara-sessions' / project_key
+        return Path(tempfile.gettempdir()) / 'dara-sessions' / get_app_key()
 
     @classmethod
     def _resolve_root(cls, path: str | Path | None) -> Path:
@@ -367,7 +367,7 @@ class FileAuthSessionBackend:
 
         :param session_token: Opaque browser session handle.
         """
-        return hashlib.sha256(session_token.encode()).hexdigest() + '.json'
+        return sha256(session_token.encode()).hexdigest() + '.json'
 
     def _session_file_path(self, session_token: str) -> Path:
         """

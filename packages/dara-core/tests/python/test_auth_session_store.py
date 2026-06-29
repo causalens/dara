@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from freezegun import freeze_time
 
+import dara.core.auth.session_store as session_store_module
 from dara.core.auth.definitions import TokenData
 from dara.core.auth.session_store import ExpiredAuthSession, FileAuthSessionBackend
 
@@ -190,3 +191,30 @@ def test_file_auth_session_backend_explicit_path_overrides_env_path(monkeypatch,
     backend = FileAuthSessionBackend(path=explicit_path)
 
     assert backend.root == explicit_path.resolve()
+
+
+def test_file_auth_session_backend_default_root_uses_config_module_scope(monkeypatch, tmp_path):
+    temp_root = tmp_path / 'temp'
+    app_root = tmp_path / 'app-root'
+    app_package = app_root / 'my_app'
+    launch_a = tmp_path / 'launch-a'
+    launch_b = tmp_path / 'launch-b'
+    temp_root.mkdir()
+    app_package.mkdir(parents=True)
+    launch_a.mkdir()
+    launch_b.mkdir()
+    (app_package / '__init__.py').write_text('', encoding='utf-8')
+    (app_package / 'main.py').write_text('config = object()\n', encoding='utf-8')
+    monkeypatch.delenv('DARA_AUTH_SESSION_FILE_PATH', raising=False)
+    monkeypatch.syspath_prepend(str(app_root))
+    monkeypatch.setenv('DARA_CONFIG_PATH', 'my_app.main:config')
+    monkeypatch.setattr(session_store_module.tempfile, 'gettempdir', lambda: str(temp_root))
+
+    monkeypatch.chdir(launch_a)
+    first_root = FileAuthSessionBackend().root
+
+    monkeypatch.chdir(launch_b)
+    second_root = FileAuthSessionBackend().root
+
+    assert first_root == second_root
+    assert first_root.parent == temp_root / 'dara-sessions'
