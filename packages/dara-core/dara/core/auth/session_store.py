@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Protocol, runtime_checkable
 
 import anyio
+from anyio import to_thread
 from pydantic import ValidationError
 
 from dara.core.auth.definitions import TokenData
@@ -373,16 +374,16 @@ class FileAuthSessionBackend:
         """
         return sha256(session_token.encode()).hexdigest() + '.json'
 
-    def _session_file_path(self, session_token: str) -> Path:
+    def _session_file_path(self, session_token: str) -> anyio.Path:
         """
         Return the storage path for a session token.
 
         :param session_token: Opaque browser session handle.
         """
-        return self.root / self._session_file_name(session_token)
+        return anyio.Path(self.root / self._session_file_name(session_token))
 
     @staticmethod
-    def _is_session_file(path: Path) -> bool:
+    def _is_session_file(path: anyio.Path) -> bool:
         """
         Check whether a path has the expected session-file name shape.
 
@@ -391,7 +392,7 @@ class FileAuthSessionBackend:
         return bool(AUTH_SESSION_FILE_NAME_PATTERN.fullmatch(path.name))
 
     @staticmethod
-    def _warn_ignored_file(path: Path, reason: str):
+    def _warn_ignored_file(path: anyio.Path, reason: str):
         """
         Log that a file was ignored without exposing token material.
 
@@ -406,7 +407,7 @@ class FileAuthSessionBackend:
             },
         )
 
-    async def _read_entry_file(self, path: Path) -> _SessionEntry | None:
+    async def _read_entry_file(self, path: anyio.Path) -> _SessionEntry | None:
         """
         Read and parse a session file without blocking the event loop.
 
@@ -414,22 +415,21 @@ class FileAuthSessionBackend:
         """
         if not self._is_session_file(path):
             return None
-        async_path = anyio.Path(path)
-        if await async_path.is_symlink():
+        if await path.is_symlink():
             self._warn_ignored_file(path, 'symlink')
             return None
 
         try:
-            if not await async_path.exists():
+            if not await path.exists():
                 return None
-            if not await async_path.is_file():
+            if not await path.is_file():
                 self._warn_ignored_file(path, 'not_file')
                 return None
-            if (await async_path.stat()).st_size > MAX_AUTH_SESSION_FILE_BYTES:
+            if (await path.stat()).st_size > MAX_AUTH_SESSION_FILE_BYTES:
                 self._warn_ignored_file(path, 'oversized')
                 return None
 
-            payload = json.loads(await async_path.read_text(encoding='utf-8'))
+            payload = json.loads(await path.read_text(encoding='utf-8'))
 
             if not isinstance(payload, dict):
                 raise ValueError('Payload is not an object')
@@ -475,14 +475,18 @@ class FileAuthSessionBackend:
             'retention_expires_at': entry.retention_expires_at,
         }
 
-    def _write_entry_file(self, path: Path, entry: _SessionEntry):
+    async def _write_entry_file(self, path: anyio.Path, entry: _SessionEntry):
         """
         Atomically write a complete session snapshot.
 
         :param path: Final session file path.
         :param entry: Session entry to write.
         """
-        tmp_path = self.root / f'.{path.stem}.{os.getpid()}.{secrets.token_hex(8)}.tmp'
+        tmp_path = anyio.Path(self.root / f'.{path.stem}.{os.getpid()}.{secrets.token_hex(8)}.tmp')
+
+        def opener(file_path: str, flags: int) -> int:
+            return os.open(file_path, flags | os.O_CREAT | os.O_EXCL, 0o600)
+
         try:
             # Write to a unique temporary file in the same directory so
             # os.replace below can publish the snapshot atomically on a single
@@ -490,57 +494,60 @@ class FileAuthSessionBackend:
             # file, and O_EXCL fails if our random temp name already exists.
             # The 0o600 mode gives read/write access only to the owner because
             # auth session files contain raw auth token material.
-            fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(fd, 'w', encoding='utf-8') as file:
-                json.dump(self._payload_from_entry(entry), file, separators=(',', ':'))
+            async with await anyio.open_file(tmp_path, 'w', encoding='utf-8', opener=opener) as file:
+                await file.write(json.dumps(self._payload_from_entry(entry), separators=(',', ':')))
                 # Flush Python and kernel buffers before publishing the file,
                 # so a crash cannot leave the final path pointing at a partial
                 # JSON payload.
-                file.flush()
-                os.fsync(file.fileno())
+                await file.flush()
+                await to_thread.run_sync(os.fsync, file.wrapped.fileno())
 
             # Readers should observe either the old complete file or the new
             # complete file, never an in-place rewrite.
-            os.replace(tmp_path, path)
+            await tmp_path.replace(path)
             # fsync the directory so the rename itself is durable on filesystems
             # that require directory metadata to be flushed separately.
-            self._fsync_root()
+            await self._fsync_root()
         except Exception:
             with suppress(OSError):
-                tmp_path.unlink(missing_ok=True)
+                await tmp_path.unlink(missing_ok=True)
             raise
 
-    def _fsync_root(self):
+    async def _fsync_root(self):
         """
         Best-effort fsync of the session directory metadata.
         """
-        try:
-            fd = os.open(self.root, os.O_RDONLY)
-        except OSError:
-            return
 
-        try:
-            os.fsync(fd)
-        except OSError:
-            pass
-        finally:
-            os.close(fd)
+        def fsync_root_sync():
+            try:
+                fd = os.open(self.root, os.O_RDONLY)
+            except OSError:
+                return
 
-    def _remove_file(self, path: Path):
+            try:
+                os.fsync(fd)
+            except OSError:
+                pass
+            finally:
+                os.close(fd)
+
+        await to_thread.run_sync(fsync_root_sync)
+
+    async def _remove_file(self, path: anyio.Path):
         """
         Remove a session file if it exists.
 
         :param path: Session file path to delete.
         """
         with suppress(FileNotFoundError):
-            path.unlink()
+            await path.unlink()
 
-    def _valid_session_files(self):
+    async def _valid_session_files(self):
         """
         Yield files matching the session-file name pattern.
         """
         try:
-            for path in self.root.iterdir():
+            async for path in anyio.Path(self.root).iterdir():
                 if self._is_session_file(path):
                     yield path
         except OSError as e:
@@ -559,7 +566,7 @@ class FileAuthSessionBackend:
             return None
 
         if entry.retention_expires_at <= now:
-            self._remove_file(path)
+            await self._remove_file(path)
             return None
 
         return _build_stored_session(entry, now)
@@ -581,11 +588,11 @@ class FileAuthSessionBackend:
             path = self._session_file_path(session_token)
             # Token collisions are cryptographically unlikely, but create must never
             # overwrite an existing session file when one does happen.
-            while path.exists():
+            while await path.exists():
                 session_token = generate_auth_session_token()
                 path = self._session_file_path(session_token)
 
-            self._write_entry_file(path, entry)
+            await self._write_entry_file(path, entry)
             return session_token
 
     async def set(
@@ -614,13 +621,13 @@ class FileAuthSessionBackend:
             try:
                 entry = _build_session_entry(auth_token, token_data, refresh_token, now)
             except ValueError:
-                self._remove_file(path)
+                await self._remove_file(path)
                 raise
 
-            if not path.exists():
+            if not await path.exists():
                 return False
 
-            self._write_entry_file(path, entry)
+            await self._write_entry_file(path, entry)
             return True
 
     async def get(self, session_token: str) -> StoredAuthSession | None:
@@ -644,7 +651,7 @@ class FileAuthSessionBackend:
         async with self._lock:
             path = self._session_file_path(session_token)
             stored_session = await self._get_unlocked(session_token, now)
-            self._remove_file(path)
+            await self._remove_file(path)
             return stored_session
 
     async def clear(self):
@@ -652,10 +659,10 @@ class FileAuthSessionBackend:
         Remove all valid session files in this backend root.
         """
         async with self._lock:
-            for path in self._valid_session_files():
-                if path.is_symlink():
+            async for path in self._valid_session_files():
+                if await path.is_symlink():
                     continue
-                self._remove_file(path)
+                await self._remove_file(path)
 
     async def clear_expired(self):
         """
@@ -663,10 +670,10 @@ class FileAuthSessionBackend:
         """
         now = time.time()
         async with self._lock:
-            for path in self._valid_session_files():
+            async for path in self._valid_session_files():
                 entry = await self._read_entry_file(path)
                 if entry is not None and entry.retention_expires_at <= now:
-                    self._remove_file(path)
+                    await self._remove_file(path)
 
 
 def _should_use_file_auth_sessions_by_default() -> bool:
