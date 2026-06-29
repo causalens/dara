@@ -35,6 +35,7 @@ from pydantic import ValidationError
 from dara.core.auth.definitions import TokenData
 from dara.core.auth.utils import AUTH_COOKIE_EXPIRATION_GRACE_SECONDS, get_token_expiration
 from dara.core.internal.app_scope import get_app_key
+from dara.core.internal.runtime_env import is_backend_reload_enabled, is_deploy_mode
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
@@ -668,13 +669,8 @@ class FileAuthSessionBackend:
                     self._remove_file(path)
 
 
-def _is_local_reload(config: 'Configuration') -> bool:
-    is_reload = (
-        config.live_reload or os.environ.get('DARA_LIVE_RELOAD') == 'TRUE' or os.environ.get('DARA_HMR_MODE') == 'TRUE'
-    )
-    is_deploy_mode = os.environ.get('DARA_DOCKER_MODE') == 'TRUE' or os.environ.get('DARA_PRODUCTION_MODE') == 'TRUE'
-
-    return is_reload and not is_deploy_mode
+def _should_use_file_auth_sessions_by_default() -> bool:
+    return is_backend_reload_enabled() and not is_deploy_mode()
 
 
 def auto_auth_session_backend(config: 'Configuration') -> AuthSessionBackend:
@@ -685,7 +681,7 @@ def auto_auth_session_backend(config: 'Configuration') -> AuthSessionBackend:
     survive process restarts. Other modes use process-local in-memory sessions.
     """
 
-    if _is_local_reload(config):
+    if _should_use_file_auth_sessions_by_default():
         return FileAuthSessionBackend()
 
     return InMemoryAuthSessionBackend()
@@ -712,7 +708,7 @@ def resolve_auth_session_backend(
 
     dev_logger.info('Using auth session backend', {'backend': backend.__class__.__name__})
 
-    if isinstance(backend, FileAuthSessionBackend) and not _is_local_reload(config):
+    if isinstance(backend, FileAuthSessionBackend) and not _should_use_file_auth_sessions_by_default():
         dev_logger.warning(
             'File auth session backend is local disk storage and stores raw auth session material',
             {

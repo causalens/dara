@@ -147,6 +147,22 @@ async def test_startup_auto_auth_session_backend_uses_file_for_local_reload(monk
         assert backend.root == tmp_path
 
 
+async def test_startup_auto_auth_session_backend_keeps_memory_for_hmr_only(monkeypatch, tmp_path):
+    """Check custom JS HMR does not imply backend process reload."""
+    monkeypatch.delenv('DARA_LIVE_RELOAD', raising=False)
+    monkeypatch.setenv('DARA_HMR_MODE', 'TRUE')
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    monkeypatch.setenv('DARA_AUTH_SESSION_FILE_PATH', str(tmp_path))
+
+    runtime_config = ConfigurationBuilder()._to_configuration()
+    app = _start_application(runtime_config)
+
+    async with AsyncClient(app):
+        assert runtime_config.live_reload
+        assert isinstance(get_auth_session_backend(), InMemoryAuthSessionBackend)
+
+
 async def test_startup_explicit_memory_auth_session_backend_overrides_reload(monkeypatch):
     """Check explicit concrete backends win over the auto factory."""
     monkeypatch.setenv('DARA_LIVE_RELOAD', 'TRUE')

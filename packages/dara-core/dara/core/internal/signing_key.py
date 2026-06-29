@@ -23,6 +23,7 @@ from dotenv import dotenv_values
 from platformdirs import user_cache_path
 
 from dara.core.internal.app_scope import get_app_key
+from dara.core.internal.runtime_env import is_deploy_mode
 from dara.core.logging import dev_logger
 
 JWT_SECRET_ENV_VAR = 'JWT_SECRET'
@@ -96,10 +97,6 @@ def _resolve_local_dev_signing_key() -> str:
         return PROCESS_JWT_SECRET
 
 
-def _is_deploy_mode() -> bool:
-    return os.environ.get('DARA_DOCKER_MODE') == 'TRUE' or os.environ.get('DARA_PRODUCTION_MODE') == 'TRUE'
-
-
 def _warn_missing_production_jwt_secret():
     dev_logger.warning(
         'JWT_SECRET is not explicitly configured. Dara generated a fallback secret. '
@@ -112,7 +109,7 @@ def resolve_jwt_secret(configured_secret: str, env_file: str) -> str:
     if _has_configured_jwt_secret(env_file):
         return configured_secret
 
-    if _is_deploy_mode():
+    if is_deploy_mode():
         _warn_missing_production_jwt_secret()
         return PROCESS_JWT_SECRET
 
