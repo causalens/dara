@@ -14,11 +14,15 @@
     ],
     "module": "preserve",
     "moduleDetection": "force",
+    "moduleResolution": "bundler",
     "noImplicitAny": true,
+    "noUncheckedSideEffectImports": false,
     "preserveSymlinks": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "target": "es6",
+    "strict": false,
+    "target": "es2015",
+    "types": ["node"],
     "verbatimModuleSyntax": true
   }
 }

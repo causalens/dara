@@ -3,7 +3,6 @@
   "exclude": ["tests/**", "**/*.spec.tsx", "**/*.stories.tsx", "dist/**", "**/src/packages/ui-causal-graph/graph-viewer/utils/stories-utils.tsx"],
   "include": ["./src"],
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": "./src",
     "esModuleInterop": true,
     "paths": {

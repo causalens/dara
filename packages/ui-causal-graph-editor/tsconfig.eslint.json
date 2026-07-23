@@ -3,7 +3,6 @@
   "include": ["./src/", "./tests/"],
   "exclude": [],
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": ".",
     "types": ["vite/client", "vitest/globals"],
     "paths": {

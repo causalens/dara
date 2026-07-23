@@ -13,6 +13,7 @@
     "@darajs/prettier-config": "1.29.0",
     "@typescript-eslint/eslint-plugin": "^8.26.1",
     "@typescript-eslint/parser": "^8.26.1",
+    "@typescript/native": "npm:typescript@^7.0.0",
     "@vitest/eslint-plugin": "^1.6.23",
     "eslint": "^8.57.1",
     "eslint-config-airbnb": "18.2.1",
@@ -23,7 +24,7 @@
     "eslint-plugin-react": "^7.21.5",
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.0.0",
-    "typescript": "^5.8.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "publishConfig": {
     "access": "public"
