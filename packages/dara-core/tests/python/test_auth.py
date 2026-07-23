@@ -879,10 +879,11 @@ async def test_refresh_token_live_ws_connection():
     Test that refreshing a token with a live WS connection can update the connection context
     """
     config = ConfigurationBuilder()
+    token_lifetime_seconds = 5
 
     old_token_data = TokenData(
         session_id='session_1',
-        exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=1),
+        exp=datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=token_lifetime_seconds),
         identity_name='user',
         identity_id='user',
         id_token='OLD_TOKEN',
@@ -928,7 +929,7 @@ async def test_refresh_token_live_ws_connection():
             ws1_message = await ws1.receive_json()
             assert ws1_message['message']['data'] == {'id_token': 'OLD_TOKEN', 'session_id': 'session_1'}
 
-            await asyncio.sleep(2)
+            await asyncio.sleep(token_lifetime_seconds + 1)
 
             # Refresh token for ws1 through server-side verification
             response = await client.post(
