@@ -90,7 +90,7 @@ describe('MultiSelect', () => {
     });
 
     it('should call onTermChange corrrectly', async () => {
-        const onTermChangeStub = jest.fn((value) => value);
+        const onTermChangeStub = vi.fn((value) => value);
         const { getByRole, container } = render(
             <RenderMultiSelect items={sampleItems} onTermChange={onTermChangeStub} />
         );
@@ -115,7 +115,7 @@ describe('MultiSelect', () => {
     });
 
     it('should listen to changes to all multiselected items', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
 
         const { getByRole, container } = render(<RenderMultiSelect items={sampleItems} onSelect={onSelectStub} />);
         const multiselect = getByRole('combobox') as HTMLInputElement;

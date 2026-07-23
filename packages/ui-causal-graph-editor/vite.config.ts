@@ -1,11 +1,12 @@
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { URL, fileURLToPath } from 'url';
-import { defineConfig, esmExternalRequirePlugin } from 'vite';
+import { esmExternalRequirePlugin } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 const externalDependencies = ['react', 'react-dom', 'styled-components', '@tanstack/react-query'];
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
         esmExternalRequirePlugin({
             external: externalDependencies,
@@ -13,7 +14,7 @@ export default defineConfig({
         react(),
     ],
     define: {
-        'process.env.NODE_ENV': '"production"',
+        'process.env.NODE_ENV': mode === 'test' ? '"test"' : '"production"',
     },
     build: {
         lib: {
@@ -43,4 +44,10 @@ export default defineConfig({
     worker: {
         format: 'es',
     },
-});
+    test: {
+        clearMocks: true,
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: ['./src/vitest-setup.ts'],
+    },
+}));

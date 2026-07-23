@@ -42,7 +42,7 @@ describe('Switch Test', () => {
     });
 
     it('should call onChange in controlled mode', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByTestId, rerender } = render(
             <RenderSwitch labels={{ off: 'disabled', on: 'enabled' }} onChange={onChangeStub} value />
         );

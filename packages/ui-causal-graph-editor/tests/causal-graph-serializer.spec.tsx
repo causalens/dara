@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { GraphActionCreators, GraphReducer } from '../src/shared/causal-graph-store';
 import { causalGraphParser } from '../src/shared/parsers';
 import { causalGraphSerializer } from '../src/shared/serializer';
@@ -97,16 +99,14 @@ describe('Update extra metadata', () => {
             actions.updateNode('input1', { meta: { extra_meta: 'extra_meta' } })
         );
 
-        expect(causalGraphSerializer({ graph: state.graph }).nodes.input1.meta).toMatchInlineSnapshot(`
-            {
-              "extra_meta": "extra_meta",
-              "original": "metadata",
-              "rendering_properties": {
-                "label": "input1 label",
-                "latent": false,
-              },
-            }
-        `);
+        expect(causalGraphSerializer({ graph: state.graph }).nodes.input1.meta).toEqual({
+            extra_meta: 'extra_meta',
+            original: 'metadata',
+            rendering_properties: {
+                label: 'input1 label',
+                latent: false,
+            },
+        });
     });
     it('should serialize metadata for an updated edge', () => {
         const parsedGraph = causalGraphParser(MockCausalGraph);
@@ -115,16 +115,14 @@ describe('Update extra metadata', () => {
             actions.updateEdge(['input1', 'target2'], { meta: { extra_meta: 'extra_meta' } })
         );
 
-        expect(causalGraphSerializer({ graph: state.graph }).edges.input1.target2.meta).toMatchInlineSnapshot(`
-            {
-              "extra_meta": "extra_meta",
-              "original": "metadata",
-              "rendering_properties": {
-                "color": "#7510F7",
-                "thickness": 10,
-              },
-            }
-        `);
+        expect(causalGraphSerializer({ graph: state.graph }).edges.input1.target2.meta).toEqual({
+            extra_meta: 'extra_meta',
+            original: 'metadata',
+            rendering_properties: {
+                color: '#7510F7',
+                thickness: 10,
+            },
+        });
     });
 });
 

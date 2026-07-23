@@ -13,7 +13,7 @@
     "format:check": "prettier js --check",
     "lint:fix": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 --fix && stylelint --fix './js/**/*.tsx'",
     "package": "yarn build && yarn publish --no-git-tag-version",
-    "test-watch": "jest --watch"
+    "test-watch": "vitest"
   },
   "author": "Sam Smith <sam@causalens.com>",
   "homepage": "https://dara.causalens.com/",
@@ -45,7 +45,8 @@
     "rimraf": "^3.0.2",
     "stylelint": "^15.0.0",
     "typescript": "^5.0.4",
-    "vite": "8.1.5"
+    "vite": "8.1.5",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@bokeh/bokehjs": "~3.1.1",

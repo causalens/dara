@@ -37,7 +37,7 @@ describe('TriStateCheckbox', () => {
     });
 
     it('should call the onChange stub correctly when clicked and should only update when new props are passed', async () => {
-        const onClickStub = jest.fn();
+        const onClickStub = vi.fn();
         const { getByRole, rerender } = render(<RenderTriStateCheckbox onChange={onClickStub} />);
 
         // Click - check onClick is called with UNCHECKED

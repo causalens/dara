@@ -7,7 +7,7 @@ module.exports = {
         'plugin:react/recommended',
         'airbnb',
         'airbnb/hooks',
-        'plugin:jest/recommended',
+        'plugin:@vitest/legacy-recommended',
         'plugin:@typescript-eslint/recommended',
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
         'plugin:import/typescript',
@@ -141,9 +141,6 @@ module.exports = {
         },
         'import/resolver': {
             typescript: {},
-        },
-        jest: {
-            version: 27, // default to 27 so ESLint doesn't try to infer the version - Jest isn't always installed; can be easily overriden
         },
         react: {
             version: 'detect', // Tells eslint-plugin-react to automatically detect the version of React to use

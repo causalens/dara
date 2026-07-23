@@ -46,7 +46,7 @@ describe('TextArea', () => {
         expect(textarea.tagName).toEqual('TEXTAREA');
     });
     it('respects the initial value and tracks the selected value internally', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByRole } = render(<RenderTextArea onChange={onChangeStub} />);
         // Empty initial string, function not called
         const textarea = getByRole('textbox', { hidden: true });
@@ -59,7 +59,7 @@ describe('TextArea', () => {
         expect(textareaUpdated).toHaveValue('New String');
     });
     it('enters controlled mode when value is passed in', () => {
-        const onChangeStub = jest.fn((value) => value);
+        const onChangeStub = vi.fn((value) => value);
         const { getByRole, rerender } = render(<RenderTextArea onChange={onChangeStub} value="Initial String" />);
         // Check initial value
         const textarea = getByRole('textbox', { hidden: true });
@@ -78,8 +78,8 @@ describe('TextArea', () => {
     });
 
     it('acts as expected when disabled', async () => {
-        const onClickStub = jest.fn();
-        const onChangeStub = jest.fn();
+        const onClickStub = vi.fn();
+        const onChangeStub = vi.fn();
         const { getByRole, rerender } = render(
             <RenderTextArea disabled onChange={onChangeStub} onClick={onClickStub} />
         );
@@ -105,7 +105,7 @@ describe('TextArea', () => {
         expect(textareaRerender).toHaveStyle(`color: ${theme.colors.grey2}`);
     });
     it('placeholder value works as expected', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByRole } = render(<RenderTextArea onChange={onChangeStub} placeholder="Placeholder String" />);
         // Check placeholder value
         const textarea = getByRole('textbox', { hidden: true });
@@ -124,14 +124,18 @@ describe('TextArea', () => {
         const { getByRole, getByText } = render(<RenderTextArea errorMsg="Error" />);
         // Check the error boundary on the textarea
         const textarea = getByRole('textbox', { hidden: true });
-        expect(textarea).toHaveStyle(`border: 1px solid ${theme.colors.error}`);
+        expect(textarea).toHaveStyle({
+            borderColor: theme.colors.error,
+            borderStyle: 'solid',
+            borderWidth: '1px',
+        });
         // Check tooltip is displayed and it's errorMsg
         fireEvent.mouseEnter(getByRole('textbox', { hidden: true }));
         await waitFor(() => getByText('Error'));
         expect(getByText('Error')).toBeInTheDocument();
     });
     it('applies the keyDownFilter correctly', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByRole } = render(<RenderTextArea keydownFilter={keyDownFilter} onChange={onChangeStub} />);
 
         let textarea = getByRole('textbox', { hidden: true });
@@ -157,8 +161,8 @@ describe('TextArea', () => {
         expect(textarea).toHaveValue('aB');
     });
     it('fires onComplete as expected', () => {
-        const onChangeStub = jest.fn((value) => value);
-        const onCompleteStub = jest.fn();
+        const onChangeStub = vi.fn((value) => value);
+        const onCompleteStub = vi.fn();
         const { getByRole } = render(
             <RenderTextArea keydownFilter={keyDownFilter} onChange={onChangeStub} onComplete={onCompleteStub} />
         );

@@ -38,7 +38,7 @@ describe('Tabs', () => {
     });
 
     it('should listen to changes to selectedTab', () => {
-        const onSelectTabStub = jest.fn((value) => value);
+        const onSelectTabStub = vi.fn((value) => value);
         render(<RenderTabs onSelectTab={onSelectTabStub} selectedTab={sampleTabs[0]} tabs={sampleTabs} />);
 
         const Tab2 = screen.getByText(sampleTabs[1]);

@@ -12,29 +12,23 @@
     "format": "prettier src --write",
     "format:check": "prettier src --check",
     "lint:fix": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix",
-    "test-watch": "jest --watch"
+    "test-watch": "vitest"
   },
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@babel/core": "^7.15.5",
-    "@babel/preset-env": "^7.15.6",
-    "@babel/preset-react": "^7.14.5",
     "@darajs/eslint-config": "1.29.0",
     "@darajs/prettier-config": "1.29.0",
     "@darajs/stylelint-config": "1.29.0",
-    "@types/jest": "^25.2.3",
     "@types/lodash": "^4.14.155",
     "@types/react": "^18.0",
-    "babel-jest": "^29.5.0",
     "eslint": "^8.57.1",
-    "jest": "^29.5.0",
     "prettier": "^3.0.0",
     "rimraf": "^3.0.2",
     "stylelint": "^15.0.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "d3-scale": "3.2.1",

@@ -121,7 +121,7 @@ describe('DatePicker', () => {
     });
 
     it('should call onChange if in controlled mode', async () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const currentDate = new Date();
         const { container } = render(RenderDatePicker({ onChange, shouldCloseOnSelect: true, value: currentDate }));
 

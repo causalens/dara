@@ -77,7 +77,7 @@ describe('Sectioned List', () => {
     });
 
     it('should listen to changes to selected items', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
         const sampleItems = sampleListItems('');
         const { getByRole } = render(<RenderSectionedList items={sampleItems} onSelect={onSelectStub} />);
         const select = getByRole('combobox', { hidden: true });

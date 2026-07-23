@@ -6,7 +6,7 @@
     "src"
   ],
   "engines": {
-    "node": ">=10"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc --noEmit && node ./esbuild.js",
