@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Internal: Upgraded the generated application tooling, library builds, and test runner to Vite 8, Rolldown, and Vitest 4 while preserving browser-compatible UMD externals and strict-mode behavior.
+- Internal: Upgraded build tooling to Vite 8 for faster builds.
 
 ## 1.29.0
 

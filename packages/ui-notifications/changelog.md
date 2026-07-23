@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Internal: Upgraded Storybook tooling for Vite 8 compatibility.
+- Internal: Upgraded build tooling to Vite 8 for faster builds.
 
 ## 1.26.12
 

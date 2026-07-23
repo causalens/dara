@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Internal: Upgraded the library build and Storybook tooling for Vite 8 compatibility while preserving browser-compatible UMD externals and strict-mode behavior.
+- Internal: Upgraded build tooling to Vite 8 for faster builds.
 
 ## 1.26.12
 
