@@ -1,16 +1,18 @@
 {
     "exclude": ["**/*.spec.tsx", "dist/**"],
     "compilerOptions": {
-        "baseUrl": ".",
         "declaration": true,
         "esModuleInterop": true,
         "jsx": "react-jsx",
         "module": "ESNext",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "noImplicitAny": true,
+        "noUncheckedSideEffectImports": false,
         "outDir": "./dist/",
+        "rootDir": "./src/",
         "skipLibCheck": true,
         "sourceMap": true,
-        "target": "es6",
+        "strict": false,
+        "target": "es2015",
     }
 }

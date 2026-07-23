@@ -10,7 +10,6 @@
     "src/**/*"
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": "./src",
     "outDir": "./dist/"
   }

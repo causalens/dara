@@ -10,7 +10,6 @@
     "./js/**/*"
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": "./js",
     "outDir": "./dist/",
     "allowJs": true,

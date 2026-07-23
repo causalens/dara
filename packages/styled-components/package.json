@@ -22,7 +22,8 @@
     "prettier": "^3.0.0",
     "rimraf": "^3.0.2",
     "stylelint": "^15.0.0",
-    "typescript": "^5.8.2"
+    "@typescript/native": "npm:typescript@^7.0.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "dependencies": {
     "polished": "^4.1.1",

@@ -82,6 +82,6 @@ declare module 'styled-components' {
             light: string;
             medium: string;
         };
-        themeType: string;
+        themeType: 'light' | 'dark';
     }
 }
