@@ -5,6 +5,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
+    "types": ["vite/client", "vitest/globals"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@types": ["./src/types"]

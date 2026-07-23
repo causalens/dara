@@ -12,28 +12,25 @@
     "format": "prettier src --write",
     "format:check": "prettier src --check",
     "lint:fix": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix",
-    "test-watch": "jest --watch"
+    "test-watch": "vitest"
   },
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@babel/core": "^7.15.5",
-    "@babel/preset-env": "^7.15.6",
-    "@babel/preset-react": "^7.14.5",
-    "@babel/preset-typescript": "^7.15.0",
     "@darajs/eslint-config": "1.29.0",
     "@darajs/prettier-config": "1.29.0",
     "@darajs/stylelint-config": "1.29.0",
-    "@testing-library/dom": "^9.3.0",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^14.0.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.2.1",
     "@types/styled-components": "^5.1.26",
-    "babel-jest": "^29.5.0",
     "eslint": "^8.57.1",
+    "jsdom": "^27.4.0",
     "prettier": "^3.0.0",
     "rimraf": "^3.0.2",
     "stylelint": "^15.0.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@darajs/styled-components": "1.29.0",

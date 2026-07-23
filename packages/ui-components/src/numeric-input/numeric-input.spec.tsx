@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* eslint-disable jest/no-disabled-tests */
+/* eslint-disable @vitest/no-disabled-tests */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -44,7 +44,7 @@ const MockControlledNumericInput = (): JSX.Element => {
 
 describe('Numeric Input', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
     it('should only accept numeric input', async () => {
         const { getByRole, rerender } = render(<RenderNumericInput />);
@@ -76,7 +76,7 @@ describe('Numeric Input', () => {
     });
 
     it('should support the disabled prop for input', async () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByRole, getAllByRole } = render(
             <RenderNumericInput disabled initialValue={5} onChange={onChangeStub} stepper />
         );
@@ -117,7 +117,7 @@ describe('Numeric Input', () => {
     });
 
     it('should listen to changes to input', async () => {
-        const onChangeStub = jest.fn((value) => value);
+        const onChangeStub = vi.fn((value) => value);
 
         const { getByRole } = render(<RenderNumericInput onChange={onChangeStub} value={2} />);
         const input = getByRole('textbox', { hidden: true });
@@ -128,7 +128,7 @@ describe('Numeric Input', () => {
     });
 
     it('should update the callback method with latest values', async () => {
-        const onChangeStub = jest.fn((isChangeCalled, value) => [isChangeCalled, value]);
+        const onChangeStub = vi.fn((isChangeCalled, value) => [isChangeCalled, value]);
 
         function TestItem(): React.ReactNode {
             const [isButtonClicked, setIsButtonClicked] = React.useState<boolean>(false);
@@ -181,7 +181,7 @@ describe('Numeric Input', () => {
     });
 
     it('should pass keydown to the parent', async () => {
-        const onKeydownStub = jest.fn((value) => value.key);
+        const onKeydownStub = vi.fn((value) => value.key);
 
         const { getByRole } = render(<RenderNumericInput onKeyDown={onKeydownStub} value={2} />);
         const input = getByRole('textbox');

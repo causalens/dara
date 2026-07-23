@@ -21,4 +21,4 @@
 ## Testing
 - Use `@testing-library/react` for component tests
 - Test files: `*.spec.tsx` or `*.test.tsx`
-- Setup file: `src/jest-setup.ts`
+- Setup file: `src/vitest-setup.ts`

@@ -35,16 +35,12 @@
   },
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@babel/core": "^7.23.5",
-    "@babel/preset-env": "^7.23.0",
-    "@babel/preset-react": "^7.22.15",
-    "@babel/preset-typescript": "^7.23.0",
     "@darajs/eslint-config": "1.29.0",
     "@darajs/prettier-config": "1.29.0",
     "@darajs/stylelint-config": "1.29.0",
-    "@testing-library/dom": "^9.3.0",
-    "@testing-library/jest-dom": "^6.0.0",
-    "@testing-library/react": "^14.0.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.5.2",
     "@types/file-saver": "^2.0.5",
     "@types/lodash": "^4.14.178",
@@ -116,6 +112,6 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22"
   }
 }

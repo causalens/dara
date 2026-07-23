@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* eslint-disable jest/no-disabled-tests */
+/* eslint-disable @vitest/no-disabled-tests */
 import { fireEvent, render } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
@@ -104,7 +104,7 @@ describe('Chat', () => {
     });
 
     it('onUpdate should be called when submiting a message', () => {
-        const onUpdate = jest.fn();
+        const onUpdate = vi.fn();
         const { getByRole } = render(<RenderChat activeUser={mockUser1} onUpdate={onUpdate} value={mockMessages} />);
 
         // Write a new message
@@ -123,7 +123,7 @@ describe('Chat', () => {
     });
 
     it('cancel edited message should not trigger onUpdate', () => {
-        const onUpdate = jest.fn();
+        const onUpdate = vi.fn();
         const { getByRole, getAllByTestId, getAllByRole, getByDisplayValue } = render(
             <RenderChat activeUser={mockUser1} onUpdate={onUpdate} value={mockMessages} />
         );
@@ -147,7 +147,7 @@ describe('Chat', () => {
     });
 
     it('save edited message should trigger onUpdate', () => {
-        const onUpdate = jest.fn();
+        const onUpdate = vi.fn();
         const { getByRole, getAllByTestId, getAllByRole, getByDisplayValue } = render(
             <RenderChat activeUser={mockUser1} onUpdate={onUpdate} value={mockMessages} />
         );
@@ -175,7 +175,7 @@ describe('Chat', () => {
     });
 
     it('delete message should trigger onUpdate', () => {
-        const onUpdate = jest.fn();
+        const onUpdate = vi.fn();
         const { getAllByTestId } = render(
             <RenderChat activeUser={mockUser1} onUpdate={onUpdate} value={mockMessages} />
         );

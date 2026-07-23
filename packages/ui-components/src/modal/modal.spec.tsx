@@ -51,7 +51,7 @@ describe('Modal', () => {
     });
 
     it('should unmount and call onClosed after transition', async () => {
-        const onClose = jest.fn();
+        const onClose = vi.fn();
         const { findByText, queryByText, rerender } = render(
             RenderModal({ children: CHILDREN, id: 'modal', onClosed: onClose, render: true })
         );
@@ -80,7 +80,7 @@ describe('Modal', () => {
     });
 
     it('should call onAttemptClose when background is clicked or escape is pressed', async () => {
-        const attemptClose = jest.fn();
+        const attemptClose = vi.fn();
         const { findByText, container } = render(
             RenderModal({ children: CHILDREN, id: 'modal', onAttemptClose: attemptClose, render: true })
         );

@@ -23,7 +23,7 @@ const data = times(100, (num: number) => ({
     id: `id_${num}`,
 }));
 
-const onLoadData = jest.fn(async (startIndex: number, stopIndex: number) => {
+const onLoadData = vi.fn(async (startIndex: number, stopIndex: number) => {
     return Promise.resolve({ data: data.slice(startIndex, stopIndex), totalCount: data.length });
 });
 

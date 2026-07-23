@@ -101,7 +101,7 @@ describe('Numeric Slider Test', () => {
     });
 
     it('should work with inputs normally', async () => {
-        const onChangeStub = jest.fn((value) => value);
+        const onChangeStub = vi.fn((value) => value);
         const { getByRole, getAllByRole } = render(
             <RenderNumericSlider domain={domain} onChange={onChangeStub} initialValue={initialValue} />
         );
@@ -143,7 +143,7 @@ describe('Numeric Slider Test', () => {
     });
 
     it('should work with negative inputs', () => {
-        const onChangeStub = jest.fn((value) => value);
+        const onChangeStub = vi.fn((value) => value);
         const { getByRole, getAllByRole } = render(
             <RenderNumericSlider domain={[-100, 100]} onChange={onChangeStub} initialValue={initialValue} />
         );

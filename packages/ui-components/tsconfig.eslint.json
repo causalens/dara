@@ -3,6 +3,7 @@
     "include": ["./src/", "./tests/"],
     "exclude": [],
     "compilerOptions": {
-        "rootDir": "."
+        "rootDir": ".",
+        "types": ["vitest/globals"]
     }
 }

@@ -12,12 +12,12 @@ module.exports = {
         },
     },
     overrides: [
-        // Disable some jest rules for the cypress tests
+        // Disable test-runner rules for the Cypress tests
         {
             files: './cypress/**/*.ts',
             rules: {
-                'jest/expect-expect': 'off',
-                'jest/valid-expect': 'off',
+                '@vitest/expect-expect': 'off',
+                '@vitest/valid-expect': 'off',
             },
         },
     ],

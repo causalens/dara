@@ -53,7 +53,11 @@ function RenderComponentSelectList(props: ComponentSelectListProps): JSX.Element
     );
 }
 
-const borderStyle = `border: 2px solid ${theme.colors.primary}`;
+const borderStyle = {
+    borderColor: theme.colors.primary,
+    borderStyle: 'solid',
+    borderWidth: '2px',
+};
 
 describe('ComponentSelectList', () => {
     it('should display correctly', () => {
@@ -93,7 +97,7 @@ describe('ComponentSelectList', () => {
     });
 
     it('should track value internally and respect initial value for single select mode', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
         const { getByText } = render(
             <RenderComponentSelectList items={items} onSelect={onSelectStub} selectedItems={singleInitialValue} />
         );
@@ -144,7 +148,7 @@ describe('ComponentSelectList', () => {
     });
 
     it('should track value internally and respect initial value for multi select mode', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
         const { getByText } = render(
             <RenderComponentSelectList
                 items={items}

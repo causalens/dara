@@ -70,7 +70,7 @@ describe('RadioGroup', () => {
     });
 
     it('should call onChange in controlled mode', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { container } = render(
             <RenderRadioGroup
                 items={mockItems}
