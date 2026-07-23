@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import * as d3 from 'd3';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 
 import styled, { useTheme } from '@darajs/styled-components';
 import { useDeepCompare } from '@darajs/ui-utils';
@@ -182,7 +182,7 @@ function Treemap(props: TreemapProps): JSX.Element | null {
 
     const maxDepth = treemap.leaves() ? treemap.leaves()[0].depth : 0;
     return (
-        <svg height={props.height} ref={ref} width={props.width}>
+        <svg height={props.height} ref={ref as RefObject<SVGSVGElement>} width={props.width}>
             <NodeRenderer
                 allowLeafClick={props.allowLeafClick}
                 allowParentClick={props.allowParentClick}
