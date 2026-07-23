@@ -146,7 +146,7 @@ export interface CausalGraphEditorProps extends Settings {
     /** Any extra sections to display in the side panel on edge click */
     edgeExtrasContent?: React.ReactElement;
     /** The backend data */
-    graphData?: CausalGraph;
+    graphData: CausalGraph;
     /** Graph layout to use */
     graphLayout: GraphLayout;
     /** Optional initial constraints to show in edge encoder mode */
@@ -156,9 +156,9 @@ export interface CausalGraphEditorProps extends Settings {
     /** Array of node names that cannot be removed */
     nonRemovableNodes?: Array<string>;
     /** Event handler for clicking on an edge */
-    onClickEdge?: (edge: CausalGraphEdge) => void | Promise<void>;
+    onClickEdge?: (edge: CausalGraphEdge | null) => void | Promise<void>;
     /** Event handler for clicking on a node */
-    onClickNode?: (node: CausalGraphNode) => void | Promise<void>;
+    onClickNode?: (node: CausalGraphNode | null) => void | Promise<void>;
     /** Handler called when constraints are update in edge encoder mode */
     onEdgeConstraintsUpdate?: (constraints: EdgeConstraint[]) => void | Promise<void>;
     /** onUpdate handler for live updating the edited graph */
@@ -197,7 +197,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         props.availableInputs
     );
 
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<NotificationPayload | null>(null);
     const handleError = (e: NotificationPayload): void => {
         setError(e);
     };
@@ -220,7 +220,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         onSetFocus,
     } = useRenderEngine({
         constraints: props.initialConstraints,
-        editable: props.editable,
+        editable: props.editable ?? false,
         editorMode: state.editorMode,
         errorHandler: handleError,
         graph: state.graph,
@@ -253,12 +253,12 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     useOnClickOutside(paneRef.current, () => onPaneFocus(false));
 
     // track selection
-    const [selectedEdge, setSelectedEdge] = useState<[string, string]>(null);
-    const [selectedNode, setSelectedNode] = useState<string>(null);
+    const [selectedEdge, setSelectedEdge] = useState<[string, string] | null>(null);
+    const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
     // track node highlighted by search separately
     // this is used instead of selection when there is no concept of selection, i.e. not editable or allowSelectionWhenNotEditable
-    const [highlightedNode, setHighlightedNode] = useState<string>();
+    const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
 
     useUpdateEffect(() => {
         // Update visual selection when a node is highlighted
@@ -272,7 +272,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         }
 
         if (props.onClickNode) {
-            let serializedNode: CausalGraphNode = null;
+            let serializedNode: CausalGraphNode | null = null;
 
             if (selectedNode) {
                 serializedNode = serializeGraphNode(state.graph.getNodeAttributes(selectedNode));
@@ -289,7 +289,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         }
 
         if (props.onClickEdge) {
-            let serializedEdge: CausalGraphEdge = null;
+            let serializedEdge: CausalGraphEdge | null = null;
 
             if (selectedEdge) {
                 const [source, target] = selectedEdge;
@@ -306,7 +306,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
 
     // constraints
     const { constraints, addConstraint, updateConstraint, removeConstraint, reverseConstraint } =
-        useEdgeConstraintEncoder(props.initialConstraints, props.onEdgeConstraintsUpdate);
+        useEdgeConstraintEncoder(props.initialConstraints ?? [], props.onEdgeConstraintsUpdate);
 
     const selectedConstraint = useMemo(() => {
         if (state.editorMode === EditorMode.EDGE_ENCODER && selectedEdge) {
@@ -322,8 +322,11 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     // deletion
 
     function onRemoveNode(): void {
+        if (!selectedNode) {
+            return;
+        }
         if (layoutHasGroup) {
-            const layoutGroup = (layout as GraphLayoutWithGrouping).group;
+            const layoutGroup = (layout as GraphLayoutWithGrouping).group!;
             const groupsObject = getGroupToNodesMap(state.graph.nodes(), layoutGroup, state.graph);
             const nodesToGroups = getNodeToGroupMap(state.graph.nodes(), layoutGroup, state.graph);
             const group = nodesToGroups[selectedNode];
@@ -343,10 +346,15 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
 
     function onRemoveConstraint(): void {
         // Remove constraint that's selected
-        removeConstraint(selectedConstraint.id);
+        if (selectedConstraint) {
+            removeConstraint(selectedConstraint.id);
+        }
     }
 
     function onConfirmRemoveEdge(): void {
+        if (!selectedEdge) {
+            return;
+        }
         // In encoder mode, remove related constraint
         if (state.editorMode === EditorMode.EDGE_ENCODER) {
             onRemoveConstraint();
@@ -365,6 +373,9 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     );
 
     function onRemoveEdge(): void {
+        if (!selectedEdge) {
+            return;
+        }
         const edgeAttributes = state.graph.getEdgeAttributes(...selectedEdge);
 
         if (edgeAttributes['meta.rendering_properties.forced'] === true) {
@@ -374,7 +385,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         }
     }
 
-    let onDelete: () => void = null;
+    let onDelete: (() => void) | undefined;
 
     if (selectedEdge) {
         onDelete = onRemoveEdge;
@@ -389,7 +400,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
 
     function onAddEdge(edge: [string, string]): void {
         if (layoutHasGroup) {
-            const layoutGroup = (layout as GraphLayoutWithGrouping).group;
+            const layoutGroup = (layout as GraphLayoutWithGrouping).group!;
             const groupsObject = getGroupToNodesMap(state.graph.nodes(), layoutGroup, state.graph);
             const groups = Object.keys(groupsObject);
 
@@ -431,6 +442,9 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     }
 
     function onReverseEdge(): void {
+        if (!selectedEdge) {
+            return;
+        }
         const [source, target] = selectedEdge;
 
         // Skip if a cycle would be created in default mode
@@ -459,10 +473,15 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     function onReverseConstraint(): void {
         setSelectedEdge(null);
 
-        reverseConstraint(selectedConstraint);
+        if (selectedConstraint) {
+            reverseConstraint(selectedConstraint);
+        }
     }
 
     function confirmDirection(reverse: boolean): void {
+        if (!selectedEdge) {
+            return;
+        }
         api.updateEdgeType(selectedEdge, EdgeType.DIRECTED_EDGE);
 
         if (reverse) {
@@ -474,7 +493,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         }
     }
 
-    const tooltipRef = React.useRef<() => DOMRect>(null);
+    const tooltipRef = React.useRef<(() => DOMRect) | null>(null);
     const { tooltipContent, setTooltipContent } = useGraphTooltip(paneRef, tooltipRef);
 
     // keep track of when a drag action is happening
@@ -505,7 +524,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         setTooltipContent(
             getTooltipContent(
                 nodeId,
-                nodeAttributes['meta.rendering_properties.tooltip'],
+                nodeAttributes['meta.rendering_properties.tooltip'] ?? '',
                 theme,
                 nodeAttributes['meta.rendering_properties.label'],
                 props.tooltipSize
@@ -514,7 +533,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     });
 
     useEngineEvent('nodeMouseout', () => {
-        setTooltipContent(null);
+        setTooltipContent(undefined);
     });
 
     useEngineEvent('edgeMouseover', (event, edgeKey) => {
@@ -531,9 +550,9 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
 
         const edgeTooltipContent = getTooltipContent(
             `${sourceLabel} ${tooltipArrow} ${targetLabel}`,
-            edgeAttributes['meta.rendering_properties.tooltip'],
+            edgeAttributes['meta.rendering_properties.tooltip'] ?? '',
             theme,
-            null,
+            undefined,
             props.tooltipSize
         );
 
@@ -685,7 +704,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
 
     // dragging
     const { dragMode, setDragMode } = useDragMode(
-        props.editable,
+        props.editable ?? false,
         !props.disableEdgeAdd,
         layout.supportsDrag,
         onSetDragMode
@@ -824,8 +843,8 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
                                     editable: props.editable,
                                     graphState: state,
                                     onUpdateConstraint: updateConstraint,
-                                    selectedEdge,
-                                    selectedNode,
+                                    selectedEdge: selectedEdge ?? undefined,
+                                    selectedNode: selectedNode ?? undefined,
                                     verboseDescriptions: props.verboseDescriptions,
                                 }}
                             >
@@ -859,10 +878,10 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
                         )}
                         <GraphParent ref={canvasParentRef} $isLayoutComputing={isLayoutComputing} />
                         <Tooltip
-                            appendTo={canvasParentRef.current}
+                            appendTo={canvasParentRef.current ?? undefined}
                             content={tooltipContent}
                             followCursor
-                            getReferenceClientRect={tooltipRef.current}
+                            getReferenceClientRect={tooltipRef.current ?? undefined}
                             visible={!isInPanel && !!tooltipContent}
                         />
                         <ConfirmationModal title="Confirm Removal" {...removeEdgeProps} />

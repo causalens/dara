@@ -40,8 +40,8 @@ export default class CustomLayout extends GraphLayout {
         // TODO: in the future this could call a callback passed into the layout to compute a custom layout
         const layout = graph.reduceNodes((acc, node, attrs) => {
             acc[node] = {
-                x: attrs['meta.rendering_properties.x'],
-                y: attrs['meta.rendering_properties.y'],
+                x: attrs['meta.rendering_properties.x'] ?? attrs.x ?? 0,
+                y: attrs['meta.rendering_properties.y'] ?? attrs.y ?? 0,
             };
 
             return acc;

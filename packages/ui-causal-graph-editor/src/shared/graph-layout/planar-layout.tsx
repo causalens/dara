@@ -24,7 +24,7 @@ import { GraphLayout, GraphLayoutBuilder } from './common';
 class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {
     _orientation: DirectionType = 'horizontal';
 
-    _tiers: GraphTiers;
+    _tiers?: GraphTiers;
 
     _layeringAlgorithm: PlanarLayeringAlgorithm = PlanarLayeringAlgorithm.SIMPLEX;
 
@@ -66,7 +66,7 @@ class PlanarLayoutBuilder extends GraphLayoutBuilder<PlanarLayout> {
 
 export interface PlanarLayoutParams extends BaseLayoutParams {
     orientation: DirectionType;
-    tiers: GraphTiers;
+    tiers?: GraphTiers;
     layeringAlgorithm: PlanarLayeringAlgorithm;
 }
 
@@ -77,7 +77,7 @@ export interface PlanarLayoutParams extends BaseLayoutParams {
 export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implements TieredGraphLayoutBuilder {
     public orientation: DirectionType = 'horizontal';
 
-    public tiers: GraphTiers;
+    public tiers?: GraphTiers;
 
     public layeringAlgorithm: PlanarLayeringAlgorithm = PlanarLayeringAlgorithm.SIMPLEX;
 
@@ -95,7 +95,7 @@ export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implem
 
     async applyLayout(
         graph: SimulationGraph,
-        forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints: LayoutMapping<XYPosition[]>) => void
+        forceUpdate?: (layout: LayoutMapping<XYPosition>, edgePoints?: LayoutMapping<XYPosition[]>) => void
     ): Promise<LayoutComputationResult> {
         const { layout, edgePoints } = await this.worker.applyLayout(this, graph, forceUpdate);
 
@@ -105,7 +105,7 @@ export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implem
                 graph,
                 forceUpdate
             );
-            forceUpdate(recomputedLayout, recomputedPoints);
+            forceUpdate?.(recomputedLayout, recomputedPoints);
         };
 
         return {

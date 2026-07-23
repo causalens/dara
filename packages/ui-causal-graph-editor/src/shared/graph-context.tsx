@@ -42,6 +42,6 @@ interface GraphContext {
 /**
  * Context for handling interactions between the side panel and graph canvas
  */
-const graphCtx = createContext<GraphContext>(null);
+const graphCtx = createContext<GraphContext>(null!);
 
 export default graphCtx;

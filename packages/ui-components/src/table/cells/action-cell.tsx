@@ -98,7 +98,7 @@ interface ActionCellProps {
  *
  * @param {ActionCellProps} props see interface for details
  */
-export function ActionCell(props: ActionCellProps): JSX.Element {
+export function ActionCell(props: ActionCellProps): JSX.Element | null {
     if (!props.column.actions) {
         throw new Error('Must pass an array of actions to the column def when using the ActionCell');
     }
@@ -112,7 +112,7 @@ export function ActionCell(props: ActionCellProps): JSX.Element {
         const action = props.column.actions[0];
         const Icon = action.getIcon ? action.getIcon(props.row.original) : action.icon;
         if (Icon === undefined) {
-            return;
+            return null;
         }
         const label = action.getLabel ? action.getLabel(props.row.original) : action.label;
         return (

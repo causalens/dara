@@ -27,7 +27,7 @@ class MarketingLayoutBuilder extends GraphLayoutBuilder<MarketingLayout> impleme
 
     orientation: DirectionType = 'horizontal';
 
-    tiers: GraphTiers;
+    tiers?: GraphTiers;
 
     /**
      * Sets the target location and returns the builder
@@ -59,7 +59,7 @@ export interface MarketingLayoutParams extends BaseLayoutParams {
     targetLocation: TargetLocation;
     tierSeparation: number;
     orientation: DirectionType;
-    tiers: GraphTiers;
+    tiers?: GraphTiers;
 }
 
 /**
@@ -75,7 +75,7 @@ export default class MarketingLayout extends GraphLayout<MarketingLayoutParams> 
 
     public orientation: DirectionType;
 
-    public tiers: GraphTiers;
+    public tiers?: GraphTiers;
 
     constructor(builder: MarketingLayoutBuilder) {
         super(builder);

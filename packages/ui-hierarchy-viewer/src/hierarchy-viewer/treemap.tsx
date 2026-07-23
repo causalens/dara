@@ -59,7 +59,7 @@ interface NodeRendererProps {
     color: d3.ScaleOrdinal<string, string, never>;
     maxDepth: number;
     node: d3.HierarchyRectangularNode<Node>;
-    onClick: (node: Node) => void | Promise<void>;
+    onClick?: (node: Node) => void | Promise<void>;
 }
 
 /**
@@ -74,11 +74,11 @@ function NodeRenderer(props: NodeRendererProps): JSX.Element {
     const fill = props.color(depth).toString();
     const width = Number.isNaN(node.x1 - node.x0) ? undefined : node.x1 - node.x0;
     const height = Number.isNaN(node.y1 - node.y0) ? undefined : node.y1 - node.y0;
-    const hasChildren = node.children && node.children.length > 0;
-    const isInteractive = (hasChildren && props.allowParentClick) || (!hasChildren && props.allowLeafClick);
+    const hasChildren = Boolean(node.children && node.children.length > 0);
+    const isInteractive = Boolean((hasChildren && props.allowParentClick) || (!hasChildren && props.allowLeafClick));
 
     const onClick = useCallback(() => {
-        onClickProp(node.data);
+        onClickProp?.(node.data);
     }, [node, onClickProp]);
 
     return (
@@ -106,7 +106,7 @@ function NodeRenderer(props: NodeRendererProps): JSX.Element {
                 </NodeLabel>
             </foreignObject>
             {node.children &&
-                node.children.map((child: any) => (
+                node.children.map((child) => (
                     <NodeRenderer
                         allowLeafClick={props.allowLeafClick}
                         allowParentClick={props.allowParentClick}
@@ -133,7 +133,7 @@ interface TreemapProps {
     /** Component height */
     height: number;
     /** onClick handler for when a node is clicked on */
-    onClick: (node: Node) => void | Promise<void>;
+    onClick?: (node: Node) => void | Promise<void>;
     /** Component width */
     width: number;
 }
@@ -144,27 +144,27 @@ interface TreemapProps {
  *
  * @param {TreemapProps} params - the component props
  */
-function Treemap(props: TreemapProps): JSX.Element {
+function Treemap(props: TreemapProps): JSX.Element | null {
     const theme = useTheme();
-    const ref = useRef();
+    const ref = useRef<SVGSVGElement>(null);
 
-    const [treemap, setTreemap] = useState<any>();
+    const [treemap, setTreemap] = useState<d3.HierarchyRectangularNode<Node> | null>(null);
 
     useEffect(
         () => {
             if (props.data) {
                 const root = d3.hierarchy(props.data).sum((node) => {
-                    return node.children && node.children.length > 0 ? 0 : node.weight;
+                    return node.children && node.children.length > 0 ? 0 : node.weight ?? 0;
                 });
-                d3
-                    .treemap()
+                const layout = d3
+                    .treemap<Node>()
                     .size([props.width, props.height])
                     .paddingTop(28)
                     .paddingBottom(8)
                     .paddingRight(7)
                     .paddingLeft(7)
-                    .paddingInner(3)(root);
-                setTreemap(root);
+                    .paddingInner(3);
+                setTreemap(layout(root));
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,7 +180,7 @@ function Treemap(props: TreemapProps): JSX.Element {
         return null;
     }
 
-    const maxDepth = treemap.leaves() ? treemap.leaves()[0].depth : 0;
+    const maxDepth = treemap.leaves()[0]?.depth ?? 0;
     return (
         <svg height={props.height} ref={ref} width={props.width}>
             <NodeRenderer

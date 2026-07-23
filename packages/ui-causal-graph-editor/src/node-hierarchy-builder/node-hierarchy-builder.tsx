@@ -119,9 +119,9 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
                 nodes: layer.nodes.map((node) => {
                     return {
                         ...node,
-                        selected:
-                            matchesQuery(node.name, query) ||
-                            (node.meta?.label && matchesQuery(node.meta.label, query)),
+                        selected: Boolean(
+                            matchesQuery(node.name, query) || (node.meta?.label && matchesQuery(node.meta.label, query))
+                        ),
                     };
                 }),
             };
@@ -271,7 +271,11 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
                                     onDrop={(item) => onDropNode(item, idx)}
                                     onUpdateLabel={onUpdateLabel}
                                     // eslint-disable-next-line no-return-assign
-                                    ref={(el) => (layersRef.current[idx] = el)}
+                                    ref={(el) => {
+                                        if (el) {
+                                            layersRef.current[idx] = el;
+                                        }
+                                    }}
                                     viewOnly={props.viewOnly}
                                     wrapNodeText={props.wrapNodeText}
                                 />

@@ -69,7 +69,7 @@ interface OptionsMenuProps {
     /** filter setter from useTable */
     setAllFilters: (updater: Filters<any> | ((filters: Filters<any>) => Filters<any>)) => void;
     /** Pass through of the style prop to the table options Dropdown */
-    style: React.CSSProperties;
+    style?: React.CSSProperties;
 }
 
 const columnHeaderToString = (header: unknown): string => {
@@ -100,7 +100,7 @@ const OptionsMenu: FunctionComponent<OptionsMenuProps> = ({
     }, []);
 
     const onOptionSelect = useCallback((option: Item): void => {
-        option.onClick();
+        option.onClick?.();
         setIsOpen(false);
     }, []);
 
@@ -157,9 +157,12 @@ const OptionsMenu: FunctionComponent<OptionsMenuProps> = ({
                 .filter((column) => typeof column.Header === 'string')
                 .map((column) => ({
                     label: `${column.isVisible ? 'Hide' : 'Show'} ${columnHeaderToString(column.Header)}`,
-                    onClick: () =>
+                    onClick: () => {
                         /* Don't allow last visible column to be hidden */
-                        !(column.isVisible && numVisibleColumns === 1) ? column.toggleHidden() : null,
+                        if (!(column.isVisible && numVisibleColumns === 1)) {
+                            column.toggleHidden();
+                        }
+                    },
                     value: `${column.isVisible ? 'hide' : 'show'}${columnHeaderToString(column.Header)}`,
                 })),
             label: 'Columns',

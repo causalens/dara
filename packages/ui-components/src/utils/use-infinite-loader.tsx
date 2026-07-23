@@ -30,7 +30,7 @@ export interface ItemsRenderedPayload {
 
 export interface InfiniteLoader<T> {
     /** A function to get the actual value of an item, based on it's absolute index in the list */
-    getItem: (index: number) => T;
+    getItem: (index: number) => T | undefined;
     /** The total count of items in the list */
     itemCount: number;
     /** A handler for the onItemsRendered function exposed by the react-window components */
@@ -58,7 +58,7 @@ function useInfiniteLoader<T>(
     // Use a ref on the onLoadData function to get the updated version into the onItemsRendered function as only the
     // first instance passed is ever called by react-window
     const onLoadRef = useRef(onLoadData);
-    const [internalData, setInternalData] = useState([]);
+    const [internalData, setInternalData] = useState<Array<T>>([]);
     const [itemCount, setItemCount] = useState(0);
     const [currentStartIdx, setStartIdx] = useState(0);
     const [currentStopIdx, setStopIdx] = useState(0);
@@ -70,7 +70,7 @@ function useInfiniteLoader<T>(
     const getItem = useCallback(
         (index: number) => {
             const adjustedIndex = index - currentStartIdx;
-            if (adjustedIndex < 0 || adjustedIndex > internalData.length) {
+            if (adjustedIndex < 0 || adjustedIndex >= internalData.length) {
                 return;
             }
             return internalData[adjustedIndex];
@@ -127,7 +127,7 @@ function useInfiniteLoader<T>(
                 setInternalData((current) => [...current, ...data]);
                 setItemCount(totalCount);
             } catch (err) {
-                onError?.(err);
+                onError?.(err instanceof Error ? err : new Error(String(err)));
             }
         },
         [batchSize, currentStartIdx, currentStopIdx, onError]

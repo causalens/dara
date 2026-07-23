@@ -82,6 +82,7 @@ const StyledPre = styled.pre<{ $isLightTheme?: boolean }>`
 function CodeViewer(props: CodeViewerProps): JSX.Element {
     const themeCtx = useTheme();
     const [isCopied, setIsCopied] = useState(false);
+    const code = props.value ?? '';
 
     useEffect(() => {
         if (isCopied) {
@@ -93,8 +94,8 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
         }
     }, [isCopied]);
 
-    async function copyCodeToClipboard(code: string): Promise<void> {
-        const success = await copyToClipboard(code);
+    async function copyCodeToClipboard(sourceCode: string): Promise<void> {
+        const success = await copyToClipboard(sourceCode);
 
         if (success) {
             setIsCopied(true);
@@ -132,14 +133,14 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                     </CopyToClipboardContainer>
                 :   <CopyToClipboardContainer
                         style={{ cursor: 'pointer' }}
-                        onClick={() => copyCodeToClipboard(props.value)}
+                        onClick={() => copyCodeToClipboard(code)}
                         role="button"
                     >
                         <Copy /> Copy code
                     </CopyToClipboardContainer>
                 }
             </TopBar>
-            <Highlight {...defaultProps} code={props.value} language={props.language} theme={viewerTheme}>
+            <Highlight {...defaultProps} code={code} language={props.language} theme={viewerTheme}>
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <StyledPre
                         className={className}

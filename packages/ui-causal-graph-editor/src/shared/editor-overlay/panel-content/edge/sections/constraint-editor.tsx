@@ -99,10 +99,16 @@ export interface ConstraintEditorProps {
  * It should be displayed inside the EditorFrame's sidebar to allow the user to
  * specify a constraint type & type of relationship.
  */
-function ConstraintEditor(props: ConstraintEditorProps): JSX.Element {
+function ConstraintEditor(props: ConstraintEditorProps): JSX.Element | null {
+    if (!props.edgeConstraint) {
+        return null;
+    }
+
+    const { edgeConstraint } = props;
+
     function updateConstraintType(constraintType: EdgeConstraintItem['type']): void {
         props.onUpdate({
-            id: props.edgeConstraint.id,
+            id: edgeConstraint.id,
             source: props.source,
             target: props.target,
             type: constraintType,
@@ -113,9 +119,9 @@ function ConstraintEditor(props: ConstraintEditorProps): JSX.Element {
         <ColumnWrapper>
             <SectionTitle>Connection</SectionTitle>
             <ButtonBar
-                initialValue={constraintItems.find((i) => i.value === props.edgeConstraint.type) as Item}
+                initialValue={constraintItems.find((i) => i.value === edgeConstraint.type) as Item}
                 items={constraintItems as any}
-                key={props.edgeConstraint.id}
+                key={edgeConstraint.id}
                 onSelect={(e) => updateConstraintType(e.value)}
                 styling="secondary"
             />

@@ -29,9 +29,9 @@ import { FloatingButton } from '../floating-elements';
 
 interface DragModeButtonProps {
     /** Current drag mode */
-    dragMode: DragMode;
+    dragMode: DragMode | null;
     /** Handler to update drag mode */
-    setDragMode: Dispatch<SetStateAction<DragMode>>;
+    setDragMode: Dispatch<SetStateAction<DragMode | null>>;
 }
 
 function DragModeButton(props: DragModeButtonProps): JSX.Element {

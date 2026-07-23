@@ -256,7 +256,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
     const enableGoToDef = React.useMemo(() => onGoToDefinition !== undefined, [onGoToDefinition]);
     const goToDef = useLatestCallback(onGoToDefinition ?? noop);
 
-    useOnClickOutside(ref.current!, () => {
+    useOnClickOutside(ref.current, () => {
         closeArgumentsHintsTooltip(viewRef.current!);
     });
 

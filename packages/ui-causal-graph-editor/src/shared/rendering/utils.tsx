@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { ZoomState, ZoomThresholds } from '@types';
+import type { DirectionType, GraphTiers, ZoomState, ZoomThresholds } from '@types';
 
 import type { GraphLayout, GraphLayoutWithGrouping, GraphLayoutWithTiers } from '../graph-layout/common';
 
@@ -31,7 +31,7 @@ const colorCache = new Map<string, [number, number]>();
  */
 export function colorToPixi(color: string): [hex: number, alpha: number] {
     if (colorCache.has(color)) {
-        return colorCache.get(color);
+        return colorCache.get(color)!;
     }
 
     const pixiColor = new PIXI.Color(color);
@@ -74,10 +74,13 @@ export function getZoomState(scale: number, zoomThresholds?: ZoomThresholds): Zo
     );
 }
 
-export function isGraphLayoutWithTiers(layout: GraphLayout): layout is GraphLayoutWithTiers {
-    return (layout as GraphLayoutWithTiers).tiers !== undefined;
+export function isGraphLayoutWithTiers(
+    layout: GraphLayout
+): layout is GraphLayoutWithTiers & { orientation: DirectionType; tiers: GraphTiers } {
+    const tieredLayout = layout as GraphLayoutWithTiers;
+    return tieredLayout.tiers !== undefined && tieredLayout.orientation !== undefined;
 }
 
-export function isGraphLayoutWithGroups(layout: GraphLayout): layout is GraphLayoutWithGrouping {
+export function isGraphLayoutWithGroups(layout: GraphLayout): layout is GraphLayoutWithGrouping & { group: string } {
     return (layout as GraphLayoutWithGrouping).group !== undefined;
 }

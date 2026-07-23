@@ -81,7 +81,7 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
     /**
      * Worker function that can be be called to compute a layout
      */
-    worker: LayoutWorker;
+    worker!: LayoutWorker;
 
     constructor(builder: GraphLayoutBuilder<unknown>) {
         this.nodeSize = builder._nodeSize;
@@ -137,10 +137,10 @@ export abstract class GraphLayout<TLayoutParams extends BaseLayoutParams = BaseL
 }
 
 export interface GraphLayoutWithTiers extends GraphLayout {
-    orientation: DirectionType;
-    tiers: GraphTiers;
+    orientation?: DirectionType;
+    tiers?: GraphTiers;
 }
 
 export interface GraphLayoutWithGrouping extends GraphLayout {
-    group: string;
+    group?: string;
 }

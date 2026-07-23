@@ -38,13 +38,13 @@ interface UseRenderEngineApi {
      *
      * @param path selected edge
      */
-    onEdgeSelected: (path: [string, string]) => void;
+    onEdgeSelected: (path: [string, string] | null) => void;
     /**
      * Should be called whenever node selection should change
      *
      * @param node selected node
      */
-    onNodeSelected: (node: string) => void;
+    onNodeSelected: (node: string | null | undefined) => void;
     /**
      * Should be called wheneve search results change
      *
@@ -124,17 +124,17 @@ export function useRenderEngine({
     errorHandler?: (error: NotificationPayload) => void;
     graph: SimulationGraph;
     layout: GraphLayout;
-    parentRef: React.MutableRefObject<HTMLElement>;
+    parentRef: React.RefObject<HTMLElement>;
     processEdgeStyle?: (edge: PixiEdgeStyle, attributes: SimulationEdge) => PixiEdgeStyle;
     requireFocusToZoom?: boolean;
     zoomThresholds?: ZoomThresholds;
 }): UseRenderEngineApi {
     const theme = useTheme();
-    const engine = React.useRef<Engine>(null);
+    const engineRef = React.useRef<Engine | null>(null);
     const listeners = React.useRef<Partial<EngineEvents>>({});
 
-    if (!engine.current) {
-        engine.current = new Engine(
+    if (!engineRef.current) {
+        engineRef.current = new Engine(
             graph,
             layout,
             editable,
@@ -147,32 +147,36 @@ export function useRenderEngine({
             requireFocusToZoom
         );
     }
+    const engine = engineRef.current;
 
     // Start engine after first render, stop it on destroy
     React.useEffect(() => {
         if (parentRef.current) {
-            engine.current.start(parentRef.current).then(() => {
+            engine.start(parentRef.current).then(() => {
                 // Attach listeners for each event type
                 ENGINE_EVENTS.forEach((eventName) => {
-                    engine.current.addListener(eventName, (...args) => {
-                        listeners.current[eventName]?.apply(null, args);
+                    engine.addListener(eventName, (...args) => {
+                        const listener = listeners.current[eventName] as
+                            | ((...eventArgs: typeof args) => void)
+                            | undefined;
+                        listener?.(...args);
                     });
                 });
             });
         }
 
         return () => {
-            engine.current?.destroy();
+            engine.destroy();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // update engine theme
     React.useEffect(() => {
-        if (engine.current.initialized) {
-            engine.current.setTheme(theme);
+        if (engine.initialized) {
+            engine.setTheme(theme);
         }
-    }, [theme]);
+    }, [engine, theme]);
 
     /**
      * Updates the listener reference in a ref. Engine event listeners are registered just once so
@@ -184,60 +188,61 @@ export function useRenderEngine({
 
     return {
         getCenterPosition: (): PIXI.PointData => {
-            return engine.current.getCenterPosition();
+            return engine.getCenterPosition();
         },
-        onEdgeSelected: (path: [string, string]) => {
-            if (engine.current.initialized) {
-                engine.current.selectEdge(path);
+        onEdgeSelected: (path: [string, string] | null) => {
+            if (engine.initialized) {
+                engine.selectEdge(path);
             }
         },
-        onNodeSelected: (node: string) => {
-            if (engine.current.initialized) {
-                engine.current.selectNode(node);
+        onNodeSelected: (node: string | null | undefined) => {
+            if (engine.initialized) {
+                engine.selectNode(node);
             }
         },
         onSearchResults: (nodes: string[]) => {
-            if (engine.current.initialized) {
-                engine.current.searchNodes(nodes);
+            if (engine.initialized) {
+                engine.searchNodes(nodes);
             }
         },
         onSetDragMode: (dragMode: DragMode | null) => {
-            engine.current.setDragMode(dragMode);
+            engine.setDragMode(dragMode);
         },
         onSetFocus: (isFocused: boolean) => {
-            if (engine.current.initialized) {
-                engine.current.setFocus(isFocused);
+            if (engine.initialized) {
+                engine.setFocus(isFocused);
             }
         },
         onUpdateConstraints: (newConstraints: EdgeConstraint[]) => {
-            if (engine.current.initialized) {
-                engine.current.updateConstraints(newConstraints);
+            if (engine.initialized) {
+                engine.updateConstraints(newConstraints);
             }
         },
         resetLayout: () => {
-            if (engine.current.initialized) {
-                engine.current.debouncedUpdateLayout();
+            if (engine.initialized) {
+                engine.debouncedUpdateLayout();
             }
         },
         resetViewport: () => {
-            if (engine.current.initialized) {
-                engine.current.resetViewport();
+            if (engine.initialized) {
+                engine.resetViewport();
             }
         },
         collapseGroups: () => {
-            if (engine.current.initialized) {
-                engine.current.collapseAllGroups();
+            if (engine.initialized) {
+                engine.collapseAllGroups();
             }
         },
         expandGroups: () => {
-            if (engine.current.initialized) {
-                engine.current.expandAllGroups();
+            if (engine.initialized) {
+                engine.expandAllGroups();
             }
         },
         extractImage: () => {
-            if (engine.current.initialized) {
-                return engine.current.extractImage();
+            if (engine.initialized) {
+                return engine.extractImage();
             }
+            return Promise.resolve(undefined);
         },
         useEngineEvent,
     };

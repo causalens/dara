@@ -277,7 +277,7 @@ function useValueCorrection<T>(
         const constraintsChanged =
             !isEqual(previousConstraints.current.domain, domain) || previousConstraints.current.step !== step;
 
-        if (!constraintsChanged || !values?.length || !onChange) {
+        if (!constraintsChanged || !values?.length || !onChange || !getValueLabel) {
             previousConstraints.current = { domain, step };
             return;
         }
@@ -346,6 +346,8 @@ function BaseSlider<T extends string | number | React.ReactNode>({
     className,
     id,
 }: BaseSliderProps<T>): JSX.Element {
+    const formatValue = useMemo(() => getValueLabel ?? ((value: number) => value as T), [getValueLabel]);
+
     // If step isn't set then pick a reasonable one
     const adjustedStep = useMemo(() => {
         if (step) {
@@ -355,7 +357,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
     }, [domain, step]);
 
     // Handle value correction for controlled mode
-    useValueCorrection(values, domain, adjustedStep, onChange, getValueLabel);
+    useValueCorrection(values, domain, adjustedStep, onChange, formatValue);
 
     const [showInputs, setShowInputs] = useState(false);
 
@@ -384,10 +386,10 @@ function BaseSlider<T extends string | number | React.ReactNode>({
             }
 
             const valueArray = Array.isArray(value) ? value : [value];
-            const formattedValues = valueArray.map(getValueLabel);
+            const formattedValues = valueArray.map(formatValue);
             onChange(formattedValues);
         },
-        [onChange, getValueLabel]
+        [onChange, formatValue]
     );
 
     // Generate tick values
@@ -504,11 +506,11 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
                     {/* Thumbs */}
                     {currentValues.map((value, index) => (
-                        <Tooltip content={getValueLabel(value)} hideOnClick={false} key={index} placement="top">
+                        <Tooltip content={formatValue(value)} hideOnClick={false} key={index} placement="top">
                             <StyledSliderThumb
                                 aria-label={
                                     thumbLabels?.[index] ??
-                                    (getValueLabel?.(value) as string | undefined) ??
+                                    (formatValue(value) as string | undefined) ??
                                     `Thumb ${index + 1}`
                                 }
                                 index={index}
@@ -520,7 +522,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                 </>
             );
         },
-        [trackToStart, trackToEnd, ticks, trackLabels, getValueLabel, thumbLabels]
+        [trackToStart, trackToEnd, ticks, trackLabels, formatValue, thumbLabels]
     );
 
     return (
@@ -556,7 +558,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                                                     transform: getTickTransform(idx, tickValues.length),
                                                 }}
                                             >
-                                                {getValueLabel(tickValue)}
+                                                {formatValue(tickValue)}
                                             </Tick>
                                         );
                                     })}

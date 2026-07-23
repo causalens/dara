@@ -71,7 +71,7 @@ interface EdgeConstraintEncoderApi {
     /**
      * Add a new constraint
      */
-    addConstraint: (source?: string, target?: string) => void;
+    addConstraint: (source: string, target: string) => void;
     /**
      * Current constraints
      */
@@ -116,12 +116,12 @@ export function useEdgeConstraintEncoder(
         });
     }
 
-    function addConstraint(source?: string, target?: string): void {
+    function addConstraint(source: string, target: string): void {
         setConstraints((draft) => {
             draft.push({
                 id: nanoid(),
-                source: source ?? null,
-                target: target ?? null,
+                source,
+                target,
                 type: EdgeConstraintType.UNDIRECTED,
             });
         });

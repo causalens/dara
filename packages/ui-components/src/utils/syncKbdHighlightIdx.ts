@@ -30,7 +30,7 @@ const setTypes = new Set([
  * });
  */
 export const syncKbdHighlightIdx = (
-    setKbdHighlightIdx: (idx: number) => void
+    setKbdHighlightIdx: (idx: number | undefined) => void
 ): { onHighlightedIndexChange: ({ highlightedIndex, type }: any) => void } => ({
     onHighlightedIndexChange: ({ highlightedIndex, type }: any) => {
         // Hack to force a rerender of an element when highlighted with a keyboard

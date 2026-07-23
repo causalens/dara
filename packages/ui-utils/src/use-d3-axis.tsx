@@ -24,7 +24,7 @@ export type AxisDomain = string | number | 'auto' | 'dataMin' | 'dataMax';
 
 interface AxisProps<T> {
     domain?: [T, T];
-    tickFormatter: (tick?: number) => string;
+    tickFormatter: (tick: number) => string;
     ticks?: Array<number>;
     type: 'number' | 'category';
 }
@@ -49,7 +49,7 @@ export function useD3Axis<T>(
     const valueScale = useMemo(() => getScale(data, domain), useDeepCompare([data, domain, getScale]));
 
     return useCallback(
-        (axisSize: number): AxisProps<T> => {
+        (axisSize = 0): AxisProps<T> => {
             const scale = valueScale.range([0, axisSize]).nice();
             return {
                 domain: domainFormatter(scale.domain()),
@@ -63,8 +63,9 @@ export function useD3Axis<T>(
 }
 
 /** Helper function for getting a linear d3Scale instance, based on data and domain */
-const getLinearScale = (data: Array<number>, domain: [number, number]): ScaleLinear<number, number> => {
-    return scaleLinear().domain([data ? Math.min(...data) : domain[0], data ? Math.max(...data) : domain[1]]);
+const getLinearScale = (data: Array<number>, domain?: [number, number]): ScaleLinear<number, number> => {
+    const scaleDomain = data.length > 0 ? [Math.min(...data), Math.max(...data)] : domain ?? [0, 0];
+    return scaleLinear().domain(scaleDomain);
 };
 
 /**
@@ -82,8 +83,9 @@ export function useD3LinearAxis(
 }
 
 /** Helper function for getting a time d3Scale instance, based on data and domain */
-const getTimeScale = (data: Array<Date>, domain: [Date, Date]): ScaleTime<number, number> => {
-    return scaleTime().domain([data ? data[0] : domain[0], data ? data[data.length - 1] : domain[1]]);
+const getTimeScale = (data: Array<Date>, domain?: [Date, Date]): ScaleTime<number, number> => {
+    const scaleDomain = data.length > 0 ? [data[0], data[data.length - 1]] : domain ?? [new Date(0), new Date(0)];
+    return scaleTime().domain(scaleDomain);
 };
 
 /**

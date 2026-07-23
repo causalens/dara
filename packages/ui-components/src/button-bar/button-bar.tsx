@@ -57,7 +57,12 @@ const shouldForwardProp = (prop: any): boolean => !['selected'].includes(prop);
  * @param disabled whether button is disabled
  * @param theme the current theme being used by the app
  */
-function getButtonStyle(buttonColor: string, disabled: boolean, selected: boolean, theme: DefaultTheme): string {
+function getButtonStyle(
+    buttonColor: string,
+    disabled: boolean | undefined,
+    selected: boolean,
+    theme: DefaultTheme
+): string {
     let color = buttonColor;
     let backgroundColor = 'transparent';
     if (selected) {

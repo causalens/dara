@@ -31,12 +31,15 @@ type UseIterateEdges = {
  * @param state graph viewer state
  */
 const useIterateEdges = (
-    selectedEdge: [string, string],
-    setSelectedEdge: Dispatch<SetStateAction<[string, string]>>,
+    selectedEdge: [string, string] | null,
+    setSelectedEdge: Dispatch<SetStateAction<[string, string] | null>>,
     state: GraphState
 ): UseIterateEdges => {
     const nextEdge = (): void => {
         const edges = Array.from(state.graph.edgeEntries());
+        if (!selectedEdge) {
+            return;
+        }
 
         const [source, target] = selectedEdge;
 
@@ -45,11 +48,14 @@ const useIterateEdges = (
         const newEdgeIndex = (selectedEdgeIndex + 1) % edges.length;
         const newEdgeEntry = edges[newEdgeIndex];
 
-        return setSelectedEdge([newEdgeEntry.source, newEdgeEntry.target]);
+        return setSelectedEdge(newEdgeEntry ? [newEdgeEntry.source, newEdgeEntry.target] : null);
     };
 
     const prevEdge = (): void => {
         const edges = Array.from(state.graph.edgeEntries());
+        if (!selectedEdge) {
+            return;
+        }
 
         const [source, target] = selectedEdge;
 
@@ -62,7 +68,7 @@ const useIterateEdges = (
 
         const newEdgeEntry = edges[newEdgeIndex];
 
-        return setSelectedEdge([newEdgeEntry.source, newEdgeEntry.target]);
+        return setSelectedEdge(newEdgeEntry ? [newEdgeEntry.source, newEdgeEntry.target] : null);
     };
 
     return {

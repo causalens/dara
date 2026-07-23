@@ -20,6 +20,7 @@ import { useSettings } from '@shared/settings-context';
 import type { GraphApi } from '@shared/use-causal-graph-editor';
 
 import type { EdgeConstraintItem, GraphState } from '@types';
+import { EditorMode } from '@types';
 
 import { ColumnWrapper } from '../styled';
 import EdgeEditor from './edge-editor';
@@ -67,11 +68,11 @@ function EdgeInfoContent(props: EdgeInfoContentProps): JSX.Element {
                 {(editable || edgeAttributes['meta.rendering_properties.description']) && (
                     <DescriptionEditor api={props.api} edge={edgeAttributes} selectedEdge={props.selectedEdge} />
                 )}
-                {editable && (
+                {editable && (props.state.editorMode !== EditorMode.EDGE_ENCODER || props.selectedConstraint) && (
                     <EdgeEditor
                         api={props.api}
                         edge={edgeAttributes}
-                        edgeConstraint={props.selectedConstraint}
+                        edgeConstraint={props.selectedConstraint!}
                         onUpdateConstraint={props.onUpdateConstraint}
                         source={source}
                         state={props.state}

@@ -140,7 +140,7 @@ function applyNumericOperator(
             if (Array.isArray(filterValue)) {
                 return value <= filterValue[1] && value >= filterValue[0];
             }
-            break;
+            return false;
         default:
             return true;
     }
@@ -192,8 +192,16 @@ export function numeric(rows: Array<Row>, columnIds: Array<string>, filterValue:
     const [colId] = columnIds;
 
     // If operator not supported or there's no value to compare to, return all rows
-    if (!isValidOperator(selected) || (!value && value !== 0)) {
+    if (!isValidOperator(selected) || value === null) {
         return rows;
+    }
+
+    if (Array.isArray(value)) {
+        const [start, end] = value;
+        if (start === null || end === null) {
+            return rows;
+        }
+        return rows.filter((row) => applyNumericOperator(selected, row.values[colId], [start, end]));
     }
 
     return rows.filter((row) => applyNumericOperator(selected, row.values[colId], value));

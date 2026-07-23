@@ -44,9 +44,9 @@ class SpringLayoutBuilder
 
     orientation: DirectionType = 'horizontal';
 
-    tiers: GraphTiers;
+    tiers?: GraphTiers;
 
-    group: string;
+    group?: string;
 
     /**
      * Set the multiplier for collision force
@@ -122,8 +122,8 @@ export interface SpringLayoutParams extends BaseLayoutParams {
     tierSeparation: number;
     groupRepelStrength: number;
     orientation: DirectionType;
-    tiers: GraphTiers;
-    group: string;
+    tiers?: GraphTiers;
+    group?: string;
 }
 
 /**
@@ -145,9 +145,9 @@ export default class SpringLayout extends GraphLayout<SpringLayoutParams> {
 
     public orientation: DirectionType;
 
-    public tiers: GraphTiers;
+    public tiers?: GraphTiers;
 
-    public group: string;
+    public group?: string;
 
     constructor(builder: SpringLayoutBuilder) {
         super(builder);

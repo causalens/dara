@@ -34,6 +34,6 @@ interface PointerContext {
 /**
  * Context for handling interactions between the editor overlay and the editor canvas
  */
-const pointerCtx = createContext<PointerContext>(null);
+const pointerCtx = createContext<PointerContext>(null!);
 
 export default pointerCtx;

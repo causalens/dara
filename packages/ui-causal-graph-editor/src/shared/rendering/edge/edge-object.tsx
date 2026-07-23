@@ -163,7 +163,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         }
 
         // Handle dash styles in resolver modes
-        let dash: number = null;
+        let dash: number | null = null;
         let gapScale = 1;
 
         if (EditorMode.RESOLVER === edgeStyle.editorMode) {
@@ -190,7 +190,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
 
         // Get/create edge line texture
         const edgeLineTexture = textureCache.get(
-            createKey(EDGE_LINE_SPRITE, dash, gapScale),
+            createKey(EDGE_LINE_SPRITE, dash ?? 0, gapScale),
             () => {
                 const gfx = new PIXI.Graphics();
 
@@ -273,7 +273,14 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         const [tint] = colorToPixi(edgeStyle.color);
         const [bgTint] = colorToPixi(edgeStyle.theme.colors.blue1);
         const topSymbolTexture = textureCache.get(
-            createKey(EDGE_TOP_SYMBOL, edgeStyle.editorMode, edgeStyle.type, tint, bgTint, edgeStyle.constraint?.type),
+            createKey(
+                EDGE_TOP_SYMBOL,
+                edgeStyle.editorMode,
+                edgeStyle.type,
+                tint,
+                bgTint,
+                edgeStyle.constraint?.type ?? ''
+            ),
             () => createSideSymbol(edgeStyle, 'top', tint, bgTint),
             1
         );
@@ -286,7 +293,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         const edgeCenterSymbol = edgeSymbolsGfx.getChildByName(EDGE_CENTER_SYMBOL) as PIXI.Sprite;
 
         const centerSymbolTexture = textureCache.get(
-            createKey(EDGE_CENTER_SYMBOL, edgeStyle.editorMode, edgeStyle.type, edgeStyle.constraint?.type),
+            createKey(EDGE_CENTER_SYMBOL, edgeStyle.editorMode, edgeStyle.type, edgeStyle.constraint?.type ?? ''),
             () => createCenterSymbol(edgeStyle)
         );
         edgeCenterSymbol.texture = centerSymbolTexture;
@@ -308,7 +315,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
                 edgeStyle.type,
                 tint,
                 bgTint,
-                edgeStyle.constraint?.type
+                edgeStyle.constraint?.type ?? ''
             ),
             () => createSideSymbol(edgeStyle, 'bottom', tint, bgTint),
             1
@@ -320,8 +327,9 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         // Strength symbols
         const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName(EDGE_STRENGTH_SYMBOL) as PIXI.Sprite;
 
-        const strengthSymbolTexture = textureCache.get(createKey(EDGE_STRENGTH_SYMBOL, edgeStyle.strength?.dots), () =>
-            createStrengthSymbol(edgeStyle.strength?.dots)
+        const strengthSymbolTexture = textureCache.get(
+            createKey(EDGE_STRENGTH_SYMBOL, edgeStyle.strength?.dots ?? 0),
+            () => createStrengthSymbol(edgeStyle.strength?.dots ?? 0)
         );
         edgeStrengthSymbol.texture = strengthSymbolTexture;
         edgeStrengthSymbol.position.y = edgeTopSymbol.position.y - 5; // leave gap from arrow
@@ -331,7 +339,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         // Number symbols
         const edgeNumberSymbol = edgeSymbolsGfx.getChildByName(EDGE_NUMBER_SYMBOL) as PIXI.Sprite;
         const numberSymbolTexture = textureCache.get(
-            createKey(EDGE_NUMBER_SYMBOL, edgeStyle.collapsedEdgesCount),
+            createKey(EDGE_NUMBER_SYMBOL, edgeStyle.collapsedEdgesCount ?? 0),
             () => {
                 if (edgeStyle.collapsedEdgesCount === undefined) {
                     return new PIXI.Graphics();

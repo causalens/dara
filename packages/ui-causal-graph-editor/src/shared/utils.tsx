@@ -59,6 +59,9 @@ export function willCreateCycle(graphOriginal: SimulationGraph, edge: [string, s
     // keep traversing the graph until we have checked all nodes that are reachable from the destination node
     while (nodesToCheck.length > 0) {
         currentNode = nodesToCheck.pop();
+        if (!currentNode) {
+            continue;
+        }
 
         // Only check this condition after first iteration; if we reach the destination node again, we have a cycle
         if (currentNode === edge[1] && checkedNodes.size > 0) {
@@ -206,6 +209,13 @@ export function getPathInNodeAttribute(attributes: Record<string, any>, path: st
     return undefined;
 }
 
+function getAttributeKey(value: unknown): string | undefined {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    return undefined;
+}
+
 /**
  * Gets nodes grouped by a given attribute
  * @param nodes nodes to be grouped
@@ -223,8 +233,8 @@ export function getGroupToNodesMap(nodes: string[], group: string, graph: Simula
         const nodeGroup = attributePathArray.reduce(getPathInNodeAttribute, nodeAttributes);
 
         // If it is not undefined at this point i.e. node group was found
-        if (nodeGroup !== undefined) {
-            const groupKey = String(nodeGroup);
+        const groupKey = getAttributeKey(nodeGroup);
+        if (groupKey !== undefined) {
             // if group is not in tieredNodes add it, if it is add node to that tier
             if (groupKey in groupAccumulator) {
                 groupAccumulator[groupKey].push(node);
@@ -252,8 +262,8 @@ export function getNodeToGroupMap(nodes: string[], group: string, graph: Simulat
         const nodeGroup = attributePathArray.reduce(getPathInNodeAttribute, nodeAttributes);
 
         // If the node group is found, map the node to its group
-        if (nodeGroup !== undefined) {
-            const groupKey = String(nodeGroup);
+        const groupKey = getAttributeKey(nodeGroup);
+        if (groupKey !== undefined) {
             nodeToGroupMap[node] = groupKey;
         }
         return nodeToGroupMap;
@@ -276,8 +286,8 @@ export function getNodeOrder(nodes: string[], orderPath: string, graph: Simulati
         const nodeOrder = attributePathArray.reduce(getPathInNodeAttribute, nodeAttributes);
 
         // If it is not undefined at this point i.e. node order was found
-        if (nodeOrder !== undefined) {
-            const order = String(nodeOrder);
+        const order = getAttributeKey(nodeOrder);
+        if (order !== undefined) {
             groupAccumulator[node] = order;
         }
         return groupAccumulator;

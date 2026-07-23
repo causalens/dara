@@ -152,7 +152,7 @@ export interface NotificationProps {
  */
 function Notification(props: NotificationProps): JSX.Element {
     const isOverflowing = props.notification.message.length > 30;
-    const showMoreDetails = props.onMoreDetailsClick && isOverflowing;
+    const showMoreDetails = Boolean(props.onMoreDetailsClick && isOverflowing);
 
     return (
         <NotificationWrapper hasTitle={!!props.notification.title} status={props.notification.status}>
@@ -161,14 +161,14 @@ function Notification(props: NotificationProps): JSX.Element {
                 <Heading>{props.notification.title}</Heading>
                 <Body moreDetailsShown={showMoreDetails}>{props.notification.message}</Body>
                 {showMoreDetails && (
-                    <MoreDetailsButton onClick={(e) => props.onMoreDetailsClick(e, props.notification)} type="button">
+                    <MoreDetailsButton onClick={(e) => props.onMoreDetailsClick?.(e, props.notification)} type="button">
                         Details &gt;
                     </MoreDetailsButton>
                 )}
             </Message>
             <CloseBtn
                 asButton
-                onClick={() => props.onDismiss(props.notification.key)}
+                onClick={() => props.onDismiss?.(props.notification.key)}
                 status={props.notification.status}
             />
         </NotificationWrapper>

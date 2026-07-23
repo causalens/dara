@@ -208,7 +208,7 @@ const DatepickerListItem = React.memo(
 );
 
 interface DropdownListProps {
-    displacement: number;
+    displacement?: number;
 }
 
 const StyledDropdownList = React.memo(styled(DropdownList)<DropdownListProps>`
@@ -238,10 +238,10 @@ const DatepickerSelectButtonPrimary = React.memo(
         isOpen,
         selectedItem,
     }: {
-        disabled: boolean;
-        size: number;
+        disabled?: boolean;
+        size?: number;
         isOpen: boolean;
-        selectedItem: Item;
+        selectedItem?: Item | null;
         getToggleButtonProps: (
             options?: UseSelectGetToggleButtonPropsOptions,
             otherOptions?: GetPropsCommonOptions
@@ -277,7 +277,7 @@ export interface SelectProps extends InteractiveComponentProps<Item> {
     /** Specify a specific placement for the list */
     placement?: Placement;
     /** Set the selected value to a specific value, will put the component in controlled mode */
-    selectedItem?: Item;
+    selectedItem?: Item | null;
     /** Font size in rem to show in the Select */
     size?: number;
 }
@@ -292,11 +292,11 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
     const [kbdHighlightIdx, setKbdHighlightIdx] = React.useState<number | undefined>();
     const { isOpen, selectedItem, getToggleButtonProps, getMenuProps, getItemProps } = useSelect<Item>({
         initialSelectedItem: props.initialValue,
-        itemToString: (item) => item.label,
+        itemToString: (item) => item?.label ?? '',
         items: props.items,
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
-            if (props.onSelect) {
+            if (props.onSelect && selected) {
                 props.onSelect(selected);
             }
         },
@@ -307,7 +307,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
             if (type === stateChangeTypes.ToggleButtonClick && changes?.isOpen && props.selectedItem) {
                 return {
                     ...changes,
-                    highlightedIndex: props.items.findIndex((i) => i.value === changes.selectedItem.value),
+                    highlightedIndex: props.items.findIndex((i) => i.value === changes.selectedItem?.value),
                 };
             }
 
@@ -356,7 +356,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
             <Wrapper
                 className={props.className}
-                isDisabled={props.disabled}
+                isDisabled={Boolean(props.disabled)}
                 isErrored={!!props.errorMsg}
                 onClick={props.onClick}
                 style={props.style}

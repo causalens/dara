@@ -44,6 +44,10 @@ export default function usePaneVisibility(
         if (!isPaneVisible.current) {
             return false;
         }
+        const paneElement = pane.current;
+        if (!paneElement) {
+            return false;
+        }
 
         // otherwise create a new one-off observer to check whether given domRect position is on screen
         // NOTE: we're relying on the fact that as per the IntersectionObserver spec, the callback is immediately invoked on observe
@@ -54,7 +58,7 @@ export default function usePaneVisibility(
         const observer = new IntersectionObserver((entries) => {
             resolve(entries[0]);
         });
-        observer.observe(pane.current);
+        observer.observe(paneElement);
 
         // create a timeout promise to race with to ensure the promise resolves in a reasonable time
         const timeoutPromise = new Promise<null>((r) => setTimeout(r, 500, null));

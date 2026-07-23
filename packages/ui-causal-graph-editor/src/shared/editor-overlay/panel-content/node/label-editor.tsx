@@ -104,7 +104,7 @@ function LabelEditor(props: LabelEditorProps): JSX.Element {
     }
 
     return (
-        <LabelEditorWrapper $editable={editable}>
+        <LabelEditorWrapper $editable={Boolean(editable)}>
             {editable && editEnabled ?
                 <StyledInput onChange={onLabelChange} value={label} />
             :   <span

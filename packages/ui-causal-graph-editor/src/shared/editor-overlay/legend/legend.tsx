@@ -62,7 +62,7 @@ export interface LegendProps {
     listItems: LegendListProps['listItems'];
 }
 
-function Legend(props: LegendProps): JSX.Element {
+function Legend(props: LegendProps): JSX.Element | null {
     const [showLegend, setShowLegend] = useState(false);
     const { disablePointerEvents } = useContext(PointerContext);
 

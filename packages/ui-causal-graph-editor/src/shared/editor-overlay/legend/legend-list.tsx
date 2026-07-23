@@ -123,18 +123,18 @@ function HalfCircle(props: SvgProps): JSX.Element {
     );
 }
 
-type CenterSymbolType = Extract<GraphLegendDefinition, { type: 'edge' }>['center_symbol'];
+type CenterSymbolType = Exclude<Extract<GraphLegendDefinition, { type: 'edge' }>['center_symbol'], undefined>;
 
-const CenterSymbols: Record<CenterSymbolType, (props: SvgProps) => JSX.Element> = {
+const CenterSymbols: Record<CenterSymbolType, ((props: SvgProps) => JSX.Element) | null> = {
     bidirected: Bidirected,
     cross: Cross,
     none: null,
     question: QuestionMark,
 };
 
-type ArrowsType = Extract<GraphLegendDefinition, { type: 'edge' }>['arrow_type'];
+type ArrowsType = Exclude<Extract<GraphLegendDefinition, { type: 'edge' }>['arrow_type'], undefined>;
 
-const Arrows: Record<ArrowsType, (props: SvgProps) => JSX.Element> = {
+const Arrows: Record<ArrowsType, ((props: SvgProps) => JSX.Element) | null> = {
     empty: EmptyCircle,
     filled: FullArrow,
     none: null,

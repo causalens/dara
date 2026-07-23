@@ -21,7 +21,7 @@ import type { SimulationGraph } from '../../../types';
 
 interface UseSearchInput {
     graph: SimulationGraph;
-    setSelectedNode: (value: SetStateAction<string>) => void;
+    setSelectedNode: (value: SetStateAction<string | null>) => void;
 }
 
 interface UseSearchOutput {
@@ -36,7 +36,7 @@ function useSearch({ graph, setSelectedNode }: UseSearchInput): UseSearchOutput 
     const [searchResults, setSearchResults] = useState<string[]>([]);
     const [currentSearchNode, setCurrentSearchNode] = useState(0);
 
-    const [searchValue, setSearchValue] = useState('');
+    const [searchValue, setSearchValue] = useState<string | undefined>('');
 
     const updateSearchResults =
         (setActiveNode = true) =>
@@ -63,7 +63,7 @@ function useSearch({ graph, setSelectedNode }: UseSearchInput): UseSearchOutput 
 
                     return idIncludesValue || hasLabelWhichIncludesValue ? id : undefined;
                 })
-                .filter(Boolean);
+                .filter((node): node is string => node !== undefined);
 
             setSearchResults(filteredNodes);
 
@@ -79,7 +79,7 @@ function useSearch({ graph, setSelectedNode }: UseSearchInput): UseSearchOutput 
         const totalNumberOfResults = searchResults.length;
         const newIndex = (currentSearchNode + 1) % totalNumberOfResults;
         setCurrentSearchNode(newIndex);
-        setSelectedNode(searchResults[newIndex]);
+        setSelectedNode(searchResults[newIndex] ?? null);
     }
     function onPrevSearchResult(): void {
         const totalNumberOfResults = searchResults.length;
@@ -88,7 +88,7 @@ function useSearch({ graph, setSelectedNode }: UseSearchInput): UseSearchOutput 
             newIndex += totalNumberOfResults;
         }
         setCurrentSearchNode(newIndex);
-        setSelectedNode(searchResults[newIndex]);
+        setSelectedNode(searchResults[newIndex] ?? null);
     }
 
     useEffect(() => {

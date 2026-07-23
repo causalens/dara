@@ -97,9 +97,9 @@ const LabelEditorWrapper = styled.div`
  */
 function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
     const [editEnabled, setEditEnabled] = useState(false);
-    const [label, setLabel] = useState(null);
+    const [label, setLabel] = useState<string | null>(null);
 
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
     useOnClickOutside(ref.current, () => setEditEnabled(false));
 
     const debouncedUpdateLabel = useMemo(() => debounce(props.onChange, 300), [props.onChange]);
@@ -129,7 +129,7 @@ function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
                     value={labelToDisplay}
                 />
             :   <LabelStaticDisplay
-                    $viewOnly={props.viewOnly}
+                    $viewOnly={Boolean(props.viewOnly)}
                     onClick={() => onEnableEditing()}
                     onKeyDown={(k) => k.key === 'Enter' && onEnableEditing()}
                     role="button"

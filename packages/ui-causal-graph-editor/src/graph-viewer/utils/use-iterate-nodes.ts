@@ -31,8 +31,8 @@ type UseIterateNodes = {
  * @param state graph viewer state
  */
 const useIterateNodes = (
-    selectedNode: string,
-    setSelectedNode: React.Dispatch<React.SetStateAction<string>>,
+    selectedNode: string | null,
+    setSelectedNode: React.Dispatch<React.SetStateAction<string | null>>,
     state: GraphState
 ): UseIterateNodes => {
     const nextNode = (): void => {
@@ -41,7 +41,7 @@ const useIterateNodes = (
         const selectedNodeIndex = nodes.findIndex((n) => n === selectedNode);
         const newNodeIndex = (selectedNodeIndex + 1) % nodes.length;
 
-        setSelectedNode(nodes[newNodeIndex]);
+        setSelectedNode(nodes[newNodeIndex] ?? null);
     };
 
     const prevNode = (): void => {
@@ -55,7 +55,7 @@ const useIterateNodes = (
             newNodeIndex += nodes.length;
         }
 
-        setSelectedNode(nodes[newNodeIndex]);
+        setSelectedNode(nodes[newNodeIndex] ?? null);
     };
 
     return {

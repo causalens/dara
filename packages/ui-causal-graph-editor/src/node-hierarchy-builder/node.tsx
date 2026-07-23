@@ -110,7 +110,7 @@ function Node(props: NodeProps): JSX.Element {
 
     return (
         <Tooltip
-            content={getTooltipContent(props.node?.name, props.node?.meta?.tooltip, theme, props.node?.meta?.label)}
+            content={getTooltipContent(props.node.name, props.node.meta?.tooltip ?? '', theme, props.node.meta?.label)}
         >
             <NodeCircle
                 $isDragging={isDragging}

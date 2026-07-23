@@ -57,8 +57,8 @@ export interface AccordionProps {
 }
 
 function getInitialOpen(
-    initialItems: Array<number> | number,
-    value: Array<number> | number,
+    initialItems: Array<number> | number | undefined,
+    value: Array<number> | number | undefined,
     itemsArray: Array<AccordionItemType>
 ): Array<boolean> {
     if (value !== undefined) {
@@ -88,7 +88,7 @@ function Accordion({
     initialOpenItems,
     headerRenderer,
     innerRenderer,
-    items,
+    items = [],
     style,
     multi = true,
     onChange,

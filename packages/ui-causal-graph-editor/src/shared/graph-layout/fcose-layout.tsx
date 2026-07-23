@@ -60,9 +60,9 @@ class FcoseLayoutBuilder
 
     orientation?: DirectionType = 'horizontal';
 
-    tiers: GraphTiers;
+    tiers?: GraphTiers;
 
-    group: string;
+    group?: string;
 
     /**
      * Set edge elasticity
@@ -193,9 +193,9 @@ export default class FcoseLayout extends GraphLayout<FcoseLayoutParams> {
 
     public orientation: DirectionType;
 
-    public tiers: GraphTiers;
+    public tiers?: GraphTiers;
 
-    public group: string;
+    public group?: string;
 
     constructor(builder: FcoseLayoutBuilder) {
         super(builder);
@@ -209,7 +209,7 @@ export default class FcoseLayout extends GraphLayout<FcoseLayoutParams> {
         this.nodeRepulsion = builder._nodeRepulsion;
         this.nodeSeparation = builder._nodeSeparation;
         this.tierSeparation = builder._tierSeparation;
-        this.orientation = builder.orientation;
+        this.orientation = builder.orientation ?? 'horizontal';
         this.tiers = builder.tiers;
         this.group = builder.group;
     }

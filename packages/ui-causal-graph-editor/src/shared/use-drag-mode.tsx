@@ -32,8 +32,12 @@ function useDragMode(
     allowEdgeAdd: boolean,
     allowNodeDrag: boolean,
     onDragModeChange: (dragMode: DragMode | null) => void
-): { dragEnabled: boolean; dragMode: DragMode; setDragMode: React.Dispatch<React.SetStateAction<DragMode>> } {
-    const [dragMode, setDragMode] = useState<DragMode>(() => {
+): {
+    dragEnabled: boolean;
+    dragMode: DragMode | null;
+    setDragMode: React.Dispatch<React.SetStateAction<DragMode | null>>;
+} {
+    const [dragMode, setDragMode] = useState<DragMode | null>(() => {
         if (editMode && allowEdgeAdd) {
             return 'create_edge';
         }

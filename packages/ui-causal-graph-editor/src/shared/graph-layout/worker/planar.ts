@@ -52,7 +52,7 @@ function dagGraphParser(graph: SimulationGraph, tiers?: GraphTiers): MutGraph<Da
         if (tiers) {
             const nodeData = nodeTiersMap.get(id);
             // in the case of e.g. a new node group etc may be undefined
-            nodeType = nodeData?.group;
+            nodeType = nodeData?.group ?? 'latent';
             nodeOrder = nodeData?.order;
             nodeRank = nodeData?.rank;
         }
@@ -102,7 +102,7 @@ function customDecross(layers: SugiNode<{ ord?: number }, unknown>[][]): void {
             vals.set(node, val);
         });
 
-        layer.sort((a, b) => vals.get(a) - vals.get(b));
+        layer.sort((a, b) => (vals.get(a) ?? 0) - (vals.get(b) ?? 0));
     });
 }
 
@@ -131,11 +131,11 @@ export default function compute(
 
     try {
         function groupAccessor(node: GraphNode<DagNodeData, any>): string {
-            return node.data.group;
+            return node.data.group ?? 'latent';
         }
 
         function rankAccessor(node: GraphNode<DagNodeData, any>): number {
-            return node.data.rank;
+            return node.data.rank ?? 0;
         }
 
         newDagLayout = sugiyama()

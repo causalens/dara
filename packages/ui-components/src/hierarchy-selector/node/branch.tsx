@@ -140,7 +140,7 @@ interface BranchProps {
     /** Optional function to get id of the node selected by the user */
     selectNode?: (nodeId: string) => void;
     /** The id of the node selected by the user */
-    selectedNodeId: string;
+    selectedNodeId?: string;
     /** Pass through of the style to the node container */
     style?: React.CSSProperties;
 }
@@ -162,7 +162,7 @@ function Branch(props: BranchProps): JSX.Element {
     };
 
     const select = (): void => {
-        props.selectNode(props.content.id);
+        props.selectNode?.(props.content.id);
     };
 
     const selectionAllowed =

@@ -56,9 +56,8 @@ const baseNotifications$ = new Subject<NotificationPayload>();
  * generic push method for sending a new one
  * Additionally, it exposes a callback for when the notification is too small and more details are needed and clicked
  */
-export const NotificationContext = React.createContext({
+export const NotificationContext = React.createContext<NotificationContext>({
     notifications$: baseNotifications$,
-    onMoreDetailsClick: null,
     push: (notification: NotificationPayload) => baseNotifications$.next(notification),
 });
 
@@ -115,7 +114,9 @@ function NotificationWrapper(props: NotificationWrapperProps): JSX.Element {
                     key={notification.key}
                     notification={notification}
                     onDismiss={onDismiss}
-                    onMoreDetailsClick={onMoreDetailsClick}
+                    onMoreDetailsClick={
+                        onMoreDetailsClick ? (_event, payload) => onMoreDetailsClick(payload) : undefined
+                    }
                 />
             ))}
         </Container>

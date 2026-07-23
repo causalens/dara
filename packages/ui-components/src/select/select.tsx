@@ -151,7 +151,7 @@ export interface SelectProps extends InteractiveComponentProps<Item> {
     /** Specify a specific placement for the list */
     placement?: Placement;
     /** Set the selected value to a specific value, will put the component in controlled mode. Set to `null` to reset the value */
-    selectedItem?: Item;
+    selectedItem?: Item | null;
     /** Font size in rem to show in the Select */
     size?: number;
 }
@@ -168,11 +168,13 @@ function Select(props: SelectProps): JSX.Element {
     const { isOpen, selectedItem, getToggleButtonProps, getMenuProps, getItemProps } = useSelect<Item>({
         initialIsOpen: props.initialIsOpen,
         initialSelectedItem: props.initialValue,
-        itemToString: (item) => item.label,
+        itemToString: (item) => item?.label ?? '',
         items: props.items,
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
-            props.onSelect?.(selected);
+            if (selected) {
+                props.onSelect?.(selected);
+            }
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
         // Only set the selectedItem key if it has been explicitly set in props
@@ -218,7 +220,7 @@ function Select(props: SelectProps): JSX.Element {
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
             <Wrapper
                 className={props.className}
-                isDisabled={props.disabled}
+                isDisabled={Boolean(props.disabled)}
                 isErrored={!!props.errorMsg}
                 isOpen={isOpen}
                 onClick={props.onClick}
@@ -252,7 +254,7 @@ function Select(props: SelectProps): JSX.Element {
                         className={`${menuProps?.className ?? ''} ${props.itemClass}`}
                         itemClass={props.itemClass}
                         maxItems={props.maxItems}
-                        selectedItem={selectedItem}
+                        selectedItem={selectedItem ?? undefined}
                         kbdHighlightIdx={kbdHighlightIdx}
                     />,
                     document.body

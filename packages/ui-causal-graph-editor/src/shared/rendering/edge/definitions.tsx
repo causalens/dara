@@ -22,7 +22,7 @@ export interface PixiEdgeStyle {
     /** Whether edge is accepted by domain expert */
     accepted?: boolean;
     /** Optional color override */
-    color?: string;
+    color: string;
     /** Constraint attached to the edge, used in EdgeEncoder mode */
     constraint?: EdgeConstraint;
     /** Current editor mode */

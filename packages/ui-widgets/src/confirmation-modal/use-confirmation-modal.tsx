@@ -32,12 +32,12 @@ interface ConfirmationModalHook<T> {
  * @param getMessage a function the should return the message to display based off the item passed
  * @param confirm a function that will be called with the item upon confirmation
  */
-function useConfirmationModal<T>(
+function useConfirmationModal<T extends object>(
     getMessage: (item: T) => string,
     confirm: (item: T) => void | Promise<void>
 ): ConfirmationModalHook<T> {
     const [render, setRender] = useState(false);
-    const [canceledItem, setCanceledItem] = useState<T>();
+    const [canceledItem, setCanceledItem] = useState<T | null>(null);
     const [message, setMessage] = useState('');
 
     const onConfirmation = (item: T): void => {
@@ -52,7 +52,7 @@ function useConfirmationModal<T>(
 
     const onConfirm = (): void => {
         setRender(false);
-        if (confirm) {
+        if (canceledItem) {
             confirm(canceledItem);
         }
     };
