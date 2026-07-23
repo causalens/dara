@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Upgraded Storybook tooling for Vite 8 compatibility.
+
 ## 1.26.12
 
 - Internal: Removed unused build and test tooling dependencies.

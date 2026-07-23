@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Upgraded the library build tooling to Vite 8 and Rolldown.
+
 ## 1.26.12
 
 - Internal: Hardened JavaScript dependency versions and removed unused build and test tooling dependencies.

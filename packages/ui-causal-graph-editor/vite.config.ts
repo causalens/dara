@@ -14,7 +14,7 @@ export default defineConfig({
             name: 'UiCausalGraphEditor',
             fileName: 'index',
         },
-        rollupOptions: {
+        rolldownOptions: {
             external: ['react', 'react-dom', 'styled-components', '@tanstack/react-query'],
             output: {
                 exports: 'named',

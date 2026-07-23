@@ -13,7 +13,7 @@ export default defineConfig({
     },
     build: {
         minify: false,
-        rollupOptions: {
+        rolldownOptions: {
             external: ['react', 'react-dom', 'styled-components', '@darajs/core'],
             output: {
                 globals: {

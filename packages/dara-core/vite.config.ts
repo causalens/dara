@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     },
     build: {
         minify: false,
-        rollupOptions: {
+        rolldownOptions: {
             external: ['react', 'react-dom', 'styled-components', '@tanstack/react-query'],
             output: {
                 exports: 'named',
