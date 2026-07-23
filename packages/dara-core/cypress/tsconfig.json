@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": ["es5", "dom"],
+    "target": "es2015",
+    "lib": ["es2015", "dom"],
+    // Cypress 10's webpack preprocessor still enables downlevelIteration internally.
+    "ignoreDeprecations": "6.0",
     "types": ["cypress", "node"]
   },
   "include": ["**/*.ts"]
