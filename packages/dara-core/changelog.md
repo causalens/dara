@@ -756,6 +756,7 @@ from dara.components import Select, Item
 some_variable = Variable(1)
 other_variable = Variable(2)
 
+
 @action
 async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     # Value coming from the component, in this case the selected item
@@ -766,10 +767,7 @@ async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
 
 
-Select(
-    items=[Item(label='item1', value=1), Item(label='item2', value=2)],
-    onchange=my_action(2, other_variable)
-)
+Select(items=[Item(label='item1', value=1), Item(label='item2', value=2)], onchange=my_action(2, other_variable))
 ```
 
 - Added more shortcut actions for common operations, similar to existing `DerivedVariable.trigger()` - `AnyVariable.reset()`, `Variable.sync()`, `Variable.toggle()`, `Variable.update()`. See the updated `actions` documentation page for a full list of available actions.
@@ -813,28 +811,28 @@ from dara.core import ConfigurationBuilder, Cache, Variable, DerivedVariable
 
 config = ConfigurationBuilder()
 
+
 # Assume we have a handler function that fetches data from a remote API
 def fetch_weather_data(args):
     city, country_code = args
-    response = requests.get(f"https://some-weather-api.example/weather?q={city},{country_code}")
+    response = requests.get(f'https://some-weather-api.example/weather?q={city},{country_code}')
     return response.json()
 
+
 # Define the arguments as Variables
-city = Variable(default="London")
-country_code = Variable(default="GB")
+city = Variable(default='London')
+country_code = Variable(default='GB')
 
 # Use case: The weather data is likely to change every minute, so we set a TTL of 60 seconds
 # This means that the weather data will be fetched from the remote API at most once every 60 seconds for a given city/country_code pair
-dv_ttl = DerivedVariable(
-    fetch_weather_data,
-    variables=[city, country_code],
-    cache=Cache.Policy.TTL(ttl=60)
-)
+dv_ttl = DerivedVariable(fetch_weather_data, variables=[city, country_code], cache=Cache.Policy.TTL(ttl=60))
+
 
 # Assume we have a handler that takes a while to run and outputs a large amount of data
 def expensive_computation(args):
     data = [i for i in range(1e10)]
     return data
+
 
 # Defining input variables
 input_var = Variable(default=1)
@@ -842,9 +840,7 @@ input_var = Variable(default=1)
 # Use case: The data is large, so we want to keep most relevant results in cache and evict least relevant ones, so we use LRU cache
 # Only the 5 most recently accessed results (for each user!) will be kept in the cache to save space
 expensive_dv = DerivedVariable(
-    handler=expensive_computation,
-    variables=[input_var],
-    cache=Cache.Policy.LRU(max_size=5, cache_type=Cache.Type.USER)
+    handler=expensive_computation, variables=[input_var], cache=Cache.Policy.LRU(max_size=5, cache_type=Cache.Type.USER)
 )
 
 # Backwards compatible - just specifying cache type using the enum or string will default to LRU with max_size=10
@@ -914,6 +910,7 @@ from dara.core import ConfigurationBuilder
 config = ConfigurationBuilder()
 
 config.add_ws_handler(kind='my_custom_type', handler=my_custom_handler)
+
 
 # This will be called whenever a message of type 'my_custom_type' is received
 def my_custom_handler(channel: str, message: Any):

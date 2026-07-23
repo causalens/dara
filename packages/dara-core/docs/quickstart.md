@@ -131,13 +131,15 @@ from dara.components import Stack
 
 config = ConfigurationBuilder()
 
+
 def Layout():
     return SideBarFrame(
         content=Outlet(),
         side_bar=Stack(
             MenuLink(Text('Hello World'), to='/hello-world'),
-        )
+        ),
     )
+
 
 root = config.router.add_layout(content=Layout)
 root.add_page(path='hello-world', content=Heading('Hello World!'))
@@ -187,9 +189,7 @@ features = iris.feature_names
 target_names = iris.target_names
 data = pandas.DataFrame(iris.data, columns=features)
 data['species'] = iris.target
-data['species_names'] = data['species'].map(
-    {i: name for i, name in enumerate(target_names)}
-)
+data['species_names'] = data['species'].map({i: name for i, name in enumerate(target_names)})
 ```
 
 Your project's directory should now look like the following:
@@ -242,29 +242,20 @@ from dara.components.plotting.palettes import CategoricalLight3
 
 from my_first_app.definitions import data
 
+
 def scatter_plot(x: str, y: str):
     plot_data = data.copy()
     plot_data['color'] = plot_data['species_names'].map(
         {x: CategoricalLight3[i] for i, x in enumerate(data['species_names'].unique())}
     )
 
-    p = figure(title = f"{x} vs {y}", sizing_mode='stretch_both', toolbar_location=None)
-    p.circle(
-        x,
-        y,
-        color='color',
-        source=plot_data,
-        fill_alpha=0.4,
-        size=10,
-        legend_group='species_names'
-    )
+    p = figure(title=f'{x} vs {y}', sizing_mode='stretch_both', toolbar_location=None)
+    p.circle(x, y, color='color', source=plot_data, fill_alpha=0.4, size=10, legend_group='species_names')
     return Bokeh(p)
 
+
 def eda_page():
-    return Card(
-        scatter_plot('petal length (cm)', 'petal width (cm)'),
-        title='Scatter Plot'
-    )
+    return Card(scatter_plot('petal length (cm)', 'petal width (cm)'), title='Scatter Plot')
 ```
 
 Notice how the page content is wrapped in a `dara.components.common.card.Card` component. A `Card` wraps a component instance and gives it a title and an optional subtitle.
@@ -302,6 +293,7 @@ from dara.core import Variable
 
 ...
 
+
 def eda_page():
     x_var = Variable('petal length (cm)')
     y_var = Variable('petal width (cm)')
@@ -322,23 +314,17 @@ from dara.components.plotting.palettes import CategoricalLight3
 
 from my_first_app.definitions import data, features
 
+
 def scatter_plot(x: str, y: str):
     plot_data = data.copy()
     plot_data['color'] = plot_data['species_names'].map(
         {x: CategoricalLight3[i] for i, x in enumerate(data['species_names'].unique())}
     )
 
-    p = figure(title = f"{x} vs {y}", sizing_mode='stretch_both', toolbar_location=None)
-    p.circle(
-        x,
-        y,
-        color='color',
-        source=plot_data,
-        fill_alpha=0.4,
-        size=10,
-        legend_group='species_names'
-    )
+    p = figure(title=f'{x} vs {y}', sizing_mode='stretch_both', toolbar_location=None)
+    p.circle(x, y, color='color', source=plot_data, fill_alpha=0.4, size=10, legend_group='species_names')
     return Bokeh(p)
+
 
 def eda_page():
     x_var = Variable('petal length (cm)')
@@ -355,7 +341,7 @@ def eda_page():
             hug=True,
         ),
         scatter_plot('petal length (cm)', 'petal width (cm)'),
-        title='Scatter Plot'
+        title='Scatter Plot',
     )
 ```
 
@@ -366,10 +352,9 @@ Additionally, every Component in Dara has a property called `raw_css` which allo
 ```python
 Card(
     Text(
-        'My bold and italic text in a box with blue background',
-        raw_css={'font-weight': 'bold', 'font-style': 'italic'}
+        'My bold and italic text in a box with blue background', raw_css={'font-weight': 'bold', 'font-style': 'italic'}
     ),
-    raw_css={'background-color': 'powderblue'}
+    raw_css={'background-color': 'powderblue'},
 )
 ```
 
@@ -405,17 +390,10 @@ def scatter_plot(x: str, y: str):
         {x: CategoricalLight3[i] for i, x in enumerate(data['species_names'].unique())}
     )
 
-    p = figure(title = f"{x} vs {y}", sizing_mode='stretch_both', toolbar_location=None)
-    p.circle(
-        x,
-        y,
-        color='color',
-        source=plot_data,
-        fill_alpha=0.4,
-        size=10,
-        legend_group='species_names'
-    )
+    p = figure(title=f'{x} vs {y}', sizing_mode='stretch_both', toolbar_location=None)
+    p.circle(x, y, color='color', source=plot_data, fill_alpha=0.4, size=10, legend_group='species_names')
     return Bokeh(p)
+
 
 def eda_page():
     x_var = Variable('petal length (cm)')
@@ -432,7 +410,7 @@ def eda_page():
             hug=True,
         ),
         scatter_plot(x_var, y_var),
-        title='Scatter Plot'
+        title='Scatter Plot',
     )
 ```
 
@@ -479,33 +457,28 @@ from dara.components.plotting.palettes import SequentialDark8
 
 from my_first_app.definitions import data, features, target_names
 
-X_train, X_test, y_train, y_test = train_test_split(
-    data[features], data['species'], test_size=0.33, random_state=1
-)
+X_train, X_test, y_train, y_test = train_test_split(data[features], data['species'], test_size=0.33, random_state=1)
 tree = DecisionTreeClassifier(max_depth=3, random_state=1)
 tree.fit(X_train, y_train)
 predictions = tree.predict(X_test)
 
+
 def confusion_matrix_plot():
-    df = pandas.DataFrame(
-      confusion_matrix(y_test, predictions), index=target_names, columns=target_names
-    )
+    df = pandas.DataFrame(confusion_matrix(y_test, predictions), index=target_names, columns=target_names)
     df.index.name = 'Actual'
     df.columns.name = 'Prediction'
     df = df.stack().rename('value').reset_index()
 
-    mapper = LinearColorMapper(
-        palette=SequentialDark8, low=df.value.min(), high=df.value.max()
-    )
+    mapper = LinearColorMapper(palette=SequentialDark8, low=df.value.min(), high=df.value.max())
     p = figure(
         title='Confusion Matrix',
         sizing_mode='stretch_both',
         toolbar_location=None,
         x_axis_label='Predicted',
         y_axis_label='Actual',
-        x_axis_location="above",
+        x_axis_location='above',
         x_range=target_names,
-        y_range=target_names[::-1]
+        y_range=target_names[::-1],
     )
     p.rect(
         x='Actual',
@@ -527,11 +500,9 @@ def confusion_matrix_plot():
 
     return Bokeh(p)
 
+
 def classification_page():
-    return Card(
-        confusion_matrix_plot(),
-        title='Classification Results'
-    )
+    return Card(confusion_matrix_plot(), title='Classification Results')
 ```
 
 Don't forget to register the page in your app's configuration:
@@ -569,33 +540,28 @@ from dara.components.plotting.palettes import SequentialDark8
 
 from my_first_app.definitions import data, features, target_names
 
-X_train, X_test, y_train, y_test = train_test_split(
-    data[features], data['species'], test_size=0.33, random_state=1
-)
+X_train, X_test, y_train, y_test = train_test_split(data[features], data['species'], test_size=0.33, random_state=1)
 tree = DecisionTreeClassifier(max_depth=3, random_state=1)
 tree.fit(X_train, y_train)
 predictions = tree.predict(X_test)
 
+
 def confusion_matrix_plot():
-    df = pandas.DataFrame(
-        confusion_matrix(y_test, predictions), index=target_names, columns=target_names
-    )
+    df = pandas.DataFrame(confusion_matrix(y_test, predictions), index=target_names, columns=target_names)
     df.index.name = 'Actual'
     df.columns.name = 'Prediction'
     df = df.stack().rename('value').reset_index()
 
-    mapper = LinearColorMapper(
-        palette=SequentialDark8, low=df.value.min(), high=df.value.max()
-    )
+    mapper = LinearColorMapper(palette=SequentialDark8, low=df.value.min(), high=df.value.max())
     p = figure(
         title='Confusion Matrix',
         sizing_mode='stretch_both',
         toolbar_location=None,
         x_axis_label='Predicted',
         y_axis_label='Actual',
-        x_axis_location="above",
+        x_axis_location='above',
         x_range=target_names,
-        y_range=target_names[::-1]
+        y_range=target_names[::-1],
     )
     p.rect(
         x='Actual',
@@ -617,7 +583,9 @@ def confusion_matrix_plot():
 
     return Bokeh(p)
 
+
 max_depth_var = Variable([3])
+
 
 def classification_page():
     return Card(
@@ -628,7 +596,7 @@ def classification_page():
             hug=True,
         ),
         confusion_matrix_plot(),
-        title='Classification Results'
+        title='Classification Results',
     )
 ```
 
@@ -665,12 +633,11 @@ from dara.components.plotting.palettes import SequentialDark8
 
 from my_first_app.definitions import data, features, target_names
 
-X_train, X_test, y_train, y_test = train_test_split(
-    data[features], data['species'], test_size=0.33, random_state=1
-)
+X_train, X_test, y_train, y_test = train_test_split(data[features], data['species'], test_size=0.33, random_state=1)
 tree = DecisionTreeClassifier(max_depth=3, random_state=1)
 tree.fit(X_train, y_train)
 predictions = tree.predict(X_test)
+
 
 @py_component
 def confusion_matrix_plot(predictions: numpy.array):
@@ -679,18 +646,16 @@ def confusion_matrix_plot(predictions: numpy.array):
     df.columns.name = 'Prediction'
     df = df.stack().rename('value').reset_index()
 
-    mapper = LinearColorMapper(
-        palette=SequentialDark8, low=df.value.min(), high=df.value.max()
-    )
+    mapper = LinearColorMapper(palette=SequentialDark8, low=df.value.min(), high=df.value.max())
     p = figure(
         title='Confusion Matrix',
         sizing_mode='stretch_both',
         toolbar_location=None,
         x_axis_label='Predicted',
         y_axis_label='Actual',
-        x_axis_location="above",
+        x_axis_location='above',
         x_range=target_names,
-        y_range=target_names[::-1]
+        y_range=target_names[::-1],
     )
     p.rect(
         x='Actual',
@@ -712,17 +677,17 @@ def confusion_matrix_plot(predictions: numpy.array):
 
     return Bokeh(p)
 
+
 def calculate_predictions(n: List[int]):
     tree = DecisionTreeClassifier(max_depth=n[0], random_state=1)
     tree.fit(X_train, y_train)
     predictions = tree.predict(X_test)
     return predictions
 
+
 max_depth_var = Variable([3])
-predictions_var = DerivedVariable(
-    calculate_predictions,
-    variables=[max_depth_var]
-)
+predictions_var = DerivedVariable(calculate_predictions, variables=[max_depth_var])
+
 
 def classification_page():
     return Card(
@@ -733,7 +698,7 @@ def classification_page():
             hug=True,
         ),
         confusion_matrix_plot(predictions_var),
-        title='Classification Results'
+        title='Classification Results',
     )
 ```
 

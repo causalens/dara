@@ -17,16 +17,9 @@ This section contains a brief reminder of the two fundamental layout options for
 ```python
 from dara.components import Stack
 
-Stack(
-    Text('This text will appear above'),
-    Text('this text.')
-)
+Stack(Text('This text will appear above'), Text('this text.'))
 
-Stack(
-    Text('This text will appear next to'),
-    Text('this text.'),
-    direction='horizontal'
-)
+Stack(Text('This text will appear next to'), Text('this text.'), direction='horizontal')
 ```
 
 ![Stack](../assets/getting_started/components/stack.png)
@@ -45,40 +38,15 @@ from dara.core.visual.themes import Light
 
 Grid(
     Grid.Row(
-        Grid.Column(
-            Text('Row 1 Column 1'),
-            background=Light.colors.blue2,
-            justify='center',
-            span=8
-        ),
-        Grid.Column(
-            Text('Row 1 Column 2'),
-            background=Light.colors.blue3,
-            justify='center',
-            span=4
-        ),
-        padding='10px'
+        Grid.Column(Text('Row 1 Column 1'), background=Light.colors.blue2, justify='center', span=8),
+        Grid.Column(Text('Row 1 Column 2'), background=Light.colors.blue3, justify='center', span=4),
+        padding='10px',
     ),
     Grid.Row(
-        Grid.Column(
-            Text('Row 2 Column 1'),
-            background=Light.colors.blue2,
-            justify='center',
-            span=5
-        ),
-        Grid.Column(
-            Text('Row 2 Column 2'),
-            background=Light.colors.blue3,
-            justify='center',
-            span=4
-        ),
-        Grid.Column(
-            Text('Row 2 Column 3'),
-            background=Light.colors.blue4,
-            justify='center',
-            span=3
-        ),
-        padding='10px'
+        Grid.Column(Text('Row 2 Column 1'), background=Light.colors.blue2, justify='center', span=5),
+        Grid.Column(Text('Row 2 Column 2'), background=Light.colors.blue3, justify='center', span=4),
+        Grid.Column(Text('Row 2 Column 3'), background=Light.colors.blue4, justify='center', span=3),
+        padding='10px',
     ),
 )
 ```
@@ -96,7 +64,6 @@ In this section you will learn some more advanced features of `Stack`, namely tw
 In the context of a flex container, `hug` acts somewhat like a function that adjusts the size of a container to fit its content perfectly. In other words, it sets the flex-shrink property to 1 and flex-grow property to 0, making the container just big enough to "hug" or fit its content snugly. This avoids any excess space around the content and can be particularly useful when you want the container to occupy only as much space as its content needs, no more, no less.
 
 ```python
-
 from dara.components import Stack, Text
 
 Stack(
@@ -112,7 +79,6 @@ Stack(
         background='tomato',
     ),
 )
-
 ```
 
 ![Hug example](../assets/best-practices/hug.png)
@@ -129,7 +95,6 @@ In the example below we have a `Card` with a height of 500px, and a `Stack` that
 By default if scroll is not set then the `Stack` will overflow the space of the `Card`. In this example the coral background spills out of the `Card`.
 
 ```python
-
 from dara.components import Stack, Text
 
 Card(
@@ -142,7 +107,6 @@ Card(
     # outer Stack has 500px room
     height='500px',
 )
-
 ```
 
 ![Scroll Example](../assets/best-practices/scroll.png)
@@ -228,7 +192,6 @@ These three properties form one called [flex](https://developer.mozilla.org/en-U
 Layout components such as `Stack`, `Card`, `Tab`, `Grid.Column` all have a default `gap` of 0.75rem. This means that as you add components as children there will be a 0.75rem space between them automatically. This is useful to avoid content being too crowded and having to manually add a `Spacer` between each component.
 
 ```python
-
 from dara.components import Stack
 
 Stack(
@@ -238,13 +201,11 @@ Stack(
     # hidden gap of 0.75rem
     Card(...),
 )
-
 ```
 
 This can be easily changed by setting the `gap` property to a different value:
 
 ```python
-
 from dara.components import Stack
 
 Stack(
@@ -255,13 +216,11 @@ Stack(
     Card(...),
     gap='2rem',
 )
-
 ```
 
 However suppose that now you would like certain heights applied to these components, `Heading` should take 10% of the space available, and each `Card` should take 30% and 60% respectively:
 
 ```python
-
 from dara.components import Stack, Heading, Card
 
 Stack(
@@ -272,7 +231,6 @@ Stack(
     Card(..., height='60%'),
     gap='2rem',
 )
-
 ```
 
 The heights add to 100%, but this `Stack` would overflow! This is because of gap, counting the true height you have 10% + 2rem + 30% + 2rem + 60% = 100% + 4rem.
@@ -282,7 +240,6 @@ To avoid this there are three different methods you can follow:
 1. Leave one of your `Card`s without a height set, since they have `shrink` set to 1 by default (if height not set) it will shrink to fit the remaining space available.
 
 ```python
-
 from dara.components import Stack, Heading, Card
 
 Stack(
@@ -294,13 +251,11 @@ Stack(
     Card(...),
     gap='2rem',
 )
-
 ```
 
 2. Add `shrink=True` to each of the child components or the ones you would like to be able to "absorb" some of the space that `gap` takes
 
 ```python
-
 from dara.components import Stack, Heading, Card
 
 Stack(
@@ -314,13 +269,11 @@ Stack(
     Card(..., height='60%', shrink=True),
     gap='2rem',
 )
-
 ```
 
 3. Account for the `gap` size when considering the heights manually with the help of `calc`:
 
 ```python
-
 from dara.components import Stack, Heading, Card
 
 Stack(
@@ -332,7 +285,6 @@ Stack(
     Card(..., height='calc(60% - (2rem / 3))'),
     gap='2rem',
 )
-
 ```
 
 ### Justify and Align
@@ -349,45 +301,44 @@ Align (aka [align-items](https://developer.mozilla.org/en-US/docs/Web/CSS/align-
 from dara.components import Stack, Heading, Card, Text
 
 Stack(
-        Heading('Justify'),
-        Text('start'),
-        Stack(
-            Card(height=100, width=100, accent=True),
-            Card(height=100, width=100, accent=True),
-            justify='start',
-            direction='horizontal',
-            border='1px solid black',
-           height=100
-        ),
-        Text('end'),
-        Stack(
-            Card(height=100, width=100, accent=True),
-            Card(height=100, width=100, accent=True),
-            justify='end',
-            direction='horizontal',
-            border='1px solid black',
-           height=100
-        ),
-        Text('space-between'),
-        Stack(
-            Card(height=100, width=100, accent=True),
-            Card(height=100, width=100, accent=True),
-            justify='space-between',
-            direction='horizontal',
-            border='1px solid black',
-           height=100
-        ),
-        Text('space-evenly'),
-        Stack(
-            Card(height=100, width=100, accent=True),
-            Card(height=100, width=100, accent=True),
-            justify='space-evenly',
-            direction='horizontal',
-            border='1px solid black',
-           height=100
-        ),
+    Heading('Justify'),
+    Text('start'),
+    Stack(
+        Card(height=100, width=100, accent=True),
+        Card(height=100, width=100, accent=True),
+        justify='start',
+        direction='horizontal',
+        border='1px solid black',
+        height=100,
+    ),
+    Text('end'),
+    Stack(
+        Card(height=100, width=100, accent=True),
+        Card(height=100, width=100, accent=True),
+        justify='end',
+        direction='horizontal',
+        border='1px solid black',
+        height=100,
+    ),
+    Text('space-between'),
+    Stack(
+        Card(height=100, width=100, accent=True),
+        Card(height=100, width=100, accent=True),
+        justify='space-between',
+        direction='horizontal',
+        border='1px solid black',
+        height=100,
+    ),
+    Text('space-evenly'),
+    Stack(
+        Card(height=100, width=100, accent=True),
+        Card(height=100, width=100, accent=True),
+        justify='space-evenly',
+        direction='horizontal',
+        border='1px solid black',
+        height=100,
+    ),
 )
-
 ```
 
 ## Testing Your Layout

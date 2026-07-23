@@ -25,12 +25,14 @@ It is good to have your global state in one place and to keep it out of `main.py
 ```python title=definitions.py
 import pandas
 
-data = pandas.DataFrame({
-    'customer_ids': [1, 2, 3, 4, 5],
-    'sales_calls': [4, 2, 3, 1, 3],
-    'discount': [5, 15, 15, 20, 15],
-    'renew': [True, True, False, False, False]
-})
+data = pandas.DataFrame(
+    {
+        'customer_ids': [1, 2, 3, 4, 5],
+        'sales_calls': [4, 2, 3, 1, 3],
+        'discount': [5, 15, 15, 20, 15],
+        'renew': [True, True, False, False, False],
+    }
+)
 ```
 
 :::tip
@@ -62,18 +64,10 @@ from my_app.definitions import data
 
 
 def x_y_selects(x_var: Variable, y_var: Variable) -> ComponentInstance:
-    """ Constructs two selects, one for the x variable and one for the y variable"""
+    """Constructs two selects, one for the x variable and one for the y variable"""
     return Stack(
-        Stack(
-            Text('x:'),
-            Select(value=x_var, items=[*data.columns]),
-            direction='horizontal'
-        ),
-        Stack(
-            Text('y:'),
-            Select(value=y_var, items=[*data.columns]),
-            direction='horizontal'
-        )
+        Stack(Text('x:'), Select(value=x_var, items=[*data.columns]), direction='horizontal'),
+        Stack(Text('y:'), Select(value=y_var, items=[*data.columns]), direction='horizontal'),
     )
 ```
 
@@ -109,17 +103,12 @@ class ScatterPlotPage:
 
     def __call__(self) -> ComponentInstance:
         return Card(
-            Stack(
-                x_y_selects(self.x, self.y),
-                height='20%'
-            ),
-            self.scatter_plot(self.x, self.y),
-            title='Scatter Plot'
+            Stack(x_y_selects(self.x, self.y), height='20%'), self.scatter_plot(self.x, self.y), title='Scatter Plot'
         )
 
     @py_component
     def scatter_plot(self, x, y):
-        p = figure(title = f"Customers: {x} vs {y}", sizing_mode='stretch_both')
+        p = figure(title=f'Customers: {x} vs {y}', sizing_mode='stretch_both')
         p.circle(x, y, source=data, fill_alpha=0.2, size=10)
         return Bokeh(p)
 ```
@@ -164,18 +153,14 @@ class CorrelationPage:
         self.y = Variable('discount')
 
         self.correlation_coef = DerivedVariable(
-            lambda x, y: numpy.corrcoef(data[x], data[y])[0, 1],
-            variables=[self.x, self.y]
+            lambda x, y: numpy.corrcoef(data[x], data[y])[0, 1], variables=[self.x, self.y]
         )
 
     def __call__(self) -> ComponentInstance:
         return Card(
-            Stack(
-                x_y_selects(self.x, self.y),
-                height='20%'
-            ),
+            Stack(x_y_selects(self.x, self.y), height='20%'),
             self.display_correlation_coef(self.correlation_coef),
-            title='Pearson Correlation'
+            title='Pearson Correlation',
         )
 
     @py_component
@@ -184,13 +169,13 @@ class CorrelationPage:
             color = 'green'
         else:
             color = 'red'
-        return  Paragraph(
+        return Paragraph(
             Text('The correlation between'),
             Text(self.x),
             Text('and'),
             Text(self.y),
             Text('is'),
-            Text(round(correlation_coef, 2), color=color)
+            Text(round(correlation_coef, 2), color=color),
         )
 ```
 

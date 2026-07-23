@@ -38,7 +38,6 @@ Pages can be class-based or functional as long as they return a component instan
 Since a page is just a function returning a component, you can move the components and its internal logic to a function:
 
 ```python title=my_app/definitions.py
-
 global_var = 'Hello'
 ```
 
@@ -48,6 +47,7 @@ from dara.components import Stack, Text
 
 # import any external state
 from my_app.definitions import global_var
+
 
 def page1(global_var: str) -> ComponentInstance:
     # define an internal state inside the function
@@ -72,7 +72,6 @@ Defining a page as a function also enables you to access path parameters as inje
 Alternatively you could write the page as a class. Showing the previous example but using a class-based page:
 
 ```python title=my_app/definitions.py
-
 global_var = 'Hello'
 ```
 
@@ -82,6 +81,7 @@ from dara.components import Stack, Text
 
 # import any external state
 from my_app.definitions import global_var
+
 
 class Page1:
     def __init__(self):
@@ -150,6 +150,7 @@ And you could import your definitions into your pages with the following:
 from dara.components import Table
 from my_app.definitions import my_data
 
+
 def DataPage():
     return Table(data=my_data)
 ```
@@ -186,30 +187,24 @@ from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_er
 
 from my_app.definitions import my_data, my_model, features, target
 
+
 def resolve_metric_data(metrics: List[str]):
     metric_data = {}
     y_pred = my_model.predict(my_data[feature_names])
     y_true = my_data[[target]]
     for metric in metrics:
         if metric == 'Accuracy':
-            metric_data.append(
-                {'Metric': metric, 'Value': accuracy_score(y_true, y_pred)}
-            )
+            metric_data.append({'Metric': metric, 'Value': accuracy_score(y_true, y_pred)})
         elif metric == 'Mean Absolute Error':
-            metric_data.append(
-                {'Metric': metric, 'Value': mean_absolute_error(y_true, y_pred)}
-            )
+            metric_data.append({'Metric': metric, 'Value': mean_absolute_error(y_true, y_pred)})
         elif metric == 'Root Mean Squared Error':
-            metric_data.append(
-                {'Metric': metric, 'Value': mean_squared_error(y_true, y_pred)}
-            )
+            metric_data.append({'Metric': metric, 'Value': mean_squared_error(y_true, y_pred)})
     return pandas.DataFrame(metric_data)
+
 
 def PerformancePage():
     metric_var = Variable(['Accuracy'])
-    metric_data_var = DerivedVariable(
-        resolve_metric_data, variables=[metric_var]
-    )
+    metric_data_var = DerivedVariable(resolve_metric_data, variables=[metric_var])
     return Stack(
         Select(
             items=['Accuracy', 'Mean Absolute Error', 'Root Mean Squared Error'],
@@ -243,11 +238,10 @@ from dara.components import Table, Select, Stack
 
 from my_app.utils.model_utils import resolve_metric_data
 
+
 def PerformancePage():
     metric_var = Variable(['Accuracy'])
-    metric_data_var = DerivedVariable(
-        resolve_metric_data, variables=[metric_var]
-    )
+    metric_data_var = DerivedVariable(resolve_metric_data, variables=[metric_var])
     return Stack(
         Select(
             items=['Accuracy', 'Mean Absolute Error', 'Root Mean Squared Error'],
@@ -271,6 +265,7 @@ config.task_module = 'my_app.model_utils'
 
 ```python title=my_app/pages/performance_page.py
 ...
+
 
 def PerformancePage():
     metric_var = Variable(['Accuracy'])
@@ -313,6 +308,7 @@ from bokeh.models import HoverTool
 from dara.core import py_component
 from dara.components import Bokeh
 
+
 @py_component
 def plot_features(data: pandas.DataFrame):
     scatter_X = figure(title='X vs Y')
@@ -340,11 +336,9 @@ from dara.components import Table, Stack
 from my_app.definitions import my_data
 from my_app.utils.data_utils import plot_features
 
+
 def DataPage():
-    return Stack(
-        Table(my_data),
-        plot_features(my_data)
-    )
+    return Stack(Table(my_data), plot_features(my_data))
 ```
 
 #### Shared Utility Functions
@@ -356,9 +350,8 @@ import pandas
 from bokeh.plotting import figure
 from bokeh.models import HoverTool
 
-def scatter_plot(
-    X: pandas.Series, Y: pandas.Series, x_name: str, y_name: str, color: str
-):
+
+def scatter_plot(X: pandas.Series, Y: pandas.Series, x_name: str, y_name: str, color: str):
     scatter_fig = figure(f'{x_name} vs {y_name}')
     scatter_fig.scatter(X, Y, color=color)
     scatter_fig.xaxis.axis_label = x_name
@@ -395,15 +388,12 @@ from dara.components import Bokeh
 
 from my_app.utils.plotting_utils import scatter_plot
 
+
 @py_component
 def plot_features(data: pandas.DataFrame):
-    scatter_X = scatter_plot(
-        data['X'], data['Y'], 'X', 'Y', 'red'
-    )
+    scatter_X = scatter_plot(data['X'], data['Y'], 'X', 'Y', 'red')
 
-    scatter_Z = scatter_plot(
-        data['Z'], data['Y'], 'Z', 'Y', 'blue'
-    )
+    scatter_Z = scatter_plot(data['Z'], data['Y'], 'Z', 'Y', 'blue')
 
     return Bokeh(row(scatter_X, scatter_Z))
 ```
