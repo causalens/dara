@@ -287,7 +287,7 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
                         value={input}
                     />
                     {props.stepper && (
-                        <InputStepper disabled={Boolean(props.disabled)} step={step} stepSkip={props.stepSkip} />
+                        <InputStepper disabled={props.disabled as boolean} step={step} stepSkip={props.stepSkip} />
                     )}
                 </InputWrapper>
             </div>

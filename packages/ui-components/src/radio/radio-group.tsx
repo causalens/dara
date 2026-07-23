@@ -208,7 +208,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
                 return (
                     <RadioWrapper
                         aria-disabled={props.disabled}
-                        isListStyle={Boolean(props.isListStyle)}
+                        isListStyle={props.isListStyle as boolean}
                         key={`item-${index}`}
                     >
                         <RadioButton

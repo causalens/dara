@@ -292,12 +292,12 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
     const [kbdHighlightIdx, setKbdHighlightIdx] = React.useState<number | undefined>();
     const { isOpen, selectedItem, getToggleButtonProps, getMenuProps, getItemProps } = useSelect<Item>({
         initialSelectedItem: props.initialValue,
-        itemToString: (item) => item?.label ?? '',
+        itemToString: (item) => item!.label,
         items: props.items,
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
-            if (props.onSelect && selected) {
-                props.onSelect(selected);
+            if (props.onSelect) {
+                props.onSelect(selected as Item);
             }
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
@@ -307,7 +307,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
             if (type === stateChangeTypes.ToggleButtonClick && changes?.isOpen && props.selectedItem) {
                 return {
                     ...changes,
-                    highlightedIndex: props.items.findIndex((i) => i.value === changes.selectedItem?.value),
+                    highlightedIndex: props.items.findIndex((i) => i.value === changes.selectedItem!.value),
                 };
             }
 
@@ -356,7 +356,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
             <Wrapper
                 className={props.className}
-                isDisabled={Boolean(props.disabled)}
+                isDisabled={props.disabled as boolean}
                 isErrored={!!props.errorMsg}
                 onClick={props.onClick}
                 style={props.style}

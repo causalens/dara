@@ -43,7 +43,7 @@ interface EditorOverlayProps {
     /** Whether to hide the frame and show just the graph */
     hideFrame?: boolean;
     /** Function to delete currently selected content */
-    onDelete?: () => void | Promise<void>;
+    onDelete: (() => void | Promise<void>) | null;
     /** Function to select the next edge/node */
     onNext: () => void | Promise<void>;
     /** Function to select the previous edge/node */
@@ -73,7 +73,7 @@ interface EditorOverlayProps {
  */
 function EditorOverlay(props: EditorOverlayProps): JSX.Element | null {
     const { editable, allowSelectionWhenNotEditable } = useSettings();
-    const { onPanelEnter, onPanelExit } = useContext(PointerContext);
+    const { onPanelEnter, onPanelExit } = useContext(PointerContext)!;
 
     if (props.hideFrame) {
         return null;
@@ -81,25 +81,25 @@ function EditorOverlay(props: EditorOverlayProps): JSX.Element | null {
 
     const controlPadding = '10px';
 
-    const showPanel = Boolean(editable || allowSelectionWhenNotEditable);
+    const showPanel = editable || allowSelectionWhenNotEditable;
 
     return (
         <>
             <TopDiv padding={controlPadding}>
                 {/*  We only apply the show flag to content, as we want the indicator to always appear */}
                 <TopLeftDiv onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
-                    <TopLeftDivContent $show={Boolean(props.showFrameButtons)}>{props.topLeft}</TopLeftDivContent>
+                    <TopLeftDivContent $show={props.showFrameButtons as boolean}>{props.topLeft}</TopLeftDivContent>
                     {props.loadingIndicator}
                 </TopLeftDiv>
                 <TopCenterDiv
-                    $show={Boolean(props.showFrameButtons)}
+                    $show={props.showFrameButtons as boolean}
                     onMouseEnter={onPanelEnter}
                     onMouseLeave={onPanelExit}
                 >
                     {props.topCenter}
                 </TopCenterDiv>
                 <TopRightDiv
-                    $show={Boolean(props.showFrameButtons)}
+                    $show={props.showFrameButtons as boolean}
                     onMouseEnter={onPanelEnter}
                     onMouseLeave={onPanelExit}
                 >
@@ -107,7 +107,7 @@ function EditorOverlay(props: EditorOverlayProps): JSX.Element | null {
                 </TopRightDiv>
             </TopDiv>
 
-            <BottomDiv $show={Boolean(props.showFrameButtons)} padding={controlPadding}>
+            <BottomDiv $show={props.showFrameButtons as boolean} padding={controlPadding}>
                 <BottomLeftDiv onMouseEnter={onPanelEnter} onMouseLeave={onPanelExit}>
                     {props.bottomLeft}
                 </BottomLeftDiv>
@@ -119,12 +119,12 @@ function EditorOverlay(props: EditorOverlayProps): JSX.Element | null {
             {showPanel && props.validContentSelected && (
                 <PanelContent
                     disabled={props.disabled}
-                    onDelete={props.onDelete}
+                    onDelete={props.onDelete as () => void | Promise<void>}
                     onMouseEnter={onPanelEnter}
                     onMouseLeave={onPanelExit}
                     onNext={props.onNext}
                     onPrev={props.onPrev}
-                    title={props.title ?? ''}
+                    title={props.title as string}
                 >
                     {props.children ?? null}
                 </PanelContent>

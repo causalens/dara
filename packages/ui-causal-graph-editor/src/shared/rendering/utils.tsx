@@ -77,8 +77,7 @@ export function getZoomState(scale: number, zoomThresholds?: ZoomThresholds): Zo
 export function isGraphLayoutWithTiers(
     layout: GraphLayout
 ): layout is GraphLayoutWithTiers & { orientation: DirectionType; tiers: GraphTiers } {
-    const tieredLayout = layout as GraphLayoutWithTiers;
-    return tieredLayout.tiers !== undefined && tieredLayout.orientation !== undefined;
+    return (layout as GraphLayoutWithTiers).tiers !== undefined;
 }
 
 export function isGraphLayoutWithGroups(layout: GraphLayout): layout is GraphLayoutWithGrouping & { group: string } {

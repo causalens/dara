@@ -130,11 +130,11 @@ export function useRenderEngine({
     zoomThresholds?: ZoomThresholds;
 }): UseRenderEngineApi {
     const theme = useTheme();
-    const engineRef = React.useRef<Engine | null>(null);
+    const engine = React.useRef<Engine | null>(null);
     const listeners = React.useRef<Partial<EngineEvents>>({});
 
-    if (!engineRef.current) {
-        engineRef.current = new Engine(
+    if (!engine.current) {
+        engine.current = new Engine(
             graph,
             layout,
             editable,
@@ -147,36 +147,35 @@ export function useRenderEngine({
             requireFocusToZoom
         );
     }
-    const engine = engineRef.current;
-
     // Start engine after first render, stop it on destroy
     React.useEffect(() => {
         if (parentRef.current) {
-            engine.start(parentRef.current).then(() => {
+            engine.current!.start(parentRef.current).then(() => {
                 // Attach listeners for each event type
                 ENGINE_EVENTS.forEach((eventName) => {
-                    engine.addListener(eventName, (...args) => {
-                        const listener = listeners.current[eventName] as
-                            | ((...eventArgs: typeof args) => void)
-                            | undefined;
-                        listener?.(...args);
+                    engine.current!.addListener(eventName, (...args) => {
+                        // eslint-disable-next-line prefer-spread
+                        (listeners.current[eventName] as ((...eventArgs: typeof args) => void) | undefined)?.apply(
+                            null,
+                            args
+                        );
                     });
                 });
             });
         }
 
         return () => {
-            engine.destroy();
+            engine.current?.destroy();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // update engine theme
     React.useEffect(() => {
-        if (engine.initialized) {
-            engine.setTheme(theme);
+        if (engine.current!.initialized) {
+            engine.current!.setTheme(theme);
         }
-    }, [engine, theme]);
+    }, [theme]);
 
     /**
      * Updates the listener reference in a ref. Engine event listeners are registered just once so
@@ -188,62 +187,61 @@ export function useRenderEngine({
 
     return {
         getCenterPosition: (): PIXI.PointData => {
-            return engine.getCenterPosition();
+            return engine.current!.getCenterPosition();
         },
         onEdgeSelected: (path: [string, string] | null) => {
-            if (engine.initialized) {
-                engine.selectEdge(path);
+            if (engine.current!.initialized) {
+                engine.current!.selectEdge(path as [string, string]);
             }
         },
         onNodeSelected: (node: string | null | undefined) => {
-            if (engine.initialized) {
-                engine.selectNode(node);
+            if (engine.current!.initialized) {
+                engine.current!.selectNode(node as string);
             }
         },
         onSearchResults: (nodes: string[]) => {
-            if (engine.initialized) {
-                engine.searchNodes(nodes);
+            if (engine.current!.initialized) {
+                engine.current!.searchNodes(nodes);
             }
         },
         onSetDragMode: (dragMode: DragMode | null) => {
-            engine.setDragMode(dragMode);
+            engine.current!.setDragMode(dragMode);
         },
         onSetFocus: (isFocused: boolean) => {
-            if (engine.initialized) {
-                engine.setFocus(isFocused);
+            if (engine.current!.initialized) {
+                engine.current!.setFocus(isFocused);
             }
         },
         onUpdateConstraints: (newConstraints: EdgeConstraint[]) => {
-            if (engine.initialized) {
-                engine.updateConstraints(newConstraints);
+            if (engine.current!.initialized) {
+                engine.current!.updateConstraints(newConstraints);
             }
         },
         resetLayout: () => {
-            if (engine.initialized) {
-                engine.debouncedUpdateLayout();
+            if (engine.current!.initialized) {
+                engine.current!.debouncedUpdateLayout();
             }
         },
         resetViewport: () => {
-            if (engine.initialized) {
-                engine.resetViewport();
+            if (engine.current!.initialized) {
+                engine.current!.resetViewport();
             }
         },
         collapseGroups: () => {
-            if (engine.initialized) {
-                engine.collapseAllGroups();
+            if (engine.current!.initialized) {
+                engine.current!.collapseAllGroups();
             }
         },
         expandGroups: () => {
-            if (engine.initialized) {
-                engine.expandAllGroups();
+            if (engine.current!.initialized) {
+                engine.current!.expandAllGroups();
             }
         },
-        extractImage: () => {
-            if (engine.initialized) {
-                return engine.extractImage();
+        extractImage: (() => {
+            if (engine.current!.initialized) {
+                return engine.current!.extractImage();
             }
-            return Promise.resolve(undefined);
-        },
+        }) as () => Promise<string | undefined>,
         useEngineEvent,
     };
 }

@@ -36,7 +36,7 @@ interface DragModeButtonProps {
 
 function DragModeButton(props: DragModeButtonProps): JSX.Element {
     const { editable, disableEdgeAdd, allowNodeDrag } = useSettings();
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
     const theme = useTheme();
 
     const isMoveNode = props.dragMode === 'move_node';

@@ -70,7 +70,7 @@ function useInfiniteLoader<T>(
     const getItem = useCallback(
         (index: number) => {
             const adjustedIndex = index - currentStartIdx;
-            if (adjustedIndex < 0 || adjustedIndex >= internalData.length) {
+            if (adjustedIndex < 0 || adjustedIndex > internalData.length) {
                 return;
             }
             return internalData[adjustedIndex];
@@ -127,7 +127,7 @@ function useInfiniteLoader<T>(
                 setInternalData((current) => [...current, ...data]);
                 setItemCount(totalCount);
             } catch (err) {
-                onError?.(err instanceof Error ? err : new Error(String(err)));
+                onError?.(err as Error);
             }
         },
         [batchSize, currentStartIdx, currentStopIdx, onError]

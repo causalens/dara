@@ -38,7 +38,7 @@ const EditorComponentMap: Record<EditorMode, ((props: EdgeEditorProps) => JSX.El
 function EdgeEditor(props: EdgeEditorProps): JSX.Element {
     const { editorMode } = useSettings();
 
-    const EditorComponent = editorMode ? EditorComponentMap[editorMode] : null;
+    const EditorComponent = EditorComponentMap[editorMode!];
 
     return <ColumnWrapper>{EditorComponent && <EditorComponent {...props} />}</ColumnWrapper>;
 }

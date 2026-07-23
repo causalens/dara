@@ -72,7 +72,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-        this.setState({ stackTrace: errorInfo.componentStack?.slice(5) });
+        this.setState({ stackTrace: errorInfo.componentStack!.slice(5) });
     }
 
     render(): React.ReactNode {

@@ -236,7 +236,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
             initialSelectedItems: props.initialValue ?? [],
             onSelectedItemsChange: (changes: UseMultipleSelectionStateChange<Item>) => {
                 if (props.onSelect) {
-                    props.onSelect(changes.selectedItems ?? []);
+                    props.onSelect(changes.selectedItems as Item[]);
                 }
             },
             // Only set the selectedItems key if it has been explicitly set in props
@@ -367,7 +367,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
                         />
                     </TagWrapper>
                     <ChevronButton
-                        disabled={Boolean(props.disabled)}
+                        disabled={props.disabled as boolean}
                         isOpen={isOpen}
                         getToggleButtonProps={getToggleButtonProps}
                     />

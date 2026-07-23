@@ -190,7 +190,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
     } = useCombobox<ListItem>({
         initialIsOpen: false,
         initialSelectedItem: props.initialValue ?? props.selectedItem,
-        itemToString: (item) => item?.label ?? '',
+        itemToString: (item) => (item ? item.label : ''),
         items,
         onInputValueChange: (change) => {
             const shouldUpdateInput = (
@@ -198,18 +198,17 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ).includes(change.type);
 
             if (shouldUpdateInput) {
-                setInputValue(change.inputValue ?? '');
+                setInputValue(change.inputValue as string);
             }
 
-            const nextInputValue = change.inputValue;
-            if (!nextInputValue) {
+            if (!change.inputValue) {
                 setItems(unpackedItems);
                 return;
             }
 
             const counts: { [k: string]: number } = {};
             const filteredItems = unpackedItems.filter((item: ListItem) => {
-                const lowercaseInput = nextInputValue.toLowerCase();
+                const lowercaseInput = change.inputValue!.toLowerCase();
                 const lowercaseLabel = item.label.toLowerCase();
 
                 // Check if search input matches section item
@@ -220,11 +219,9 @@ function SectionedList(props: SectionedListProps): JSX.Element {
 
                 if (item.heading) {
                     // search for section headers that contain an item that matches the input
-                    const listSections = props.items
-                        .filter(instanceOfSectionItem)
-                        .filter((section) =>
-                            section.items.some((subItem) => subItem.label.toLowerCase().includes(lowercaseInput))
-                        );
+                    const listSections = (props.items as ListSection[]).filter((propItem) =>
+                        propItem.items.find((subItem) => subItem.label.toLowerCase().includes(lowercaseInput))
+                    );
 
                     if (listSections.length) {
                         // display section headers that contain a matching item
@@ -246,9 +243,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                     (props.selectedItem && changes.selectedItem?.value !== props.selectedItem?.value) ||
                     !props.selectedItem
                 ) {
-                    if (changes.selectedItem) {
-                        props.onSelect(changes.selectedItem);
-                    }
+                    props.onSelect(changes.selectedItem as ListItem);
                 }
             }
         },
@@ -268,11 +263,10 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                 (type === stateChangeTypes.ToggleButtonClick && changes.isOpen)
             ) {
                 // This is a hack to change the highlight in the next render cycle so filteredItems had time to update
-                const selectedItemValue = changes.selectedItem?.value;
                 setPendingHighlight(
-                    selectedItemValue === undefined ? 0 : (
-                        unpackedItems.findIndex((item) => item.value === selectedItemValue)
-                    )
+                    changes.selectedItem ?
+                        (props.items as ListItem[]).findIndex((i) => i.value === changes.selectedItem!.value)
+                    :   0
                 );
                 return {
                     ...changes,
@@ -298,25 +292,18 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                 };
             }
             // jump section headings when navigating with keys
-            const { highlightedIndex } = changes;
-            if (
-                type === stateChangeTypes.InputKeyDownArrowUp &&
-                highlightedIndex !== undefined &&
-                items[highlightedIndex]?.heading
-            ) {
+            if (type === stateChangeTypes.InputKeyDownArrowUp && items[changes.highlightedIndex!]?.heading) {
                 return {
                     ...changes,
-                    highlightedIndex: highlightedIndex - 1 < 0 ? items.length - 1 : highlightedIndex - 1,
+                    highlightedIndex:
+                        changes.highlightedIndex! - 1 < 0 ? items.length - 1 : changes.highlightedIndex! - 1,
                 };
             }
-            if (
-                type === stateChangeTypes.InputKeyDownArrowDown &&
-                highlightedIndex !== undefined &&
-                items[highlightedIndex]?.heading
-            ) {
+            if (type === stateChangeTypes.InputKeyDownArrowDown && items[changes.highlightedIndex!]?.heading) {
                 return {
                     ...changes,
-                    highlightedIndex: highlightedIndex + 1 === items.length ? 0 : highlightedIndex + 1,
+                    highlightedIndex:
+                        changes.highlightedIndex! + 1 === items.length ? 0 : changes.highlightedIndex! + 1,
                 };
             }
             return changes;
@@ -374,16 +361,16 @@ function SectionedList(props: SectionedListProps): JSX.Element {
     return (
         <Wrapper
             className={props.className}
-            isDisabled={Boolean(props.disabled)}
+            isDisabled={props.disabled as boolean}
             isErrored={false}
             isOpen={isOpen}
             style={props.style}
             id={props.id}
         >
-            <InputWrapper disabled={Boolean(props.disabled)} isOpen={isOpen} ref={refs.setReference}>
+            <InputWrapper disabled={props.disabled as boolean} isOpen={isOpen} ref={refs.setReference}>
                 <Input {...getInputProps({ value: inputValue })} {...getReferenceProps()} size={props.size} />
                 <ChevronButton
-                    disabled={Boolean(props.disabled)}
+                    disabled={props.disabled as boolean}
                     isOpen={isOpen}
                     getToggleButtonProps={getToggleButtonProps}
                 />

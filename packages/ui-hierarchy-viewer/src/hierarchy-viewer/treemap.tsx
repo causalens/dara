@@ -74,11 +74,11 @@ function NodeRenderer(props: NodeRendererProps): JSX.Element {
     const fill = props.color(depth).toString();
     const width = Number.isNaN(node.x1 - node.x0) ? undefined : node.x1 - node.x0;
     const height = Number.isNaN(node.y1 - node.y0) ? undefined : node.y1 - node.y0;
-    const hasChildren = Boolean(node.children && node.children.length > 0);
-    const isInteractive = Boolean((hasChildren && props.allowParentClick) || (!hasChildren && props.allowLeafClick));
+    const hasChildren = node.children && node.children.length > 0;
+    const isInteractive = (hasChildren && props.allowParentClick) || (!hasChildren && props.allowLeafClick);
 
     const onClick = useCallback(() => {
-        onClickProp?.(node.data);
+        onClickProp!(node.data);
     }, [node, onClickProp]);
 
     return (
@@ -98,8 +98,8 @@ function NodeRenderer(props: NodeRendererProps): JSX.Element {
                 y={Number.isNaN(node.y0) ? undefined : node.y0}
             >
                 <NodeLabel
-                    hasChildren={hasChildren}
-                    isInteractive={isInteractive}
+                    hasChildren={hasChildren as boolean}
+                    isInteractive={isInteractive as boolean}
                     title={`${node.data?.label} (${node.data?.weight})`}
                 >
                     <span>{node.data?.label}</span>
@@ -146,25 +146,25 @@ interface TreemapProps {
  */
 function Treemap(props: TreemapProps): JSX.Element | null {
     const theme = useTheme();
-    const ref = useRef<SVGSVGElement>(null);
+    const ref = useRef<SVGSVGElement>();
 
-    const [treemap, setTreemap] = useState<d3.HierarchyRectangularNode<Node> | null>(null);
+    const [treemap, setTreemap] = useState<d3.HierarchyRectangularNode<Node> | null>();
 
     useEffect(
         () => {
             if (props.data) {
                 const root = d3.hierarchy(props.data).sum((node) => {
-                    return node.children && node.children.length > 0 ? 0 : node.weight ?? 0;
+                    return node.children && node.children.length > 0 ? 0 : node.weight!;
                 });
-                const layout = d3
+                d3
                     .treemap<Node>()
                     .size([props.width, props.height])
                     .paddingTop(28)
                     .paddingBottom(8)
                     .paddingRight(7)
                     .paddingLeft(7)
-                    .paddingInner(3);
-                setTreemap(layout(root));
+                    .paddingInner(3)(root);
+                setTreemap(root as d3.HierarchyRectangularNode<Node>);
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,7 +180,7 @@ function Treemap(props: TreemapProps): JSX.Element | null {
         return null;
     }
 
-    const maxDepth = treemap.leaves()[0]?.depth ?? 0;
+    const maxDepth = treemap.leaves() ? treemap.leaves()[0].depth : 0;
     return (
         <svg height={props.height} ref={ref} width={props.width}>
             <NodeRenderer

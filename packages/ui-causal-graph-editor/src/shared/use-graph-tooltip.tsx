@@ -65,12 +65,7 @@ export default function useGraphTooltip(
         // NOTE: This is technically async but will resolve immediately as it's resolved
         // in response to IntersectionObserver callback, which is guaranteed to fire
         // the next render cycle
-        const getTooltipRect = tooltipRef.current;
-        if (!getTooltipRect) {
-            return;
-        }
-
-        isRectVisible(getTooltipRect()).then((isVisible) => {
+        isRectVisible(tooltipRef.current!()).then((isVisible) => {
             setTooltipContent(isVisible ? content : null);
         });
     }

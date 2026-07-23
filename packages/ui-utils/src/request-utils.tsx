@@ -63,23 +63,21 @@ export const getQueryStr = (options?: RequestOptions, extras?: { [k: string]: st
     }
 
     let query = '?';
-    const requestOptions = options ?? {};
-
-    if (Number.isInteger(requestOptions.startIndex)) {
-        query += `offset=${requestOptions.startIndex}&`;
+    if (Number.isInteger(options!.startIndex)) {
+        query += `offset=${options!.startIndex}&`;
     }
-    if (Number.isInteger(requestOptions.limit)) {
-        query += `limit=${requestOptions.limit}&`;
+    if (Number.isInteger(options!.limit)) {
+        query += `limit=${options!.limit}&`;
     }
-    if (requestOptions.searchTerm) {
-        query += `query=${requestOptions.searchTerm}&`;
+    if (options!.searchTerm) {
+        query += `query=${options!.searchTerm}&`;
     }
-    if (requestOptions.sort && requestOptions.sort.length > 0) {
+    if (options!.sort && options!.sort.length > 0) {
         // Handle all items in array of sorting rules
-        query += `order_by=${requestOptions.sort.map((sort) => `${sort.desc ? '-' : ''}${sort.id}`).join(',')}&`;
+        query += `order_by=${options!.sort.map((sort) => `${sort.desc ? '-' : ''}${sort.id}`).join(',')}&`;
     }
-    if (requestOptions.filter && requestOptions.filter.length > 0) {
-        for (const filter of requestOptions.filter) {
+    if (options!.filter && options!.filter.length > 0) {
+        for (const filter of options!.filter) {
             // Handle single filters or arrays of filter terms
             if (typeof filter.value === 'string') {
                 query += `${filter.id}=${filter.value}&`;
@@ -91,9 +89,13 @@ export const getQueryStr = (options?: RequestOptions, extras?: { [k: string]: st
         }
     }
 
-    Object.entries(extras ?? {}).forEach(([key, value]) => {
-        query += `${key}=${String(value)}&`;
-    });
+    try {
+        Object.keys(extras!).forEach((key) => {
+            query += `${key}=${String(extras![key])}&`;
+        });
+    } catch {
+        // Do nothing as it was probably empty
+    }
 
     return query.replace(/&$/, '');
 };
@@ -190,7 +192,7 @@ export async function chunkedFileUpload(
             currentChunk += 1;
         } catch (err) {
             if (sub) {
-                sub.error(err instanceof Error ? err.message : String(err));
+                sub.error((err as Error).message);
             } else {
                 throw err;
             }

@@ -129,7 +129,7 @@ function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
                     value={labelToDisplay}
                 />
             :   <LabelStaticDisplay
-                    $viewOnly={Boolean(props.viewOnly)}
+                    $viewOnly={props.viewOnly as boolean}
                     onClick={() => onEnableEditing()}
                     onKeyDown={(k) => k.key === 'Enter' && onEnableEditing()}
                     role="button"

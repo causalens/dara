@@ -209,7 +209,7 @@ export default class FcoseLayout extends GraphLayout<FcoseLayoutParams> {
         this.nodeRepulsion = builder._nodeRepulsion;
         this.nodeSeparation = builder._nodeSeparation;
         this.tierSeparation = builder._tierSeparation;
-        this.orientation = builder.orientation ?? 'horizontal';
+        this.orientation = builder.orientation!;
         this.tiers = builder.tiers;
         this.group = builder.group;
     }

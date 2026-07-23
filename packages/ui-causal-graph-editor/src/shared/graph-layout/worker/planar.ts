@@ -45,21 +45,21 @@ function dagGraphParser(graph: SimulationGraph, tiers?: GraphTiers): MutGraph<Da
 
     const nodes: DagNodeData[] = graph.mapNodes((id: string, attributes: SimulationNode) => {
         const parentIds = graph.inboundNeighbors(id);
-        let nodeType = 'latent';
+        let nodeType: string | undefined = 'latent';
         let nodeOrder;
         let nodeRank;
 
         if (tiers) {
             const nodeData = nodeTiersMap.get(id);
             // in the case of e.g. a new node group etc may be undefined
-            nodeType = nodeData?.group ?? 'latent';
+            nodeType = nodeData?.group;
             nodeOrder = nodeData?.order;
             nodeRank = nodeData?.rank;
         }
 
         return {
             ...attributes,
-            group: nodeType,
+            group: nodeType as string,
             ord: nodeOrder,
             parentIds,
             rank: nodeRank,
@@ -102,7 +102,7 @@ function customDecross(layers: SugiNode<{ ord?: number }, unknown>[][]): void {
             vals.set(node, val);
         });
 
-        layer.sort((a, b) => (vals.get(a) ?? 0) - (vals.get(b) ?? 0));
+        layer.sort((a, b) => vals.get(a)! - vals.get(b)!);
     });
 }
 
@@ -131,11 +131,11 @@ export default function compute(
 
     try {
         function groupAccessor(node: GraphNode<DagNodeData, any>): string {
-            return node.data.group ?? 'latent';
+            return node.data.group!;
         }
 
         function rankAccessor(node: GraphNode<DagNodeData, any>): number {
-            return node.data.rank ?? 0;
+            return node.data.rank!;
         }
 
         newDagLayout = sugiyama()

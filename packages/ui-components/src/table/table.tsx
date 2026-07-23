@@ -404,7 +404,7 @@ const createActionColumn = (
         disableSortBy: true,
         maxWidth: width,
         minWidth: actions.includes(Actions.SELECT) ? 52 : 48,
-        sticky: sticky || undefined,
+        sticky: (sticky || null) as 'left' | 'right' | undefined,
         width,
     };
 };
@@ -540,8 +540,6 @@ const createItemData = memoize(
     })
 );
 
-const RowRenderer = RenderRow as React.ComponentType<any>;
-
 /**
  * The Table component builds on top of the thirdparty react-table library and aims to provide a simple outward facing
  * api. A table can be completely defined by passing in an array of columns and an array of data. The columns
@@ -604,7 +602,7 @@ const Table = forwardRef(
         >(undefined, 500);
 
         // ClickRow is throttled so multiple or double clicks don't fire multiple events
-        const throttledClickRow = useThrottle((row: T) => onClickRow?.(row), 500);
+        const throttledClickRow = useThrottle(onClickRow!, 500);
 
         const onStopEdit = (): void => {
             throttledSetEditCell(undefined);
@@ -684,9 +682,7 @@ const Table = forwardRef(
                 initialState: {
                     sortBy: currentSortBy.map((sort) => ({
                         ...sort,
-                        id:
-                            mappedColumns.find((col) => [col.sortKey, col.accessor].includes(sort.id))?.accessor ??
-                            sort.id,
+                        id: mappedColumns.find((col) => [col.sortKey, col.accessor].includes(sort.id))!.accessor,
                     })),
                 },
                 // In infinite mode, don't filter client-side
@@ -877,7 +873,7 @@ const Table = forwardRef(
                                 }}
                                 width={width}
                             >
-                                {RowRenderer}
+                                {RenderRow as React.ComponentType<any>}
                             </StyledFixedSizeList>
                         );
                     }}

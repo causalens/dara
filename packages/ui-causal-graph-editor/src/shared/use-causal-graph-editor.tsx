@@ -52,27 +52,35 @@ export default function useCausalGraphEditor(
 ): UseCausalGraphEditorApi {
     const newNodesRequirePosition = graphLayout.requiresPosition;
 
-    const [state, dispatch] = useReducer(GraphReducer, graphData, (initialGraphData): GraphState => {
-        const parsedGraph = causalGraphParser(initialGraphData, availableInputs);
-        const newEditorMode = editorMode ?? (isDag(parsedGraph) ? EditorMode.DEFAULT : EditorMode.PAG_VIEWER);
-
-        return {
-            graph: parsedGraph,
-            editorMode: newEditorMode,
+    const [state, dispatch] = useReducer(
+        GraphReducer,
+        {
             newNodesRequirePosition,
-        };
-    });
+        } as GraphState,
+        (initState: GraphState) => {
+            const parsedGraph = causalGraphParser(graphData, availableInputs);
+            const newEditorMode = editorMode ?? (isDag(parsedGraph) ? EditorMode.DEFAULT : EditorMode.PAG_VIEWER);
+
+            return {
+                ...initState,
+                graph: parsedGraph,
+                editorMode: newEditorMode,
+            };
+        }
+    );
 
     // bind each action creator to dispatch
     const api = useMemo(() => {
-        return Object.fromEntries(
-            actionNames.map((actionName) => {
-                const actionCreator = GraphActionCreators[actionName] as (
-                    ...args: never[]
-                ) => Parameters<typeof dispatch>[0];
-                return [actionName, (...args: never[]) => dispatch(actionCreator(...args))];
-            })
-        ) as GraphApi;
+        return actionNames.reduce<GraphApi>((acc, actionName) => {
+            const actionCreator = GraphActionCreators[actionName];
+            // TypeScript cannot correlate a union key with its mapped function signature.
+            (acc as Record<ActionName, (...args: never[]) => void>)[actionName] = (...args: never[]) =>
+                dispatch(
+                    // eslint-disable-next-line prefer-spread
+                    (actionCreator as (...actionArgs: never[]) => ReturnType<typeof actionCreator>).apply(null, args)
+                );
+            return acc;
+        }, {} as GraphApi);
     }, [dispatch]);
 
     const isTimeSeriesCausalGraph = useMemo(() => {

@@ -243,7 +243,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             updated_at: new Date().toISOString(),
         };
 
-        props.onChange?.(newMessage);
+        props?.onChange!(newMessage);
         setLocalMessage(newMessage);
         // reset the textarea message to the message without the /n and trailing whitespace
         setEditMessage(newMessage.message);
@@ -261,7 +261,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             role="listitem"
             className={props.className}
             style={props.style}
-            $messageFromActiveUser={Boolean(props.didUserWriteMessage)}
+            $messageFromActiveUser={props.didUserWriteMessage as boolean}
         >
             <MessageTop>
                 <UserInfoWrapper>

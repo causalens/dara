@@ -22,7 +22,7 @@ import { delay } from 'rxjs/operators';
 import styled from '@darajs/styled-components';
 import { useSubscription } from '@darajs/ui-utils';
 
-import Notification from './notification';
+import Notification, { type NotificationProps } from './notification';
 import { type NotificationPayload } from './notification-payload';
 
 const Container = styled.div`
@@ -45,7 +45,7 @@ const Container = styled.div`
 
 interface NotificationContext {
     notifications$: Subject<NotificationPayload>;
-    onMoreDetailsClick?: (notification: NotificationPayload) => void;
+    onMoreDetailsClick?: ((notification: NotificationPayload) => void) | null;
     push: (notification: NotificationPayload) => void;
 }
 
@@ -58,6 +58,7 @@ const baseNotifications$ = new Subject<NotificationPayload>();
  */
 export const NotificationContext = React.createContext<NotificationContext>({
     notifications$: baseNotifications$,
+    onMoreDetailsClick: null,
     push: (notification: NotificationPayload) => baseNotifications$.next(notification),
 });
 
@@ -114,9 +115,7 @@ function NotificationWrapper(props: NotificationWrapperProps): JSX.Element {
                     key={notification.key}
                     notification={notification}
                     onDismiss={onDismiss}
-                    onMoreDetailsClick={
-                        onMoreDetailsClick ? (_event, payload) => onMoreDetailsClick(payload) : undefined
-                    }
+                    onMoreDetailsClick={onMoreDetailsClick as NotificationProps['onMoreDetailsClick']}
                 />
             ))}
         </Container>

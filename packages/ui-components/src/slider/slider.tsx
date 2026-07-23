@@ -277,7 +277,7 @@ function useValueCorrection<T>(
         const constraintsChanged =
             !isEqual(previousConstraints.current.domain, domain) || previousConstraints.current.step !== step;
 
-        if (!constraintsChanged || !values?.length || !onChange || !getValueLabel) {
+        if (!constraintsChanged || !values?.length || !onChange) {
             previousConstraints.current = { domain, step };
             return;
         }
@@ -287,7 +287,7 @@ function useValueCorrection<T>(
 
         // Only fire onChange if values actually changed
         if (!isEqual(values, correctedValues)) {
-            const formattedValues = correctedValues.map(getValueLabel);
+            const formattedValues = correctedValues.map(getValueLabel!);
             onChange(formattedValues);
         }
 
@@ -346,8 +346,6 @@ function BaseSlider<T extends string | number | React.ReactNode>({
     className,
     id,
 }: BaseSliderProps<T>): JSX.Element {
-    const formatValue = useMemo(() => getValueLabel ?? ((value: number) => value as T), [getValueLabel]);
-
     // If step isn't set then pick a reasonable one
     const adjustedStep = useMemo(() => {
         if (step) {
@@ -357,7 +355,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
     }, [domain, step]);
 
     // Handle value correction for controlled mode
-    useValueCorrection(values, domain, adjustedStep, onChange, formatValue);
+    useValueCorrection(values, domain, adjustedStep, onChange, getValueLabel);
 
     const [showInputs, setShowInputs] = useState(false);
 
@@ -386,10 +384,10 @@ function BaseSlider<T extends string | number | React.ReactNode>({
             }
 
             const valueArray = Array.isArray(value) ? value : [value];
-            const formattedValues = valueArray.map(formatValue);
+            const formattedValues = valueArray.map(getValueLabel!);
             onChange(formattedValues);
         },
-        [onChange, formatValue]
+        [onChange, getValueLabel]
     );
 
     // Generate tick values
@@ -506,11 +504,11 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
                     {/* Thumbs */}
                     {currentValues.map((value, index) => (
-                        <Tooltip content={formatValue(value)} hideOnClick={false} key={index} placement="top">
+                        <Tooltip content={getValueLabel!(value)} hideOnClick={false} key={index} placement="top">
                             <StyledSliderThumb
                                 aria-label={
                                     thumbLabels?.[index] ??
-                                    (formatValue(value) as string | undefined) ??
+                                    (getValueLabel?.(value) as string | undefined) ??
                                     `Thumb ${index + 1}`
                                 }
                                 index={index}
@@ -522,7 +520,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                 </>
             );
         },
-        [trackToStart, trackToEnd, ticks, trackLabels, formatValue, thumbLabels]
+        [trackToStart, trackToEnd, ticks, trackLabels, getValueLabel, thumbLabels]
     );
 
     return (
@@ -558,7 +556,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                                                     transform: getTickTransform(idx, tickValues.length),
                                                 }}
                                             >
-                                                {formatValue(tickValue)}
+                                                {getValueLabel!(tickValue)}
                                             </Tick>
                                         );
                                     })}

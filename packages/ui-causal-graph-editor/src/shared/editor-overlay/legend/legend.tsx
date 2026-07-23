@@ -64,7 +64,7 @@ export interface LegendProps {
 
 function Legend(props: LegendProps): JSX.Element | null {
     const [showLegend, setShowLegend] = useState(false);
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
 
     const panelRef = useRef<HTMLDivElement>(null);
     useOnClickOutside(panelRef.current, () => setShowLegend(false));

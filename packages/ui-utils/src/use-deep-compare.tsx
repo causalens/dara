@@ -29,11 +29,11 @@ import { useRef } from 'react';
  * @param value - an array of values to check the equality of
  */
 export default function useDeepCompare<T>(value: T): T {
-    const ref = useRef<T>(value);
+    const ref = useRef<T>();
 
     if (!isEqual(value, ref.current)) {
         ref.current = value;
     }
 
-    return ref.current;
+    return ref.current as T;
 }

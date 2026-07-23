@@ -178,7 +178,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
         itemToString: (item) => (item ? item.label : ''),
         items: filteredItems,
         onInputValueChange: (change) => {
-            setInputValue(change.inputValue ?? '');
+            setInputValue(change.inputValue as string);
         },
         onSelectedItemChange: (changes) => {
             if (props.onSelect) {
@@ -186,9 +186,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                     (props.selectedItem && changes.selectedItem?.value !== props.selectedItem?.value) ||
                     !props.selectedItem
                 ) {
-                    if (changes.selectedItem) {
-                        props.onSelect(changes.selectedItem);
-                    }
+                    props.onSelect(changes.selectedItem as Item);
                 }
             }
         },
@@ -201,9 +199,8 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                 (type === stateChangeTypes.ControlledPropUpdatedSelectedItem && changes.isOpen)
             ) {
                 // This is a hack to change the highlight in the next render cycle so filteredItems had time to update
-                const selectedItemValue = changes.selectedItem?.value;
                 setPendingHighlight(
-                    selectedItemValue === undefined ? 0 : props.items.findIndex((i) => i.value === selectedItemValue)
+                    changes.selectedItem ? props.items.findIndex((i) => i.value === changes.selectedItem!.value) : 0
                 );
                 return {
                     ...changes,
@@ -280,13 +277,13 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
             <Wrapper
                 className={props.className}
-                isDisabled={Boolean(props.disabled)}
+                isDisabled={props.disabled as boolean}
                 isErrored={!!props.errorMsg}
                 isOpen={isOpen}
                 style={props.style}
                 id={props.id}
             >
-                <InputWrapper disabled={Boolean(props.disabled)} isOpen={isOpen} ref={refs.setReference}>
+                <InputWrapper disabled={props.disabled as boolean} isOpen={isOpen} ref={refs.setReference}>
                     <Input
                         {...inputProps}
                         {...inputHandlers}
@@ -296,7 +293,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                         size={props.size}
                     />
                     <ChevronButton
-                        disabled={Boolean(props.disabled)}
+                        disabled={props.disabled as boolean}
                         isOpen={isOpen}
                         getToggleButtonProps={getToggleButtonProps}
                     />
@@ -311,7 +308,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                         getMenuProps={getMenuProps}
                         size={props.size}
                         ref={refs.setFloating}
-                        selectedItem={selectedItem ?? undefined}
+                        selectedItem={selectedItem as Item}
                         kbdHighlightIdx={kbdHighlightIdx}
                     />,
                     document.body

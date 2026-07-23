@@ -230,13 +230,12 @@ function ContextMenu<T extends React.ElementType>(Component: T): (props: Context
             menuItems,
             onClick: handleClick,
         });
-        const RootComponent: React.ElementType = Component;
-
         return (
             <>
-                <RootComponent {...props.elementProps} className={props.className} onContextMenu={onContextMenu}>
+                {/* @ts-expect-error TypeScript cannot resolve JSX props for a generic element type. */}
+                <Component {...props.elementProps} className={props.className} onContextMenu={onContextMenu}>
                     {props.children}
-                </RootComponent>
+                </Component>
                 {contextMenu}
             </>
         );

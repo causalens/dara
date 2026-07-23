@@ -105,7 +105,7 @@ export default class PlanarLayout extends GraphLayout<PlanarLayoutParams> implem
                 graph,
                 forceUpdate
             );
-            forceUpdate?.(recomputedLayout, recomputedPoints);
+            forceUpdate!(recomputedLayout, recomputedPoints);
         };
 
         return {

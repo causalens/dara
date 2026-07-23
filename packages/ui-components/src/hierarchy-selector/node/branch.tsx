@@ -162,7 +162,7 @@ function Branch(props: BranchProps): JSX.Element {
     };
 
     const select = (): void => {
-        props.selectNode?.(props.content.id);
+        props.selectNode!(props.content.id);
     };
 
     const selectionAllowed =

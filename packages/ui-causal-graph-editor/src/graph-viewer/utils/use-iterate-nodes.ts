@@ -41,7 +41,7 @@ const useIterateNodes = (
         const selectedNodeIndex = nodes.findIndex((n) => n === selectedNode);
         const newNodeIndex = (selectedNodeIndex + 1) % nodes.length;
 
-        setSelectedNode(nodes[newNodeIndex] ?? null);
+        setSelectedNode(nodes[newNodeIndex]);
     };
 
     const prevNode = (): void => {
@@ -55,7 +55,7 @@ const useIterateNodes = (
             newNodeIndex += nodes.length;
         }
 
-        setSelectedNode(nodes[newNodeIndex] ?? null);
+        setSelectedNode(nodes[newNodeIndex]);
     };
 
     return {

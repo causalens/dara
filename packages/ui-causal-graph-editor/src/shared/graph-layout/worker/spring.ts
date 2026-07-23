@@ -56,12 +56,10 @@ function applyOrderNodesForce(
                         if (targetedNode) {
                             if (orientation === 'horizontal') {
                                 // Apply a nudge towards the target y position
-                                targetedNode.vy =
-                                    (targetedNode.vy ?? 0) + (targetPosition - (targetedNode.y ?? 0)) * alpha;
+                                targetedNode.vy! += (targetPosition - targetedNode.y!) * alpha;
                             } else {
                                 // Apply a nudge towards the target x position
-                                targetedNode.vx =
-                                    (targetedNode.vx ?? 0) + (targetPosition - (targetedNode.x ?? 0)) * alpha;
+                                targetedNode.vx! += (targetPosition - targetedNode.x!) * alpha;
                             }
                         }
                     });
@@ -110,10 +108,10 @@ export function applyTierForces(
                     if (targetedNode) {
                         if (orientation === 'horizontal') {
                             // Directly set the x position
-                            targetedNode.x = targetPosition + ((targetedNode.x ?? 0) - targetPosition) * alpha;
+                            targetedNode.x = targetPosition + (targetedNode.x! - targetPosition) * alpha;
                         } else {
                             // Directly set the y position
-                            targetedNode.y = targetPosition + ((targetedNode.y ?? 0) - targetPosition) * alpha;
+                            targetedNode.y = targetPosition + (targetedNode.y! - targetPosition) * alpha;
                         }
                     }
                 });
@@ -157,9 +155,9 @@ function createEdgesWithinAllGroups(
 
     Object.keys(groupsToNodes).forEach((groupName) => {
         const nodeStringsList = groupsToNodes[groupName];
-        const nodeList = nodeStringsList
-            .map((nodeString) => nodes.find((node) => node.id === nodeString))
-            .filter((node): node is SimulationNodeWithCategory => node !== undefined);
+        const nodeList = nodeStringsList.map((nodeString) =>
+            nodes.find((node) => node.id === nodeString)
+        ) as SimulationNodeWithCategory[];
         const groupEdges = createGroupEdges(nodeList);
         edges.push(...groupEdges);
     });
@@ -209,8 +207,8 @@ export default function compute(
                     const groupBSize = groupsToNodes[groupB].length;
 
                     // Distance calculation
-                    const dx = (nodeA.x ?? 0) - (nodeB.x ?? 0);
-                    const dy = (nodeA.y ?? 0) - (nodeB.y ?? 0);
+                    const dx = nodeA.x! - nodeB.x!;
+                    const dy = nodeA.y! - nodeB.y!;
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
                     if (distance > 3000) {
@@ -226,16 +224,16 @@ export default function compute(
                         continue; // Skip weak forces
                     }
 
-                    nodeA.vx = (nodeA.vx ?? 0) + (nodeA.x ?? 0) * strength;
-                    nodeA.vy = (nodeA.vy ?? 0) + (nodeA.y ?? 0) * strength;
-                    nodeB.vx = (nodeB.vx ?? 0) - (nodeB.x ?? 0) * strength;
-                    nodeB.vy = (nodeB.vy ?? 0) - (nodeB.y ?? 0) * strength;
+                    nodeA.vx! += nodeA.x! * strength;
+                    nodeA.vy! += nodeA.y! * strength;
+                    nodeB.vx! -= nodeB.x! * strength;
+                    nodeB.vy! -= nodeB.y! * strength;
                 }
             }
         }
 
         // We create fake edges between nodes in the same group so that they stay together
-        const groupEdges = createEdgesWithinAllGroups(group, graph, nodes);
+        const groupEdges = createEdgesWithinAllGroups(layoutParams.group!, graph, nodes);
 
         simulation = d3
             .forceSimulation<SimulationNodeWithCategory, D3SimulationEdge>(nodes)

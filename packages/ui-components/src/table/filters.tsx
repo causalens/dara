@@ -118,7 +118,7 @@ function applyNumericOperator(
     operator: NumericOperator,
     value: number,
     filterValue: number | [number, number]
-): boolean {
+): boolean | undefined {
     switch (operator) {
         case NumericOperator.EQ:
             return value === filterValue;
@@ -140,7 +140,7 @@ function applyNumericOperator(
             if (Array.isArray(filterValue)) {
                 return value <= filterValue[1] && value >= filterValue[0];
             }
-            return false;
+            break;
         default:
             return true;
     }
@@ -192,19 +192,11 @@ export function numeric(rows: Array<Row>, columnIds: Array<string>, filterValue:
     const [colId] = columnIds;
 
     // If operator not supported or there's no value to compare to, return all rows
-    if (!isValidOperator(selected) || value === null) {
+    if (!isValidOperator(selected) || (!value && value !== 0)) {
         return rows;
     }
 
-    if (Array.isArray(value)) {
-        const [start, end] = value;
-        if (start === null || end === null) {
-            return rows;
-        }
-        return rows.filter((row) => applyNumericOperator(selected, row.values[colId], [start, end]));
-    }
-
-    return rows.filter((row) => applyNumericOperator(selected, row.values[colId], value));
+    return rows.filter((row) => applyNumericOperator(selected, row.values[colId], value as number | [number, number]));
 }
 
 /**

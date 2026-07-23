@@ -168,13 +168,11 @@ function Select(props: SelectProps): JSX.Element {
     const { isOpen, selectedItem, getToggleButtonProps, getMenuProps, getItemProps } = useSelect<Item>({
         initialIsOpen: props.initialIsOpen,
         initialSelectedItem: props.initialValue,
-        itemToString: (item) => item?.label ?? '',
+        itemToString: (item) => item!.label,
         items: props.items,
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
-            if (selected) {
-                props.onSelect?.(selected);
-            }
+            props.onSelect?.(selected as Item);
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
         // Only set the selectedItem key if it has been explicitly set in props
@@ -220,7 +218,7 @@ function Select(props: SelectProps): JSX.Element {
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
             <Wrapper
                 className={props.className}
-                isDisabled={Boolean(props.disabled)}
+                isDisabled={props.disabled as boolean}
                 isErrored={!!props.errorMsg}
                 isOpen={isOpen}
                 onClick={props.onClick}
@@ -254,7 +252,7 @@ function Select(props: SelectProps): JSX.Element {
                         className={`${menuProps?.className ?? ''} ${props.itemClass}`}
                         itemClass={props.itemClass}
                         maxItems={props.maxItems}
-                        selectedItem={selectedItem ?? undefined}
+                        selectedItem={selectedItem as Item}
                         kbdHighlightIdx={kbdHighlightIdx}
                     />,
                     document.body

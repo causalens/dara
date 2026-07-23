@@ -181,8 +181,8 @@ function DatetimeFilter(props: DatetimeFilterProps): JSX.Element {
         // if one of the dates is not defined
         if (
             !dateValues ||
-            (selected?.label === 'Between' && Array.isArray(dateValues) && (!dateValues[0] || !dateValues[1])) ||
-            (selected?.label === 'Between' && !Array.isArray(dateValues))
+            (selected!.label === 'Between' && Array.isArray(dateValues) && (!dateValues[0] || !dateValues[1])) ||
+            (selected!.label === 'Between' && !Array.isArray(dateValues))
         ) {
             return true;
         }

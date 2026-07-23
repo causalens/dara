@@ -37,27 +37,21 @@ const useIterateEdges = (
 ): UseIterateEdges => {
     const nextEdge = (): void => {
         const edges = Array.from(state.graph.edgeEntries());
-        if (!selectedEdge) {
-            return;
-        }
 
-        const [source, target] = selectedEdge;
+        const [source, target] = selectedEdge!;
 
         const selectedEdgeIndex = edges.findIndex((entry) => entry.source === source && entry.target === target);
 
         const newEdgeIndex = (selectedEdgeIndex + 1) % edges.length;
         const newEdgeEntry = edges[newEdgeIndex];
 
-        return setSelectedEdge(newEdgeEntry ? [newEdgeEntry.source, newEdgeEntry.target] : null);
+        return setSelectedEdge([newEdgeEntry.source, newEdgeEntry.target]);
     };
 
     const prevEdge = (): void => {
         const edges = Array.from(state.graph.edgeEntries());
-        if (!selectedEdge) {
-            return;
-        }
 
-        const [source, target] = selectedEdge;
+        const [source, target] = selectedEdge!;
 
         const selectedEdgeIndex = edges.findIndex((entry) => entry.source === source && entry.target === target);
 
@@ -68,7 +62,7 @@ const useIterateEdges = (
 
         const newEdgeEntry = edges[newEdgeIndex];
 
-        return setSelectedEdge(newEdgeEntry ? [newEdgeEntry.source, newEdgeEntry.target] : null);
+        return setSelectedEdge([newEdgeEntry.source, newEdgeEntry.target]);
     };
 
     return {

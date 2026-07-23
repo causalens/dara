@@ -63,7 +63,7 @@ function useSearch({ graph, setSelectedNode }: UseSearchInput): UseSearchOutput 
 
                     return idIncludesValue || hasLabelWhichIncludesValue ? id : undefined;
                 })
-                .filter((node): node is string => node !== undefined);
+                .filter(Boolean) as string[];
 
             setSearchResults(filteredNodes);
 
@@ -79,7 +79,7 @@ function useSearch({ graph, setSelectedNode }: UseSearchInput): UseSearchOutput 
         const totalNumberOfResults = searchResults.length;
         const newIndex = (currentSearchNode + 1) % totalNumberOfResults;
         setCurrentSearchNode(newIndex);
-        setSelectedNode(searchResults[newIndex] ?? null);
+        setSelectedNode(searchResults[newIndex]);
     }
     function onPrevSearchResult(): void {
         const totalNumberOfResults = searchResults.length;
@@ -88,7 +88,7 @@ function useSearch({ graph, setSelectedNode }: UseSearchInput): UseSearchOutput 
             newIndex += totalNumberOfResults;
         }
         setCurrentSearchNode(newIndex);
-        setSelectedNode(searchResults[newIndex] ?? null);
+        setSelectedNode(searchResults[newIndex]);
     }
 
     useEffect(() => {

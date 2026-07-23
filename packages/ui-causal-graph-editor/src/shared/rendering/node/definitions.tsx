@@ -25,11 +25,11 @@ export const BORDER_PADDING = 2;
  */
 export interface PixiNodeStyle {
     /** Node background color */
-    color: string;
+    color?: string;
     /** The category the node belongs to */
     category: NodeCategory;
     /** Border/shadow color */
-    highlight_color: string;
+    highlight_color?: string;
     /** Whether there is a edge currently selected */
     isEdgeSelected: boolean;
     /** Whether there is a new edge being created from this node */
@@ -37,9 +37,9 @@ export interface PixiNodeStyle {
     /** Node text */
     label: string;
     /** Node text color */
-    label_color: string;
+    label_color?: string;
     /** Node text font size */
-    label_size: number;
+    label_size?: number;
     /** Node size */
     size: number;
     /** Current node state */

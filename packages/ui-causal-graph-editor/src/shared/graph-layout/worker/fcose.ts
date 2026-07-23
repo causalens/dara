@@ -28,9 +28,7 @@ function assignParents(elements: cytoscape.ElementDefinition[], relationships: R
 
     // Populate the lookup table
     elements.forEach((element) => {
-        if (element.data.id) {
-            elementLookup[element.data.id] = element;
-        }
+        elementLookup[element.data.id!] = element;
     });
 
     // Iterate over each parent in the relationships object
@@ -183,13 +181,13 @@ export default function compute(
         }
 
         const hasPositions = graph.getNodeAttribute(graph.nodes()[0], 'x');
-        const size = graph.getAttribute('size') ?? layoutParams.nodeSize;
+        const size = graph.getAttribute('size')!;
         const tiersPlacement =
             layoutParams.tiers ?
                 getTieredLayoutProperties(
                     graph,
                     layoutParams.tiers,
-                    layoutParams.orientation ?? 'horizontal',
+                    layoutParams.orientation!,
                     layoutParams.tierSeparation
                 )
             :   { alignmentConstraint: undefined, relativePlacementConstraint: undefined };
@@ -198,7 +196,7 @@ export default function compute(
             ...graph.mapNodes<ElementDefinition>((id, attrs) => ({
                 data: { ...attrs, height: size, width: size },
                 group: 'nodes',
-                position: { x: attrs.x ?? 0, y: attrs.y ?? 0 },
+                position: { x: attrs.x!, y: attrs.y! },
             })),
             ...graph.mapEdges<ElementDefinition>((id, attrs, source, target) => ({
                 data: { ...attrs, source, target },

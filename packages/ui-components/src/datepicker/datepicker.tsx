@@ -34,23 +34,13 @@ import { type InteractiveComponentProps, type Item } from '../types';
 import DatepickerSelect from './datepicker-select';
 
 /**
- * Get the localized name of a month.
- */
-function getMonthName(month: number): string {
-    return (
-        enGB.localize?.month(month) ??
-        new Intl.DateTimeFormat('en-GB', { month: 'long' }).format(new Date(2000, month, 1))
-    );
-}
-
-/**
  * Get all names of months as Items
  */
 function getMonths(): Item[] {
     const months: Item[] = [];
 
     for (let i = 0; i < 12; i++) {
-        months.push({ label: getMonthName(i), value: i });
+        months.push({ label: enGB.localize!.month(i), value: i });
     }
 
     return months;
@@ -500,7 +490,7 @@ function DatePickerHeader({
     const years = useMemo(() => getYears(minDate, maxDate), [minDate, maxDate]);
 
     const selectedMonth = useMemo(() => {
-        return { label: getMonthName(date.getMonth()), value: date.getMonth() };
+        return { label: enGB.localize!.month(date.getMonth()), value: date.getMonth() };
     }, [date]);
     const selectedYear = useMemo(() => ({ label: date.getFullYear().toString(), value: date.getFullYear() }), [date]);
 
@@ -610,21 +600,18 @@ function getInitialDate(initialDate: DatepickerValue | undefined, formatToApply:
  * @param date - the date(s) to have time added to
  * @param time - the time(s) to add to the date(s)
  */
-function addTime(date: Date | null, time: string): Date | null {
-    if (!date) {
-        return null;
-    }
-    const [hours, minutes] = time.split(':');
-    return new Date(date.setHours(Number(hours), Number(minutes)));
-}
-
 function getNewDatetime(date: InternalDatepickerValue, time: TimeValue): InternalDatepickerValue {
-    if (Array.isArray(date)) {
-        const [startTime, endTime] = Array.isArray(time) ? time : [time, '00:00'];
-        return [addTime(date[0], startTime), addTime(date[1], endTime)];
+    if (!Array.isArray(date) && !Array.isArray(time)) {
+        const [hours, minutes] = time?.split(':') ?? ['00', '00'];
+        const newDate = date ? new Date(date.setHours(Number(hours), Number(minutes))) : null;
+        return newDate;
     }
-
-    return addTime(date, Array.isArray(time) ? time[0] : time);
+    const [startHours, startMinutes] = (time as [string, string])[0]?.split(':') ?? ['00', '00'];
+    const [endHours, endMinutes] = (time as [string, string])[1]?.split(':') ?? ['00', '00'];
+    const dates = date as [Date | null, Date | null];
+    const startDate = dates[0] ? new Date(dates[0].setHours(Number(startHours), Number(startMinutes))) : null;
+    const endDate = dates[1] ? new Date(dates[1].setHours(Number(endHours), Number(endMinutes))) : null;
+    return [startDate, endDate];
 }
 
 /**
@@ -635,16 +622,16 @@ function getNewDatetime(date: InternalDatepickerValue, time: TimeValue): Interna
 function DatePicker(props: DatePickerProps): JSX.Element {
     const value = props.value ?? props.initialValue;
     const [selectedDate, setSelectedDate] = useState<InternalDatepickerValue>(
-        value ?? (props.selectsRange ? [null, null] : null)
+        value || (props.selectsRange ? [null, null] : null)
     );
     const [selectedTime, setSelectedTime] = useState<TimeValue>(() =>
-        getInitialTime(value, Boolean(props.selectsRange))
+        getInitialTime(value, props.selectsRange as boolean)
     );
     const formatToApply = props.dateFormat ?? 'dd/MM/yyyy';
     const [startDate, setStartDate] = useState<string>(() => getInitialDate(value, formatToApply, true));
     const [endDate, setEndDate] = useState<string>(() => getInitialDate(value, formatToApply, false));
     // state to track which date is being selected based on the input which has been interacted with
-    const [isSelectingStart, setIsSelectingStart] = useState(true);
+    const [isSelectingStart, setIsSelectingStart] = useState<boolean | null>(null);
 
     // Keep state in refs so we can compare it in useEffect without subscribing
     const selectedDateRef = useRef(selectedDate);
@@ -652,7 +639,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
 
     const datepickerRef = useRef<
         | (ReactDatePicker & {
-              onInputKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+              onInputKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
           })
         | null
     >(null);
@@ -664,7 +651,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
             // If we are selecting the end date minDate becomes whatever the startDate is
             if (!isSelectingStart) {
                 const [currentStartDate] = selectedDates;
-                minDate = currentStartDate ?? props.minDate;
+                minDate = currentStartDate as Date;
             }
 
             return {
@@ -684,11 +671,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         };
     }, [selectedDate, isSelectingStart, props]);
 
-    const onChangeDate = (date: Date | null): void => {
-        if (!date) {
-            return;
-        }
-
+    const onChangeDate = (date: Date): void => {
         // close datepicker when a date is chosen
         if (props.shouldCloseOnSelect) {
             datepickerRef.current?.setOpen(false);
@@ -705,11 +688,11 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                 // if start date happens after end date then end date should become start
                 currentEndDate = currentEndDate && currentEndDate > date ? currentEndDate : date;
             } else {
-                currentStartDate = Array.isArray(selectedDate) ? selectedDate[0] ?? date : date;
+                currentStartDate = Array.isArray(selectedDate) ? selectedDate[0] : null;
                 currentEndDate = date;
             }
 
-            setStartDate(format(currentStartDate, formatToApply));
+            setStartDate(format(currentStartDate as Date, formatToApply));
             setEndDate(format(currentEndDate, formatToApply));
             setSelectedDate([currentStartDate, currentEndDate]);
         } else {
@@ -726,15 +709,19 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         if (
             newDate instanceof Date &&
             !Number.isNaN(newDate.valueOf()) &&
-            (!props.minDate || newDate >= props.minDate) &&
-            (!props.maxDate || newDate <= props.maxDate)
+            !(newDate < props.minDate!) &&
+            !(newDate > props.maxDate!)
         ) {
+            // allows so that changes to the input update the datepicker
+            datepickerRef.current?.setState({
+                preSelection: newDate,
+            });
             // if it is a range datepicker
             if (Array.isArray(selectedDate)) {
                 if (isStartDate) {
                     let end = selectedDate[1];
                     // is start date is after end date, then adjust end date
-                    if (!end || newDate > end) {
+                    if (newDate > end!) {
                         end = newDate;
                         setEndDate(target.value);
                     }
@@ -745,7 +732,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
 
                 let start = selectedDate[0];
                 // if end date is before start date, then adjust start date
-                if (!start || newDate < start) {
+                if (newDate < start!) {
                     start = newDate;
                     setStartDate(target.value);
                 }
@@ -784,7 +771,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
     useEffect(() => {
         const newValue = props.value ?? props.initialValue;
 
-        const newDate: InternalDatepickerValue = newValue ?? (props.selectsRange ? [null, null] : null);
+        const newDate: InternalDatepickerValue = newValue || (props.selectsRange ? [null, null] : null);
 
         // Skip if the value is the same as the current state, this is necessary to prevent loops
         if (JSON.stringify(newDate) === JSON.stringify(selectedDateRef.current)) {
@@ -793,7 +780,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
 
         setSelectedDate(newDate);
 
-        const newTime = getInitialTime(newValue, Boolean(props.selectsRange));
+        const newTime = getInitialTime(newValue, props.selectsRange as boolean);
         setSelectedTime(newTime);
 
         const newStartDate = getInitialDate(newValue, formatToApply, true);
@@ -813,14 +800,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         }
         // We have to typecast to make compiler happy as we don't know which type it is at this point
         const newDateTime = getNewDatetime(selectedDate, time);
-        if (Array.isArray(newDateTime)) {
-            const [start, end] = newDateTime;
-            if (props.selectsRange && start && end) {
-                props.onChange?.([start, end]);
-            }
-        } else if (!props.selectsRange && newDateTime) {
-            props.onChange?.(newDateTime);
-        }
+        props.onChange?.(newDateTime as Date & [Date, Date]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, selectedTime]);
 
@@ -849,7 +829,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                                     datepickerRef.current?.setOpen(true);
                                 }}
                                 onKeyDown={(e) => {
-                                    datepickerRef.current?.onInputKeyDown?.(e);
+                                    datepickerRef.current?.onInputKeyDown(e);
                                 }}
                                 placeholder={formatToApply}
                                 value={startDate}
@@ -883,7 +863,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                                             datepickerRef.current?.setOpen(true);
                                         }}
                                         onKeyDown={(e) => {
-                                            datepickerRef.current?.onInputKeyDown?.(e);
+                                            datepickerRef.current?.onInputKeyDown(e);
                                         }}
                                         placeholder={formatToApply}
                                         value={endDate}
@@ -895,7 +875,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                                                 onChangeTime(e, false);
                                             }}
                                             type="time"
-                                            value={Array.isArray(selectedTime) ? selectedTime[1] : '00:00'}
+                                            value={(selectedTime as [string, string])[1]}
                                         />
                                     )}
                                 </DateTimeWrapper>
@@ -912,7 +892,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                         onChange={onChangeDate}
                         ref={datepickerRef}
                         selectsEnd={!isSelectingStart}
-                        selectsStart={isSelectingStart}
+                        selectsStart={isSelectingStart as boolean}
                         shouldCloseOnSelect={props.shouldCloseOnSelect}
                         {...extraProps}
                         popperProps={{ strategy: props.popperStrategy ?? 'absolute' }}
