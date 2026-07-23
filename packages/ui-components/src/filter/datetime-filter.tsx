@@ -112,8 +112,8 @@ const StyledApply = styled(ApplyButton)`
 `;
 
 export interface FilterResults {
-    selected: string;
-    value: Date | [Date, Date];
+    selected?: string;
+    value?: Date | [Date, Date];
 }
 export interface DatetimeFilterProps extends FilterProps<any> {
     /** Standard react className property */
@@ -159,8 +159,8 @@ const DatetimeFilterItems: Item[] = [
  * @param {DatetimeFilterProps} props - the component props
  */
 function DatetimeFilter(props: DatetimeFilterProps): JSX.Element {
-    const [selected, setSelected] = useState<Item>(null);
-    const [dateValues, setDateValues] = useState<Date | [Date, Date]>(props.values);
+    const [selected, setSelected] = useState<Item | null>(null);
+    const [dateValues, setDateValues] = useState<Date | [Date, Date] | undefined>(props.values);
 
     const filteredValues = useMemo((): FilterResults => {
         let filterDate = dateValues;
@@ -181,8 +181,8 @@ function DatetimeFilter(props: DatetimeFilterProps): JSX.Element {
         // if one of the dates is not defined
         if (
             !dateValues ||
-            (selected.label === 'Between' && Array.isArray(dateValues) && (!dateValues[0] || !dateValues[1])) ||
-            (selected.label === 'Between' && !Array.isArray(dateValues))
+            (selected!.label === 'Between' && Array.isArray(dateValues) && (!dateValues[0] || !dateValues[1])) ||
+            (selected!.label === 'Between' && !Array.isArray(dateValues))
         ) {
             return true;
         }

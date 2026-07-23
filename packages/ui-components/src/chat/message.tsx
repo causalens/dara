@@ -146,6 +146,8 @@ const AvatarIcon = styled.div`
 `;
 
 export interface MessageProps extends InteractiveComponentProps<Message> {
+    /** The message to display */
+    value: Message;
     /** An optional onChange handler for listening to changes in the input */
     onChange?: (value: Message, e?: React.SyntheticEvent<HTMLInputElement>) => void | Promise<void>;
     /** An optional event listener for complete events (enter presses) */
@@ -241,7 +243,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             updated_at: new Date().toISOString(),
         };
 
-        props?.onChange(newMessage);
+        props?.onChange!(newMessage);
         setLocalMessage(newMessage);
         // reset the textarea message to the message without the /n and trailing whitespace
         setEditMessage(newMessage.message);
@@ -259,7 +261,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             role="listitem"
             className={props.className}
             style={props.style}
-            $messageFromActiveUser={props.didUserWriteMessage}
+            $messageFromActiveUser={props.didUserWriteMessage as boolean}
         >
             <MessageTop>
                 <UserInfoWrapper>

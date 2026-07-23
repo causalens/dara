@@ -28,7 +28,7 @@ interface CollapseGroupButtonProps {
 }
 
 function CollapseGroupButton(props: CollapseGroupButtonProps): JSX.Element {
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
 
     return (
         <Tooltip content="Collapse All" placement="bottom">

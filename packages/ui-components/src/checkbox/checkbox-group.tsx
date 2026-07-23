@@ -67,7 +67,7 @@ export interface CheckboxGroupProps {
     values?: Array<Item>;
 }
 
-function getInitialValue(initialValue: Array<Item> | Item): Array<Item> {
+function getInitialValue(initialValue?: Array<Item> | Item): Array<Item> {
     if (Array.isArray(initialValue)) {
         return initialValue;
     }
@@ -77,11 +77,11 @@ function getInitialValue(initialValue: Array<Item> | Item): Array<Item> {
     return [];
 }
 
-function getInitialCheckedState(items: Array<Item>, initialValues: Array<any>): Array<ItemState> {
+function getInitialCheckedState(items: Array<Item>, initialValues?: Array<any>): Array<ItemState> {
     if (initialValues) {
         return items.map((item) => ({ state: initialValues.includes(item.value), value: item.value }));
     }
-    return items.map((item) => ({ state: initialValues.includes(item.value), value: false }));
+    return items.map((item) => ({ state: initialValues!.includes(item.value), value: false }));
 }
 
 /**
@@ -128,8 +128,8 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
         // if new values would result in above the number permitted, only allow to uncheck selected checkboxes
         // or if values below above permited/unconstrained then allow it to switch states
         if (
-            (newValues.length > props.selectMax && checkedState[chosenIndex]) ||
-            newValues.length <= props.selectMax ||
+            (newValues.length > props.selectMax! && checkedState[chosenIndex]) ||
+            newValues.length <= props.selectMax! ||
             !props.selectMax
         ) {
             const indexToUpdate = checkedState.findIndex((item) => item.value === chosenValue);

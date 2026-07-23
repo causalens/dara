@@ -103,7 +103,7 @@ const SearchInput = styled(Input)`
 const inputDebounceValue = 200;
 
 function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     const [showResultCount, setShowResultCount] = useState(false);
@@ -121,7 +121,7 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
     }
 
     const debouncedOnChange = debounce((val: string, e?: SyntheticEvent<HTMLInputElement, Event>) => {
-        props.onChange(val, e);
+        props.onChange!(val, e);
     }, inputDebounceValue);
 
     useUpdateEffect(() => {
@@ -137,20 +137,20 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
 
     function onEnter(): void {
         if (props.totalNumberOfResults) {
-            props.onNext();
+            props.onNext!();
         }
     }
 
     function onOpenSearch(): void {
         setShowSearchBar(true);
-        searchInputRef.current.focus();
+        searchInputRef.current!.focus();
     }
 
     function onClose(): void {
         setSearchInput('');
         setShowSearchBar(false);
         setShowResultCount(false);
-        props.onClose();
+        props.onClose!();
     }
 
     function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
@@ -158,10 +158,10 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
             onClose();
         }
         if (e.key === 'ArrowDown') {
-            props.onNext();
+            props.onNext!();
         }
         if (e.key === 'ArrowUp') {
-            props.onPrev();
+            props.onPrev!();
         }
     }
 
@@ -171,7 +171,7 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
         resultsText = `${props.selectedResult}/${props.totalNumberOfResults}`;
     }
 
-    let results: JSX.Element = null;
+    let results: JSX.Element | null = null;
 
     if (showResultCount) {
         results = (

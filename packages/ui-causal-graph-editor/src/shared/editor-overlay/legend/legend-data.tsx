@@ -51,9 +51,9 @@ export type GraphLegendDefinition =
       };
 
 export function getLegendData(
-    defaultLegends: Record<EditorMode, GraphLegendDefinition[]>,
+    defaultLegends: Record<EditorMode, GraphLegendDefinition[]> | undefined,
     editorMode: EditorMode,
-    additionalLegend: GraphLegendDefinition[]
+    additionalLegend?: GraphLegendDefinition[]
 ): GraphLegendDefinition[] {
     const modeData = defaultLegends?.[editorMode] ?? [];
 

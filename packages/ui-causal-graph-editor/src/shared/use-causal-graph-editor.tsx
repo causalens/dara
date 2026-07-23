@@ -46,7 +46,7 @@ export type GraphApi = {
  */
 export default function useCausalGraphEditor(
     graphData: CausalGraph,
-    editorMode: EditorMode,
+    editorMode: EditorMode | undefined,
     graphLayout: GraphLayout,
     availableInputs?: string[]
 ): UseCausalGraphEditorApi {
@@ -56,7 +56,7 @@ export default function useCausalGraphEditor(
         GraphReducer,
         {
             newNodesRequirePosition,
-        },
+        } as GraphState,
         (initState: GraphState) => {
             const parsedGraph = causalGraphParser(graphData, availableInputs);
             const newEditorMode = editorMode ?? (isDag(parsedGraph) ? EditorMode.DEFAULT : EditorMode.PAG_VIEWER);
@@ -73,8 +73,12 @@ export default function useCausalGraphEditor(
     const api = useMemo(() => {
         return actionNames.reduce<GraphApi>((acc, actionName) => {
             const actionCreator = GraphActionCreators[actionName];
-            // eslint-disable-next-line prefer-spread
-            acc[actionName] = (...args: Parameters<typeof actionCreator>) => dispatch(actionCreator.apply(null, args));
+            // TypeScript cannot correlate a union key with its mapped function signature.
+            (acc as Record<ActionName, (...args: never[]) => void>)[actionName] = (...args: never[]) =>
+                dispatch(
+                    // eslint-disable-next-line prefer-spread
+                    (actionCreator as (...actionArgs: never[]) => ReturnType<typeof actionCreator>).apply(null, args)
+                );
             return acc;
         }, {} as GraphApi);
     }, [dispatch]);

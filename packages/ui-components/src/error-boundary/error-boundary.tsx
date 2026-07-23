@@ -54,9 +54,9 @@ interface Props {
 }
 
 interface State {
-    error: string;
+    error?: string;
     hasError: boolean;
-    stackTrace: string;
+    stackTrace?: string;
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
@@ -72,7 +72,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-        this.setState({ stackTrace: errorInfo.componentStack.slice(5) });
+        this.setState({ stackTrace: errorInfo.componentStack!.slice(5) });
     }
 
     render(): React.ReactNode {

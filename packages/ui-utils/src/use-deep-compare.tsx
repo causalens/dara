@@ -35,5 +35,5 @@ export default function useDeepCompare<T>(value: T): T {
         ref.current = value;
     }
 
-    return ref.current;
+    return ref.current as T;
 }

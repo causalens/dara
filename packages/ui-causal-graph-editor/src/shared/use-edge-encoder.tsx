@@ -120,8 +120,8 @@ export function useEdgeConstraintEncoder(
         setConstraints((draft) => {
             draft.push({
                 id: nanoid(),
-                source: source ?? null,
-                target: target ?? null,
+                source: (source ?? null) as string,
+                target: (target ?? null) as string,
                 type: EdgeConstraintType.UNDIRECTED,
             });
         });

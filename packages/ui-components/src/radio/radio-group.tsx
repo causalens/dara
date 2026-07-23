@@ -117,7 +117,7 @@ const RadioButton = styled.input`
 `;
 
 interface StyledCheckmarkProps {
-    disabled: boolean;
+    disabled?: boolean;
 }
 
 // customdot/circle for the radio button
@@ -206,7 +206,11 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
         >
             {props.items.map((item, index) => {
                 return (
-                    <RadioWrapper aria-disabled={props.disabled} isListStyle={props.isListStyle} key={`item-${index}`}>
+                    <RadioWrapper
+                        aria-disabled={props.disabled}
+                        isListStyle={props.isListStyle as boolean}
+                        key={`item-${index}`}
+                    >
                         <RadioButton
                             checked={isControlled ? isEqual(props.value?.value, item.value) : currentSelected === index}
                             disabled={props.disabled}

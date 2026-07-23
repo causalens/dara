@@ -131,7 +131,7 @@ const numericFilter =
  * @param initialValue the initialValue prop
  * @returns the initial value of the numeric input
  */
-const getInitialValue = (value: number, initialValue: number): string => {
+const getInitialValue = (value?: number, initialValue?: number): string => {
     if (Number.isFinite(value)) {
         return String(value);
     }
@@ -286,7 +286,9 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
                         ref={ref}
                         value={input}
                     />
-                    {props.stepper && <InputStepper disabled={props.disabled} step={step} stepSkip={props.stepSkip} />}
+                    {props.stepper && (
+                        <InputStepper disabled={props.disabled as boolean} step={step} stepSkip={props.stepSkip} />
+                    )}
                 </InputWrapper>
             </div>
         );

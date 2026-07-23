@@ -89,7 +89,7 @@ function UploadDropzone(props: UploadDropzoneProps): JSX.Element {
             return;
         }
         const handlePaste = (ev: ClipboardEvent): void => {
-            const blob = new Blob([ev.clipboardData.getData('Text')], { type: 'text/plain' });
+            const blob = new Blob([ev.clipboardData!.getData('Text')], { type: 'text/plain' });
             const file = new File([blob], 'pasted_data', { type: 'text/plain' });
             props.onDrop([file], [], ev);
         };

@@ -92,10 +92,10 @@ export class GroupContainerObject extends EventEmitter<(typeof MOUSE_EVENTS)[num
         nodes.forEach((node) => {
             let radius = node['meta.rendering_properties.size'] ?? DEFAULT_NODE_SIZE * TARGET_NODE_MULTIPLIER;
             radius += 20; // Add padding
-            minX = Math.min(minX, node.x - radius);
-            maxX = Math.max(maxX, node.x + radius);
-            minY = Math.min(minY, node.y - radius);
-            maxY = Math.max(maxY, node.y + radius);
+            minX = Math.min(minX, node.x! - radius);
+            maxX = Math.max(maxX, node.x! + radius);
+            minY = Math.min(minY, node.y! - radius);
+            maxY = Math.max(maxY, node.y! + radius);
         });
 
         const height = maxY - minY;
@@ -147,11 +147,10 @@ export class GroupContainerObject extends EventEmitter<(typeof MOUSE_EVENTS)[num
         nodes.forEach((node) => {
             let radius = node['meta.rendering_properties.size'] ?? DEFAULT_NODE_SIZE * TARGET_NODE_MULTIPLIER;
             radius += 20; // Add padding
-
-            minX = Math.min(minX, node.x - radius);
-            maxX = Math.max(maxX, node.x + radius);
-            minY = Math.min(minY, node.y - radius);
-            maxY = Math.max(maxY, node.y + radius);
+            minX = Math.min(minX, node.x! - radius);
+            maxX = Math.max(maxX, node.x! + radius);
+            minY = Math.min(minY, node.y! - radius);
+            maxY = Math.max(maxY, node.y! + radius);
         });
 
         const centerX = minX + (maxX - minX) / 2;

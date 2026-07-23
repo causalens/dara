@@ -26,7 +26,7 @@ import TextArea from '../textarea/textarea';
 import { type InteractiveComponentProps, type Message, type UserData } from '../types';
 import { default as MessageComponent } from './message';
 
-const ChatWrapper = styled.div<{ $isPopup: boolean }>`
+const ChatWrapper = styled.div<{ $isPopup?: boolean }>`
     overflow-y: auto;
     display: flex;
     flex-direction: column;

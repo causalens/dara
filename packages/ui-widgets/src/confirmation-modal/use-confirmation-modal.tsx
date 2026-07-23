@@ -53,7 +53,7 @@ function useConfirmationModal<T>(
     const onConfirm = (): void => {
         setRender(false);
         if (confirm) {
-            confirm(canceledItem);
+            confirm(canceledItem as T);
         }
     };
 

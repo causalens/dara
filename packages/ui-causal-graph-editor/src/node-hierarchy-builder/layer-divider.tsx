@@ -135,7 +135,7 @@ interface LayerDividerProps {
 function LayerDivider({ onClick, position = 'bottom', viewOnly }: LayerDividerProps): JSX.Element {
     return (
         <LayerDividerWrapper $position={position}>
-            <LayerAddArea $viewOnly={viewOnly} data-testid="divider-button" onClick={onClick} />
+            <LayerAddArea $viewOnly={viewOnly as boolean} data-testid="divider-button" onClick={onClick} />
 
             <DividerButton>
                 <Plus />

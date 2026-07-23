@@ -134,10 +134,10 @@ export enum EdgeType {
 }
 
 export interface GraphState {
-    /** Mode editor is in - set by INIT action */
-    editorMode?: EditorMode;
+    /** Mode the editor is in */
+    editorMode: EditorMode;
     /** Graphology.Graph holding current state */
-    graph?: SimulationGraph;
+    graph: SimulationGraph;
     /** Whether new nodes require a position */
     newNodesRequirePosition?: boolean;
     /** List of removed nodes that can be restored */
@@ -320,7 +320,7 @@ export type GraphTiers = string[][] | TiersConfig;
  */
 export interface TieredGraphLayoutBuilder {
     orientation?: DirectionType;
-    tiers: GraphTiers;
+    tiers?: GraphTiers;
 }
 
 /**
@@ -328,7 +328,7 @@ export interface TieredGraphLayoutBuilder {
  */
 export interface GroupingLayoutBuilder {
     /** The path for the property in the node that should be used for defining their layer */
-    group: string;
+    group?: string;
 }
 
 /**

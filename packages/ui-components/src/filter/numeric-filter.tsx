@@ -108,8 +108,8 @@ const NumericFilterItems: Item[] = [
 ];
 
 export interface FilterResults {
-    selected: string;
-    value: number | [number, number];
+    selected?: string;
+    value: number | [number | null, number | null] | null;
 }
 
 export interface NumericFilterProps extends FilterProps<any> {
@@ -129,9 +129,9 @@ export interface NumericFilterProps extends FilterProps<any> {
  * @param {NumericFilterProps} props - the component props
  */
 function NumericFilter(props: NumericFilterProps): JSX.Element {
-    const [selected, setSelected] = useState<Item>(null);
-    const [firstInput, setFirstInput] = useState<number>(null);
-    const [secondInput, setSecondInput] = useState<number>(null);
+    const [selected, setSelected] = useState<Item | null>(null);
+    const [firstInput, setFirstInput] = useState<number | null>(null);
+    const [secondInput, setSecondInput] = useState<number | null>(null);
 
     const filteredValues = useMemo((): FilterResults => {
         if (selected?.label === 'None') {

@@ -70,7 +70,7 @@ export function getCurvePoints(points: PIXI.PointData[], tension = 0.5, numOfSeg
             const t1y = (_pts[i + 1].y - _pts[i - 1].y) * tension;
             const t2y = (_pts[i + 2].y - _pts[i].y) * tension;
 
-            const { c1, c2, c3, c4 } = segmentCache.get(t);
+            const { c1, c2, c3, c4 } = segmentCache.get(t)!;
 
             const x = c1 * _pts[i].x + c2 * _pts[i + 1].x + c3 * t1x + c4 * t2x;
             const y = c1 * _pts[i].y + c2 * _pts[i + 1].y + c3 * t1y + c4 * t2y;

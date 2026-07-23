@@ -114,7 +114,7 @@ export interface ModalProps {
  *
  * @param {ModalProps} props - the component props
  */
-function Modal(props: ModalProps): JSX.Element {
+function Modal(props: ModalProps): JSX.Element | null {
     const [mounted, setMounted] = useState(false);
     const [renderModal, setRenderModal] = useState(false);
 

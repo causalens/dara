@@ -73,7 +73,7 @@ const blurredText = 'To zoom in/out with scroll, click the viewer area.';
 const focusedText = 'To disable zoom in/out with scroll, click out of the viewer area.';
 
 export default function ZoomPrompt(props: ZoomPromptProps): React.ReactElement {
-    const { disablePointerEvents, onPanelEnter, onPanelExit } = React.useContext(PointerContext);
+    const { disablePointerEvents, onPanelEnter, onPanelExit } = React.useContext(PointerContext)!;
 
     const [showTooltip, setShowTooltip] = React.useState(false);
 

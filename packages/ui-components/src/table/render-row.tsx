@@ -114,11 +114,11 @@ const arePropsEqual = (prevProps: Props, nextProps: Props): boolean =>
 type Props = {
     data: {
         backgroundColor: string;
-        currentEditCell: [number, string | number];
+        currentEditCell?: [number, string | number];
         getItem: (index: number) => any;
         headerGroups: Array<HeaderGroup<object>>;
         mappedColumns: Array<TableColumn>;
-        onClickRow: (row: any) => void | Promise<void>;
+        onClickRow?: (row: any) => void | Promise<void>;
         prepareRow: (row: any) => void;
         rows: Array<any>;
         throttledClickRow: (row: any) => void | Promise<void>;

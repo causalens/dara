@@ -12,7 +12,7 @@ import usePaneVisibility from './use-pane-visibility';
  */
 export default function useGraphTooltip(
     pane: React.RefObject<HTMLElement>,
-    tooltipRef: React.MutableRefObject<() => DOMRect>
+    tooltipRef: React.MutableRefObject<(() => DOMRect) | null>
 ): {
     setTooltipContent: (content: React.ReactNode) => void;
     tooltipContent: React.ReactNode;
@@ -65,7 +65,7 @@ export default function useGraphTooltip(
         // NOTE: This is technically async but will resolve immediately as it's resolved
         // in response to IntersectionObserver callback, which is guaranteed to fire
         // the next render cycle
-        isRectVisible(tooltipRef.current()).then((isVisible) => {
+        isRectVisible(tooltipRef.current!()).then((isVisible) => {
             setTooltipContent(isVisible ? content : null);
         });
     }

@@ -287,7 +287,7 @@ function useValueCorrection<T>(
 
         // Only fire onChange if values actually changed
         if (!isEqual(values, correctedValues)) {
-            const formattedValues = correctedValues.map(getValueLabel);
+            const formattedValues = correctedValues.map(getValueLabel!);
             onChange(formattedValues);
         }
 
@@ -384,7 +384,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
             }
 
             const valueArray = Array.isArray(value) ? value : [value];
-            const formattedValues = valueArray.map(getValueLabel);
+            const formattedValues = valueArray.map(getValueLabel!);
             onChange(formattedValues);
         },
         [onChange, getValueLabel]
@@ -504,7 +504,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
                     {/* Thumbs */}
                     {currentValues.map((value, index) => (
-                        <Tooltip content={getValueLabel(value)} hideOnClick={false} key={index} placement="top">
+                        <Tooltip content={getValueLabel!(value)} hideOnClick={false} key={index} placement="top">
                             <StyledSliderThumb
                                 aria-label={
                                     thumbLabels?.[index] ??
@@ -556,7 +556,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
                                                     transform: getTickTransform(idx, tickValues.length),
                                                 }}
                                             >
-                                                {getValueLabel(tickValue)}
+                                                {getValueLabel!(tickValue)}
                                             </Tick>
                                         );
                                     })}

@@ -13,7 +13,7 @@
         "rootDir": "./src/",
         "skipLibCheck": true,
         "sourceMap": true,
-        "strict": false,
+        "strict": true,
         "target": "es2015",
     }
 }

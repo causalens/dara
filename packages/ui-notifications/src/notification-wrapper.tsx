@@ -22,7 +22,7 @@ import { delay } from 'rxjs/operators';
 import styled from '@darajs/styled-components';
 import { useSubscription } from '@darajs/ui-utils';
 
-import Notification from './notification';
+import Notification, { type NotificationProps } from './notification';
 import { type NotificationPayload } from './notification-payload';
 
 const Container = styled.div`
@@ -45,7 +45,7 @@ const Container = styled.div`
 
 interface NotificationContext {
     notifications$: Subject<NotificationPayload>;
-    onMoreDetailsClick?: (notification: NotificationPayload) => void;
+    onMoreDetailsClick?: ((notification: NotificationPayload) => void) | null;
     push: (notification: NotificationPayload) => void;
 }
 
@@ -56,7 +56,7 @@ const baseNotifications$ = new Subject<NotificationPayload>();
  * generic push method for sending a new one
  * Additionally, it exposes a callback for when the notification is too small and more details are needed and clicked
  */
-export const NotificationContext = React.createContext({
+export const NotificationContext = React.createContext<NotificationContext>({
     notifications$: baseNotifications$,
     onMoreDetailsClick: null,
     push: (notification: NotificationPayload) => baseNotifications$.next(notification),
@@ -115,7 +115,7 @@ function NotificationWrapper(props: NotificationWrapperProps): JSX.Element {
                     key={notification.key}
                     notification={notification}
                     onDismiss={onDismiss}
-                    onMoreDetailsClick={onMoreDetailsClick}
+                    onMoreDetailsClick={onMoreDetailsClick as NotificationProps['onMoreDetailsClick']}
                 />
             ))}
         </Container>

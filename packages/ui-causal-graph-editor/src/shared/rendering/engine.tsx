@@ -98,16 +98,16 @@ export const ENGINE_EVENTS: Array<keyof EngineEvents> = [
 
 export class Engine extends EventEmitter<EngineEvents> {
     /** App instance */
-    private app: PIXI.Application;
+    private app!: PIXI.Application;
 
     /** Background object */
-    private background: Background;
+    private background!: Background;
 
     /** Available edge constraints */
-    private constraints: EdgeConstraint[];
+    private constraints?: EdgeConstraint[];
 
     /** Parent container where canvas is rendered in */
-    private container: HTMLElement;
+    private container!: HTMLElement;
 
     /** Running layout worker instance */
     private layoutWorker: LayoutWorker;
@@ -116,16 +116,16 @@ export class Engine extends EventEmitter<EngineEvents> {
     public debouncedUpdateLayout = debounce(this.updateLayout, 150, { trailing: true });
 
     /** Current drag mode */
-    private dragMode: DragMode = null;
+    private dragMode: DragMode | null = null;
 
     /** Container storing edge graphics */
-    private edgeLayer: PIXI.Container;
+    private edgeLayer!: PIXI.Container;
 
     /** Edge ID -> EdgeObject cache */
     private edgeMap = new Map<string | symbol, EdgeObject>();
 
     /** Container storing edge symbol graphics */
-    private edgeSymbolsLayer: PIXI.Container;
+    private edgeSymbolsLayer!: PIXI.Container;
 
     /** Whether the graph is editable */
     private editable: boolean;
@@ -146,7 +146,7 @@ export class Engine extends EventEmitter<EngineEvents> {
     private isMovingNode = false;
 
     /** Graph layout instance */
-    private layout?: GraphLayout;
+    private layout: GraphLayout;
 
     /** Which edge the user is holding down mouse button on */
     private mousedownEdgeKey: string | null = null;
@@ -155,31 +155,31 @@ export class Engine extends EventEmitter<EngineEvents> {
     private mousedownNodeKey: string | null = null;
 
     /** Container storing node label graphics */
-    private nodeLabelLayer: PIXI.Container;
+    private nodeLabelLayer!: PIXI.Container;
 
     /** Container storing node graphics */
-    private nodeLayer: PIXI.Container;
+    private nodeLayer!: PIXI.Container;
 
     /** Node ID -> NodeObject cache */
     private nodeMap = new Map<string, NodeObject>();
 
     /** Center position of the node user pressed mousedown on, stored while user is holding down mouse1 */
-    private nodeMousedownCenterPosition: PIXI.Point = null;
+    private nodeMousedownCenterPosition: PIXI.Point | null = null;
 
     /** Last mousedown event position stored while user is holding down mouse1 */
-    private nodeMousedownPosition: PIXI.Point = null;
+    private nodeMousedownPosition: PIXI.Point | null = null;
 
     /** Callback executed when a node is added */
-    private onAddNode?: (graphData: SerializedSimulationGraph) => void = null;
+    private onAddNode?: ((graphData: SerializedSimulationGraph) => void | Promise<void>) | null = null;
 
     /** Callback executed when an edge is added */
-    private onAddEdge?: () => void = null;
+    private onAddEdge?: (() => void | Promise<void>) | null = null;
 
     /** Callback executed when engine is being destroyed */
-    private onCleanup?: () => void = null;
+    private onCleanup?: (() => void | Promise<void>) | null = null;
 
     /** Container storing group container graphics */
-    private groupContainerLayer: PIXI.Container;
+    private groupContainerLayer!: PIXI.Container;
 
     /** Group ID -> GroupContainerObject cache */
     private groupContainerMap = new Map<string, GroupContainerObject>();
@@ -211,13 +211,13 @@ export class Engine extends EventEmitter<EngineEvents> {
     private onLayoutComputationDoneBound = this.onLayoutComputationDone.bind(this);
 
     /** Callback executed when a drag motion is done */
-    private onEndDrag?: () => void = null;
+    private onEndDrag?: (() => void | Promise<void>) | null = null;
 
     /** Callback executed when a node is being moved */
-    private onMove?: (nodeId: string, x: number, y: number) => void = null;
+    private onMove?: ((nodeId: string, x: number, y: number) => void | Promise<void>) | null = null;
 
     /** Callback executed when a drag motion is started */
-    private onStartDrag?: () => void = null;
+    private onStartDrag?: (() => void | Promise<void>) | null = null;
 
     /** Callback for raising error from a layout build into the Graph component */
     private errorHandler?: (error: NotificationPayload) => void;
@@ -226,13 +226,13 @@ export class Engine extends EventEmitter<EngineEvents> {
     private processEdgeStyle?: (edge: PixiEdgeStyle, attributes: SimulationEdge) => PixiEdgeStyle;
 
     /** Last render request ID - used to skip extra render calls */
-    private renderRequestId: number = null;
+    private renderRequestId: number | null = null;
 
     /** Whether the styles are dirty and need to be updated in the animation frame */
     private isStyleDirty = false;
 
     /** ResizeObserver instance watching window resizes */
-    private resizeObserver: ResizeObserver;
+    private resizeObserver!: ResizeObserver;
 
     /** Current node search results */
     private searchResults: string[] = [];
@@ -244,19 +244,19 @@ export class Engine extends EventEmitter<EngineEvents> {
     private selectedNode: string | null = null;
 
     /** Current range of edge strength values provided in meta attributes */
-    private strengthRange: [number, number] = null;
+    private strengthRange: [number, number] | null = null;
 
     /** Texture cache instance */
-    private textureCache: TextureCache;
+    private textureCache!: TextureCache;
 
     /** Current theme */
     private theme: DefaultTheme;
 
     /** Graph UID */
-    private uid: string;
+    private uid?: string;
 
     /** Viewport instance */
-    private viewport: pixi_viewport.Viewport;
+    private viewport!: pixi_viewport.Viewport;
 
     /** Optional user-provided zoom thresholds */
     private zoomThresholds?: ZoomThresholds;
@@ -281,7 +281,7 @@ export class Engine extends EventEmitter<EngineEvents> {
     ) {
         super();
         this.graph = graph;
-        this.requireFocusToZoom = requireFocusToZoom;
+        this.requireFocusToZoom = requireFocusToZoom as boolean;
         this.editable = editable;
         this.editorMode = editorMode;
         this.layout = layout;
@@ -359,15 +359,21 @@ export class Engine extends EventEmitter<EngineEvents> {
                         const edgeStyle = this.getEdgeStyle(edgeObject, attrs);
                         const sourceNode = this.nodeMap.get(source);
                         const targetNode = this.nodeMap.get(target);
-                        const sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
-                        const targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
+                        const sourceNodePosition = {
+                            x: sourceNodeAttributes.x!,
+                            y: sourceNodeAttributes.y!,
+                        };
+                        const targetNodePosition = {
+                            x: targetNodeAttributes.x!,
+                            y: targetNodeAttributes.y!,
+                        };
 
                         edgeObject.updatePosition(
                             edgeStyle,
                             sourceNodePosition,
                             targetNodePosition,
-                            sourceNode.nodeGfx.width,
-                            targetNode.nodeGfx.width,
+                            sourceNode!.nodeGfx.width,
+                            targetNode!.nodeGfx.width,
                             this.viewport,
                             this.textureCache
                         );
@@ -390,8 +396,8 @@ export class Engine extends EventEmitter<EngineEvents> {
      */
     public resetViewport(): void {
         // figure out the x/y bounds
-        const nodesX = this.graph.mapNodes((nodeKey) => this.graph.getNodeAttribute(nodeKey, 'x'));
-        const nodesY = this.graph.mapNodes((nodeKey) => this.graph.getNodeAttribute(nodeKey, 'y'));
+        const nodesX = this.graph.mapNodes((nodeKey) => this.graph.getNodeAttribute(nodeKey, 'x')!);
+        const nodesY = this.graph.mapNodes((nodeKey) => this.graph.getNodeAttribute(nodeKey, 'y')!);
         let minX = Math.min(...nodesX);
         let maxX = Math.max(...nodesX);
         let minY = Math.min(...nodesY);
@@ -404,8 +410,8 @@ export class Engine extends EventEmitter<EngineEvents> {
                 getGroupToNodesMap(this.graph.nodes(), this.layout.group, this.graph)
             ).flat();
 
-            const updateBoundary = (node: SimulationNode, delta: number): number => {
-                if (nodesInGroups.includes(node?.id)) {
+            const updateBoundary = (node: SimulationNode | undefined, delta: number): number => {
+                if (nodesInGroups.includes(node?.id as string)) {
                     return delta;
                 }
                 return 0;
@@ -506,7 +512,7 @@ export class Engine extends EventEmitter<EngineEvents> {
                             graphHasFinalEdge ?
                                 this.graph.getEdgeAttributes(finalSource, finalTarget)[
                                     'meta.rendering_properties.collapsedEdgesCount'
-                                ]
+                                ]!
                             :   0;
 
                         // upddate the number of collapsed edges count if needed
@@ -616,12 +622,12 @@ export class Engine extends EventEmitter<EngineEvents> {
             // then we need to recreate all the edges that were collapsed
             this.collapsedEdgesMap.forEach((edges) => {
                 edges.forEach((edge) => {
-                    if (!this.edgeMap.has(edge.id)) {
-                        const source = edge.extras?.source.identifier;
-                        const target = edge.extras?.destination.identifier;
+                    if (!this.edgeMap.has(edge.id!)) {
+                        const source = edge.extras?.source.identifier as string;
+                        const target = edge.extras?.destination.identifier as string;
                         const sourceNodeAttributes = this.graph.getNodeAttributes(source);
                         const targetNodeAttributes = this.graph.getNodeAttributes(target);
-                        this.createEdge(edge.id, edge, source, target, sourceNodeAttributes, targetNodeAttributes);
+                        this.createEdge(edge.id!, edge, source, target, sourceNodeAttributes, targetNodeAttributes);
                     }
                 });
             });
@@ -670,11 +676,11 @@ export class Engine extends EventEmitter<EngineEvents> {
      *
      * @param id id of the edge
      */
-    public selectEdge(path: [string, string]): void {
+    public selectEdge(path: [string, string] | null): void {
         // If there was a previously selected edge, unselect it
         if (this.selectedEdge) {
             const id = this.graph.edge(this.selectedEdge[0], this.selectedEdge[1]);
-            const edge = this.edgeMap.get(id);
+            const edge = this.edgeMap.get(id as string);
 
             // Check if it exists - could've been removed
             if (edge) {
@@ -697,7 +703,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         if (path) {
             const [source, target] = path;
             const id = this.graph.edge(source, target);
-            const edge = this.edgeMap.get(id);
+            const edge = this.edgeMap.get(id as string);
             if (edge) {
                 edge.state.selected = true;
                 this.selectedEdge = [source, target];
@@ -726,7 +732,7 @@ export class Engine extends EventEmitter<EngineEvents> {
      *
      * @param id id of the node
      */
-    public selectNode(id: string): void {
+    public selectNode(id: string | null | undefined): void {
         // Nodes cannot be selected in edge encoder mode
         if (this.editorMode === EditorMode.EDGE_ENCODER) {
             return;
@@ -745,10 +751,10 @@ export class Engine extends EventEmitter<EngineEvents> {
         // Select new node if specified
         if (id) {
             const node = this.nodeMap.get(id);
-            node.state.selected = true;
+            node!.state.selected = true;
         }
 
-        this.selectedNode = id;
+        this.selectedNode = id as string;
 
         // Update all visuals as we might need to dim things
         this.markStylesDirty();
@@ -760,7 +766,7 @@ export class Engine extends EventEmitter<EngineEvents> {
      *
      * @param dragMode drag mode to set
      */
-    public setDragMode(dragMode: DragMode): void {
+    public setDragMode(dragMode: DragMode | null): void {
         this.dragMode = dragMode;
     }
 
@@ -1140,7 +1146,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         });
         node.addListener('mouseout', (event: PIXI.FederatedMouseEvent) => {
             const local = node.nodeGfx.toLocal(event.global);
-            const isInNode = node.nodeGfx.hitArea.contains(local.x, local.y);
+            const isInNode = node.nodeGfx.hitArea!.contains(local.x, local.y);
 
             // only trigger mouseout if it's actually outside the node (could be within label)
             if (!isInNode) {
@@ -1222,7 +1228,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         });
         groupContainer.addListener('mouseout', (event: PIXI.FederatedMouseEvent) => {
             const local = groupContainer.groupContainerGfx.toLocal(event.global);
-            const isInGroupContainer = groupContainer.groupContainerGfx.hitArea.contains(local.x, local.y);
+            const isInGroupContainer = groupContainer.groupContainerGfx.hitArea!.contains(local.x, local.y);
 
             // only trigger mouseout if it's actually outside the group (could be within label)
             if (!isInGroupContainer) {
@@ -1334,7 +1340,7 @@ export class Engine extends EventEmitter<EngineEvents> {
      * @param source edge source
      * @param target edge target
      */
-    private getConstraint(source: string, target: string): EdgeConstraint {
+    private getConstraint(source: string, target: string): EdgeConstraint | undefined {
         return this.constraints?.find(
             (c) => (c.source === source && c.target === target) || (c.source === target && c.target === source)
         );
@@ -1403,12 +1409,12 @@ export class Engine extends EventEmitter<EngineEvents> {
      */
     private hoverEdge(id: string): void {
         const edge = this.edgeMap.get(id);
-        if (edge.state.hover) {
+        if (edge!.state.hover) {
             return;
         }
 
         // update style
-        edge.state.hover = true;
+        edge!.state.hover = true;
         this.updateEdgeStyleByKey(id);
         this.requestRender();
     }
@@ -1420,12 +1426,12 @@ export class Engine extends EventEmitter<EngineEvents> {
      */
     private hoverNode(id: string): void {
         const node = this.nodeMap.get(id);
-        if (node.state.hover) {
+        if (node!.state.hover) {
             return;
         }
 
         // update style
-        node.state.hover = true;
+        node!.state.hover = true;
         this.updateNodeStyleByKey(id);
         this.requestRender();
     }
@@ -1489,16 +1495,16 @@ export class Engine extends EventEmitter<EngineEvents> {
                 this.moveNode(this.mousedownNodeKey, eventWorldPosition);
             }
             if (this.isCreatingEdge) {
-                const nodeWorldPosition = this.viewport.toWorld(this.nodeMousedownCenterPosition);
+                const nodeWorldPosition = this.viewport.toWorld(this.nodeMousedownCenterPosition!);
 
                 // move the temp edge
                 const tempEdge = this.edgeMap.get(TEMP_EDGE_SYMBOL);
-                tempEdge.updatePosition(
+                tempEdge!.updatePosition(
                     {
                         // use undirected edge / PAG viewer to draw an edge without symbols
                         editorMode: EditorMode.PAG_VIEWER,
                         isEdgeSelected: false,
-                        state: tempEdge.state,
+                        state: tempEdge!.state,
                         theme: this.theme,
                         type: EdgeType.UNDIRECTED_EDGE,
                     },
@@ -1527,7 +1533,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         if (this.isCreatingEdge) {
             // remove the temp edge
             const tempEdge = this.edgeMap.get(TEMP_EDGE_SYMBOL);
-            this.edgeLayer.removeChild(tempEdge.edgeGfx);
+            this.edgeLayer.removeChild(tempEdge!.edgeGfx);
 
             if (initialMousedownNodeKey) {
                 this.updateNodeStyleByKey(initialMousedownNodeKey);
@@ -1641,7 +1647,7 @@ export class Engine extends EventEmitter<EngineEvents> {
      *
      * @param attributes edge attributes
      */
-    private getRelativeStrength(attributes: SimulationEdge): EdgeStrengthDefinition {
+    private getRelativeStrength(attributes: SimulationEdge): EdgeStrengthDefinition | null {
         //  only work in DAG mode with thickness defined
         if (this.editorMode !== EditorMode.DEFAULT || !attributes['meta.rendering_properties.thickness']) {
             return null;
@@ -1671,12 +1677,12 @@ export class Engine extends EventEmitter<EngineEvents> {
      */
     private unhoverEdge(id: string): void {
         const edge = this.edgeMap.get(id);
-        if (!edge.state.hover) {
+        if (!edge!.state.hover) {
             return;
         }
 
         // update style
-        edge.state.hover = false;
+        edge!.state.hover = false;
         this.updateEdgeStyleByKey(id);
         this.requestRender();
     }
@@ -1688,12 +1694,12 @@ export class Engine extends EventEmitter<EngineEvents> {
      */
     private unhoverNode(id: string): void {
         const node = this.nodeMap.get(id);
-        if (!node.state.hover) {
+        if (!node!.state.hover) {
             return;
         }
 
         // update style
-        node.state.hover = false;
+        node!.state.hover = false;
         this.updateNodeStyleByKey(id);
         this.requestRender();
     }
@@ -1721,20 +1727,19 @@ export class Engine extends EventEmitter<EngineEvents> {
         if (edge && this.viewport) {
             const sourceNode = this.nodeMap.get(source);
             const targetNode = this.nodeMap.get(target);
-
             const isSourceGroupNode = sourceNodeAttributes.variable_type === 'groupNode';
             const isTargetGroupNode = targetNodeAttributes.variable_type === 'groupNode';
 
             // Recompute edge position
-            const sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
-            const targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
+            const sourceNodePosition = { x: sourceNodeAttributes.x!, y: sourceNodeAttributes.y! };
+            const targetNodePosition = { x: targetNodeAttributes.x!, y: targetNodeAttributes.y! };
             const edgeStyle = this.getEdgeStyle(edge, attributes, this.getConstraint(source, target));
             edge.updatePosition(
                 edgeStyle,
                 sourceNodePosition,
                 targetNodePosition,
-                sourceNode.nodeGfx.width,
-                targetNode.nodeGfx.width,
+                sourceNode!.nodeGfx.width,
+                targetNode!.nodeGfx.width,
                 this.viewport,
                 this.textureCache,
                 isSourceGroupNode,
@@ -1827,9 +1832,9 @@ export class Engine extends EventEmitter<EngineEvents> {
             // eslint-disable-next-line no-console
             console.error(e);
             // call error handler
-            this.errorHandler({
+            this.errorHandler!({
                 key: 'LayoutError',
-                message: e.message,
+                message: (e as Error).message,
                 status: Status.WARNING,
                 title: 'Defaulting to Fcose Layout',
             });
@@ -1879,7 +1884,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         const node = this.nodeMap.get(id);
 
         if (node) {
-            const nodePosition = { x: attributes.x, y: attributes.y };
+            const nodePosition = { x: attributes.x!, y: attributes.y! };
             node.updatePosition(nodePosition);
             node.updateStyle(this.getNodeStyle(node, attributes), this.textureCache);
         }

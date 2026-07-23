@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* eslint-disable no-return-assign */
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import { nanoid } from 'nanoid';
@@ -119,9 +121,8 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
                 nodes: layer.nodes.map((node) => {
                     return {
                         ...node,
-                        selected:
-                            matchesQuery(node.name, query) ||
-                            (node.meta?.label && matchesQuery(node.meta.label, query)),
+                        selected: (matchesQuery(node.name, query) ||
+                            (node.meta?.label && matchesQuery(node.meta.label, query))) as boolean,
                     };
                 }),
             };
@@ -270,8 +271,11 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
                                     onDeleteLayer={() => onDeleteLayer(idx)}
                                     onDrop={(item) => onDropNode(item, idx)}
                                     onUpdateLabel={onUpdateLabel}
-                                    // eslint-disable-next-line no-return-assign
-                                    ref={(el) => (layersRef.current[idx] = el)}
+                                    ref={
+                                        ((el) =>
+                                            (layersRef.current[idx] =
+                                                el as HTMLDivElement)) as React.RefCallback<HTMLDivElement>
+                                    }
                                     viewOnly={props.viewOnly}
                                     wrapNodeText={props.wrapNodeText}
                                 />

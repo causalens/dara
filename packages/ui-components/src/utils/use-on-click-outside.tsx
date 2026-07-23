@@ -18,7 +18,7 @@ import { useEffect } from 'react';
 
 function useOnClickOutside(element: any, handler: () => void): void {
     useEffect(() => {
-        const listener = (event: MouseEvent): void => {
+        const listener = (event: Event): void => {
             // Do nothing if clicking ref's element or descendent elements
             if (!element || element.contains(event.target)) {
                 return;

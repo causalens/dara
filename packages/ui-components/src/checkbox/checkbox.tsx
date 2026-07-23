@@ -21,7 +21,7 @@ import styled from '@darajs/styled-components';
 import { type InteractiveComponentProps } from '../types';
 
 interface CheckboxWrapperProps {
-    disabled: boolean;
+    disabled?: boolean;
     isListStyle?: boolean;
 }
 

@@ -55,7 +55,7 @@ export const BaseButton = styled.button<BaseButtonProps>`
  * @param disabled whether button is disabled
  * @param theme the current theme being used by the app
  */
-function getOutlinedButtonStyle(buttonColor: string, disabled: boolean, theme: DefaultTheme): string {
+function getOutlinedButtonStyle(buttonColor: string, disabled: boolean | undefined, theme: DefaultTheme): string {
     return `
         color: ${disabled ? theme.colors.grey2 : buttonColor};
 
@@ -91,7 +91,7 @@ function getFilledButtonStyle(
     buttonColor: string,
     hoverColor: string,
     clickColor: string,
-    disabled: boolean,
+    disabled: boolean | undefined,
     theme: DefaultTheme,
     textColor?: string
 ): string {

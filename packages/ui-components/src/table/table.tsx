@@ -21,7 +21,6 @@ import memoize from 'memoize-one';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import * as React from 'react';
 import {
-    type FilterProps,
     type Filters,
     type HeaderGroup,
     type SortingRule,
@@ -199,7 +198,7 @@ const TooltipIcon = styled(FontAwesomeIcon)`
  * @param isSorted - whether the column is sorted or not
  * @param isSortedDesc - whether it is sorted in descending order
  */
-const getSortIcon = (isSorted: boolean, isSortedDesc: boolean): IconDefinition => {
+const getSortIcon = (isSorted?: boolean, isSortedDesc?: boolean): IconDefinition => {
     if (!isSorted) {
         return faArrowUp;
     }
@@ -348,7 +347,7 @@ const appendStickyOffsets = (columns: Array<TableColumn>): Array<TableColumn> =>
 };
 
 // Map of filter name -> filter component
-const filterComponentMap: Record<string, (props: FilterProps<any>) => JSX.Element> = {
+const filterComponentMap: Record<string, React.ComponentType<any>> = {
     categorical: CategoricalFilter,
     datetime: DatetimeFilter,
     numeric: NumericFilter,
@@ -405,7 +404,7 @@ const createActionColumn = (
         disableSortBy: true,
         maxWidth: width,
         minWidth: actions.includes(Actions.SELECT) ? 52 : 48,
-        sticky: sticky || null,
+        sticky: (sticky || null) as 'left' | 'right' | undefined,
         width,
     };
 };
@@ -599,11 +598,11 @@ const Table = forwardRef(
         }
 
         const [currentEditCell, throttledSetEditCell, immediateSetEditCell] = useThrottledState<
-            [number, string | number]
+            [number, string | number] | undefined
         >(undefined, 500);
 
         // ClickRow is throttled so multiple or double clicks don't fire multiple events
-        const throttledClickRow = useThrottle(onClickRow, 500);
+        const throttledClickRow = useThrottle(onClickRow!, 500);
 
         const onStopEdit = (): void => {
             throttledSetEditCell(undefined);
@@ -672,7 +671,7 @@ const Table = forwardRef(
             setAllFilters,
             resetResizing,
             allColumns,
-        } = useTable(
+        } = useTable<any>(
             {
                 columns: mappedColumns,
                 data: data || infiniteData,
@@ -683,7 +682,7 @@ const Table = forwardRef(
                 initialState: {
                     sortBy: currentSortBy.map((sort) => ({
                         ...sort,
-                        id: mappedColumns.find((col) => [col.sortKey, col.accessor].includes(sort.id)).accessor,
+                        id: mappedColumns.find((col) => [col.sortKey, col.accessor].includes(sort.id))!.accessor,
                     })),
                 },
                 // In infinite mode, don't filter client-side
@@ -874,7 +873,7 @@ const Table = forwardRef(
                                 }}
                                 width={width}
                             >
-                                {RenderRow}
+                                {RenderRow as React.ComponentType<any>}
                             </StyledFixedSizeList>
                         );
                     }}

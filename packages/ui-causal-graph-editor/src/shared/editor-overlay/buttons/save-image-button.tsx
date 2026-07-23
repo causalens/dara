@@ -30,7 +30,7 @@ interface SaveImageButtonProps {
 
 function SaveImageButton(props: SaveImageButtonProps): JSX.Element {
     const [hovered, setHovered] = useState(false);
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
     const theme = useTheme();
 
     return (

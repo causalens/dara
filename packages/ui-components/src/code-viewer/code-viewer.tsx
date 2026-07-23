@@ -132,14 +132,14 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                     </CopyToClipboardContainer>
                 :   <CopyToClipboardContainer
                         style={{ cursor: 'pointer' }}
-                        onClick={() => copyCodeToClipboard(props.value)}
+                        onClick={() => copyCodeToClipboard(props.value!)}
                         role="button"
                     >
                         <Copy /> Copy code
                     </CopyToClipboardContainer>
                 }
             </TopBar>
-            <Highlight {...defaultProps} code={props.value} language={props.language} theme={viewerTheme}>
+            <Highlight {...defaultProps} code={props.value!} language={props.language} theme={viewerTheme}>
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <StyledPre
                         className={className}

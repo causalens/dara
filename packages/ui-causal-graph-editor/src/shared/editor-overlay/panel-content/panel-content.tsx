@@ -37,7 +37,7 @@ interface PanelContentProps {
 }
 
 function PanelContent(props: PanelContentProps): JSX.Element {
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
 
     return (
         <PanelDiv

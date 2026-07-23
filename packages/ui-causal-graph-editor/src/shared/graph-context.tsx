@@ -32,9 +32,9 @@ interface GraphContext {
     /** Handler to update a given constraint */
     onUpdateConstraint: (constraint: EdgeConstraintItem) => void | Promise<void>;
     /** Currently selected edge */
-    selectedEdge?: [string, string];
+    selectedEdge?: [string, string] | null;
     /** Currently selected node */
-    selectedNode?: string;
+    selectedNode?: string | null;
     /** Defines whether verbose description should show */
     verboseDescriptions?: boolean;
 }
@@ -42,6 +42,6 @@ interface GraphContext {
 /**
  * Context for handling interactions between the side panel and graph canvas
  */
-const graphCtx = createContext<GraphContext>(null);
+const graphCtx = createContext<GraphContext | null>(null);
 
 export default graphCtx;

@@ -115,7 +115,7 @@ function getSelectedIndex(selectedItems: Array<string>, item: ComponentSelectIte
 function updateSelectedItems(
     prevSelections: Array<string>,
     item: ComponentSelectItem,
-    multiSelect: boolean
+    multiSelect?: boolean
 ): Array<string> {
     const selectedIndex = getSelectedIndex(prevSelections, item);
     // Remove from selections if item is already selected

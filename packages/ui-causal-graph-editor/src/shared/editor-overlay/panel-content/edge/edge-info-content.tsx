@@ -71,7 +71,7 @@ function EdgeInfoContent(props: EdgeInfoContentProps): JSX.Element {
                     <EdgeEditor
                         api={props.api}
                         edge={edgeAttributes}
-                        edgeConstraint={props.selectedConstraint}
+                        edgeConstraint={props.selectedConstraint as EdgeConstraintItem}
                         onUpdateConstraint={props.onUpdateConstraint}
                         source={source}
                         state={props.state}

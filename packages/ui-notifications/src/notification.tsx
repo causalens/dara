@@ -159,16 +159,16 @@ function Notification(props: NotificationProps): JSX.Element {
             <Icon status={props.notification.status}>{getIcon(props.notification.status)}</Icon>
             <Message>
                 <Heading>{props.notification.title}</Heading>
-                <Body moreDetailsShown={showMoreDetails}>{props.notification.message}</Body>
+                <Body moreDetailsShown={showMoreDetails as boolean}>{props.notification.message}</Body>
                 {showMoreDetails && (
-                    <MoreDetailsButton onClick={(e) => props.onMoreDetailsClick(e, props.notification)} type="button">
+                    <MoreDetailsButton onClick={(e) => props.onMoreDetailsClick!(e, props.notification)} type="button">
                         Details &gt;
                     </MoreDetailsButton>
                 )}
             </Message>
             <CloseBtn
                 asButton
-                onClick={() => props.onDismiss(props.notification.key)}
+                onClick={() => props.onDismiss!(props.notification.key)}
                 status={props.notification.status}
             />
         </NotificationWrapper>

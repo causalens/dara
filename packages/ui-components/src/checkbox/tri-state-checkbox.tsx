@@ -51,7 +51,7 @@ const StyledTriStateCheckbox = styled.div<TriStateProp>`
     }}
 `;
 
-function computeState(allSelected: boolean, noneSelected: boolean): CheckboxState {
+function computeState(allSelected?: boolean, noneSelected?: boolean): CheckboxState {
     if (noneSelected) {
         return CheckboxState.UNCHECKED;
     }
@@ -67,7 +67,7 @@ export interface CheckboxProps extends InteractiveComponentProps<boolean> {
     onChange?: (state: CheckboxState, e?: React.SyntheticEvent<HTMLInputElement, Event>) => void | Promise<void>;
 }
 
-function getControlledState(allSelected: boolean, noneSelected: boolean): boolean | undefined {
+function getControlledState(allSelected?: boolean, noneSelected?: boolean): boolean | undefined {
     if (allSelected) {
         return allSelected;
     }

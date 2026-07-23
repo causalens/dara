@@ -118,7 +118,7 @@ function applyNumericOperator(
     operator: NumericOperator,
     value: number,
     filterValue: number | [number, number]
-): boolean {
+): boolean | undefined {
     switch (operator) {
         case NumericOperator.EQ:
             return value === filterValue;
@@ -196,7 +196,7 @@ export function numeric(rows: Array<Row>, columnIds: Array<string>, filterValue:
         return rows;
     }
 
-    return rows.filter((row) => applyNumericOperator(selected, row.values[colId], value));
+    return rows.filter((row) => applyNumericOperator(selected, row.values[colId], value as number | [number, number]));
 }
 
 /**

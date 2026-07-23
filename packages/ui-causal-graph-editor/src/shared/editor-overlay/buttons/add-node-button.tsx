@@ -32,7 +32,7 @@ interface EditControlsProps extends ComponentProps<typeof FloatingButton> {
 
 function EditControls(props: EditControlsProps): JSX.Element {
     const { disableLatentNodeAdd, editorMode, editable } = useSettings();
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
     const { onAddNode, ...rest } = props;
 
     return (
