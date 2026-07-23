@@ -1,9 +1,14 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
+
+const externalDependencies = ['react', 'react-dom', 'styled-components', '@darajs/core'];
 
 export default defineConfig({
     plugins: [
+        esmExternalRequirePlugin({
+            external: externalDependencies,
+        }),
         react({
             jsxRuntime: 'classic',
         }),
@@ -13,9 +18,9 @@ export default defineConfig({
     },
     build: {
         minify: false,
-        rollupOptions: {
-            external: ['react', 'react-dom', 'styled-components', '@darajs/core'],
+        rolldownOptions: {
             output: {
+                strict: true,
                 globals: {
                     react: 'React',
                     'react-dom': 'ReactDOM',

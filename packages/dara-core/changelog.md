@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Upgraded build tooling to Vite 8 for faster builds.
+
 ## 1.29.0
 
 - `dara start --reload` now preserves browser auth sessions across backend reloads via a local file-backed session store. Normal runtime, Docker, and production keep in-memory auth sessions by default, so existing deployments are unchanged unless they configure another backend.

@@ -8,12 +8,4 @@ export default defineConfig({
             jsxRuntime: 'automatic',
         }),
     ],
-    optimizeDeps: {
-        esbuildOptions: {
-            target: 'esnext',
-            supported: {
-                bigint: true
-            },
-        },
-    },
 });

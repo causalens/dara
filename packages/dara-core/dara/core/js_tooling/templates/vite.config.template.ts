@@ -13,7 +13,7 @@ export default defineConfig({
         outDir: '$$output$$',
         assetsDir: '',
         manifest: 'manifest.json',
-        rollupOptions: {
+        rolldownOptions: {
             input: './_entry.tsx',
         },
     },
