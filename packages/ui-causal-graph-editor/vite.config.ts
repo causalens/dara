@@ -1,10 +1,17 @@
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { URL, fileURLToPath } from 'url';
-import { defineConfig } from 'vite';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
+
+const externalDependencies = ['react', 'react-dom', 'styled-components', '@tanstack/react-query'];
 
 export default defineConfig({
-    plugins: [react()],
+    plugins: [
+        esmExternalRequirePlugin({
+            external: externalDependencies,
+        }),
+        react(),
+    ],
     define: {
         'process.env.NODE_ENV': '"production"',
     },
@@ -15,9 +22,9 @@ export default defineConfig({
             fileName: 'index',
         },
         rolldownOptions: {
-            external: ['react', 'react-dom', 'styled-components', '@tanstack/react-query'],
             output: {
                 exports: 'named',
+                strict: true,
                 globals: {
                     react: 'React',
                     'react-dom': 'ReactDOM',

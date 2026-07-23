@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Internal: Upgraded the library build tooling to Vite 8 and Rolldown.
+- Internal: Upgraded the library build tooling to Vite 8 and Rolldown while preserving browser-compatible UMD externals and strict-mode behavior.
 
 ## 1.26.12
 

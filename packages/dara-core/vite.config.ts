@@ -1,10 +1,15 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { URL, fileURLToPath } from 'url';
-import { defineConfig } from 'vite';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
+
+const externalDependencies = ['react', 'react-dom', 'styled-components', '@tanstack/react-query'];
 
 export default defineConfig(({ mode }) => ({
     plugins: [
+        esmExternalRequirePlugin({
+            external: externalDependencies,
+        }),
         react({
             jsxRuntime: 'classic',
         }),
@@ -15,9 +20,9 @@ export default defineConfig(({ mode }) => ({
     build: {
         minify: false,
         rolldownOptions: {
-            external: ['react', 'react-dom', 'styled-components', '@tanstack/react-query'],
             output: {
                 exports: 'named',
+                strict: true,
                 globals: {
                     react: 'React',
                     'react-dom': 'ReactDOM',
