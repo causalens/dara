@@ -89,8 +89,11 @@ jobs:
             exit 1
           fi
 
+          git fetch origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*' \
+            --prune
           tagged_sha="$(git rev-list -n 1 "$tag")"
-          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune --tags
           recovered_prepared_release=false
           mapfile -t branches < <(
             git for-each-ref refs/remotes/origin --format='%(refname:short) %(objectname)' |
