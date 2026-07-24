@@ -24,7 +24,7 @@ jobs:
       version: ${{ steps.prepare.outputs.version }}
     steps:
       - name: Checkout tagged commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Use a PAT with admin privileges, so we can push release commits to protected branches.
           # https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/34
@@ -35,18 +35,18 @@ jobs:
           git config --global --add safe.directory /__w/dara/dara
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         id: setup-python
         with:
           python-version: "3.10"
-      - uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
         with:
           version: 1.8.3
       - name: Install Anthology
         run: poetry self add anthology
       - name: Setup cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
             path: .venv
             key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
@@ -58,8 +58,8 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
         run: make link
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
             node-version: 24
       - name: Get pnpm store directory
@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -196,7 +196,7 @@ jobs:
     needs: prepare-release
     steps:
       - name: Checkout release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.prepare-release.outputs.release_sha }}
           fetch-depth: 0
@@ -217,12 +217,12 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         if: steps.release_status.outputs.exists != 'true'
         id: setup-python
         with:
           python-version: "3.10"
-      - uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
         if: steps.release_status.outputs.exists != 'true'
         with:
           version: 1.8.3
@@ -232,7 +232,7 @@ jobs:
       - name: Setup cached venv
         if: steps.release_status.outputs.exists != 'true'
         id: cached-poetry-dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
             path: .venv
             key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
@@ -245,8 +245,8 @@ jobs:
         run: make link
       - name: Install pnpm
         if: steps.release_status.outputs.exists != 'true'
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         if: steps.release_status.outputs.exists != 'true'
         with:
             node-version: 24
@@ -256,7 +256,7 @@ jobs:
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: steps.release_status.outputs.exists != 'true'
         name: Setup pnpm cache
         with:
@@ -310,7 +310,7 @@ jobs:
       - name: Build Changelog
         if: steps.release_status.outputs.exists != 'true'
         id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v4
+        uses: mikepenz/release-changelog-builder-action@c9bcd8238b6f41e05561348339429d360b1c0247 # v6.2.3
         with:
             token: ${{ secrets.GITHUB_TOKEN }}
             fromTag: ${{ steps.extract_tag.outputs.previous_tag }}
@@ -344,11 +344,11 @@ jobs:
                 }
       - name: Create release
         if: steps.release_status.outputs.exists != 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{steps.build_changelog.outputs.changelog}}
-      - uses: 8398a7/action-slack@v3
+      - uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3.19.0
         if: steps.release_status.outputs.exists != 'true'
         with:
           status: custom
