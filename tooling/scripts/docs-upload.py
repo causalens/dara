@@ -143,7 +143,10 @@ for package in packages:
         }
 
         response = requests.post(url, headers=headers, files=files)
-        response.raise_for_status()
+        if response.status_code == 409:
+            print(f'Docs for {name} {version} already exist; skipping.')
+        else:
+            response.raise_for_status()
         os.remove('docs.zip')
 
 # Cleanup
