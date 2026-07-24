@@ -170,7 +170,7 @@ export interface CheckboxProps extends InteractiveComponentProps<boolean> {
  * @param {CheckboxProps} props - the component props
  */
 function Checkbox(props: CheckboxProps): JSX.Element {
-    const [checked, setChecked] = useState(props.selected || props.initialValue);
+    const [checked, setChecked] = useState(props.selected ?? props.initialValue);
 
     useEffect(() => {
         if (props.selected !== undefined) {
@@ -188,7 +188,7 @@ function Checkbox(props: CheckboxProps): JSX.Element {
             setChecked(!checked);
         }
         if (props.onChange) {
-            props.onChange(!checked, e);
+            void props.onChange(!checked, e);
         }
     };
 

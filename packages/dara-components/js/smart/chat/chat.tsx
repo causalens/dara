@@ -144,7 +144,7 @@ function getHighestZIndex(selector: string): number {
     const elements = document.querySelectorAll(selector);
     let highest = 998; // Start with 998
     elements.forEach((element) => {
-        const zIndex = parseInt(window.getComputedStyle(element as HTMLElement).zIndex);
+        const zIndex = parseInt(window.getComputedStyle(element as HTMLElement).zIndex, 10);
         if (zIndex > highest) {
             highest = zIndex;
         }
@@ -182,7 +182,7 @@ function Chat(props: ChatProps): JSX.Element {
                 users,
                 content: newMessage,
             };
-            sendNewMessage(notificationPayload, extras);
+            void sendNewMessage(notificationPayload, extras);
         }
         setValue(newValue);
     };

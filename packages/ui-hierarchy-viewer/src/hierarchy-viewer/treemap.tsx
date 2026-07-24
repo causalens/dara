@@ -74,11 +74,11 @@ function NodeRenderer(props: NodeRendererProps): JSX.Element {
     const fill = props.color(depth).toString();
     const width = Number.isNaN(node.x1 - node.x0) ? undefined : node.x1 - node.x0;
     const height = Number.isNaN(node.y1 - node.y0) ? undefined : node.y1 - node.y0;
-    const hasChildren = node.children && node.children.length > 0;
-    const isInteractive = (hasChildren && props.allowParentClick) || (!hasChildren && props.allowLeafClick);
+    const hasChildren = Boolean(node.children?.length);
+    const isInteractive = hasChildren ? Boolean(props.allowParentClick) : Boolean(props.allowLeafClick);
 
     const onClick = useCallback(() => {
-        onClickProp!(node.data);
+        void onClickProp!(node.data);
     }, [node, onClickProp]);
 
     return (
@@ -150,6 +150,8 @@ function Treemap(props: TreemapProps): JSX.Element | null {
 
     const [treemap, setTreemap] = useState<d3.HierarchyRectangularNode<Node> | null>();
 
+    // Oxlint cannot infer that useDeepCompare returns a stable dependency list.
+    // oxlint-disable react-hooks/exhaustive-deps
     useEffect(
         () => {
             if (props.data) {
@@ -167,9 +169,9 @@ function Treemap(props: TreemapProps): JSX.Element | null {
                 setTreemap(root as d3.HierarchyRectangularNode<Node>);
             }
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         useDeepCompare([props.data, props.height, props.width])
     );
+    // oxlint-enable react-hooks/exhaustive-deps
 
     const color = d3
         .scaleOrdinal<string>()

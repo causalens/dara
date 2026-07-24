@@ -182,11 +182,11 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
 
         if (isControlled) {
             // controlled mode - only call onChange, don't update internal state
-            props.onChange?.(props.items[chosenIndex], event);
+            void props.onChange?.(props.items[chosenIndex], event);
         } else {
             // uncontrolled mode - update internal state and call onChange
             setCurrentSelected(chosenIndex);
-            props.onChange?.(props.items[chosenIndex], event);
+            void props.onChange?.(props.items[chosenIndex], event);
         }
     };
 
@@ -220,7 +220,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
                             value={index}
                         />
                         <StyledCheckmark disabled={props.disabled} />
-                        {item.label ? item.label : item.value}
+                        {item.label ?? item.value}
                     </RadioWrapper>
                 );
             })}

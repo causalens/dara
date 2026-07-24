@@ -188,7 +188,7 @@ function Link(props: LinkProps): React.ReactNode {
     const linkKey = getResolvedToHookKey(to);
 
     // key required to remount when resolved params would change useResolvedTo's hook order
-    return <LinkResolveImpl {...props} to={to} key={linkKey} />;
+    return <LinkResolveImpl key={linkKey} {...props} to={to} />;
 }
 
 export default Link;

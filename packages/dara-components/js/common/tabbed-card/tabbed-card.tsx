@@ -83,7 +83,7 @@ function TabbedCard(props: TabbedCardProps): JSX.Element {
     const [selectedCard, setSelectedCard] = useState(getCardBody(props.children, selectedTab.title));
 
     useEffect(() => {
-        const updatedSelectedTab = getTabHeader(props.children, selectedTabFromVar || props.initial_tab);
+        const updatedSelectedTab = getTabHeader(props.children, selectedTabFromVar ?? props.initial_tab);
         if (updatedSelectedTab !== selectedTab) {
             setSelectedTab(updatedSelectedTab);
             setSelectedCard(getCardBody(props.children, updatedSelectedTab.title));

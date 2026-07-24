@@ -151,13 +151,13 @@ function ButtonBar({
     style,
     styling = 'primary',
 }: ButtonProps): JSX.Element {
-    const [selected, setSelected] = useState<Item>(value || initialValue || items[0]);
+    const [selected, setSelected] = useState<Item>(value ?? initialValue ?? items[0]);
 
     const ButtonComponent = styling === 'secondary' ? SecondaryButton : PrimaryButton;
 
     const onClick = useCallback(
         (item: Item): void => {
-            onSelect?.(item);
+            void onSelect?.(item);
             if (value === undefined) {
                 setSelected(item);
             }
@@ -167,7 +167,7 @@ function ButtonBar({
 
     // Update selection based on value prop changes
     useEffect(() => {
-        setSelected(value || initialValue || items[0]);
+        setSelected(value ?? initialValue ?? items[0]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 

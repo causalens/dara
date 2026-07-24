@@ -82,7 +82,7 @@ interface ModalHeaderProps {
 const ModalHeader = styled.div<ModalHeaderProps>`
     display: flex;
     flex: 0 0 auto;
-    flex-direction: ${(props) => props.flexDirection || 'column'};
+    flex-direction: ${(props) => props.flexDirection ?? 'column'};
     justify-content: space-between;
 
     margin-bottom: 1rem;
@@ -128,7 +128,7 @@ function Modal(props: ModalProps): JSX.Element | null {
         if (renderModal) {
             const keyHandler = (e: KeyboardEvent): void => {
                 if (e.key === Key.ESCAPE && props.onAttemptClose) {
-                    props.onAttemptClose();
+                    void props.onAttemptClose();
                 }
             };
             document.addEventListener('keydown', keyHandler);
@@ -146,7 +146,7 @@ function Modal(props: ModalProps): JSX.Element | null {
     const onTransitionEnd = (): void => {
         setMounted(props.render);
         if (!props.render && props.onClosed) {
-            props.onClosed();
+            void props.onClosed();
         }
     };
 

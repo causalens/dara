@@ -174,7 +174,9 @@ function Spinner(props: SpinnerProps): JSX.Element {
                 <div className="sk-chase-dot" />
                 <div className="sk-chase-dot" />
             </Loader>
-            {(props.showText || props.text) && <LoadingText color={props.color}>{props.text ?? 'LOADING'}</LoadingText>}
+            {(Boolean(props.showText) || Boolean(props.text)) && (
+                <LoadingText color={props.color}>{props.text ?? 'LOADING'}</LoadingText>
+            )}
         </Wrapper>
     );
 }

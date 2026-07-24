@@ -132,6 +132,7 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                     </CopyToClipboardContainer>
                 ) : (
                     <CopyToClipboardContainer
+                        tabIndex={0}
                         style={{ cursor: 'pointer' }}
                         onClick={() => copyCodeToClipboard(props.value!)}
                         role="button"
@@ -150,9 +151,9 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                         }}
                     >
                         {tokens.map((line, i) => (
-                            <div {...getLineProps({ key: i, line })} key={i}>
+                            <div key={i} {...getLineProps({ key: i, line })}>
                                 {line.map((token, key) => (
-                                    <code {...getTokenProps({ key, token })} key={key} />
+                                    <code key={key} {...getTokenProps({ key, token })} />
                                 ))}
                             </div>
                         ))}

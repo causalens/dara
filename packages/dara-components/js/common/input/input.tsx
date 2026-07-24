@@ -51,7 +51,7 @@ function Input(props: InputProps): JSX.Element {
         setInternalValue(newValue);
         // Debounce the update to the variable and the form to prevent multiple updates being fired at once
         debouncedSetValue(newValue);
-        debouncedAction(newValue);
+        void debouncedAction(newValue);
         debouncedUpdateForm(newValue);
     }
 

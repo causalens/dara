@@ -153,7 +153,7 @@ interface BranchProps {
  */
 function Branch(props: BranchProps): JSX.Element {
     const theme = useTheme();
-    const [open, setOpen] = useState(props.open || false);
+    const [open, setOpen] = useState(props.open ?? false);
 
     const toggle = (): void => {
         if (props.content) {
@@ -166,7 +166,7 @@ function Branch(props: BranchProps): JSX.Element {
     };
 
     const selectionAllowed =
-        (props.allowSelectCategory && props.content.children && props.content.children.length > 0) ||
+        Boolean(props.allowSelectCategory && props.content.children && props.content.children.length > 0) ||
         (props.allowSelectLeaf && (!props.content.children || props.content.children.length === 0));
 
     return (

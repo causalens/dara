@@ -243,7 +243,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             updated_at: new Date().toISOString(),
         };
 
-        props?.onChange!(newMessage);
+        void props?.onChange!(newMessage);
         setLocalMessage(newMessage);
         // reset the textarea message to the message without the /n and trailing whitespace
         setEditMessage(newMessage.message);
@@ -252,7 +252,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
 
     const onDelete = (): void => {
         if (props.onDelete) {
-            props.onDelete(props.value.id);
+            void props.onDelete(props.value.id);
         }
     };
 
@@ -287,12 +287,14 @@ function MessageComponent(props: MessageProps): JSX.Element {
                 {!editMode && props.isEditable && props.didUserWriteMessage && (
                     <InteractiveIcons>
                         <EditIcon
+                            tabIndex={0}
                             aria-label="Edit message"
                             data-testid="message-edit-button"
                             onClick={() => setEditMode(true)}
                             role="button"
                         />
                         <DeleteIcon
+                            tabIndex={0}
                             aria-label="Delete message"
                             data-testid="message-delete-button"
                             onClick={onDelete}

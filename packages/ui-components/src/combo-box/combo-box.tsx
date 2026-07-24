@@ -186,7 +186,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                     (props.selectedItem && changes.selectedItem?.value !== props.selectedItem?.value) ||
                     !props.selectedItem
                 ) {
-                    props.onSelect(changes.selectedItem as Item);
+                    void props.onSelect(changes.selectedItem as Item);
                 }
             }
         },
@@ -221,7 +221,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
             ) {
                 return {
                     ...changes,
-                    inputValue: changes.selectedItem?.label || '',
+                    inputValue: changes.selectedItem?.label ?? '',
                 };
             }
 

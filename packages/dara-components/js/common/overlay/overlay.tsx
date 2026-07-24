@@ -30,7 +30,7 @@ const OverlayWrapper = injectCss(styled.div<RenderProp>`
     max-width: 100%;
     max-height: 100%;
     margin: ${(props) => props.margin};
-    padding: ${(props) => (props.padding ? props.padding : '1rem')};
+    padding: ${(props) => props.padding ?? '1rem'};
 `);
 
 interface OverlayProps extends StyledComponentProps {

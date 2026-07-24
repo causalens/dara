@@ -14,9 +14,11 @@ const config = defineConfig({
         'no-unused-vars': ['error', { ignoreRestSiblings: true }],
         'no-use-before-define': 'error',
         radix: ['error', 'as-needed'],
+        'typescript/no-misused-spread': 'off',
         'typescript/prefer-includes': 'error',
         'typescript/prefer-nullish-coalescing': 'error',
         'typescript/switch-exhaustiveness-check': 'error',
+        'typescript/unbound-method': 'off',
     },
 });
 
@@ -27,6 +29,8 @@ export const reactConfig = defineConfig({
     plugins: ['react', 'jsx-a11y'],
     rules: {
         'jsx-a11y/anchor-is-valid': ['error', { components: [] }],
+        'jsx-a11y/no-autofocus': 'off',
+        'jsx-a11y/prefer-tag-over-role': 'off',
         'react/jsx-filename-extension': ['error', { extensions: ['.jsx', '.tsx'] }],
         'react/jsx-key': ['error', { checkFragmentShorthand: true }],
     },

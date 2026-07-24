@@ -142,7 +142,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
     }, [props.nodes, returnStrings, setHierarchy]);
 
     useUpdateEffect(() => {
-        props.onUpdate?.(parseLayerItems(hierarchy, returnStrings as any) as T[][]);
+        void props.onUpdate?.(parseLayerItems(hierarchy, returnStrings as any) as T[][]);
     }, [hierarchy, returnStrings]);
 
     useEffect(() => {
@@ -159,9 +159,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
             for (const [idx, layer] of currentHierarchyData.current.entries()) {
                 // Layer with some selected nodes
                 if (layer.nodes.some((node) => node.selected)) {
-                    if (!firstSelectedLayer) {
-                        firstSelectedLayer = idx;
-                    }
+                    firstSelectedLayer ??= idx;
 
                     // Check if it's visible
                     if (isInView(layersRef.current[idx], layersWrapperRef.current)) {

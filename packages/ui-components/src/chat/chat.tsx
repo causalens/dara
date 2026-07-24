@@ -178,7 +178,7 @@ function Chat(props: ChatProps): JSX.Element {
             const newMessages = [...localMessages, newMessage];
 
             // Add the new message to the chat
-            props.onUpdate?.(newMessages);
+            void props.onUpdate?.(newMessages);
             setLocalMessages(newMessages);
 
             // Clear the reply field and scroll to the bottom of the chat to show latest message
@@ -196,7 +196,7 @@ function Chat(props: ChatProps): JSX.Element {
             return m;
         });
         // Update the chat
-        props.onUpdate?.(newMessages);
+        void props.onUpdate?.(newMessages);
         setLocalMessages(newMessages);
     };
 
@@ -204,7 +204,7 @@ function Chat(props: ChatProps): JSX.Element {
         // Remove the message with the given id
         const newMessages = localMessages.filter((message) => message.id !== id);
         // Update the chat
-        props.onUpdate?.(newMessages);
+        void props.onUpdate?.(newMessages);
         setLocalMessages(newMessages);
     };
 

@@ -1,5 +1,6 @@
 {
     "exclude": ["**/*.spec.tsx", "dist/**"],
+    "include": ["src/**/*"],
     "compilerOptions": {
         "declaration": true,
         "esModuleInterop": true,

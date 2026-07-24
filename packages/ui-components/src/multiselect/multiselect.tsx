@@ -236,7 +236,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
             initialSelectedItems: props.initialValue ?? [],
             onSelectedItemsChange: (changes: UseMultipleSelectionStateChange<Item>) => {
                 if (props.onSelect) {
-                    props.onSelect(changes.selectedItems as Item[]);
+                    void props.onSelect(changes.selectedItems as Item[]);
                 }
             },
             // Only set the selectedItems key if it has been explicitly set in props
@@ -247,7 +247,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
         (term: string) => {
             setInputValue(term);
             if (props.onTermChange) {
-                props.onTermChange(term);
+                void props.onTermChange(term);
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -271,7 +271,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
         defaultHighlightedIndex: -1,
         initialIsOpen: props.initialIsOpen,
         inputValue,
-        itemToString: (item) => item?.label || '',
+        itemToString: (item) => item?.label ?? '',
         items: filteredItems,
         onStateChange: ({ selectedItem, type }: any) => {
             // Note: we're explicitly ignoring InputChange as we're consuming it in a custom onChange handler

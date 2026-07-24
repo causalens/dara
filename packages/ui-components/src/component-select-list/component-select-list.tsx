@@ -167,7 +167,7 @@ function ComponentSelectList(props: ComponentSelectListProps): JSX.Element {
         (index: number) => {
             const updatedSelectedCards = updateSelectedItems(selectedCards, props.items[index], props.multiSelect);
             setSelectedCards(updatedSelectedCards);
-            props.onSelect?.(updatedSelectedCards);
+            void props.onSelect?.(updatedSelectedCards);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [props.items, props.multiSelect, selectedCards, setSelectedCards]

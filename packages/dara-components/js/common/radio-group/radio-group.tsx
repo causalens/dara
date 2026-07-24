@@ -56,7 +56,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
     const onChange = useCallback(
         (values: UIRadioItem) => {
             setValue(values.value);
-            onChangeAction(values.value);
+            void onChangeAction(values.value);
             formCtx.updateForm(values.value);
         },
         [setValue]

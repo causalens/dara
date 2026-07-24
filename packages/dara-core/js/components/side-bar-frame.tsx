@@ -22,7 +22,7 @@ const SideBar = styled.div.withConfig({ shouldForwardProp })<SideBarProps>`
     flex-direction: column;
     align-items: center;
 
-    width: ${(props) => props.width || '240px'};
+    width: ${(props) => props.width ?? '240px'};
     min-width: 150px;
     max-width: 350px;
     height: 100%;

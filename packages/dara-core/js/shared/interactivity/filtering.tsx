@@ -283,7 +283,7 @@ export function applyFilters(
         }
 
         // Apply pagination slice
-        const startIndex = pagination.offset || 0;
+        const startIndex = pagination.offset ?? 0;
         const endIndex = pagination.limit ? startIndex + pagination.limit : filteredData.length;
         filteredData = filteredData.slice(startIndex, endIndex);
     }

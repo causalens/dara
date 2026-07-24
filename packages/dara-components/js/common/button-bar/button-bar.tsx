@@ -36,7 +36,7 @@ function ButtonBar(props: ButtonBarProps): JSX.Element {
     const onSelect = useCallback(
         (item: Item) => {
             setValue(item.value);
-            onChangeAction(item.value);
+            void onChangeAction(item.value);
             formCtx.updateForm(item.value);
         },
         [setValue, onChangeAction]

@@ -234,7 +234,7 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                   return acc;
               }, {} as KeyBindingMap)
             : {};
-    }, [configurableHotkeys?.hotkeyBindings, viewRef]);
+    }, [configurableHotkeys, viewRef]);
 
     // These shortcuts are specifically for when the code editor is in focus
     useFocusTinykeys(hotkeys, ref, {

@@ -124,7 +124,7 @@ export async function validateResponse(
         let message = fallbackMessage;
         try {
             const json = await res.json();
-            message = json?.message || json?.detail || fallbackMessage;
+            message = json?.message ?? json?.detail ?? fallbackMessage;
         } catch {
             if (fallbackMessage) {
                 try {

@@ -219,7 +219,7 @@ const StyledDropdownList = React.memo(styled(DropdownList)<DropdownListProps>`
 
     width: 16.25rem;
     max-height: calc(
-        ${(props) => (props.maxItems || 5) * 2}em + 2px + (${(props) => (props.maxItems || 5) - 1}) * 0.125em
+        ${(props) => (props.maxItems ?? 5) * 2}em + 2px + (${(props) => (props.maxItems ?? 5) - 1}) * 0.125em
     );
     margin-left: ${(props) => props.displacement}rem;
 
@@ -297,7 +297,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
             if (props.onSelect) {
-                props.onSelect(selected as Item);
+                void props.onSelect(selected as Item);
             }
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
@@ -319,7 +319,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,
-        placement: props.placement || 'bottom-start',
+        placement: props.placement ?? 'bottom-start',
         middleware: [offset(8), flip(), shift()],
         whileElementsMounted: isOpen ? autoUpdate : undefined,
     });

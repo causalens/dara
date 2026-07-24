@@ -278,7 +278,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
                 serializedNode = serializeGraphNode(state.graph.getNodeAttributes(selectedNode));
             }
 
-            props.onClickNode(serializedNode as CausalGraphNode);
+            void props.onClickNode(serializedNode as CausalGraphNode);
         }
     }, [selectedNode]);
 
@@ -300,7 +300,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
                 );
             }
 
-            props.onClickEdge(serializedEdge as CausalGraphEdge);
+            void props.onClickEdge(serializedEdge as CausalGraphEdge);
         }
     }, [selectedEdge]);
 
@@ -328,7 +328,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
             const nodesToGroups = getNodeToGroupMap(state.graph.nodes(), layoutGroup, state.graph);
             const group = nodesToGroups[selectedNode!];
             if (groupsObject[group]?.length === 1) {
-                props.onNotify?.({
+                void props.onNotify?.({
                     key: 'delete-group',
                     message: 'Cannot delete the last node in a group',
                     status: Status.WARNING,
@@ -368,7 +368,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         const edgeAttributes = state.graph.getEdgeAttributes(...selectedEdge!);
 
         if (edgeAttributes['meta.rendering_properties.forced'] === true) {
-            askToRemoveEdge(selectedEdge!);
+            void askToRemoveEdge(selectedEdge!);
         } else {
             onConfirmRemoveEdge();
         }
@@ -379,7 +379,8 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     if (selectedEdge) {
         onDelete = onRemoveEdge;
     } else if (selectedNode) {
-        const disableRemoval = props.disableNodeRemoval || props.nonRemovableNodes?.includes(selectedNode);
+        const disableRemoval =
+            Boolean(props.disableNodeRemoval) || Boolean(props.nonRemovableNodes?.includes(selectedNode));
         if (!disableRemoval) {
             onDelete = onRemoveNode;
         }
@@ -394,7 +395,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
             const groups = Object.keys(groupsObject);
 
             if (groups.includes(edge[0]) && groups.includes(edge[1])) {
-                props.onNotify?.({
+                void props.onNotify?.({
                     key: 'create-edge-group',
                     message: 'Adding edge between groups is not allowed',
                     status: Status.WARNING,
@@ -406,7 +407,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
         // Skip if a cycle would be created
         // The check needs to happen before we commit an action
         if (props.editorMode === EditorMode.DEFAULT && willCreateCycle(state.graph, edge)) {
-            props.onNotify?.({
+            void props.onNotify?.({
                 key: 'create-edge-cycle',
                 message: 'Could not create an edge as it would create a cycle',
                 status: Status.WARNING,
@@ -439,7 +440,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
             const graphCopy = state.graph.copy();
             graphCopy.dropEdge(source, target);
             if (willCreateCycle(graphCopy, selectedEdge!)) {
-                props.onNotify?.({
+                void props.onNotify?.({
                     key: 'reverse-edge-cycle',
                     message: 'Could not reverse the edge as it would create a cycle',
                     status: Status.WARNING,
@@ -784,7 +785,7 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
                                 <>
                                     <SearchBar
                                         onChange={(value) => {
-                                            onSearchBarChange(value);
+                                            void onSearchBarChange(value);
                                             // if the user searches, we want to expand all groups to perform the search
                                             if (layoutHasGroup) {
                                                 expandGroups();

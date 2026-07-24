@@ -121,7 +121,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         const handleChange = (e: React.SyntheticEvent<HTMLInputElement>): void => {
             const target = e.target as HTMLInputElement;
             if (onChange) {
-                onChange(target.value, e);
+                void onChange(target.value, e);
             }
         };
 
@@ -134,7 +134,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                 e.preventDefault();
             }
             if (e.key === Key.ENTER && onComplete) {
-                onComplete();
+                void onComplete();
             }
         };
 

@@ -22,7 +22,7 @@ const TopBar = styled.div.withConfig({ shouldForwardProp })<TopBarProps>`
     align-items: flex-end;
 
     width: 100%;
-    height: ${(props) => props.height || '124px'};
+    height: ${(props) => props.height ?? '124px'};
     min-height: 100px;
     max-height: 350px;
     padding: 2rem 3rem;

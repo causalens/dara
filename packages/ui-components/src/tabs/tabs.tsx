@@ -107,7 +107,7 @@ function Tabs<T>({ className, onSelectTab, selectedTab, tabs }: TabsProps<T>): J
     const tabSelected = instanceOfTab(selectedTab) ? selectedTab : { title: selectedTab };
     const onClick = (tab: T | TabInterface | string) => () => {
         if (onSelectTab) {
-            onSelectTab(tab);
+            void onSelectTab(tab);
         }
     };
     return (

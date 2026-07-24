@@ -58,7 +58,7 @@ export default function GlobalTaskProvider({ tasks, variableTaskMap, children }:
                 // found a match
                 if (taskToCancel) {
                     // cancel the task and mark it as stopped
-                    cancelTask(runningTask, extrasRef.current);
+                    void cancelTask(runningTask, extrasRef.current);
                     tasksRef.current.delete(runningTask);
 
                     if (taskToCancel.triggerKey) {

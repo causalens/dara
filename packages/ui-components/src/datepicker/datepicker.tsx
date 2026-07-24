@@ -623,7 +623,7 @@ function getNewDatetime(date: InternalDatepickerValue, time: TimeValue): Interna
 function DatePicker(props: DatePickerProps): JSX.Element {
     const value = props.value ?? props.initialValue;
     const [selectedDate, setSelectedDate] = useState<InternalDatepickerValue>(
-        value || (props.selectsRange ? [null, null] : null)
+        value ?? (props.selectsRange ? [null, null] : null)
     );
     const [selectedTime, setSelectedTime] = useState<TimeValue>(() =>
         getInitialTime(value, props.selectsRange as boolean)
@@ -772,7 +772,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
     useEffect(() => {
         const newValue = props.value ?? props.initialValue;
 
-        const newDate: InternalDatepickerValue = newValue || (props.selectsRange ? [null, null] : null);
+        const newDate: InternalDatepickerValue = newValue ?? (props.selectsRange ? [null, null] : null);
 
         // Skip if the value is the same as the current state, this is necessary to prevent loops
         if (JSON.stringify(newDate) === JSON.stringify(selectedDateRef.current)) {
@@ -801,7 +801,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         }
         // We have to typecast to make compiler happy as we don't know which type it is at this point
         const newDateTime = getNewDatetime(selectedDate, time);
-        props.onChange?.(newDateTime as Date & [Date, Date]);
+        void props.onChange?.(newDateTime as Date & [Date, Date]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, selectedTime]);
 

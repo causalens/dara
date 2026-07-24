@@ -121,7 +121,7 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
     }
 
     const debouncedOnChange = debounce((val: string, e?: SyntheticEvent<HTMLInputElement, Event>) => {
-        props.onChange!(val, e);
+        void props.onChange!(val, e);
     }, inputDebounceValue);
 
     useUpdateEffect(() => {
@@ -137,7 +137,7 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
 
     function onEnter(): void {
         if (props.totalNumberOfResults) {
-            props.onNext!();
+            void props.onNext!();
         }
     }
 
@@ -150,7 +150,7 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
         setSearchInput('');
         setShowSearchBar(false);
         setShowResultCount(false);
-        props.onClose!();
+        void props.onClose!();
     }
 
     function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
@@ -158,10 +158,10 @@ function FloatingSearchBar(props: FloatingSearchBarProps): JSX.Element {
             onClose();
         }
         if (e.key === 'ArrowDown') {
-            props.onNext!();
+            void props.onNext!();
         }
         if (e.key === 'ArrowUp') {
-            props.onPrev!();
+            void props.onPrev!();
         }
     }
 

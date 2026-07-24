@@ -63,7 +63,7 @@ interface DescriptionEditorProps {
 
 function DescriptionEditor(props: DescriptionEditorProps): JSX.Element {
     const { editable } = useSettings();
-    const [note, setNote] = useState(() => props.edge['meta.rendering_properties.description'] || '');
+    const [note, setNote] = useState(() => props.edge['meta.rendering_properties.description'] ?? '');
 
     const updateNote = useCallback(
         (newDesc: string) => {

@@ -81,7 +81,7 @@ function EditorOverlay(props: EditorOverlayProps): JSX.Element | null {
 
     const controlPadding = '10px';
 
-    const showPanel = editable || allowSelectionWhenNotEditable;
+    const showPanel = Boolean(editable) || Boolean(allowSelectionWhenNotEditable);
 
     return (
         <>

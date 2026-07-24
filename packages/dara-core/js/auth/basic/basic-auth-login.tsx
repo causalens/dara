@@ -148,7 +148,7 @@ function BasicAuthLogin(): JSX.Element {
             const sessionCreated = await requestSessionToken({ password, username });
 
             if (sessionCreated) {
-                navigate(previousLocation);
+                void navigate(previousLocation);
             }
         } catch {
             setIsError(true);
@@ -159,9 +159,9 @@ function BasicAuthLogin(): JSX.Element {
 
     useEffect(() => {
         // If we landed on this page with a valid session already, redirect.
-        verifySessionToken().then((verificationResult) => {
+        void verifySessionToken().then((verificationResult) => {
             if (verificationResult === 'verified') {
-                navigate(previousLocation, { replace: true });
+                void navigate(previousLocation, { replace: true });
             } else if (verificationResult === 'login_required') {
                 setIsVerifyingToken(false);
             }
@@ -184,7 +184,7 @@ function BasicAuthLogin(): JSX.Element {
                     <Form
                         onSubmit={(e) => {
                             e.preventDefault();
-                            login();
+                            void login();
                         }}
                     >
                         <div>

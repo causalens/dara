@@ -72,7 +72,7 @@ function EdgeTypeEditor(props: EdgeTypeEditorProps): JSX.Element {
                     willCreateCycle(graphClone, [props.target, props.source]);
 
                 if (invalidForward || invalidBackward) {
-                    onNotify?.({
+                    void onNotify?.({
                         key: 'edge-type-change-cycle',
                         message: `Edge type "${newTail}${newHead}" not allowed as it would create a cycle`,
                         status: Status.WARNING,

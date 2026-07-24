@@ -156,7 +156,7 @@ const SectionedListItem = ({
             isHighlighted={isHighlighted}
         >
             {item.label || item.section}
-            {item.badge && <Badge color={item.badge.color || theme.colors.primary}>{item.badge.label}</Badge>}
+            {item.badge && <Badge color={item.badge.color ?? theme.colors.primary}>{item.badge.label}</Badge>}
         </ListItemSpan>
     );
 };
@@ -243,7 +243,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                     (props.selectedItem && changes.selectedItem?.value !== props.selectedItem?.value) ||
                     !props.selectedItem
                 ) {
-                    props.onSelect(changes.selectedItem as ListItem);
+                    void props.onSelect(changes.selectedItem as ListItem);
                 }
             }
         },
@@ -288,7 +288,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ) {
                 return {
                     ...changes,
-                    inputValue: changes.selectedItem?.label || '',
+                    inputValue: changes.selectedItem?.label ?? '',
                 };
             }
             // jump section headings when navigating with keys

@@ -90,7 +90,7 @@ function AuthenticatedRoot(props: AuthenticatedRootProps): React.ReactNode {
             cleanSessionCache(sessionId);
         } else {
             // if for some reason we don't have a token, redirect back to login
-            navigate({ pathname: '/login', search: `?referrer=${resolveReferrer()}` });
+            void navigate({ pathname: '/login', search: `?referrer=${resolveReferrer()}` });
         }
     }, [sessionId, navigate]);
 

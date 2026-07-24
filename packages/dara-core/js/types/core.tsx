@@ -1,4 +1,4 @@
-import type { Location, NavigateFunction, NavigateOptions, Path, To, UIMatch } from 'react-router';
+import type { Location, NavigateFunction, NavigateOptions, Path, UIMatch } from 'react-router';
 import { type CallbackInterface } from 'recoil';
 import * as z from 'zod/v4';
 
@@ -119,7 +119,7 @@ export function createRouteMatches(uiMatches: UIMatch[], definitionMap: Map<stri
 }
 
 export interface RouterPath extends Path {
-    params: Record<string, Variable<any> | any>;
+    params: Record<string, any>;
 }
 
 type BuildMode = 'AUTO_JS' | 'PRODUCTION';
@@ -239,11 +239,11 @@ export interface SingleVariable<T = any, TStore extends PersistenceStore = Persi
 export interface DerivedVariable {
     __typename: 'DerivedVariable';
     cache?: null | CachePolicy;
-    deps: Array<AnyVariable<any> | any>;
+    deps: Array<any>;
     nested: NestedKey[];
     polling_interval?: Variable<number | null> | number | null;
     uid: string;
-    variables: Array<AnyVariable<any> | any>;
+    variables: Array<any>;
     /**
      * Field injected by loop variable logic, should be treated as a different variable instance
      * and use different client-side cache
@@ -256,7 +256,7 @@ export interface SwitchVariable<T = any> {
     uid: string;
     value: Condition<T> | Variable<T> | T;
     value_map: Variable<Record<string, any>> | Record<string, any>;
-    default: Variable<any> | any;
+    default: any;
 }
 
 export interface StateVariable {
@@ -279,7 +279,7 @@ export interface ServerVariable {
 export interface StreamVariable {
     __typename: 'StreamVariable';
     uid: string;
-    variables: Array<AnyVariable<any> | any>;
+    variables: Array<any>;
     key_accessor: string | null;
     nested: NestedKey[];
 }

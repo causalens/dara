@@ -67,8 +67,8 @@ function createPositionedArray(
         const orderA = nodesOrder[a];
         const orderB = nodesOrder[b];
 
-        const parsedA = parseInt(orderA);
-        const parsedB = parseInt(orderB);
+        const parsedA = parseInt(orderA, 10);
+        const parsedB = parseInt(orderB, 10);
 
         if (Number.isNaN(parsedA) || Number.isNaN(parsedB)) {
             throw new Error(`Non-numeric order value encountered for nodes`);

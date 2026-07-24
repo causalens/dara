@@ -146,7 +146,7 @@ function Tooltip({
             return { open: delay, close: delay };
         }
         if (Array.isArray(delay)) {
-            return { open: delay[0] || 0, close: delay[1] || 0 };
+            return { open: delay[0] ?? 0, close: delay[1] ?? 0 };
         }
         return { open: 0, close: 0 };
     }, [delay]);
@@ -163,7 +163,7 @@ function Tooltip({
     }, [placement]);
 
     const { refs, floatingStyles, context } = useFloating({
-        open: visible !== undefined ? visible : isOpen,
+        open: visible ?? isOpen,
         onOpenChange: visible !== undefined ? undefined : setIsOpen,
         // Only specify placement if it's not 'auto' - let autoPlacement middleware handle 'auto'
         placement: placement === 'auto' ? undefined : (placement as Placement),
@@ -211,7 +211,7 @@ function Tooltip({
 
     const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, click, dismiss, role]);
 
-    const isVisible = visible !== undefined ? visible : isOpen;
+    const isVisible = visible ?? isOpen;
 
     // Always call useMergeRefs but conditionally use the result
     const childRef =

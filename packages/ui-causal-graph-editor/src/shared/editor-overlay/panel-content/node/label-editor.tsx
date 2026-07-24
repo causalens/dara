@@ -85,7 +85,7 @@ function LabelEditor(props: LabelEditorProps): JSX.Element {
 
     const updateLabel = useCallback(
         (id: string, val: string) => {
-            props.onLabelChange(id, val);
+            void props.onLabelChange(id, val);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [props.onLabelChange]

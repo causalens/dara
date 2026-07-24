@@ -384,7 +384,7 @@ function startStreamConnection(
     // Normalize values for the request
     const normalizedValues = normalizeRequest(params.resolvedValues, params.variables as any[]);
 
-    fetchEventSource(`/api/core/stream/${params.uid}`, {
+    void fetchEventSource(`/api/core/stream/${params.uid}`, {
         method: HTTP_METHOD.POST,
         body: JSON.stringify({ values: normalizedValues }),
         signal: controller.signal,

@@ -156,7 +156,7 @@ function TextArea({
     const onChangeText = (e: React.SyntheticEvent<HTMLTextAreaElement>): void => {
         const target = e.target as HTMLInputElement;
         if (onChange) {
-            onChange(target.value, e);
+            void onChange(target.value, e);
         }
     };
 
@@ -168,7 +168,7 @@ function TextArea({
             return;
         }
         if (e.key === Key.ENTER && onComplete) {
-            onComplete();
+            void onComplete();
         }
     };
 

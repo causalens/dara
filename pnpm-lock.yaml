@@ -150,12 +150,12 @@ importers:
         specifier: ^3.17.5
         version: 3.17.5
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -192,6 +192,12 @@ importers:
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -310,12 +316,12 @@ importers:
         specifier: ^3.25
         version: 3.25.76
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -385,6 +391,12 @@ importers:
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       postcss:
         specifier: ^8.5.10
         version: 8.5.12
@@ -498,12 +510,12 @@ importers:
         specifier: ^5.3.10
         version: 5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -513,12 +525,15 @@ importers:
       '@typescript/native':
         specifier: npm:typescript@^7.0.0
         version: typescript@7.0.2
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -646,12 +661,12 @@ importers:
         specifier: ^9.1.0
         version: 9.1.9(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)(keycharm@0.4.0)(uuid@11.1.0)(vis-data@7.1.9(uuid@11.1.0)(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)))(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1))
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -700,12 +715,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.0.4
         version: 6.0.4(vite@8.1.5(@types/node@24.13.3)(esbuild@0.27.7)(yaml@2.8.3))
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
-      eslint-plugin-storybook:
-        specifier: 10.5.3
-        version: 10.5.3(@typescript/typescript6@6.0.2)(eslint@8.57.1)(storybook@10.5.3(@types/react@18.2.60)(prettier@3.2.5)(react@18.3.1))
       graphology-generators:
         specifier: ^0.11.2
         version: 0.11.2(graphology-types@0.24.7)
@@ -715,6 +724,12 @@ importers:
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       pixi-filters:
         specifier: ~6.0.4
         version: 6.0.5(pixi.js@8.5.2)
@@ -839,12 +854,12 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -902,18 +917,18 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.0.4
         version: 6.0.4(vite@8.1.5(@types/node@24.13.3)(esbuild@0.27.7)(yaml@2.8.3))
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
-      eslint-plugin-storybook:
-        specifier: 10.5.3
-        version: 10.5.3(@typescript/typescript6@6.0.2)(eslint@8.57.1)(storybook@10.5.3(@types/react@18.2.60)(prettier@3.2.5)(react@18.3.1))
       jsdom:
         specifier: ^27.4.0
         version: 27.4.0
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -948,12 +963,12 @@ importers:
         specifier: ^18.0
         version: 18.3.1
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -969,12 +984,15 @@ importers:
       '@typescript/native':
         specifier: npm:typescript@^7.0.0
         version: typescript@7.0.2
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1018,12 +1036,12 @@ importers:
         specifier: ^18.0
         version: 18.3.1
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1036,12 +1054,15 @@ importers:
       '@typescript/native':
         specifier: npm:typescript@^7.0.0
         version: typescript@7.0.2
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1079,12 +1100,12 @@ importers:
         specifier: ^7.0.0
         version: 7.8.1
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1106,12 +1127,15 @@ importers:
       '@typescript/native':
         specifier: npm:typescript@^7.0.0
         version: typescript@7.0.2
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1152,12 +1176,12 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0(patch_hash=6855931e9590b29110de8402432514ff7aa294934a067557e96dc7eb46f365e3)
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1170,12 +1194,15 @@ importers:
       '@typescript/native':
         specifier: npm:typescript@^7.0.0
         version: typescript@7.0.2
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1216,12 +1243,12 @@ importers:
         specifier: ^18.0
         version: 18.3.1(react@18.3.1)
     devDependencies:
-      '@darajs/eslint-config':
-        specifier: 1.29.4
-        version: link:../eslint-config
       '@darajs/oxfmt-config':
         specifier: 1.29.4
         version: link:../oxfmt-config
+      '@darajs/oxlint-config':
+        specifier: 1.29.4
+        version: link:../oxlint-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1243,15 +1270,18 @@ importers:
       '@typescript/native':
         specifier: npm:typescript@^7.0.0
         version: typescript@7.0.2
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
       jsdom:
         specifier: ^27.4.0
         version: 27.4.0
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -5805,12 +5835,6 @@ packages:
     engines: {node: '>=4'}
     peerDependencies:
       eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7
-
-  eslint-plugin-storybook@10.5.3:
-    resolution: {integrity: sha512-dreVGgQvTTOvPTrnn71uogs3E7skbODW3Ya1cHxupznzuIofLCzy+7zWJ4ObsEZ1MsOcofQlSaQuV9oJBszLoA==}
-    peerDependencies:
-      eslint: '>=8'
-      storybook: ^10.5.3
 
   eslint-scope@7.2.2:
     resolution: {integrity: sha512-dOt21O7lTMhDM+X9mB4GX+DZrZtCUJPL/wlcTqxyrx5IvO0IYtILdtrQGQp+8n5S0gwSVmOf9NQrjMOgfQZlIg==}
@@ -14869,16 +14893,6 @@ snapshots:
       semver: 6.3.1
       string.prototype.matchall: 4.0.11
       string.prototype.repeat: 1.0.0
-
-  eslint-plugin-storybook@10.5.3(@typescript/typescript6@6.0.2)(eslint@8.57.1)(storybook@10.5.3(@types/react@18.2.60)(prettier@3.2.5)(react@18.3.1)):
-    dependencies:
-      '@typescript-eslint/types': 8.65.0
-      '@typescript-eslint/utils': 8.65.0(@typescript/typescript6@6.0.2)(eslint@8.57.1)
-      eslint: 8.57.1
-      storybook: 10.5.3(@types/react@18.2.60)(prettier@3.2.5)(react@18.3.1)
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
 
   eslint-scope@7.2.2:
     dependencies:

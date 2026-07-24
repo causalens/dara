@@ -75,7 +75,7 @@ function Button(
 
     // Extract icon and grab color from first child if it has it
     const Icon = icon ? getIcon(icon) : null;
-    const iconColor = Array.isArray(children) ? children?.[0]?.props?.color || 'inherit' : 'inherit';
+    const iconColor = Array.isArray(children) ? (children?.[0]?.props?.color ?? 'inherit') : 'inherit';
 
     return (
         <StyledButton
@@ -89,7 +89,7 @@ function Button(
                 if (props.stop_click_propagation !== false) {
                     e.stopPropagation();
                 }
-                onClick(null);
+                void onClick(null);
             }}
             outline={outline}
             style={{

@@ -158,10 +158,10 @@ export const GraphReducer: Reducer<GraphState, GraphAction> = (state, action) =>
             const re = RegExp('^L\\d+$');
             const latentNodes = draft.graph
                 .filterNodes((key) => re.test(key))
-                .sort((a, b) => parseInt(a) - parseInt(b));
+                .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
             const lastNodeNum = latentNodes[latentNodes.length - 1]
-                ? parseInt(latentNodes[latentNodes.length - 1].slice(1))
+                ? parseInt(latentNodes[latentNodes.length - 1].slice(1), 10)
                 : -1;
             const nextNode = `L${lastNodeNum + 1}`;
 

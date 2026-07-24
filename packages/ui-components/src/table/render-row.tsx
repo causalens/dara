@@ -202,7 +202,7 @@ const RenderRow = React.memo(
         prepareRow(row);
         const onClick = (): void => {
             if (onClickRow) {
-                throttledClickRow(row.original);
+                void throttledClickRow(row.original);
             }
         };
         const { style: rowStyle, ...restRow } = row.getRowProps({ style: renderRowStyle });
@@ -218,8 +218,8 @@ const RenderRow = React.memo(
             row.original && cols.length > 0 ? cols.map((col) => String(row.original[col] ?? '')).join('_') : undefined;
         return (
             <Row
-                {...restRow}
                 key={`row-${index}`}
+                {...restRow}
                 data-row-id={rowDataId}
                 onClick={onClick}
                 onClickRow={onClickRow}
@@ -235,9 +235,9 @@ const RenderRow = React.memo(
                     const cellProps = cell.getCellProps();
                     return (
                         <Cell
+                            key={`cell-${index}-${colIdx}`}
                             {...cellProps}
                             rowHeight={rowHeight}
-                            key={`cell-${index}-${colIdx}`}
                             style={{
                                 ...cellProps.style,
                                 backgroundColor,

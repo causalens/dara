@@ -155,9 +155,7 @@ function Select(props: SelectProps): JSX.Element {
     //  if someone were to update the component rule of Hooks could be broken if items switched from having sections to not, so we use a ref for this to be only run once
     const itemHasListSection = useRef<boolean | null>(null);
 
-    if (itemHasListSection.current === null) {
-        itemHasListSection.current = hasListSection(formattedItems);
-    }
+    itemHasListSection.current ??= hasListSection(formattedItems);
 
     // For multiselect we want to keep the initial value type consistent with later selections
     useEffect(() => {
@@ -203,7 +201,7 @@ function Select(props: SelectProps): JSX.Element {
                     !isEqual(currentSelection, Array.isArray(valueRef.current) ? valueRef.current : [valueRef.current])
                 ) {
                     setValue(currentSelection);
-                    onChangeAction(currentSelection);
+                    void onChangeAction(currentSelection);
                     formCtx.updateForm(currentSelection);
                 }
             },
@@ -241,7 +239,7 @@ function Select(props: SelectProps): JSX.Element {
         (item: Item) => {
             if (item && item.value !== valueRef.current) {
                 setValue(item.value);
-                onChangeAction(item.value);
+                void onChangeAction(item.value);
                 formCtx.updateForm(item.value);
             }
         },

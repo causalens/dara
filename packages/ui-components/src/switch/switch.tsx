@@ -105,7 +105,7 @@ function Switch(
     }: SwitchProps,
     ref: React.Ref<HTMLDivElement>
 ): JSX.Element {
-    const [enabled, setEnabled] = useState(value || initialValue);
+    const [enabled, setEnabled] = useState(value ?? initialValue);
 
     const labelIconToShow = useMemo(() => {
         if (lightDark) {
@@ -124,7 +124,7 @@ function Switch(
         if (value === undefined) {
             setEnabled(!enabled);
         }
-        onChange?.(!enabled);
+        void onChange?.(!enabled);
     };
 
     return (

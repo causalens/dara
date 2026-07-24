@@ -49,9 +49,9 @@ function EditSelectCell<T extends Item>(items: Array<T>): (props: EditCellProps<
         if (isEqual(props.currentEditCell, [props.rowIdx, props.column.id])) {
             const onSelect = (item: Item): void => {
                 if (props.onChange && item.value !== props.value) {
-                    props.onChange(item.value, props.rowIdx, props.column.id);
+                    void props.onChange(item.value, props.rowIdx, props.column.id);
                 }
-                props.onStopEdit();
+                void props.onStopEdit();
             };
 
             return (

@@ -113,7 +113,7 @@ export default function useComponentStyles(
             width: props.width,
             ...flexProps,
             ...rawStyles,
-            ...(props.style ?? {}),
+            ...props.style,
         };
 
         // Filter out null/undefined values so they don't end up accidentally overriding other style properties

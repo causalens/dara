@@ -50,7 +50,7 @@ const Bar = styled.div<BarProps>`
 
     height: 100%;
 
-    background-color: ${(props) => (props.color ? props.color : props.theme.colors.primary)};
+    background-color: ${(props) => props.color ?? props.theme.colors.primary};
     border-radius: ${(props) => (props.small ? '0.25rem' : '0.5rem')};
 `;
 
@@ -120,7 +120,10 @@ function ProgressBar(props: ProgressBarProps): JSX.Element {
     const progresses =
         typeof props.progress === 'number'
             ? [{ index: 0, value: props.progress }]
-            : sortBy([...props.progress.map((x, i) => ({ index: i, value: x }))], 'value').reverse();
+            : sortBy(
+                  props.progress.map((x, i) => ({ index: i, value: x })),
+                  'value'
+              ).reverse();
     const colors = arrayify(props.color, defaultColors.slice(0, progresses.length));
     const labels = arrayify(
         props.label,

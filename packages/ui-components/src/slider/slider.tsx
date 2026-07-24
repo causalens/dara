@@ -288,7 +288,7 @@ function useValueCorrection<T>(
         // Only fire onChange if values actually changed
         if (!isEqual(values, correctedValues)) {
             const formattedValues = correctedValues.map(getValueLabel!);
-            onChange(formattedValues);
+            void onChange(formattedValues);
         }
 
         previousConstraints.current = { domain, step };
@@ -361,7 +361,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
     // Handle controlled/uncontrolled mode
     const defaultValue = useMemo(() => {
-        const initial = initialValue?.map((v) => mapToClosestStep(v, adjustedStep, domain)) || [domain[0]];
+        const initial = initialValue?.map((v) => mapToClosestStep(v, adjustedStep, domain)) ?? [domain[0]];
         return initial.length === 1 ? initial[0] : initial;
     }, [initialValue, adjustedStep, domain]);
 
@@ -385,7 +385,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
             const valueArray = Array.isArray(value) ? value : [value];
             const formattedValues = valueArray.map(getValueLabel!);
-            onChange(formattedValues);
+            void onChange(formattedValues);
         },
         [onChange, getValueLabel]
     );
@@ -604,7 +604,7 @@ export interface CategoricalSliderProps extends Omit<
  * @param {BaseSliderProps<string>} props - the component props
  */
 export function CategoricalSlider(props: CategoricalSliderProps): JSX.Element {
-    const initialValue = props.initialValue?.map((val) => props.domain.indexOf(val)) || [0];
+    const initialValue = props.initialValue?.map((val) => props.domain.indexOf(val)) ?? [0];
 
     return (
         <BaseSlider<string>

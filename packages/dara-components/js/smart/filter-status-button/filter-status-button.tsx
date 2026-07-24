@@ -57,7 +57,7 @@ function FilterStatusButton(props: FilterStatusButtonProps): JSX.Element {
     const onClick = useAction(props.on_click);
 
     function clickHandler(): void {
-        onClick(null);
+        void onClick(null);
     }
 
     return ReactDOM.createPortal(

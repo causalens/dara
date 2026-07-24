@@ -284,11 +284,11 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         'cancelling' the task actually decrements the number of subs; the task is only cancelled once there are 0 subscribers left
     */
     useEffect(() => {
+        const subscribedVariables = variables.current;
         return () => {
             // If there are running tasks and this component is subscribed to variables
-            if (variables.current.size > 0 && hasRunningTasks()) {
-                // eslint-disable-next-line react-hooks/exhaustive-deps
-                cleanupRunningTasks(...variables.current.values());
+            if (subscribedVariables.size > 0 && hasRunningTasks()) {
+                cleanupRunningTasks(...subscribedVariables.values());
             }
         };
     }, [cleanupRunningTasks, hasRunningTasks]);

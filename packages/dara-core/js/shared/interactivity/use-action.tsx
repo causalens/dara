@@ -548,7 +548,7 @@ export function useExecuteAction(): (action: ActionImpl | ActionImpl[], input?: 
                 }
             }
 
-            return promiseChain || undefined;
+            return promiseChain ?? undefined;
         },
         []
     );

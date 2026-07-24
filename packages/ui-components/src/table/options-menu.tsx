@@ -100,7 +100,7 @@ const OptionsMenu: FunctionComponent<OptionsMenuProps> = ({
     }, []);
 
     const onOptionSelect = useCallback((option: Item): void => {
-        option.onClick!();
+        void option.onClick!();
         setIsOpen(false);
     }, []);
 

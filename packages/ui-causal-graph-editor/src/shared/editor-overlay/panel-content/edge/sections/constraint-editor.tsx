@@ -101,7 +101,7 @@ export interface ConstraintEditorProps {
  */
 function ConstraintEditor(props: ConstraintEditorProps): JSX.Element {
     function updateConstraintType(constraintType: EdgeConstraintItem['type']): void {
-        props.onUpdate({
+        void props.onUpdate({
             id: props.edgeConstraint!.id,
             source: props.source,
             target: props.target,

@@ -246,7 +246,7 @@ export function TextFilter(props: FilterProps<any>): JSX.Element {
             <StyledSearchBar
                 onChange={(val) => props.column.setFilter(val || undefined)}
                 placeholder="Rows containing value..."
-                value={props.column.filterValue || ''}
+                value={props.column.filterValue ?? ''}
             />
         </FilterWrapper>
     );

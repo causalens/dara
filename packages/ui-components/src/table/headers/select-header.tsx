@@ -38,9 +38,9 @@ function SelectHeader(props: selectHeaderProps): JSX.Element {
 
     const onChange = (state: CheckboxState): void => {
         if (state === CheckboxState.UNCHECKED) {
-            props.onAction(Action.UNSELECT_ALL);
+            void props.onAction(Action.UNSELECT_ALL);
         } else if (state === CheckboxState.CHECKED) {
-            props.onAction(
+            void props.onAction(
                 Action.SELECT_ALL,
                 props.rows.map((r: any) => r.original)
             );

@@ -29,7 +29,7 @@ function headerRenderer(item: AccordionItemType): JSX.Element {
         <StyledHeader>
             {typeof item.label === 'string' ? <span>{item.label}</span> : <DynamicComponent component={item.label} />}
             {item.badge && (
-                <Badge color={item.badge.color || theme.colors.primary} height={24} width="10rem">
+                <Badge color={item.badge.color ?? theme.colors.primary} height={24} width="10rem">
                     {item.badge.label}
                 </Badge>
             )}
@@ -61,7 +61,7 @@ function Accordion(props: AccordionProps): JSX.Element {
 
     function handleChange(val: number): void {
         setValue(val);
-        onCarouselAction(val);
+        void onCarouselAction(val);
     }
 
     return (

@@ -90,7 +90,7 @@ function getInitialCheckedState(items: Array<Item>, initialValues?: Array<any>):
  * @param {CheckboxGroupProps} props - the component props
  */
 function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
-    const [values, setValues] = useState(() => getInitialValue(props.values || props.initialValue));
+    const [values, setValues] = useState(() => getInitialValue(props.values ?? props.initialValue));
     const [checkedState, setCheckedState] = useState(() => getInitialCheckedState(props.items, values));
 
     const isSelectPermitted = useMemo(() => {
@@ -138,7 +138,7 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
 
             setValues(newValues);
             if (!props.selectMin || newValues.length >= props.selectMin) {
-                props.onChange?.(
+                void props.onChange?.(
                     props.items.filter((item) => newValues.includes(item.value)),
                     event
                 );
@@ -158,7 +158,7 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
 
     return (
         <CheckboxGroupWrapper className={props.className} style={props.style} id={props.id}>
-            {(props.selectMax || props.selectMin) && <CheckboxInfo>{infoMessage}</CheckboxInfo>}
+            {(Boolean(props.selectMax) || Boolean(props.selectMin)) && <CheckboxInfo>{infoMessage}</CheckboxInfo>}
             {props.items.map((item, index) => {
                 return (
                     <CheckboxWrapper aria-disabled={props.disabled} key={`item-${index}`}>

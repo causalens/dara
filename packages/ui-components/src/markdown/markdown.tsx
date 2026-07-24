@@ -352,7 +352,7 @@ export function CodeDisplay(
 ): React.ReactElement {
     const theme = useTheme();
     const { children, ...rest } = props;
-    const match = /language-(\w+)/.exec(props.className || '');
+    const match = /language-(\w+)/.exec(props.className ?? '');
 
     const parsed = React.useMemo(() => {
         return childrenToString(children).trim().replace(/\n\n/g, '\n');

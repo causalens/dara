@@ -74,7 +74,7 @@ function Datepicker(props: DatepickerProps): JSX.Element {
             }
 
             setValue(newDate);
-            onChangeAction(newDate);
+            void onChangeAction(newDate);
             formCtx.updateForm(newDate);
         }
     };

@@ -285,7 +285,7 @@ function Button(
             $hasAnchor={!!href}
             autoFocus={autoFocus}
             className={className}
-            disabled={disabled || loading}
+            disabled={Boolean(disabled) || Boolean(loading)}
             id={id}
             onClick={onClick}
             outline={outline}

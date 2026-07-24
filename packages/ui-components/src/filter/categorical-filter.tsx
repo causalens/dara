@@ -194,9 +194,9 @@ function CategoricalFilter(props: CategoricalFilterProps): JSX.Element {
                 />
             </OptionsWrapper>
             <ApplyButton
-                disabled={props.disabled || previousFilter === filterValue}
+                disabled={Boolean(props.disabled) || previousFilter === filterValue}
                 onClick={(e) => {
-                    props.onChange?.(filterValue, e);
+                    void props.onChange?.(filterValue, e);
                     // need to set filter for Table component
                     props?.column?.setFilter(filterValue || undefined);
                     setPreviousFilter(filterValue);

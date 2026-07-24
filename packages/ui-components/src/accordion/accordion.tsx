@@ -73,7 +73,7 @@ function getInitialOpen(
             return initialOpen.includes(index);
         });
     }
-    return new Array(itemsArray.length).fill(false);
+    return Array.from({ length: itemsArray.length }, () => false);
 }
 
 /**
@@ -117,7 +117,7 @@ function Accordion({
                 }
                 return acc;
             }, [] as number[]);
-            onChange?.([...chosenItems]);
+            void onChange?.([...chosenItems]);
             // uncontrolled component
             if (value === undefined) {
                 setOpenItems([...newOpenItems]);

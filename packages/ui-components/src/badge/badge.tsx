@@ -41,7 +41,7 @@ const Badge = styled.span.withConfig({ shouldForwardProp })<BadgeProps>`
     align-items: center;
     justify-content: center;
 
-    width: ${(props) => props.width || 'auto'};
+    width: ${(props) => props.width ?? 'auto'};
     height: ${(props) => (props.height ? `${props.height}px` : '2rem')};
     padding: 0 0.75rem;
 

@@ -13,8 +13,13 @@ export function shouldWarnAboutInsecureAuthContext(securityContext: SecurityCont
 }
 
 export function getAuthOriginRecommendation(location: LocationLike): string {
-    const host = location.host || location.hostname;
-    const pathname = location.pathname || '';
+    let host = location.host;
+    // Empty hosts need the same fallback as missing hosts.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    if (!host) {
+        host = location.hostname;
+    }
+    const pathname = location.pathname ?? '';
 
     if (location.hostname.toLowerCase() === '0.0.0.0') {
         const localhostHost = host.replace(/^0\.0\.0\.0/i, 'localhost');

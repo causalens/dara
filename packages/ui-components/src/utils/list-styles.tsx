@@ -28,7 +28,7 @@ const List = styled.div<ListProps>`
     display: ${(props) => (props.isOpen ? 'flex' : 'none')};
     flex-direction: column;
 
-    max-height: calc(${(props) => (props.maxItems || 5) * 2}em + 2px);
+    max-height: calc(${(props) => (props.maxItems ?? 5) * 2}em + 2px);
 
     border: 1px solid ${(props) => props.theme.colors.grey3};
 `;

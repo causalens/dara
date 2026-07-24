@@ -69,7 +69,7 @@ const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): an
     const matrix: any[][] = [];
 
     processedContent.forEach((c) => {
-        const row: any[] = new Array(headingsLength);
+        const row = Array.from<any>({ length: headingsLength });
         Object.entries(c).forEach(([k, v]) => {
             row[indexes[k]!] = v;
         });
@@ -194,7 +194,7 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         value = processDataForDownload(value);
     }
 
-    const fileName = actionImpl.file_name || 'Data';
+    const fileName = actionImpl.file_name ?? 'Data';
     const fileNameWithExt = `${fileName}.${actionImpl.type}`;
     if (actionImpl.type === 'json') {
         const blob = createJsonBlob(value);

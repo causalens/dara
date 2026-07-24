@@ -172,7 +172,7 @@ function Select(props: SelectProps): JSX.Element {
         items: props.items,
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
-            props.onSelect?.(selected as Item);
+            void props.onSelect?.(selected as Item);
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
         // Only set the selectedItem key if it has been explicitly set in props
@@ -181,7 +181,7 @@ function Select(props: SelectProps): JSX.Element {
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,
-        placement: props.placement || 'bottom-start',
+        placement: props.placement ?? 'bottom-start',
         middleware: [flip(), shift(), ...(applySameWidthModifier ? [matchWidthToReference(+2)] : [])],
         whileElementsMounted: isOpen ? autoUpdate : undefined,
     });

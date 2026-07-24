@@ -326,7 +326,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.layoutWorker.off('computationEnd', this.onLayoutComputationDoneBound);
         this.layoutWorker.destroy();
 
-        this.onCleanup?.();
+        void this.onCleanup?.();
         this.textureCache?.destroy();
         this.resizeObserver?.disconnect();
         this.app?.destroy(true, true);
@@ -886,7 +886,7 @@ export class Engine extends EventEmitter<EngineEvents> {
             // re-running a potentially expensive layout computation on every resize event
             // this should happen only when the graph is not currently focused
             if (!this.isFocused) {
-                this.debouncedUpdateLayout();
+                void this.debouncedUpdateLayout();
             }
         });
 
@@ -919,7 +919,7 @@ export class Engine extends EventEmitter<EngineEvents> {
                     .build();
                 this.layout.worker = this.layoutWorker;
             }
-            this.updateLayout();
+            void this.updateLayout();
         }
 
         this.createGraph();
@@ -1315,7 +1315,7 @@ export class Engine extends EventEmitter<EngineEvents> {
             this.isMovingNode = true;
             this.isCreatingEdge = false;
 
-            this.onStartDrag?.();
+            void this.onStartDrag?.();
         }
         if (this.dragMode === 'create_edge') {
             this.isCreatingEdge = true;
@@ -1446,7 +1446,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.graph.setNodeAttribute(nodeKey, 'x', point.x);
         this.graph.setNodeAttribute(nodeKey, 'y', point.y);
 
-        this.onMove?.(nodeKey, point.x, point.y);
+        void this.onMove?.(nodeKey, point.x, point.y);
     }
 
     /**
@@ -1527,7 +1527,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.mousedownNodeKey = null;
 
         if (this.isMovingNode) {
-            this.onEndDrag?.();
+            void this.onEndDrag?.();
         }
         if (this.isCreatingEdge) {
             // remove the temp edge
@@ -1562,12 +1562,12 @@ export class Engine extends EventEmitter<EngineEvents> {
         // If the node is added without a position set, we need to recompute layout or otherwise
         // it won't be drawn on screen
         if (!attributes.x && !attributes.y) {
-            this.debouncedUpdateLayout();
+            void this.debouncedUpdateLayout();
         }
 
         this.markStylesDirty();
         this.requestRender();
-        this.onAddNode?.(this.graph.export());
+        void this.onAddNode?.(this.graph.export());
     }
 
     private onGraphEdgeAdded({
@@ -1588,7 +1588,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.updateStrengthRange();
         this.markStylesDirty();
         this.requestRender();
-        this.onAddEdge?.();
+        void this.onAddEdge?.();
     }
 
     private onGraphEdgeDropped({ key }: { key: string }): void {
@@ -1801,7 +1801,7 @@ export class Engine extends EventEmitter<EngineEvents> {
      */
     private async updateLayout(retry: boolean = false): Promise<void> {
         // Cleanup previous layout
-        this.onCleanup?.();
+        void this.onCleanup?.();
 
         try {
             // Store the old size to avoid recalculating layout if the size hasn't changed
@@ -1858,7 +1858,7 @@ export class Engine extends EventEmitter<EngineEvents> {
                 (this.layout as GraphLayoutWithTiers).orientation = orientation;
             }
 
-            this.updateLayout(true);
+            void this.updateLayout(true);
         } finally {
             // ensure the callback is invoked - the layout might be custom/not go through the worker
             // which fires events so just in case fire one here

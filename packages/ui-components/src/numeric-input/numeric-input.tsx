@@ -101,7 +101,7 @@ const numericFilter =
     (integerOnly?: boolean) =>
     (e: React.KeyboardEvent<HTMLInputElement>): boolean => {
         // Check for numbers
-        if (parseInt(e.key) || parseInt(e.key) === 0) {
+        if (parseInt(e.key, 10) || parseInt(e.key, 10) === 0) {
             return true;
         }
 
@@ -201,7 +201,7 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
 
             // controlled
             if (value !== undefined) {
-                onChange?.(nextValueNumber, {
+                void onChange?.(nextValueNumber, {
                     target: {
                         value: nextValueStr,
                     },
@@ -232,11 +232,11 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
 
         const handleOnChange = useCallback(
             (v: string, e?: React.SyntheticEvent<HTMLInputElement>) => {
-                const parsed = props.integerOnly ? parseInt(v) : parseFloat(v);
+                const parsed = props.integerOnly ? parseInt(v, 10) : parseFloat(v);
                 // uncontrolled component
                 if (value === undefined) {
                     setInput(v);
-                    onChange?.(parsed, e);
+                    void onChange?.(parsed, e);
                     return;
                 }
                 // In controlled mode, we need to take over the input updates whenever the value is not a valid number
@@ -261,7 +261,7 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
                 if (input.endsWith('.')) {
                     setInput(v);
                 }
-                onChange?.(parsed, e);
+                void onChange?.(parsed, e);
             },
             [props.integerOnly, value, onChange, input]
         );

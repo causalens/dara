@@ -209,7 +209,7 @@ function NumericFilter(props: NumericFilterProps): JSX.Element {
             <ApplyButton
                 disabled={disableApply}
                 onClick={(e) => {
-                    props.onChange?.(filteredValues, e);
+                    void props.onChange?.(filteredValues, e);
                     props?.column?.setFilter(filteredValues || undefined);
                     setPreviousFilter(filteredValues);
                 }}

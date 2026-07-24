@@ -33,7 +33,8 @@ function ResolverEditor(props: EdgeEditorProps): JSX.Element {
         <ColumnWrapper $fillHeight $gap={2}>
             {editorMode === EditorMode.RESOLVER &&
                 !(
-                    props.edge['meta.rendering_properties.accepted'] || props.edge['meta.rendering_properties.forced']
+                    Boolean(props.edge['meta.rendering_properties.accepted']) ||
+                    Boolean(props.edge['meta.rendering_properties.forced'])
                 ) && (
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <Button

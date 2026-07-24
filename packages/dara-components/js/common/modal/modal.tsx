@@ -42,7 +42,7 @@ function Modal(props: ModalProps): JSX.Element {
 
     function onAttemptClose(): void {
         if (props.on_attempt_close) {
-            onAttemptCloseAction();
+            void onAttemptCloseAction();
         } else {
             setShow(false);
         }
