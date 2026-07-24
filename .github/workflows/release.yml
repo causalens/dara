@@ -288,6 +288,9 @@ jobs:
         run: make publish-python
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      - name: Restore READMEs after Python publishing
+        if: steps.release_status.outputs.exists != 'true'
+        run: git restore -- ':(glob)packages/*/README.md'
       - name: Publish npm packages
         if: steps.release_status.outputs.exists != 'true'
         run: make publish-npm
