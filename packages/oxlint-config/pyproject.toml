@@ -1,0 +1,5 @@
+[tool.poetry]
+source = []
+package-mode = false
+name = "oxlint-config"
+version = "1.29.4"
