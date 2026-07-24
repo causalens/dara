@@ -13,7 +13,8 @@
     "prettier": "3.2.5"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "timeout": 60000
   },
   "repository": {
     "type": "git",

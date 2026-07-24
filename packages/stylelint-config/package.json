@@ -17,7 +17,8 @@
     "stylelint-order": "^6.0.3"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "timeout": 60000
   },
   "repository": {
     "type": "git",

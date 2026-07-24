@@ -27,7 +27,8 @@
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "timeout": 60000
   },
   "repository": {
     "type": "git",
