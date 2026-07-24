@@ -85,7 +85,7 @@ publish-python:
 # present in the registry.
 publish-npm:
 	rm -f .npmrc
-	pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --concurrency 1 --throttle-size 1 --throttle-delay 5
+	NPM_CONFIG_TIMEOUT=60000 pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --concurrency 1 --throttle-size 1 --throttle-delay 5
 
 publish: publish-python publish-npm
 
