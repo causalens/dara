@@ -165,9 +165,9 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
                         <Checkbox
                             id={index}
                             disabled={
-                                isSelectPermitted ?
-                                    props.disabled
-                                :   checkedState.find((option) => option.value === item.value)?.state === false
+                                isSelectPermitted
+                                    ? props.disabled
+                                    : checkedState.find((option) => option.value === item.value)?.state === false
                             }
                             isListStyle={props.isListStyle}
                             label={item.label ? item.label : item.value}

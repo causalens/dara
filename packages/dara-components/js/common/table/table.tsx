@@ -426,15 +426,14 @@ function resolveColumns(
     includeIndex?: boolean
 ): ColumnProps[] {
     const columns = Object.keys(dataRow);
-    const fieldTypes =
-        schema ?
-            Object.fromEntries(
-                schema.fields.flatMap((field) => {
-                    const key = Array.isArray(field.name) ? field.name.join('_') : field.name;
-                    return [[key, { type: field.type }]];
-                })
-            )
-        :   null;
+    const fieldTypes = schema
+        ? Object.fromEntries(
+              schema.fields.flatMap((field) => {
+                  const key = Array.isArray(field.name) ? field.name.join('_') : field.name;
+                  return [[key, { type: field.type }]];
+              })
+          )
+        : null;
 
     const columnsWithoutGeneratedIndex = columns.filter((col) => col !== INDEX_COL);
     let processedColumns: ColumnProps[];
@@ -713,16 +712,16 @@ function Table(props: TableProps): JSX.Element {
 
         // Construct filter query
         const newSearchQuery: ClauseQuery | null =
-            searchTermClean.length > 0 ?
-                ({
-                    clauses: searchColumns.map((col) => ({
-                        column: col,
-                        operator: 'CONTAINS',
-                        value: searchTermClean,
-                    })),
-                    combinator: 'OR',
-                } satisfies ClauseQuery)
-            :   null;
+            searchTermClean.length > 0
+                ? ({
+                      clauses: searchColumns.map((col) => ({
+                          column: col,
+                          operator: 'CONTAINS',
+                          value: searchTermClean,
+                      })),
+                      combinator: 'OR',
+                  } satisfies ClauseQuery)
+                : null;
 
         debouncedSetSearchQuery(newSearchQuery);
     };

@@ -359,12 +359,10 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         edgeNumberSymbol.position.y = edgeTopSymbol.position.y - 30;
         // Depending on the edge rotation, we need to rotate the number symbol so that they appear upright to the user
         edgeNumberSymbol.rotation =
-            (
-                (edgeGfx.rotation <= Math.PI / 2 && edgeGfx.rotation > 0) ||
-                (edgeGfx.rotation >= (-3 * Math.PI) / 2 && edgeGfx.rotation < -Math.PI)
-            ) ?
-                -Math.PI / 2
-            :   Math.PI / 2;
+            (edgeGfx.rotation <= Math.PI / 2 && edgeGfx.rotation > 0) ||
+            (edgeGfx.rotation >= (-3 * Math.PI) / 2 && edgeGfx.rotation < -Math.PI)
+                ? -Math.PI / 2
+                : Math.PI / 2;
         [edgeStrengthSymbol.tint] = colorToPixi(edgeStyle.color!);
         edgeNumberSymbol.alpha = 1;
 
@@ -401,10 +399,9 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
             [shadowFilter.color, shadowFilter.alpha] = colorToPixi('rgba(0, 0, 0, 0.5)');
             edgeGfx.filters = [shadowFilter];
         }
-        const dropShadow =
-            Array.isArray(edgeGfx.filters) ?
-                (edgeGfx.filters[0] as PIXI.filters.DropShadowFilter)
-            :   (edgeGfx.filters as PIXI.filters.DropShadowFilter);
+        const dropShadow = Array.isArray(edgeGfx.filters)
+            ? (edgeGfx.filters[0] as PIXI.filters.DropShadowFilter)
+            : (edgeGfx.filters as PIXI.filters.DropShadowFilter);
 
         // Only show at high zoom and when hovered
         dropShadow.enabled = state.hover && zoomState.shadow;

@@ -91,8 +91,8 @@ function getButtonStyle(
 
     ${
         !selected &&
-        (theme.themeType === 'dark' ?
-            `
+        (theme.themeType === 'dark'
+            ? `
         :hover:not(:disabled) {
             background-color: ${transparentize(0.8, buttonColor)};
         }
@@ -102,7 +102,7 @@ function getButtonStyle(
             background-color: ${transparentize(0.6, buttonColor)};
         }
     `
-        :   `
+            : `
         :hover:not(:disabled) {
             background-color: ${transparentize(0.9, buttonColor)};
         }

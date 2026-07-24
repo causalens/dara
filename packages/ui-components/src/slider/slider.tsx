@@ -586,8 +586,10 @@ export function Slider(props: BaseSliderProps<number>): JSX.Element {
     return <BaseSlider<number> {...props} getValueLabel={(val: number) => round(val, 4)} />;
 }
 
-export interface CategoricalSliderProps
-    extends Omit<BaseSliderProps<string>, 'domain' | 'initialValue' | 'disableInputAlternative'> {
+export interface CategoricalSliderProps extends Omit<
+    BaseSliderProps<string>,
+    'domain' | 'initialValue' | 'disableInputAlternative'
+> {
     /** The set of string values to have as options on the slider */
     domain: Array<string>;
     /** the initialValue of the slider */

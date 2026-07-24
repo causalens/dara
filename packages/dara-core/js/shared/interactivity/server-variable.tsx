@@ -51,13 +51,12 @@ function serverSyncEffect(variable: ServerVariable, requestExtras: RequestExtras
         // This however breaks our assumptions that the effect always runs.
         // Fortunately, the params have the original storeID as the parentStoreID_UNSTABLE, so we run the effect here
         // with storeID set to the original parentStoreID_UNSTABLE which makes the `storage.read()` run.
-        const updatedParams =
-            params.parentStoreID_UNSTABLE ?
-                {
-                    ...params,
-                    storeID: params.parentStoreID_UNSTABLE,
-                }
-            :   params;
+        const updatedParams = params.parentStoreID_UNSTABLE
+            ? {
+                  ...params,
+                  storeID: params.parentStoreID_UNSTABLE,
+              }
+            : params;
 
         // debugger;
         const cleanup = eff(updatedParams);

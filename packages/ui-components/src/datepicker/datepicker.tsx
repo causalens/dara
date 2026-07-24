@@ -22,6 +22,7 @@ import range from 'lodash/range';
 import { transparentize } from 'polished';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDatePicker, { type ReactDatePickerCustomHeaderProps } from 'react-datepicker';
+
 import 'react-datepicker/dist/react-datepicker.css';
 
 import styled from '@darajs/styled-components';

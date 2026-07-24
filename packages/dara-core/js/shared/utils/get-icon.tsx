@@ -1,5 +1,4 @@
 import '@fortawesome/fontawesome-free/css/all.min.css';
-
 import { injectCss } from './inject-css';
 
 const Icon = injectCss('i');

@@ -74,7 +74,8 @@ export const ErrorMessage = styled.span`
 `;
 
 export interface InputProps
-    extends InteractiveComponentProps<string>,
+    extends
+        InteractiveComponentProps<string>,
         // `value` and `onChange` have a different signature compared to the standard input element
         Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
     /** An optional keydown event filter, that can filter out invalid chars from an input. Should return true to let

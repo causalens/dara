@@ -37,7 +37,9 @@ function Tooltip(props: TooltipProps): JSX.Element {
             id={props.id_}
             $rawCss={css}
             content={
-                typeof content === 'string' ? content : (
+                typeof content === 'string' ? (
+                    content
+                ) : (
                     <DynamicComponent component={content} key={`tooltip-${(content as ComponentInstance).name}`} />
                 )
             }

@@ -142,7 +142,8 @@ const getInitialValue = (value?: number, initialValue?: number): string => {
 };
 
 export interface NumericInputProps
-    extends InteractiveComponentProps<number>,
+    extends
+        InteractiveComponentProps<number>,
         // `value`, `initialValue`, and `onChange` have a different signature compared to the standard input element
         Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'initialValue'> {
     /** An optional parameter to restrict the field to just integers */

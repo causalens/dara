@@ -89,30 +89,34 @@ const DropdownList = React.forwardRef<any, Props>(
             }}
             className={className}
         >
-            {!isEmpty(items) ?
+            {!isEmpty(items) ? (
                 items.map((item, index) => {
                     const isSelected = selectedItem?.label === item.label;
-                    return children ?
-                            children(item, index)
-                        :   <ListItem
-                                getItemProps={getItemProps}
-                                // Hack to force a scroll-in-to-view when the menu is opened
-                                // Only the selected item is rerendered
-                                // Downshift.js does not scroll if the item is memoized
-                                key={`item-${index}-${isOpen && isSelected}`}
-                                size={size}
-                                title={item.label}
-                                item={item}
-                                index={index}
-                                itemClass={itemClass}
-                                isHighlighted={isOpen && kbdHighlightIdx !== undefined && kbdHighlightIdx === index}
-                                isSelected={isSelected}
-                            >
-                                <InnerItem>{item.label}</InnerItem>
-                                {item.icon}
-                            </ListItem>;
+                    return children ? (
+                        children(item, index)
+                    ) : (
+                        <ListItem
+                            getItemProps={getItemProps}
+                            // Hack to force a scroll-in-to-view when the menu is opened
+                            // Only the selected item is rerendered
+                            // Downshift.js does not scroll if the item is memoized
+                            key={`item-${index}-${isOpen && isSelected}`}
+                            size={size}
+                            title={item.label}
+                            item={item}
+                            index={index}
+                            itemClass={itemClass}
+                            isHighlighted={isOpen && kbdHighlightIdx !== undefined && kbdHighlightIdx === index}
+                            isSelected={isSelected}
+                        >
+                            <InnerItem>{item.label}</InnerItem>
+                            {item.icon}
+                        </ListItem>
+                    );
                 })
-            :   <NoItemsLabel>No Items</NoItemsLabel>}
+            ) : (
+                <NoItemsLabel>No Items</NoItemsLabel>
+            )}
         </StyledDropdownList>
     )
 );

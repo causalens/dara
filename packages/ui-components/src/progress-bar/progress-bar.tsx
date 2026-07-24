@@ -118,9 +118,9 @@ export interface ProgressBarProps {
 function ProgressBar(props: ProgressBarProps): JSX.Element {
     // We need to sort the values to properly render them, so we need to preserve the original index
     const progresses =
-        typeof props.progress === 'number' ?
-            [{ index: 0, value: props.progress }]
-        :   sortBy([...props.progress.map((x, i) => ({ index: i, value: x }))], 'value').reverse();
+        typeof props.progress === 'number'
+            ? [{ index: 0, value: props.progress }]
+            : sortBy([...props.progress.map((x, i) => ({ index: i, value: x }))], 'value').reverse();
     const colors = arrayify(props.color, defaultColors.slice(0, progresses.length));
     const labels = arrayify(
         props.label,

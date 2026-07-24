@@ -208,12 +208,11 @@ async function invokeAction(
     // resolve kwargs to primitives, this registers variables if not already registered
     const resolvedKwargs = await Promise.all(
         Object.entries(annotatedAction.dynamic_kwargs).map(async ([k, value]) => {
-            const resolvedValue =
-                isVariable(value) ?
-                    await resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
-                        actionCtx.snapshot.getLoadable(v).toPromise()
-                    )
-                :   value;
+            const resolvedValue = isVariable(value)
+                ? await resolveVariable(value, actionCtx.wsClient, actionCtx.taskCtx, actionCtx.extras, (v) =>
+                      actionCtx.snapshot.getLoadable(v).toPromise()
+                  )
+                : value;
             return [k, resolvedValue];
         })
     ).then((entries) => Object.fromEntries(entries));
@@ -621,10 +620,9 @@ export default function useAction(
                     continue;
                 }
 
-                const loadingVariable =
-                    !isActionImpl(actionToExecute) ?
-                        getOrRegisterPlainVariable(actionToExecute.loading, wsClient, taskCtx, extras)
-                    :   null;
+                const loadingVariable = !isActionImpl(actionToExecute)
+                    ? getOrRegisterPlainVariable(actionToExecute.loading, wsClient, taskCtx, extras)
+                    : null;
 
                 if (loadingVariable) {
                     cbInterface.set(loadingVariable, true);

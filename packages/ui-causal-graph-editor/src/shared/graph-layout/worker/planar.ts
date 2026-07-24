@@ -142,9 +142,9 @@ export default function compute(
             .nodeSize(() => [layoutParams.nodeSize * 3, layoutParams.nodeSize * 6])
             .coord(coordQuad())
             .layering(
-                layoutParams.tiers ?
-                    layeringSimplex().group(groupAccessor).rank(rankAccessor)
-                :   getLayeringAlgorithm(layoutParams.layeringAlgorithm)
+                layoutParams.tiers
+                    ? layeringSimplex().group(groupAccessor).rank(rankAccessor)
+                    : getLayeringAlgorithm(layoutParams.layeringAlgorithm)
             )
             .decross(layoutParams.tiers ? customDecross : decrossTwoLayer());
 

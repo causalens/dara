@@ -43,9 +43,7 @@ function CollapseExpandGroupButton(props: CollapseExpandGroupButtonProps): JSX.E
                 style={{ padding: '0 0.75rem' }}
                 {...rest}
             >
-                {props.showExpandAll ?
-                    <DownLeftAndUpRightToCenter />
-                :   <UpRightAndDownLeftFromCenter />}
+                {props.showExpandAll ? <DownLeftAndUpRightToCenter /> : <UpRightAndDownLeftFromCenter />}
             </FloatingButton>
         </Tooltip>
     );

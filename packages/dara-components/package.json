@@ -9,8 +9,8 @@
     "build": "rimraf dist && vite build && tsc && cp js/index.css dist/ && cp -R dist/umd/. dara/components/_assets/auto_js/",
     "prepare-dev": "tsc && cp js/index.css dist/",
     "lint": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 && stylelint './js/**/*.tsx'",
-    "format": "prettier js --write --list-different",
-    "format:check": "prettier js --check",
+    "format": "oxfmt js --write",
+    "format:check": "oxfmt js --check",
     "lint:fix": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 --fix && stylelint --fix './js/**/*.tsx'",
     "package": "yarn build && yarn publish --no-git-tag-version",
     "test-watch": "vitest"
@@ -27,10 +27,9 @@
     "Krzysztof Bielikowicz <krzysztof@causalens.com>"
   ],
   "license": "Apache-2.0",
-  "prettier": "@darajs/prettier-config",
   "devDependencies": {
     "@darajs/eslint-config": "1.29.4",
-    "@darajs/prettier-config": "1.29.4",
+    "@darajs/oxfmt-config": "1.29.4",
     "@darajs/stylelint-config": "1.29.4",
     "@types/lodash": "^4.14.155",
     "@types/node": "^24.0.0",
@@ -42,7 +41,7 @@
     "@types/styled-components": "^5.1.0",
     "@typescript/native": "npm:typescript@^7.0.0",
     "@vitejs/plugin-react": "6.0.4",
-    "prettier": "^3.0.0",
+    "oxfmt": "^0.60.0",
     "rimraf": "^3.0.2",
     "stylelint": "^15.0.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",

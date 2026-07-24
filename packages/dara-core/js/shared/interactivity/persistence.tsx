@@ -620,14 +620,14 @@ function localStorageEffect<T>(
                 if (!readValue) {
                     const isDefaultDerived = isDerivedVariable(variable.default);
 
-                    return isDefaultDerived ?
-                            getOrRegisterDerivedVariable(
-                                variable.default as DerivedVariable,
-                                wsClient,
-                                taskContext,
-                                extrasSerializable.extras
-                            )
-                        :   variable.default;
+                    return isDefaultDerived
+                        ? getOrRegisterDerivedVariable(
+                              variable.default as DerivedVariable,
+                              wsClient,
+                              taskContext,
+                              extrasSerializable.extras
+                          )
+                        : variable.default;
                 }
             }
 

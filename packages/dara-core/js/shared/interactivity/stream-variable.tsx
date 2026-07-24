@@ -734,9 +734,9 @@ export function getOrRegisterStreamVariable(
                         const value = get(valueSelector);
 
                         // Unwrap nested if needed
-                        return 'nested' in variable ?
-                                resolveNested(value as Record<string, unknown>, variable.nested)
-                            :   value;
+                        return 'nested' in variable
+                            ? resolveNested(value as Record<string, unknown>, variable.nested)
+                            : value;
                     },
             }) as SelectorFamily
         );

@@ -180,9 +180,9 @@ const RenderRow = React.memo(
                                 const headerProps = col.getHeaderProps();
                                 // If width calc has messed up then use the raw width from the column
                                 const headerWidth =
-                                    headerProps.style.width === 'NaNpx' ?
-                                        mappedColumns[cidx].width
-                                    :   headerProps.style.width;
+                                    headerProps.style.width === 'NaNpx'
+                                        ? mappedColumns[cidx].width
+                                        : headerProps.style.width;
 
                                 return (
                                     <CellPlaceholder
@@ -245,31 +245,27 @@ const RenderRow = React.memo(
                                 maxWidth: cell.column?.maxWidth,
                                 width:
                                     // If width calc has messed up then use the raw width from the column
-                                    cellProps.style.width === 'NaNpx' ?
-                                        mappedColumns[colIdx].width
-                                    :   cellProps.style.width,
+                                    cellProps.style.width === 'NaNpx'
+                                        ? mappedColumns[colIdx].width
+                                        : cellProps.style.width,
                                 // For left-sticky columns, explicitly set the left offset so
                                 // multiple sticky columns are positioned correctly next to
                                 // each other.
-                                ...((
-                                    mappedColumns[colIdx]?.sticky === 'left' &&
-                                    typeof mappedColumns[colIdx]?.stickyOffset === 'number'
-                                ) ?
-                                    {
-                                        left: `${mappedColumns[colIdx].stickyOffset}px`,
-                                    }
-                                :   {}),
+                                ...(mappedColumns[colIdx]?.sticky === 'left' &&
+                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                    ? {
+                                          left: `${mappedColumns[colIdx].stickyOffset}px`,
+                                      }
+                                    : {}),
                                 // For right-sticky columns, explicitly set the right offset so
                                 // multiple sticky columns are positioned correctly next to
                                 // each other.
-                                ...((
-                                    mappedColumns[colIdx]?.sticky === 'right' &&
-                                    typeof mappedColumns[colIdx]?.stickyOffset === 'number'
-                                ) ?
-                                    {
-                                        right: `${mappedColumns[colIdx].stickyOffset}px`,
-                                    }
-                                :   {}),
+                                ...(mappedColumns[colIdx]?.sticky === 'right' &&
+                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                    ? {
+                                          right: `${mappedColumns[colIdx].stickyOffset}px`,
+                                      }
+                                    : {}),
                             }}
                         >
                             <CellContent hasRowHeight={rowHeight !== DEFAULT_ROW_HEIGHT}>

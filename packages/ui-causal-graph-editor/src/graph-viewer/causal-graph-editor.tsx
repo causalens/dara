@@ -645,9 +645,9 @@ function CausalGraphEditorComponent({ requireFocusToZoom = true, ...props }: Cau
     const { currentSearchNode, onNextSearchResult, onPrevSearchResult, onSearchBarChange, searchResults } = useSearch({
         graph: state.graph,
         // when selection is possible use selectedNode, otherwise use highlightedNode
-        setSelectedNode: (props.editable || props.allowSelectionWhenNotEditable ?
-            setSelectedNode
-        :   setHighlightedNode) as React.Dispatch<React.SetStateAction<string | null>>,
+        setSelectedNode: (props.editable || props.allowSelectionWhenNotEditable
+            ? setSelectedNode
+            : setHighlightedNode) as React.Dispatch<React.SetStateAction<string | null>>,
     });
     useEffect(() => {
         onSearchResults(searchResults);

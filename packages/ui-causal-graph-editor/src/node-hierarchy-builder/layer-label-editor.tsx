@@ -121,14 +121,15 @@ function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
 
     return (
         <LabelEditorWrapper ref={ref}>
-            {editEnabled ?
+            {editEnabled ? (
                 <StyledInput
                     autoFocus
                     onChange={onLabelChange}
                     onComplete={() => setEditEnabled(false)}
                     value={labelToDisplay}
                 />
-            :   <LabelStaticDisplay
+            ) : (
+                <LabelStaticDisplay
                     $viewOnly={props.viewOnly as boolean}
                     onClick={() => onEnableEditing()}
                     onKeyDown={(k) => k.key === 'Enter' && onEnableEditing()}
@@ -137,7 +138,7 @@ function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
                 >
                     <span>{labelToDisplay}</span>
                 </LabelStaticDisplay>
-            }
+            )}
         </LabelEditorWrapper>
     );
 }

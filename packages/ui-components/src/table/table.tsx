@@ -751,22 +751,22 @@ const Table = forwardRef(
                                                     maxWidth: col.maxWidth,
                                                     // If width calc has messed up then use the raw width from the column
                                                     width:
-                                                        (headerProps.style as any).width === 'NaNpx' ?
-                                                            mappedColumns[cidx].width
-                                                        :   (headerProps.style as any).width,
+                                                        (headerProps.style as any).width === 'NaNpx'
+                                                            ? mappedColumns[cidx].width
+                                                            : (headerProps.style as any).width,
                                                     // For left-sticky columns, explicitly set the left offset so
                                                     // multiple sticky columns are positioned correctly next to
                                                     // each other.
-                                                    ...(col.sticky === 'left' && typeof col.stickyOffset === 'number' ?
-                                                        {
-                                                            left: `${col.stickyOffset}px`,
-                                                        }
-                                                    :   {}),
-                                                    ...(col.sticky === 'right' && typeof col.stickyOffset === 'number' ?
-                                                        {
-                                                            right: `${col.stickyOffset}px`,
-                                                        }
-                                                    :   {}),
+                                                    ...(col.sticky === 'left' && typeof col.stickyOffset === 'number'
+                                                        ? {
+                                                              left: `${col.stickyOffset}px`,
+                                                          }
+                                                        : {}),
+                                                    ...(col.sticky === 'right' && typeof col.stickyOffset === 'number'
+                                                        ? {
+                                                              right: `${col.stickyOffset}px`,
+                                                          }
+                                                        : {}),
                                                 }}
                                             >
                                                 <HeaderTooltipContainer
@@ -801,9 +801,7 @@ const Table = forwardRef(
                                                                     />
                                                                 </HeaderIconWrapper>
                                                             )}
-                                                            {showFilter ?
-                                                                <FilterContainer col={col} />
-                                                            :   null}
+                                                            {showFilter ? <FilterContainer col={col} /> : null}
 
                                                             {showOptions && (
                                                                 <OptionsMenu

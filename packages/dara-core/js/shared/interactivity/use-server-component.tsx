@@ -180,10 +180,9 @@ function getOrRegisterServerComponent({
                         // Kwargs resolved to their simple values
                         const resolvedKwargs = await Promise.all(
                             Object.entries(dynamicKwargs).map(async ([k, value]) => {
-                                const resolvedValue =
-                                    isVariable(value) ?
-                                        await resolveVariable(value, wsClient, taskContext, currentExtras)
-                                    :   value;
+                                const resolvedValue = isVariable(value)
+                                    ? await resolveVariable(value, wsClient, taskContext, currentExtras)
+                                    : value;
                                 return [k, resolvedValue];
                             })
                         ).then((entries) => Object.fromEntries(entries));

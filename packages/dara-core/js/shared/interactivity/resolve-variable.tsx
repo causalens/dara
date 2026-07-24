@@ -76,10 +76,9 @@ export async function resolveVariable<VariableType>(
     if (isSwitchVariable(variable)) {
         // For switch variables, we need to resolve the constituent parts
         // and return a serialized representation similar to derived variables
-        let resolvedValue =
-            isVariable(variable.value) ?
-                await resolveVariable(variable.value, client, taskContext, extras, resolver)
-            :   variable.value;
+        let resolvedValue = isVariable(variable.value)
+            ? await resolveVariable(variable.value, client, taskContext, extras, resolver)
+            : variable.value;
 
         // value could be a condition object, resolve its variable
         if (isCondition(resolvedValue)) {
@@ -89,14 +88,12 @@ export async function resolveVariable<VariableType>(
             };
         }
 
-        const resolvedValueMap =
-            isVariable(variable.value_map) ?
-                await resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
-            :   variable.value_map;
-        const resolvedDefault =
-            isVariable(variable.default) ?
-                await resolveVariable(variable.default, client, taskContext, extras, resolver)
-            :   variable.default;
+        const resolvedValueMap = isVariable(variable.value_map)
+            ? await resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
+            : variable.value_map;
+        const resolvedDefault = isVariable(variable.default)
+            ? await resolveVariable(variable.default, client, taskContext, extras, resolver)
+            : variable.default;
 
         return {
             type: 'switch',
@@ -153,8 +150,9 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
     if (isSwitchVariable(variable)) {
         // For switch variables, we need to resolve the constituent parts
         // and return a serialized representation similar to derived variables
-        let resolvedValue =
-            isVariable(variable.value) ? resolveVariableStatic(variable.value, snapshot, params) : variable.value;
+        let resolvedValue = isVariable(variable.value)
+            ? resolveVariableStatic(variable.value, snapshot, params)
+            : variable.value;
 
         // value could be a condition object, resolve its variable
         if (isCondition(resolvedValue)) {
@@ -164,12 +162,12 @@ export function resolveVariableStatic(variable: AnyVariable<any>, snapshot: Snap
             };
         }
 
-        const resolvedValueMap =
-            isVariable(variable.value_map) ?
-                resolveVariableStatic(variable.value_map as any, snapshot, params)
-            :   variable.value_map;
-        const resolvedDefault =
-            isVariable(variable.default) ? resolveVariableStatic(variable.default, snapshot, params) : variable.default;
+        const resolvedValueMap = isVariable(variable.value_map)
+            ? resolveVariableStatic(variable.value_map as any, snapshot, params)
+            : variable.value_map;
+        const resolvedDefault = isVariable(variable.default)
+            ? resolveVariableStatic(variable.default, snapshot, params)
+            : variable.default;
 
         return {
             type: 'switch',

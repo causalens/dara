@@ -219,16 +219,15 @@ function Tooltip({
     const mergedRef = useMergeRefs([refs.setReference, childRef]);
 
     // Clone children and add reference props
-    const referenceElement =
-        children ?
-            React.cloneElement(
-                children,
-                getReferenceProps({
-                    ref: mergedRef,
-                    ...children.props,
-                })
-            )
-        :   null;
+    const referenceElement = children
+        ? React.cloneElement(
+              children,
+              getReferenceProps({
+                  ref: mergedRef,
+                  ...children.props,
+              })
+          )
+        : null;
 
     // Determine portal container
     const portalContainer = React.useMemo(() => {
@@ -246,7 +245,7 @@ function Tooltip({
     }, [appendTo, refs.reference]);
 
     const tooltipContent =
-        isVisible && !disabled && !hidden && content ?
+        isVisible && !disabled && !hidden && content ? (
             <div
                 ref={refs.setFloating}
                 style={{
@@ -277,14 +276,16 @@ function Tooltip({
                     />
                 </TooltipWrapper>
             </div>
-        :   null;
+        ) : null;
 
     return (
         <>
             {referenceElement}
-            {portalContainer ?
+            {portalContainer ? (
                 <FloatingPortal root={portalContainer}>{tooltipContent}</FloatingPortal>
-            :   tooltipContent}
+            ) : (
+                tooltipContent
+            )}
         </>
     );
 }

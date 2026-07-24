@@ -59,15 +59,15 @@ const NodeCircle = styled.div<NodeSizeProp & { $isDragging?: boolean; $isMatch: 
 
 const NodeText = styled.span<{ $labelSize?: number; $wrapNodeText?: boolean }>`
     ${(props) =>
-        props.$wrapNodeText ?
-            `
+        props.$wrapNodeText
+            ? `
         display: flex;
         justify-content: center;
         align-items: center;
         text-align: center;
         overflow-wrap: anywhere;
     `
-        :   `
+            : `
         text-overflow: ellipsis;
         white-space: nowrap;
     `};

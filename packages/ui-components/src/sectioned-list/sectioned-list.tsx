@@ -173,9 +173,9 @@ function SectionedList(props: SectionedListProps): JSX.Element {
     const [pendingHighlight, setPendingHighlight] = useState<number | null>(null);
     const [items, setItems] = useState(unpackedItems);
     const [inputValue, setInputValue] = useState(
-        props.selectedItem?.label && props.selectedItem.label !== 'null' ?
-            props.selectedItem.label
-        :   props.placeholder ?? ''
+        props.selectedItem?.label && props.selectedItem.label !== 'null'
+            ? props.selectedItem.label
+            : (props.placeholder ?? '')
     );
 
     const [kbdHighlightIdx, setKbdHighlightIdx] = React.useState<number | undefined>();
@@ -264,9 +264,9 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ) {
                 // This is a hack to change the highlight in the next render cycle so filteredItems had time to update
                 setPendingHighlight(
-                    changes.selectedItem ?
-                        (props.items as ListItem[]).findIndex((i) => i.value === changes.selectedItem!.value)
-                    :   0
+                    changes.selectedItem
+                        ? (props.items as ListItem[]).findIndex((i) => i.value === changes.selectedItem!.value)
+                        : 0
                 );
                 return {
                     ...changes,

@@ -153,9 +153,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -189,9 +189,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.0.4
         version: 6.0.4(vite@8.1.5(@types/node@24.13.3)(esbuild@0.27.7)(yaml@2.8.3))
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -313,9 +313,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -382,12 +382,12 @@ importers:
       msw:
         specifier: ^2.10.5
         version: 2.10.5(@types/node@24.13.3)(@typescript/typescript6@6.0.2)
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       postcss:
         specifier: ^8.5.10
         version: 8.5.12
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -418,9 +418,6 @@ importers:
 
   packages/eslint-config:
     dependencies:
-      '@darajs/prettier-config':
-        specifier: 1.29.4
-        version: link:../prettier-config
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.26.1
         version: 8.26.1(@typescript-eslint/parser@8.26.1(@typescript/typescript6@6.0.2)(eslint@8.57.1))(@typescript/typescript6@6.0.2)(eslint@8.57.1)
@@ -457,12 +454,16 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^4.6.0
         version: 4.6.2(eslint@8.57.1)
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
       typescript:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'
+    devDependencies:
+      '@darajs/oxfmt-config':
+        specifier: 1.29.4
+        version: link:../oxfmt-config
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
 
   packages/oxfmt-config:
     devDependencies:
@@ -500,9 +501,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -515,9 +516,9 @@ importers:
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -648,9 +649,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -711,6 +712,9 @@ importers:
       jsdom:
         specifier: ^27.4.0
         version: 27.4.0
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       pixi-filters:
         specifier: ~6.0.4
         version: 6.0.5(pixi.js@8.5.2)
@@ -720,9 +724,6 @@ importers:
       pixi.js:
         specifier: ~8.5.0
         version: 8.5.2
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -841,9 +842,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -910,9 +911,9 @@ importers:
       jsdom:
         specifier: ^27.4.0
         version: 27.4.0
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -950,9 +951,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -971,9 +972,9 @@ importers:
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1020,9 +1021,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1038,9 +1039,9 @@ importers:
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1081,9 +1082,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1108,9 +1109,9 @@ importers:
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1154,9 +1155,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1172,9 +1173,9 @@ importers:
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1218,9 +1219,9 @@ importers:
       '@darajs/eslint-config':
         specifier: 1.29.4
         version: link:../eslint-config
-      '@darajs/prettier-config':
+      '@darajs/oxfmt-config':
         specifier: 1.29.4
-        version: link:../prettier-config
+        version: link:../oxfmt-config
       '@darajs/stylelint-config':
         specifier: 1.29.4
         version: link:../stylelint-config
@@ -1248,9 +1249,9 @@ importers:
       jsdom:
         specifier: ^27.4.0
         version: 27.4.0
-      prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+      oxfmt:
+        specifier: ^0.60.0
+        version: 0.60.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2

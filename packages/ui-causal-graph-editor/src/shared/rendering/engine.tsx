@@ -508,12 +508,11 @@ export class Engine extends EventEmitter<EngineEvents> {
                         const finalSourceAttributes = this.graph.getNodeAttributes(finalSource);
                         const finalTargetAttributes = this.graph.getNodeAttributes(finalTarget);
                         const currentEdgeAttributes = this.graph.getEdgeAttributes(edgeKey);
-                        let numberOfCollapsedEdges =
-                            graphHasFinalEdge ?
-                                this.graph.getEdgeAttributes(finalSource, finalTarget)[
-                                    'meta.rendering_properties.collapsedEdgesCount'
-                                ]!
-                            :   0;
+                        let numberOfCollapsedEdges = graphHasFinalEdge
+                            ? this.graph.getEdgeAttributes(finalSource, finalTarget)[
+                                  'meta.rendering_properties.collapsedEdgesCount'
+                              ]!
+                            : 0;
 
                         // upddate the number of collapsed edges count if needed
                         if (graphHasFinalEdge && edgeHasChanged && group === finalSource) {

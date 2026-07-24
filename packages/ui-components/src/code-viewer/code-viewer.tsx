@@ -126,18 +126,19 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
         >
             <TopBar $isLightTheme={props.codeTheme !== 'dark'}>
                 <span>{props.language}</span>
-                {isCopied ?
+                {isCopied ? (
                     <CopyToClipboardContainer>
                         <Check /> Copied!
                     </CopyToClipboardContainer>
-                :   <CopyToClipboardContainer
+                ) : (
+                    <CopyToClipboardContainer
                         style={{ cursor: 'pointer' }}
                         onClick={() => copyCodeToClipboard(props.value!)}
                         role="button"
                     >
                         <Copy /> Copy code
                     </CopyToClipboardContainer>
-                }
+                )}
             </TopBar>
             <Highlight {...defaultProps} code={props.value!} language={props.language} theme={viewerTheme}>
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (

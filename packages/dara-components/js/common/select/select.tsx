@@ -213,7 +213,7 @@ function Select(props: SelectProps): JSX.Element {
         const selectedItems = useMemo(() => {
             const found = getMultiselectItems(value, itemArray);
             const explicitValues = Array.isArray(value) ? value.map(toItem) : value;
-            return isEmpty(found) ? explicitValues ?? null : found;
+            return isEmpty(found) ? (explicitValues ?? null) : found;
         }, [itemArray, toItem, value]);
 
         return (
