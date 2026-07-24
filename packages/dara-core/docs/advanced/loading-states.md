@@ -27,9 +27,11 @@ import anyio
 from dara.core import Fallback, DerivedVariable, py_component
 from dara.components import Text
 
+
 async def get_data(ctx):
     await anyio.sleep(5)
     return 'Hello World'
+
 
 derived_text = DerivedVariable(get_data, variables=[])
 
@@ -46,6 +48,7 @@ Text(derived_text, fallback=Fallback.Row())
 # Customizing the row fallback component, to fix its width in addition to the height
 Text(derived_text, fallback=Fallback.Row(width='20ch'))
 
+
 # Also works for a py_component
 @py_component(fallback=Fallback.Row())
 def my_component(name: str):
@@ -58,6 +61,7 @@ Alternatively, you can use the `Fallback.Custom` component to pass in a custom c
 from dara.core import Fallback, py_component
 from dara.components import Text
 
+
 @py_component(fallback=Fallback.Custom(component=Text('Loading...')))
 def my_component(name: str):
     return f'Hello World, {name}'
@@ -68,6 +72,7 @@ As a shorthand, you can also pass a non-fallback component directly to the `fall
 ```python
 from dara.core import py_component
 from dara.components import Text
+
 
 @py_component(fallback=Text('Loading...'))
 def my_component(name: str):
@@ -103,6 +108,7 @@ Select(items=items, fallback=Fallback.Row(suspend_render=False))
 
 # Suspend after 500ms - first show stale items, then loading state will only be shown if new items are not ready after 500ms
 Select(items=items, fallback=Fallback.Row(suspend_render=500))
+
 
 # Also available on py_components - will display previous py_component for 500ms while new one is being fetched
 @py_component(fallback=Fallback.Default(suspend_render=500))

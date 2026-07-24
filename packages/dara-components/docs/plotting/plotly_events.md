@@ -24,8 +24,8 @@ async def update_some_var(ctx: action.Ctx):
     await ctx.update(
         variable=some_var,
         value={
-            "x": ctx.input[0]["x"],
-            "y": ctx.input[0]["y"],
+            'x': ctx.input[0]['x'],
+            'y': ctx.input[0]['y'],
         },
     )
 ```
@@ -67,12 +67,12 @@ def event_example():
     y = [2, 4, 1, 3, 5]
 
     # Create scatter plot
-    fig = go.Figure(data=go.Scatter(x=x, y=y, mode="markers", marker=dict(size=10)))
+    fig = go.Figure(data=go.Scatter(x=x, y=y, mode='markers', marker=dict(size=10)))
 
     return fig
 
 
-some_var = Variable("No point selected")
+some_var = Variable('No point selected')
 
 
 # py_component to show the coordinate values stored in the Variable
@@ -86,8 +86,8 @@ async def update_some_var(ctx: action.Ctx):
     await ctx.update(
         variable=some_var,
         value={
-            "x": ctx.input[0]["x"],
-            "y": ctx.input[0]["y"],
+            'x': ctx.input[0]['x'],
+            'y': ctx.input[0]['y'],
         },
     )
 
@@ -128,7 +128,5 @@ def plotly_page_content() -> ComponentInstance:
 
 
 config = ConfigurationBuilder()
-config.router.add_page(
-    path="plotly", content=plotly_page_content
-)
+config.router.add_page(path='plotly', content=plotly_page_content)
 ```

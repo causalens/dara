@@ -14,10 +14,7 @@ from dara.core.visual.themes.definitions import ThemeColors, ThemeDef
 from dara.core import ConfigurationBuilder
 
 config = ConfigurationBuilder()
-config.set_theme(
-    main_theme=ThemeDef(colors=ThemeColors(secondary='blue')),
-    base_theme='dark'
-)
+config.set_theme(main_theme=ThemeDef(colors=ThemeColors(secondary='blue')), base_theme='dark')
 ```
 
 If you want to change all of the colors in the theme you can use the following example:
@@ -107,7 +104,6 @@ def ThemePage():
         new_theme = theme.model_copy()
         new_theme.font.size = f'{value}px'
         await theme_var.write(new_theme)
-
 
     return Stack(
         Text('ThemePage'),

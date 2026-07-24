@@ -67,6 +67,7 @@ from dara.components.plotting.palettes import SequentialLight10
 
 from dara.core import ConfigurationBuilder, ComponentInstance, get_icon
 
+
 def heatmap_example():
     # Sample data
     z = [[0.1, 0.3, 0.5, 0.7], [0.2, 0.4, 0.6, 0.8], [0.3, 0.5, 0.7, 0.9], [0.4, 0.6, 0.8, 1.0]]
@@ -90,6 +91,7 @@ def heatmap_example():
     fig.update_layout(title='Heatmap Example')
 
     return Plotly(fig)
+
 
 config = ConfigurationBuilder()
 config.router.add_page(path='plotly', content=heatmap_example)

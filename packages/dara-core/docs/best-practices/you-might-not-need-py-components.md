@@ -18,11 +18,14 @@ Your instinct might be to use a `py_component` to render the details side:
 from dara.core import Variable, py_component
 from dara.components import Heading, Stack, Select, Text
 
+
 # Some function to retrieve the details
 def get_details(country: str) -> str:
     return f'Details for {country}'
 
+
 selected_country = Variable(default=None)
+
 
 # AVOID: unnecessary py_component:
 # - involves simple control flow that could be handled with If
@@ -34,16 +37,15 @@ def CountryDetails(country: str | None):
 
     return Text(get_details(country))
 
+
 def Content():
     return Stack(
         Heading('Select a country'),
         Select(
-            value=selected_country,
-            items=['USA', 'Canada', 'Mexico', 'UK', 'France'],
-            placeholder='Select a country'
+            value=selected_country, items=['USA', 'Canada', 'Mexico', 'UK', 'France'], placeholder='Select a country'
         ),
         Heading('Details'),
-        CountryDetails(country=selected_country)
+        CountryDetails(country=selected_country),
     )
 ```
 
@@ -57,26 +59,27 @@ To avoid these, we could utilize `If` for conditional rendering and extract deta
 from dara.core import Variable, DerivedVariable, py_component
 from dara.components import Heading, Stack, Select, Text
 
+
 # Some function to retrieve the details
 def get_details(country: str) -> str:
     return f'Details for {country}'
+
 
 selected_country = Variable(default=None)
 
 # GOOD: DerivedVariable caches results per selected_country
 details = DerivedVariable(lambda country: get_details(country), variables=[selected_country])
 
+
 def Content():
     return Stack(
         Heading('Select a country'),
         Select(
-            value=selected_country,
-            items=['USA', 'Canada', 'Mexico', 'UK', 'France'],
-            placeholder='Select a country'
+            value=selected_country, items=['USA', 'Canada', 'Mexico', 'UK', 'France'], placeholder='Select a country'
         ),
         Heading('Details'),
         # GOOD: If for conditional rendering
-        If(selected_country, Text(details), Text('No country selected'))
+        If(selected_country, Text(details), Text('No country selected')),
     )
 ```
 
@@ -93,18 +96,22 @@ from typing import TypedDict
 from dara.core import Variable, py_component
 from dara.components import Card, Stack, Text, Heading
 
+
 class DatabaseItem(TypedDict):
     id: int
     name: str
     description: str
 
+
 async def get_items(query: str) -> list[DatabaseItem]:
     # fake DB API
     return await DB.query(name=query)
 
+
 query = Variable(default='')
 # Good: cached results per query
 items = DerivedVariable(get_items, variables=[query])
+
 
 # AVOID: unnecessary py_component
 @py_component
@@ -112,16 +119,10 @@ def ItemsDisplay(items: list[DatabaseItem]):
     stack = Stack()
 
     for item in items:
-        stack.append(
-            Card(
-                Stack(
-                    Text(item['name']),
-                    Text(item['description'])
-                )
-            )
-        )
+        stack.append(Card(Stack(Text(item['name']), Text(item['description']))))
 
     return stack
+
 
 def Content():
     return Stack(
@@ -129,7 +130,7 @@ def Content():
         Input(value=query),
         Heading('Items'),
         # AVOID: unnecessary py_component
-        ItemsDisplay(items=items)
+        ItemsDisplay(items=items),
     )
 ```
 
@@ -142,18 +143,22 @@ from typing import TypedDict
 from dara.core import Variable, DerivedVariable, py_component
 from dara.components import Card, Stack, Text, Heading, For
 
+
 class DatabaseItem(TypedDict):
     id: int
     name: str
     description: str
 
+
 async def get_items(query: str) -> list[DatabaseItem]:
     # fake DB API
     return await DB.query(name=query)
 
+
 query = Variable(default='')
 # GOOD: cached results per query
 items = DerivedVariable(get_items, variables=[query])
+
 
 def Content():
     return Stack(
@@ -163,14 +168,9 @@ def Content():
         # GOOD: For component used to render multiple elements
         For(
             items=items,
-            renderer=Card(
-                Stack(
-                    Text(items.list_item['name']),
-                    Text(items.list_item['description'])
-                )
-            ),
-            key_accessor='id'
-        )
+            renderer=Card(Stack(Text(items.list_item['name']), Text(items.list_item['description']))),
+            key_accessor='id',
+        ),
     )
 ```
 
@@ -183,15 +183,12 @@ Do not use `@py_component` inside a `For` renderer - this defeats the purpose of
 ```python
 # GOOD: precompute derived fields once for the whole list
 def add_formatted_fields(items):
-    return [{'display_name': f"{item['name']} - {item['description'][:20]}", **item} for item in items]
+    return [{'display_name': f'{item["name"]} - {item["description"][:20]}', **item} for item in items]
+
 
 formatted_items = DerivedVariable(add_formatted_fields, variables=[items])
 
-For(
-    items=formatted_items,
-    renderer=Card(Text(formatted_items.list_item['display_name'])),
-    key_accessor='id'
-)
+For(items=formatted_items, renderer=Card(Text(formatted_items.list_item['display_name'])), key_accessor='id')
 ```
 
 :::
@@ -205,18 +202,9 @@ items = DerivedVariable(get_items, variables=[query])
 
 For(
     items=items,
-    renderer=Card(
-        Stack(
-            Text(items.list_item['name']),
-            Text(items.list_item['description'])
-        )
-    ),
+    renderer=Card(Stack(Text(items.list_item['name']), Text(items.list_item['description']))),
     key_accessor='id',
-    raw_css=SwitchVariable.when(
-        condition=items.is_loading,
-        true_value='opacity: 0.5;',
-        false_value=''
-    )
+    raw_css=SwitchVariable.when(condition=items.is_loading, true_value='opacity: 0.5;', false_value=''),
 )
 ```
 
@@ -230,10 +218,11 @@ There are a few common scenarios where you might want to initialize the state of
 from dara.core import py_component, ConfigurationBuilder, Variable
 from dara.components import Text, Stack
 
+
 @py_component
 async def InnerContent():
     # AVOID: doing all the work in a py_component to initialize state
-    db_countries = await DB.get_countries() # fake DB API
+    db_countries = await DB.get_countries()  # fake DB API
     available_countries = Variable(default=db_countries)
     selected_country = Variable(default=db_countries[0])
 
@@ -245,8 +234,9 @@ async def InnerContent():
         ),
         Heading('Details'),
         # Omitted: details component for selected country
-        CountryDetails(country=selected_country)
+        CountryDetails(country=selected_country),
     )
+
 
 config = ConfigurationBuilder()
 config.router.add_page(path='countries', content=InnerContent())
@@ -265,12 +255,15 @@ To avoid these issues, depending on your use case you might want to consider one
 from dara.core import py_component, ConfigurationBuilder, Variable, Cache
 from dara.components import Text, Stack
 
+
 async def Content():
     # GOOD: retrieve the data in a cached DerivedVariable - cache setting can be tweaked to e.g. store for 30 seconds
     available_countries = DerivedVariable(DB.get_countries, variables=[], cache=Cache.TTL(ttl=30))
 
     # GOOD: compute first item and use it as default value for the Variable
-    first_item = DerivedVariable(lambda: available_countries[0], variables=[available_countries], cache=Cache.TTL(ttl=30))
+    first_item = DerivedVariable(
+        lambda: available_countries[0], variables=[available_countries], cache=Cache.TTL(ttl=30)
+    )
     selected_country = Variable.create_from_derived(first_item)
 
     return Stack(
@@ -281,8 +274,9 @@ async def Content():
         ),
         Heading('Details'),
         # Omitted: details component for selected country
-        CountryDetails(country=selected_country)
+        CountryDetails(country=selected_country),
     )
+
 
 config = ConfigurationBuilder()
 config.router.add_page(path='countries', content=Content)
@@ -299,10 +293,11 @@ from dara.components import Text, Stack
 available_countries = Variable()
 selected_country = Variable()
 
+
 # GOOD: initialize state on load based on external system
 @action
 async def countries_loader(ctx: action.Ctx):
-    db_countries = await DB.get_countries() # fake DB API
+    db_countries = await DB.get_countries()  # fake DB API
     await ctx.update(variable=available_countries, value=db_countries)
     await ctx.update(variable=selected_country, value=db_countries[0])
 
@@ -316,8 +311,9 @@ async def CountriesContent():
         ),
         Heading('Details'),
         # Omitted: details component for selected country
-        CountryDetails(country=selected_country)
+        CountryDetails(country=selected_country),
     )
+
 
 config = ConfigurationBuilder()
 config.router.add_page(path='countries', content=CountriesContent, on_load=countries_loader())

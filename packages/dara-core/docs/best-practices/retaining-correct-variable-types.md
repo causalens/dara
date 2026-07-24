@@ -22,21 +22,26 @@ config.add_encoder(typ=np.array, serialize=lambda x: x.tolist(), deserialize=lam
 
 As mentioned above, the Variable will be serialized into a format that FastApi can handle and you can deserialize it by adding type annotations to your function.
 ```python
-from dara.core import DerivedVariable, Variable,py_component
+from dara.core import DerivedVariable, Variable, py_component
 import numpy
 
-my_var = Variable(default=numpy.array([1,2,3]))
+my_var = Variable(default=numpy.array([1, 2, 3]))
+
 
 def dv_func(var: numpy.array):
-  # The var is a numpy.array, you can use the numpy array function to manipulate data
-  return var.sum()
+    # The var is a numpy.array, you can use the numpy array function to manipulate data
+    return var.sum()
+
 
 my_der_var = DerivedVariable(dv_func, variables=[my_var])
+
 
 # Same for py_component
 @py_component
 def my_component(var: numpy.array):
     return Text(var.tobytes())
+
+
 my_component(my_var)
 ```
 Current limitation of the serialize/deserialize handler is that the automatic deserialization does not work for action resolvers due to their different API shape.
@@ -55,16 +60,20 @@ from pydantic import BaseModel
 
 from dara.core import DerivedVariable, Variable
 
+
 # MyClass extends BaseModel
 class MyClass(BaseModel):
-  def __init__(self, foo):
-      self.foo = 'a'
+    def __init__(self, foo):
+        self.foo = 'a'
+
 
 my_var = Variable(MyClass(foo='a'))
 
+
 # Gets class instance on resolving function
 def bar(some_var: MyClass):
-  return some_var.foo
+    return some_var.foo
+
 
 my_der_var = DerivedVariable(bar, variables=[my_var])
 ```
@@ -80,18 +89,21 @@ In this case, you can define a class that inherits from your external class and 
 from dara.core import DerivedVariable, Variable
 from externalpackage import ExternalClass
 
+
 # Does not extend BaseModel
 class MyClass(ExternalClass):
-  def from_dict(self, dict):
-      ...
+    def from_dict(self, dict): ...
+
 
 my_var = Variable(MyClass(foo='a'))
 
+
 # A dict will be passed to resolving function
 def bar(some_var: dict):
-  # use from_dict to get back MyClass instance
-  var_value = MyClass.from_dict(some_var)
-  return var_value.foo
+    # use from_dict to get back MyClass instance
+    var_value = MyClass.from_dict(some_var)
+    return var_value.foo
+
 
 my_der_var = DerivedVariable(bar, variables=[my_var])
 ```

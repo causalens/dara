@@ -60,13 +60,18 @@ The API that resulted is as follows:
 from dara.core import Variable
 from dara.components import Input, Card, Text
 
+
 def example():
     language = Variable('Python')  # This defines a Variable object that will be used to link fields together
 
     return Card(
-        Text('What is your favorite coding language?', raw_css={'font-size': '1.5rem'}), # Pass raw_css for custom styling
-        Input(value=language), # Here the input takes in the current value and allows for it to be updated through the user's keyboard
-        Text(language) # Here the text component simply displays the value
+        Text(
+            'What is your favorite coding language?', raw_css={'font-size': '1.5rem'}
+        ),  # Pass raw_css for custom styling
+        Input(
+            value=language
+        ),  # Here the input takes in the current value and allows for it to be updated through the user's keyboard
+        Text(language),  # Here the text component simply displays the value
     )
 ```
 
@@ -84,14 +89,11 @@ You can define the following, similar to the previous `example` function:
 from dara.core import Variable
 from dara.components import Input, Card, Text
 
+
 def example(question: str, default_answer: str):
     language = Variable(default_answer)
 
-    return Card(
-        Text(question),
-        Input(value=language),
-        Text(language)
-    )
+    return Card(Text(question), Input(value=language), Text(language))
 ```
 
 And you can call it as a newly created component as follows:

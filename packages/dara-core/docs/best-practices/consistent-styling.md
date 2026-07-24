@@ -32,9 +32,9 @@ Plotting components such as `Plotly` and `Bokeh` are unique in that they also ca
 from dara.components.plotting import set_default_bokeh_theme, set_default_plotly_theme
 
 # provide theme object as expected by bokeh Document, see docs https://docs.bokeh.org/en/2.4.1/docs/reference/document.html#bokeh.document.Document.theme
-set_default_bokeh_theme({ ... })
+set_default_bokeh_theme({...})
 
-set_default_plotly_theme({ ... })
+set_default_plotly_theme({...})
 ```
 
 The `set_default_bokeh_theme` and `set_default_plotly_theme` takes a dictionary representation of the theme that each plotting library takes.
@@ -67,11 +67,11 @@ If you only want to change the color of say, one type of component, you can use 
 ```python
 from dara.components import Button
 
+
 def GreenButton(content: str, **kwargs) -> Button:
     """
     Displays button in green
     """
     kwargs['raw_css'] = {'background-color': '#00FF00'}
     return Button(content, **kwargs)
-
 ```

@@ -79,8 +79,8 @@ As a rule of thumb, if you are developing a reusable Dara package you should mar
 Local JS components (or actions) are not handled by the import discovery algorithm. They have to be explicitly registered with:
 
 ```python
-class LocalComponent(ComponentInstance):
-    ...
+class LocalComponent(ComponentInstance): ...
+
 
 config.add_component(LocalComponent, local=True)
 ```
@@ -112,6 +112,7 @@ It will not, however, recurse into the `my_component.py` module to discover any 
 # file: my_project/my_component.py
 def dropzone() -> UploadDropzone:
     return UploadDropzone()
+
 
 # file: my_project/main.py
 from dara.core import ConfigurationBuilder

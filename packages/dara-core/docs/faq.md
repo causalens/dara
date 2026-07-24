@@ -23,8 +23,9 @@ pip install dara-components
 from bokeh.plotting import figure
 from dara.components import Bokeh
 
+
 def line_plot(x, y):
-    figure = ('My Figure')
+    figure = 'My Figure'
     ...
     return Bokeh(figure)
 ```
@@ -135,11 +136,13 @@ from dara.components import Text
 
 result = DerivedVariable(run_experiment, variables=[data, model])
 
+
 def display_results(result_value):
     if result_value > 0:
         return Text(result_value, color='green', raw_css={'font-size': '1.5rem'})
     else:
         return Text(result_value, color='red')
+
 
 display_results(result)
 ```
@@ -152,12 +155,14 @@ from dara.components import Text
 
 result = DerivedVariable(run_experiment, variables=[data, model])
 
+
 @py_component
 def display_results(result_value):
     if result_value > 0:
         return Text(result_value, color='green')
     else:
         return Text(result_value, color='red')
+
 
 display_results(result)
 ```
@@ -170,8 +175,10 @@ from dara.components import Text
 
 result = DerivedVariable(run_experiment, variables=[data, model])
 
+
 def display_results(result_value):
     return Text(result_value)
+
 
 display_results(result)
 ```
@@ -200,13 +207,10 @@ def add(addend1, addend2):
 
 ```python
 from my_app.tasks import add
+
 x, y = Variable(1), Variable(2)
 
-summation = DerivedVariable(
-    add,
-    variables=[x, y],
-    run_as_task=True
-)
+summation = DerivedVariable(add, variables=[x, y], run_as_task=True)
 ```
 
 will probably run slower than the same scenario with `run_as_task` set to `False`. However, it still may be worth running as a task if you don't want the calculation to affect other application threads.
@@ -217,6 +221,7 @@ It is important to remember that the server uses recursion to resolve the values
 def add(addend1, addend2):
     return addend1 + addend2
 
+
 def multiply(factor1, factor2):
     return factor1 * factor2
 ```
@@ -226,17 +231,9 @@ from my_app.tasks import add, multiply
 
 x, y = Variable(1), Variable(2)
 
-summation = DerivedVariable(
-    add,
-    variables=[x, y],
-    run_as_task=True
-)
+summation = DerivedVariable(add, variables=[x, y], run_as_task=True)
 
-product = DerivedVariable(
-    add,
-    variables=[summation, Variable(5)],
-    run_as_task=True
-)
+product = DerivedVariable(add, variables=[summation, Variable(5)], run_as_task=True)
 ```
 
 The two process for `summation` and `product` are run in parallel, but `product` will wait until the results of `summation` have been resolved.
@@ -327,6 +324,7 @@ The first workaround can be found [here](https://community.plotly.com/t/inconsis
 
 ```python
 import plotly.express as px
+
 try:
     fig = px.scatter(...)
 except Exception:
