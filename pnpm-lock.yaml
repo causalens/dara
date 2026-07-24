@@ -29,6 +29,16 @@ importers:
       lerna:
         specifier: ^9.0.0
         version: 9.0.6(@types/node@24.13.3)
+    devDependencies:
+      '@darajs/oxlint-config':
+        specifier: workspace:*
+        version: link:packages/oxlint-config
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
 
   packages/dara-components:
     dependencies:

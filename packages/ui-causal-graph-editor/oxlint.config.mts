@@ -1,6 +1,6 @@
 import { defineConfig } from 'oxlint';
 
-import daraConfig, { reactConfig, typeAwareOptions } from '@darajs/oxlint-config';
+import daraConfig, { reactConfig } from '@darajs/oxlint-config';
 
 export default defineConfig({
     extends: [daraConfig, reactConfig],
@@ -10,5 +10,4 @@ export default defineConfig({
         '**/src/packages/ui-causal-graph/graph-viewer/utils/stories-utils.tsx',
         'src/pixi.d.ts',
     ],
-    options: typeAwareOptions,
 });

@@ -18,8 +18,11 @@ prepare-docs:
 	tooling/scripts/prepare_docs.sh
 
 # Run lint / static testing
+lint-js:
+	pnpm lint:js
+
 lint:
-	poetry anthology run lint && pnpm lerna run lint
+	poetry anthology run lint && $(MAKE) lint-js
 
 format:
 	poetry anthology run format && pnpm lerna run format

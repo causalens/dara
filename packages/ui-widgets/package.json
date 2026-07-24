@@ -8,10 +8,10 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "prepare-dev": "tsc",
-    "lint": "oxlint src && stylelint './src/**/*.tsx'",
+    "lint": "oxlint --type-aware --type-check src && stylelint './src/**/*.tsx'",
     "format": "oxfmt src --write",
     "format:check": "oxfmt src --check",
-    "lint:fix": "oxlint src --fix && stylelint './src/**/*.tsx' --fix",
+    "lint:fix": "oxlint --type-aware --type-check --fix src && stylelint './src/**/*.tsx' --fix",
     "test-watch": "vitest"
   },
   "devDependencies": {
