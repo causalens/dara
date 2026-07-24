@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.4
 
 - Isolated Dara's Prometheus collectors from the process-wide default registry so applications can register their own metrics without name collisions.
 
