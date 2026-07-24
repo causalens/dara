@@ -182,7 +182,9 @@ function getCellRenderer(formatter: { [k: string]: any }): any {
 function mapColumns(columns: Array<ColumnProps>): any {
     if (columns) {
         return columns.map((column: ColumnProps) => ({
-            Header: column.label ?? column.col_id,
+            // An empty label has historically displayed the column identifier.
+            // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+            Header: column.label || column.col_id,
             accessor: column.col_id,
             ...(column.align && { align: column.align }),
             ...(column.filter && { filter: column.filter }),

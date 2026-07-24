@@ -218,7 +218,11 @@ export function cleanValue(value: unknown, forceKeyOverride?: string | null): an
         return {
             ...rest,
             // Use override if provided, otherwise use the embedded force_key from the resolved variable
-            force_key: forceKeyOverride ?? value.force_key ?? null,
+            force_key:
+                forceKeyOverride ??
+                // An empty force key has historically disabled forced caching.
+                // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                (value.force_key || null),
             values: cleanedValues,
         };
     }

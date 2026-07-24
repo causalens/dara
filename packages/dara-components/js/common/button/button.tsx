@@ -75,7 +75,9 @@ function Button(
 
     // Extract icon and grab color from first child if it has it
     const Icon = icon ? getIcon(icon) : null;
-    const iconColor = Array.isArray(children) ? (children?.[0]?.props?.color ?? 'inherit') : 'inherit';
+    // Empty CSS values have historically inherited the surrounding color.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    const iconColor = Array.isArray(children) ? children?.[0]?.props?.color || 'inherit' : 'inherit';
 
     return (
         <StyledButton

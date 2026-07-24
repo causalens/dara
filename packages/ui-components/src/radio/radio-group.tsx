@@ -205,6 +205,10 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
             id={props.id}
         >
             {props.items.map((item, index) => {
+                // An empty label has historically displayed the item's value.
+                // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                const label = item.label || item.value;
+
                 return (
                     <RadioWrapper
                         aria-disabled={props.disabled}
@@ -220,7 +224,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
                             value={index}
                         />
                         <StyledCheckmark disabled={props.disabled} />
-                        {item.label ?? item.value}
+                        {label}
                     </RadioWrapper>
                 );
             })}

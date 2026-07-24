@@ -246,7 +246,11 @@ export function TextFilter(props: FilterProps<any>): JSX.Element {
             <StyledSearchBar
                 onChange={(val) => props.column.setFilter(val || undefined)}
                 placeholder="Rows containing value..."
-                value={props.column.filterValue ?? ''}
+                value={
+                    // Falsy filter values have historically displayed an empty text field.
+                    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                    props.column.filterValue || ''
+                }
             />
         </FilterWrapper>
     );

@@ -17,7 +17,7 @@
 import type { Meta } from '@storybook/react-vite';
 
 import { FcoseLayout } from '../../shared/graph-layout';
-import { type CausalGraph, EdgeType, EditorMode, type VariableType } from '../../types';
+import { type CausalGraph, EdgeType, EditorMode } from '../../types';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, pagCausalGraph } from './stories-utils';
 

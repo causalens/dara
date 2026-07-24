@@ -81,8 +81,9 @@ This repository covers the Dara Application Framework first-party packages.
 
 And the supporting UI packages and tools.
 
-- `eslint-config` - base ESLint configuration
+- `eslint-config` - legacy shared ESLint configuration
 - `oxfmt-config` - shared Oxfmt configuration
+- `oxlint-config` - shared Oxlint configuration
 - `stylelint-config` - base Stylelint configuration
 - `styled-components` - styled-components theme
 - `ui-causal-graph-editor` - causal graph editor component

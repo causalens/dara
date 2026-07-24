@@ -146,7 +146,13 @@ function Tooltip({
             return { open: delay, close: delay };
         }
         if (Array.isArray(delay)) {
-            return { open: delay[0] ?? 0, close: delay[1] ?? 0 };
+            return {
+                // NaN delays have historically fallen back to zero.
+                // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                open: delay[0] || 0,
+                // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                close: delay[1] || 0,
+            };
         }
         return { open: 0, close: 0 };
     }, [delay]);

@@ -33,6 +33,7 @@ export const reactConfig = defineConfig({
         'jsx-a11y/prefer-tag-over-role': 'off',
         'react/jsx-filename-extension': ['error', { extensions: ['.jsx', '.tsx'] }],
         'react/jsx-key': ['error', { checkFragmentShorthand: true }],
+        'react/rules-of-hooks': 'error',
     },
 });
 

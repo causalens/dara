@@ -31,6 +31,13 @@ export interface BadgeProps {
     width?: string;
 }
 
+function getWidth(width?: string): string {
+    if (width) {
+        return width;
+    }
+    return 'auto';
+}
+
 /**
  * A simple badge component
  *
@@ -41,7 +48,7 @@ const Badge = styled.span.withConfig({ shouldForwardProp })<BadgeProps>`
     align-items: center;
     justify-content: center;
 
-    width: ${(props) => props.width ?? 'auto'};
+    width: ${(props) => getWidth(props.width)};
     height: ${(props) => (props.height ? `${props.height}px` : '2rem')};
     padding: 0 0.75rem;
 

@@ -23,13 +23,17 @@ const StyledAccordion = injectCss(UIAccordion);
 
 function headerRenderer(item: AccordionItemType): JSX.Element {
     // Assume this will be called within the accordion in the same order each time
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+    // oxlint-disable-next-line react/rules-of-hooks
     const theme = useTheme();
+    // Empty CSS values have historically selected the theme default.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    const badgeColor = item.badge?.color || theme.colors.primary;
+
     return (
         <StyledHeader>
             {typeof item.label === 'string' ? <span>{item.label}</span> : <DynamicComponent component={item.label} />}
             {item.badge && (
-                <Badge color={item.badge.color ?? theme.colors.primary} height={24} width="10rem">
+                <Badge color={badgeColor} height={24} width="10rem">
                     {item.badge.label}
                 </Badge>
             )}

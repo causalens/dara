@@ -211,6 +211,12 @@ interface DropdownListProps {
     displacement?: number;
 }
 
+function getMaxItems(maxItems?: number): number {
+    // Zero and NaN have historically selected the default list size.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    return maxItems || 5;
+}
+
 const StyledDropdownList = React.memo(styled(DropdownList)<DropdownListProps>`
     overflow-y: auto;
     display: ${(props) => (props.isOpen ? 'flex' : 'none')};
@@ -219,7 +225,8 @@ const StyledDropdownList = React.memo(styled(DropdownList)<DropdownListProps>`
 
     width: 16.25rem;
     max-height: calc(
-        ${(props) => (props.maxItems ?? 5) * 2}em + 2px + (${(props) => (props.maxItems ?? 5) - 1}) * 0.125em
+        ${(props) => getMaxItems(props.maxItems) * 2}em + 2px + (${(props) => getMaxItems(props.maxItems) - 1}) *
+            0.125em
     );
     margin-left: ${(props) => props.displacement}rem;
 
@@ -319,7 +326,9 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,
-        placement: props.placement ?? 'bottom-start',
+        // Empty placement strings have historically selected the default.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+        placement: props.placement || 'bottom-start',
         middleware: [offset(8), flip(), shift()],
         whileElementsMounted: isOpen ? autoUpdate : undefined,
     });

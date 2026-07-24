@@ -142,6 +142,9 @@ const SectionedListItem = ({
     if (item.heading) {
         delete itemProps.onClick;
     }
+    // Empty CSS values have historically selected the theme default.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    const badgeColor = item.badge?.color || theme.colors.primary;
 
     return (
         <ListItemSpan
@@ -156,7 +159,7 @@ const SectionedListItem = ({
             isHighlighted={isHighlighted}
         >
             {item.label || item.section}
-            {item.badge && <Badge color={item.badge.color ?? theme.colors.primary}>{item.badge.label}</Badge>}
+            {item.badge && <Badge color={badgeColor}>{item.badge.label}</Badge>}
         </ListItemSpan>
     );
 };

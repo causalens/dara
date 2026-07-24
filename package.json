@@ -6,7 +6,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "lint:js": "oxlint packages/dara-components/js packages/dara-core/js packages/styled-components/src packages/ui-causal-graph-editor/src packages/ui-components/src packages/ui-hierarchy-viewer/src packages/ui-icons/src packages/ui-notifications/src packages/ui-utils/src packages/ui-widgets/src && pnpm --filter @darajs/core exec stylelint '../../packages/{dara-components,dara-core}/js/**/*.tsx' '../../packages/{styled-components,ui-components,ui-hierarchy-viewer,ui-icons,ui-notifications,ui-utils,ui-widgets}/src/**/*.tsx' '../../packages/ui-causal-graph-editor/src/**/*.{ts,tsx}'"
+    "lint:js": "pnpm lint:js:source && pnpm lint:js:non-build && pnpm lint:js:styles",
+    "lint:js:source": "oxlint packages/dara-components/js packages/dara-core/js packages/styled-components/src packages/ui-causal-graph-editor/src packages/ui-components/src packages/ui-hierarchy-viewer/src packages/ui-icons/src packages/ui-notifications/src packages/ui-utils/src packages/ui-widgets/src",
+    "lint:js:non-build": "glob -c oxlint -g--disable-nested-config -g-c -goxlint.untyped.config.mts 'packages/dara-core/{tests,cypress}/**/*.{ts,tsx}' 'packages/{dara-components,dara-core}/js/**/*.{spec,stories}.{ts,tsx}' 'packages/{styled-components,ui-causal-graph-editor,ui-components,ui-hierarchy-viewer,ui-icons,ui-notifications,ui-utils,ui-widgets}/src/**/*.{spec,stories}.{ts,tsx}'",
+    "lint:js:styles": "pnpm --filter @darajs/core exec stylelint '../../packages/{dara-components,dara-core}/js/**/*.tsx' '../../packages/{styled-components,ui-components,ui-hierarchy-viewer,ui-icons,ui-notifications,ui-utils,ui-widgets}/src/**/*.tsx' '../../packages/ui-causal-graph-editor/src/**/*.{ts,tsx}'"
   },
   "dependencies": {
     "glob": "^11.1.0",

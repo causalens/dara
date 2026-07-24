@@ -49,7 +49,10 @@ export const processDataForDownload = (content: DataFrame): DataFrame => {
     });
 };
 
-const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
+/**
+ * Convert records to a matrix while leaving missing fields as empty cells.
+ */
+export const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): any[][] => {
     // Process the data to restore original column names and remove index columns
     const processedContent = processDataForDownload(content);
 
@@ -69,7 +72,8 @@ const createMatrixFromArrayOfObjects = (content: Array<Record<string, any>>): an
     const matrix: any[][] = [];
 
     processedContent.forEach((c) => {
-        const row = Array.from<any>({ length: headingsLength });
+        const row: any[] = [];
+        row.length = headingsLength;
         Object.entries(c).forEach(([k, v]) => {
             row[indexes[k]!] = v;
         });
@@ -96,7 +100,10 @@ const processCell = (cell: any): string => {
     return cellValue;
 };
 
-const createCsvFromMatrix = (matrix: any[][]): Blob => {
+/**
+ * Serialize a matrix as a CSV blob.
+ */
+export const createCsvFromMatrix = (matrix: any[][]): Blob => {
     const csv = matrix.map((col) => col.map((cell) => processCell(cell)).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     return blob;
@@ -194,7 +201,9 @@ const DownloadVariable: ActionHandler<DownloadVariableImpl> = async (ctx, action
         value = processDataForDownload(value);
     }
 
-    const fileName = actionImpl.file_name ?? 'Data';
+    // An empty filename has historically selected the default download name.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    const fileName = actionImpl.file_name || 'Data';
     const fileNameWithExt = `${fileName}.${actionImpl.type}`;
     if (actionImpl.type === 'json') {
         const blob = createJsonBlob(value);

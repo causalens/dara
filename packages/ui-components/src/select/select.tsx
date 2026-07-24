@@ -181,7 +181,9 @@ function Select(props: SelectProps): JSX.Element {
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,
-        placement: props.placement ?? 'bottom-start',
+        // Empty placement strings have historically selected the default.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+        placement: props.placement || 'bottom-start',
         middleware: [flip(), shift(), ...(applySameWidthModifier ? [matchWidthToReference(+2)] : [])],
         whileElementsMounted: isOpen ? autoUpdate : undefined,
     });

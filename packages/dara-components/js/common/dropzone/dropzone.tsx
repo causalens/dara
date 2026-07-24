@@ -119,7 +119,9 @@ function UploadDropzone(props: DropzoneProps): JSX.Element {
         } else if (fileRejections && fileRejections.length === 1) {
             // Single file rejected due to wrong type
             // Default types from DROPZONE_ALLOWED_MIME_TYPES in @darajs/ui-components/src/dropzone/dropzone.tsx
-            const acceptedTypes = props.accept ?? 'CSV and Excel files (.csv, .xlsx, .xls)';
+            // An empty accept string has historically used the default error text.
+            // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+            const acceptedTypes = props.accept || 'CSV and Excel files (.csv, .xlsx, .xls)';
             setErrorMessage(`Upload failed. Please drop a file of the following type(s): ${acceptedTypes}`);
             setCurrentStatus(status.FAILED);
         } else if (fileRejections && fileRejections.length > 1) {

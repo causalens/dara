@@ -17,12 +17,19 @@ interface SideBarProps {
 
 const shouldForwardProp = (prop: any): boolean => !['width'].includes(prop);
 
+function getWidth(width?: string): string {
+    if (width) {
+        return width;
+    }
+    return '240px';
+}
+
 const SideBar = styled.div.withConfig({ shouldForwardProp })<SideBarProps>`
     display: flex;
     flex-direction: column;
     align-items: center;
 
-    width: ${(props) => props.width ?? '240px'};
+    width: ${(props) => getWidth(props.width)};
     min-width: 150px;
     max-width: 350px;
     height: 100%;

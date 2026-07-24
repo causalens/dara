@@ -43,6 +43,13 @@ interface BarProps {
     small?: boolean;
 }
 
+function getBarColor(color: string | undefined, fallback: string): string {
+    if (color) {
+        return color;
+    }
+    return fallback;
+}
+
 const Bar = styled.div<BarProps>`
     position: absolute;
 
@@ -50,7 +57,7 @@ const Bar = styled.div<BarProps>`
 
     height: 100%;
 
-    background-color: ${(props) => props.color ?? props.theme.colors.primary};
+    background-color: ${(props) => getBarColor(props.color, props.theme.colors.primary)};
     border-radius: ${(props) => (props.small ? '0.25rem' : '0.5rem')};
 `;
 

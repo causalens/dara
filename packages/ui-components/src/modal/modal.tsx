@@ -78,11 +78,18 @@ interface ModalHeaderProps {
     flexDirection?: string;
 }
 
+function getFlexDirection(flexDirection?: string): string {
+    if (flexDirection) {
+        return flexDirection;
+    }
+    return 'column';
+}
+
 /** Arranges the modal header and adds some space below it */
 const ModalHeader = styled.div<ModalHeaderProps>`
     display: flex;
     flex: 0 0 auto;
-    flex-direction: ${(props) => props.flexDirection ?? 'column'};
+    flex-direction: ${(props) => getFlexDirection(props.flexDirection)};
     justify-content: space-between;
 
     margin-bottom: 1rem;

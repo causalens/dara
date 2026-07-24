@@ -171,7 +171,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
             }
 
             // None of the layers containing selected nodes are visible, let's scroll to the first one if possible
-            if (!anySelectedVisible && firstSelectedLayer) {
+            if (!anySelectedVisible && firstSelectedLayer !== null) {
                 layersRef.current[firstSelectedLayer].scrollIntoView({ behavior: 'smooth' });
             }
         }

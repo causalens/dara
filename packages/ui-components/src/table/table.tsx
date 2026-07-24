@@ -215,7 +215,9 @@ const getSortIcon = (isSorted?: boolean, isSortedDesc?: boolean): IconDefinition
 const getSortKey = (sortBy: Array<SortingRule<string>>, columns: Array<TableColumn>): Array<SortingRule<string>> => {
     return sortBy.map((sort) => ({
         ...sort,
-        id: columns.find((col) => col.accessor === sort.id)?.sortKey ?? sort.id,
+        // An empty sort key has historically used the column accessor.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+        id: columns.find((col) => col.accessor === sort.id)?.sortKey || sort.id,
     }));
 };
 
@@ -399,12 +401,16 @@ const createActionColumn = (
     return {
         Cell: ActionCell,
         Header: actions.includes(Actions.SELECT) && !disableSelectAll ? SelectHeader : '',
-        accessor: accessor ?? 'actions',
+        // An empty accessor has historically used the action-column default.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+        accessor: accessor || 'actions',
         actions,
         disableSortBy: true,
         maxWidth: width,
         minWidth: actions.includes(Actions.SELECT) ? 52 : 48,
-        sticky: (sticky ?? null) as 'left' | 'right' | undefined,
+        // Empty sticky values have historically disabled sticky positioning.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+        sticky: (sticky || null) as 'left' | 'right' | undefined,
         width,
     };
 };
@@ -580,7 +586,9 @@ const Table = forwardRef(
         // This state helps in retaining the current sorted column even if the data gets updated
         const [currentSortBy, setCurrentSortBy] = useState<Array<SortingRule<string>>>(initialSort);
 
-        const tableRowHeight = rowHeight ?? DEFAULT_ROW_HEIGHT;
+        // Zero and NaN have historically selected the default row height.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+        const tableRowHeight = rowHeight || DEFAULT_ROW_HEIGHT;
         // Oxlint cannot infer that useDeepCompare returns a stable dependency list.
         // oxlint-disable react-hooks/exhaustive-deps
         useEffect(

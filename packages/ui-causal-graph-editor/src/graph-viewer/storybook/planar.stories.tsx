@@ -142,11 +142,15 @@ export const PlanarGenerated = (props: CausalGraphEditorProps): JSX.Element => {
         <>
             <label>
                 Parent count:
-                <input type="number" value={parentCount} onChange={(e) => setParentCount(parseInt(e.target.value))} />
+                <input
+                    type="number"
+                    value={parentCount}
+                    onChange={(e) => setParentCount(parseInt(e.target.value, 10))}
+                />
             </label>
             <label>
                 Level count:
-                <input type="number" value={levelCount} onChange={(e) => setLevelCount(parseInt(e.target.value))} />
+                <input type="number" value={levelCount} onChange={(e) => setLevelCount(parseInt(e.target.value, 10))} />
             </label>
             <CausalGraphViewerComponent {...props} graphData={graph} />
         </>

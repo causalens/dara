@@ -15,6 +15,13 @@ interface TopBarProps {
 
 const shouldForwardProp = (prop: any): boolean => !['width'].includes(prop);
 
+function getHeight(height?: string): string {
+    if (height) {
+        return height;
+    }
+    return '124px';
+}
+
 const TopBar = styled.div.withConfig({ shouldForwardProp })<TopBarProps>`
     display: flex;
     flex-direction: column;
@@ -22,7 +29,7 @@ const TopBar = styled.div.withConfig({ shouldForwardProp })<TopBarProps>`
     align-items: flex-end;
 
     width: 100%;
-    height: ${(props) => props.height ?? '124px'};
+    height: ${(props) => getHeight(props.height)};
     min-height: 100px;
     max-height: 350px;
     padding: 2rem 3rem;

@@ -33,7 +33,7 @@ export const Tabs: Story = {
     args: {
         tabs: sampleTabs,
     },
-    render: (args: TabsProps<string>): JSX.Element => {
+    render: function TabsStory(args: TabsProps<string>): JSX.Element {
         const [selectedTab, setSelectedTab] = useState<string>(sampleTabs[0]);
 
         const onSelectTab = (tab: any): void => {

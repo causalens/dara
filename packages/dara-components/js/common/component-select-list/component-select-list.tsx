@@ -43,7 +43,9 @@ function ComponentSelectList(props: ComponentSelectListProps): JSX.Element {
 
     const updateSelectedItems = useCallback(
         (items: Array<string>): void => {
-            const newSelectedItems = props.multi_select ? items : (items[0] ?? null);
+            // An empty title has historically cleared a single selection.
+            // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+            const newSelectedItems = props.multi_select ? items : items[0] || null;
             setSelectedItems?.(newSelectedItems);
             void onSelect?.(newSelectedItems);
         },

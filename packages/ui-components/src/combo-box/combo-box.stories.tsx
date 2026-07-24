@@ -75,7 +75,7 @@ export const ComboBox: Story = {
 };
 
 export const ControlledComboBox: Story = {
-    render: (props) => {
+    render: function ControlledComboBoxStory(props) {
         const [selectedItem, setSelectedItem] = React.useState<Item | undefined>(props.selectedItem);
 
         return <ComboBoxComponent {...props} onSelect={(item) => setSelectedItem(item)} selectedItem={selectedItem} />;
