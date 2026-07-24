@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     if: "!startsWith(github.head_ref, 'dependabot/')"
     steps:
-      - uses: innerspacetrainings/Prace.js@master
+      - uses: innerspacetrainings/Prace.js@114c0d1dc655d7ce3b7a1746bcd3c1c699f7a68c # v1.1.1 (master security fixes)
         with:
           configuration-path: .github/prace.yml
         env:
