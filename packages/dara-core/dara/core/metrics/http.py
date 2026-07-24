@@ -22,10 +22,13 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
+from dara.core.metrics.registry import DARA_METRICS_REGISTRY
+
 HTTP_REQUESTS_TOTAL = Counter(
     'http_requests_total',
     'Total HTTP requests',
     labelnames=['method', 'status', 'path'],
+    registry=DARA_METRICS_REGISTRY,
 )
 
 HTTP_REQUEST_DURATION_SECONDS = Histogram(
@@ -33,6 +36,7 @@ HTTP_REQUEST_DURATION_SECONDS = Histogram(
     'HTTP request duration in seconds',
     labelnames=['method', 'status', 'path'],
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, float('inf')),
+    registry=DARA_METRICS_REGISTRY,
 )
 
 

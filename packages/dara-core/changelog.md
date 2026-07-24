@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Isolated Dara's Prometheus collectors from the process-wide default registry so applications can register their own metrics without name collisions.
+
 ## 1.29.3
 
 - Internal: Upgraded build tooling to Vite 8 for faster builds.

@@ -80,6 +80,7 @@ from dara.core.js_tooling.js_utils import (
     rebuild_js,
 )
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
+from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 from dara.core.router import convert_template_to_router
 
 
@@ -399,7 +400,7 @@ def _start_application(config: Configuration):
     # Start metrics server in a daemon thread
     if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
         port = int(os.environ.get('DARA_METRICS_PORT', '10000'))
-        start_http_server(port)
+        start_http_server(port, registry=DARA_METRICS_REGISTRY)
 
     # Start profiling server in a daemon thread if explicitly enabled (only works on linux)
     if os.environ.get('DARA_PYPPROF_PORT', None) is not None:

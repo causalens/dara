@@ -18,8 +18,14 @@ limitations under the License.
 from prometheus_client import Info
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
+from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 
-cache_metric = Info('cache_size', 'Current size of cache stores and registries', labelnames=['registry_name'])
+cache_metric = Info(
+    'cache_size',
+    'Current size of cache stores and registries',
+    labelnames=['registry_name'],
+    registry=DARA_METRICS_REGISTRY,
+)
 
 
 def format_bytes(num: int | float) -> str:

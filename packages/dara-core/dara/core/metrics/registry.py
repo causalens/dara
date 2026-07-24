@@ -1,0 +1,27 @@
+"""
+Copyright 2023 Impulse Innovations Limited
+
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+from prometheus_client import CollectorRegistry, GCCollector, PlatformCollector, ProcessCollector
+
+# Keep Dara's collectors isolated so importing Dara does not mutate Prometheus's process-wide default registry.
+DARA_METRICS_REGISTRY = CollectorRegistry()
+
+# These constructors self-register, but only with Dara's private registry, so their side effects cannot collide with
+# collectors owned by other packages. They preserve the runtime metrics previously exposed by Dara's metrics server.
+GCCollector(registry=DARA_METRICS_REGISTRY)
+PlatformCollector(registry=DARA_METRICS_REGISTRY)
+ProcessCollector(registry=DARA_METRICS_REGISTRY)
