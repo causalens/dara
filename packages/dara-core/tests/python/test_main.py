@@ -15,6 +15,7 @@ from dara.core.definitions import ComponentInstance
 from dara.core.http import get
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.main import _start_application
+from dara.core.metrics import DARA_METRICS_REGISTRY
 from dara.core.router import LayoutRoute, Outlet
 from dara.core.visual.components.router_content import RouterContent
 from dara.core.visual.components.sidebar_frame import SideBarFrame
@@ -84,6 +85,21 @@ async def test_validates_configuration(config: Configuration):
 
     with pytest.raises(ValueError):
         _start_application(1)
+
+
+async def test_metrics_server_uses_dara_registry(monkeypatch: pytest.MonkeyPatch):
+    """The built-in metrics server only exposes collectors owned by Dara."""
+    monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('DARA_TEST_FLAG', raising=False)
+    monkeypatch.setenv('DARA_METRICS_PORT', '12345')
+
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    with patch('dara.core.main.start_http_server') as start_http_server:
+        _start_application(config)
+
+    start_http_server.assert_called_once_with(12345, registry=DARA_METRICS_REGISTRY)
 
 
 def assert_dict_subset(haystack: dict, needle: dict):

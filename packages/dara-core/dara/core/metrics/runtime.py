@@ -17,6 +17,8 @@ limitations under the License.
 
 from prometheus_client import Histogram
 
+from dara.core.metrics.registry import DARA_METRICS_REGISTRY
+
 BUCKETS = (
     0.05,
     0.1,
@@ -45,9 +47,19 @@ BUCKETS = (
 
 class RuntimeMetricsTracker:
     def __init__(self) -> None:
-        self.task_histogram = Histogram('task_runtimes', 'Task Runtimes', labelnames=['task_name'], buckets=BUCKETS)
+        self.task_histogram = Histogram(
+            'task_runtimes',
+            'Task Runtimes',
+            labelnames=['task_name'],
+            buckets=BUCKETS,
+            registry=DARA_METRICS_REGISTRY,
+        )
         self.dv_histogram = Histogram(
-            'dv_runtimes', 'Derived Variable Runtimes', labelnames=['dv_name'], buckets=BUCKETS
+            'dv_runtimes',
+            'Derived Variable Runtimes',
+            labelnames=['dv_name'],
+            buckets=BUCKETS,
+            registry=DARA_METRICS_REGISTRY,
         )
 
     def clean_name(self, name: str) -> str:
