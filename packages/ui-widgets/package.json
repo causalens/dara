@@ -1,6 +1,6 @@
 {
   "name": "@darajs/ui-widgets",
-  "version": "1.29.1",
+  "version": "1.29.2",
   "description": "The UI widgets built on top of UI components",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -16,9 +16,9 @@
   },
   "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@darajs/eslint-config": "1.29.1",
-    "@darajs/prettier-config": "1.29.1",
-    "@darajs/stylelint-config": "1.29.1",
+    "@darajs/eslint-config": "1.29.2",
+    "@darajs/prettier-config": "1.29.2",
+    "@darajs/stylelint-config": "1.29.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
@@ -34,10 +34,10 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.29.1",
-    "@darajs/ui-components": "1.29.1",
-    "@darajs/ui-icons": "1.29.1",
-    "@darajs/ui-utils": "1.29.1",
+    "@darajs/styled-components": "1.29.2",
+    "@darajs/ui-components": "1.29.2",
+    "@darajs/ui-icons": "1.29.2",
+    "@darajs/ui-utils": "1.29.2",
     "lodash": "4.18.1",
     "nanoid": "^3.3.8",
     "react": "^18.0",

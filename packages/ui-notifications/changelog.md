@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.2
 
 - Internal: Upgraded build tooling to Vite 8 for faster builds.
 
