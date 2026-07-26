@@ -147,8 +147,8 @@ describe('NavigateTo action', () => {
         };
 
         await withMockHref(async () => {
-            await withMockOpen((openMock) => {
-                NavigateTo(ctx as any, {
+            await withMockOpen(async (openMock) => {
+                await NavigateTo(ctx as any, {
                     __typename: 'ActionImpl',
                     name: 'NavigateTo',
                     new_tab: true,

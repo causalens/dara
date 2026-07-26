@@ -21,6 +21,7 @@ prepare-docs:
 JS_SOURCE_DIRS := \
 	'packages/{dara-components,dara-core}/js/' \
 	'packages/dara-core/{tests,cypress}/' \
+	'packages/ui-causal-graph-editor/tests/' \
 	'packages/{styled-components,ui-*}/src/'
 
 JS_SOURCE_FILES := \
@@ -31,7 +32,6 @@ JS_BIN := $(CURDIR)/node_modules/.bin
 
 lint-js:
 	$(JS_BIN)/glob -A -c $(JS_BIN)/oxlint $(JS_SOURCE_DIRS)
-	$(JS_BIN)/tsc -b tsconfig.check.json
 	$(JS_BIN)/stylelint $(JS_SOURCE_FILES) --cache --cache-strategy content
 
 lint:

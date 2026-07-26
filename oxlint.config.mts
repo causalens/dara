@@ -9,8 +9,9 @@ export default defineConfig({
         {
             files: [
                 'packages/dara-core/tests/**/*.{ts,tsx}',
-                'packages/{dara-components,dara-core}/js/**/*.{spec,stories}.{ts,tsx}',
-                'packages/{styled-components,ui-*}/src/**/*.{spec,stories}.{ts,tsx}',
+                'packages/{dara-components,dara-core}/js/**/*.spec.{ts,tsx}',
+                'packages/{styled-components,ui-*}/src/**/*.spec.{ts,tsx}',
+                'packages/ui-causal-graph-editor/tests/**/*.{ts,tsx}',
             ],
             plugins: [...daraConfig.plugins, ...reactConfig.plugins, ...vitestConfig.plugins],
             rules: vitestConfig.rules,

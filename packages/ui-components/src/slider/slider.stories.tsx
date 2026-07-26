@@ -83,7 +83,7 @@ export const ControlledSlider: StoryFn<BaseSliderProps<number>> = (args) => {
 
     function onChange(vals: number[]): void {
         setValue(vals);
-        args.onChange?.(vals);
+        void args.onChange?.(vals);
     }
 
     return (
@@ -108,7 +108,7 @@ export const ControlledSliderIncompatible: StoryFn<BaseSliderProps<number>> = (a
 
     function onChange(vals: number[]): void {
         setValue(vals);
-        args.onChange?.(vals);
+        void args.onChange?.(vals);
     }
 
     function changeDomain(): void {

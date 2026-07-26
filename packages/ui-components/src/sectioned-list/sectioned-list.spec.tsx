@@ -103,7 +103,7 @@ describe('Sectioned List', () => {
         const input = container.querySelector('[id$=-input]');
 
         // Wait for SectionedList to be responsive
-        userEvent.type(input!, '3', { delay: 5 });
+        await userEvent.type(input!, '3', { delay: 5 });
         await new Promise<void>((r) => setTimeout(() => r(), 100));
 
         for (let idx = 0; idx < options.childElementCount; idx++) {

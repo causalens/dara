@@ -90,7 +90,7 @@ describe('useAction', () => {
         });
 
         act(() => {
-            result.current(null);
+            void result.current(null);
         });
         await waitFor(() => expect(window.location.pathname).toBe('/simple/url'));
     });
@@ -1129,7 +1129,7 @@ describe('useAction', () => {
 
         // Execute action
         act(() => {
-            result.current[0]('input');
+            void result.current[0]('input');
         });
 
         expect(result.current[1]).toEqual(true);
@@ -1252,7 +1252,7 @@ describe('useAction', () => {
 
         // Execute action
         act(() => {
-            result.current[0]('input');
+            void result.current[0]('input');
         });
 
         expect(result.current[1]).toEqual(true);
@@ -1633,7 +1633,7 @@ describe('useAction', () => {
 
             // Execute action
             act(() => {
-                result.current('input');
+                void result.current('input');
             });
 
             await waitFor(() => expect(serverReceivedMessage).not.toBeNull());

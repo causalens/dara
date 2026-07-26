@@ -4,5 +4,4 @@ import daraConfig, { reactConfig } from '@darajs/oxlint-config';
 
 export default defineConfig({
     extends: [daraConfig, reactConfig],
-    ignorePatterns: ['**/*.spec.tsx', '**/*.stories.tsx'],
 });

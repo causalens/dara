@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "./tsconfig.build.json",
   "exclude": ["dist/**", "**/*.stories.ts", "**/*.stories.tsx"],
   "include": ["src/**/*"],
   "compilerOptions": {

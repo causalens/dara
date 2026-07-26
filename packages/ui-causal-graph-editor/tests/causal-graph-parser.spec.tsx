@@ -39,9 +39,7 @@ describe('CausalGraphParser', () => {
         parsedGraph.forEachNode((id, attrs) => {
             const expectedNode = cloneDeep(MockCausalGraph.nodes[id]);
 
-            if (!expectedNode.meta.rendering_properties) {
-                expectedNode.meta.rendering_properties = {};
-            }
+            expectedNode.meta.rendering_properties ??= {};
             // No available inputs provided - all nodes are not latent
             expectedNode.meta.rendering_properties.latent = false;
 

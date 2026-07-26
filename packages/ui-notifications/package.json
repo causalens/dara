@@ -6,8 +6,8 @@
   "module": "dist/index.js",
   "jsnext:main": "dist/index.js",
   "scripts": {
-    "build": "rimraf dist && tsc",
-    "prepare-dev": "tsc",
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "prepare-dev": "tsc -p tsconfig.build.json",
     "lint": "oxlint --type-aware --type-check src && stylelint './src/**/*.tsx'",
     "format": "oxfmt src --write",
     "format:check": "oxfmt src --check",

@@ -50,7 +50,7 @@ describe('useInfiniteLoader', () => {
 
         act(() => {
             // Simulate scrolling down past the end of the currently loaded data
-            result.current.onItemsRendered({ overscanStartIndex: 20, overscanStopIndex: 60 });
+            void result.current.onItemsRendered({ overscanStartIndex: 20, overscanStopIndex: 60 });
         });
 
         await waitFor(() => {
@@ -66,7 +66,7 @@ describe('useInfiniteLoader', () => {
 
         // This block acts to scroll down to the bottom of the page and then drop most of the loaded data using refresh
         act(() => {
-            result.current.onItemsRendered({ overscanStartIndex: 80, overscanStopIndex: 100 });
+            void result.current.onItemsRendered({ overscanStartIndex: 80, overscanStopIndex: 100 });
         });
         await waitFor(() => {
             expect(result.current.getItem(80)).toEqual({ id: 'id_80' });
@@ -83,7 +83,7 @@ describe('useInfiniteLoader', () => {
 
         act(() => {
             // Simulate scrolling up past the start of the currently loaded data
-            result.current.onItemsRendered({ overscanStartIndex: 60, overscanStopIndex: 90 });
+            void result.current.onItemsRendered({ overscanStartIndex: 60, overscanStopIndex: 90 });
         });
 
         await waitFor(() => {
@@ -104,7 +104,7 @@ describe('useInfiniteLoader', () => {
 
         act(() => {
             // Simulate jumping to the end of the data
-            result.current.onItemsRendered({ overscanStartIndex: 80, overscanStopIndex: 100 });
+            void result.current.onItemsRendered({ overscanStartIndex: 80, overscanStopIndex: 100 });
         });
 
         await waitFor(() => {
@@ -120,8 +120,8 @@ describe('useInfiniteLoader', () => {
 
         // This block acts to scroll to the end of the data window and then back to the middle so all the data is loaded
         act(() => {
-            result.current.onItemsRendered({ overscanStartIndex: 40, overscanStopIndex: 100 });
-            result.current.onItemsRendered({ overscanStartIndex: 40, overscanStopIndex: 60 });
+            void result.current.onItemsRendered({ overscanStartIndex: 40, overscanStopIndex: 100 });
+            void result.current.onItemsRendered({ overscanStartIndex: 40, overscanStopIndex: 60 });
         });
 
         // Verify this has worked

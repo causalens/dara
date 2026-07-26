@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "./tsconfig.build.json",
   "exclude": ["dist/**", "**/*.spec.ts", "**/*.spec.tsx"],
   "include": ["src/**/*", "tests/**/*"],
   "compilerOptions": {

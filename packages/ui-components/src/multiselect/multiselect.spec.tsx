@@ -100,7 +100,7 @@ describe('MultiSelect', () => {
         // Wait for multiselect to be responsive
         await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
-        userEvent.type(input!, 'value 1', { delay: 5 });
+        await userEvent.type(input!, 'value 1', { delay: 5 });
 
         await waitFor(() => {
             expect(onTermChangeStub).toHaveBeenCalledTimes(7);
@@ -167,7 +167,7 @@ describe('MultiSelect', () => {
 
         await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
-        userEvent.type(input!, 'new input', { delay: 5 });
+        await userEvent.type(input!, 'new input', { delay: 5 });
 
         await waitFor(() => {
             expect(input).toHaveAttribute('value', 'new input');

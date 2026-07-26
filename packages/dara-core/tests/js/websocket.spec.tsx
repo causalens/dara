@@ -85,7 +85,7 @@ describe('WebsocketClient', () => {
         // Wait for the client to connect fully
         await client.channel;
 
-        client.sendCustomMessage('test_custom', { message: 'test' });
+        void client.sendCustomMessage('test_custom', { message: 'test' });
 
         // Check that the message was received
         expect(await server.nextMessage).toBe(

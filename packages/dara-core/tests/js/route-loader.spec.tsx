@@ -970,7 +970,7 @@ describe('Route Loader', () => {
         // The key assertion is that the error was thrown and caught
         await waitFor(() => {
             // Check for any error indication - could be "Unexpected error" (prod) or "Unknown error" (dev)
-            const errorElement = container.queryByText(/Unexpected error/i) || container.queryByText(/Unknown error/i);
+            const errorElement = container.queryByText(/Unexpected error/i) ?? container.queryByText(/Unknown error/i);
             expect(errorElement).toBeInTheDocument();
         });
 
