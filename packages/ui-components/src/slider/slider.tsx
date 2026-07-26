@@ -99,9 +99,9 @@ const SliderRail = styled.div`
 
     width: 100%;
     height: 0.25rem;
+    border-radius: 0.125rem;
 
     background-color: ${(props) => props.theme.colors.grey2};
-    border-radius: 0.125rem;
 `;
 
 interface HasTicksProp {
@@ -117,9 +117,9 @@ const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
 
     width: 1rem;
     height: 1rem;
+    border-radius: 50%;
 
     background-color: ${(props) => props.theme.colors.primary};
-    border-radius: 50%;
 
     &[data-focus-visible] {
         outline: 2px solid ${(props) => props.theme.colors.primary};
@@ -142,9 +142,9 @@ const Track = styled.div`
     transform: translateY(-50%);
 
     height: 0.25rem;
+    border-radius: 0.125rem;
 
     background-color: ${(props) => props.theme.colors.primary};
-    border-radius: 0.125rem;
 `;
 
 const TrackLabel = styled.span`
@@ -181,9 +181,9 @@ const Tick = styled.span<TickProps>`
         width: 0.125rem;
         height: 0.125rem;
         margin-top: -0.685rem;
+        border-radius: 50%;
 
         background-color: ${(props) => props.theme.colors.grey3};
-        border-radius: 50%;
     }
 `;
 

@@ -46,11 +46,10 @@ const RadioWrapper = styled.label<RadioWrapperProps>`
     width: ${(props) => (props.isListStyle ? 'auto' : 'fit-content')};
     height: 2.5rem;
     padding: 0 0.5rem;
-
-    color: ${(props) => (props['aria-disabled'] ? props.theme.colors.grey3 : props.theme.colors.text)};
-
     border: none;
     border-radius: 0.25rem;
+
+    color: ${(props) => (props['aria-disabled'] ? props.theme.colors.grey3 : props.theme.colors.text)};
 
     /* sets checkmark indicator */
     span::after {
@@ -59,9 +58,9 @@ const RadioWrapper = styled.label<RadioWrapperProps>`
 
         width: 0.5rem;
         height: 0.5rem;
+        border-radius: 50%;
 
         background-color: ${(props) => (props['aria-disabled'] ? props.theme.colors.grey3 : props.theme.colors.grey5)};
-        border-radius: 50%;
     }
 
     /* Show the checkmark when checked */
@@ -128,10 +127,10 @@ const StyledCheckmark = styled.span<StyledCheckmarkProps>`
 
     width: 1rem;
     height: 1rem;
-
-    background-color: ${(props) => (props.disabled ? props.theme.colors.grey1 : props.theme.colors.blue1)};
     border: 1px solid ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.grey3)};
     border-radius: 50%;
+
+    background-color: ${(props) => (props.disabled ? props.theme.colors.grey1 : props.theme.colors.blue1)};
 
     ::after {
         content: '';

@@ -43,7 +43,6 @@ export const Wrapper = styled.div<WrapperProps>`
     width: 100%;
     min-width: 4rem;
     height: 2.5rem;
-
     border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0px 0px' : '0.25rem')};
 
     ${(props) => {
@@ -85,12 +84,12 @@ export const InputWrapper = styled.div<InputWrapperProps>`
     width: calc(100% - 1rem);
     height: 100%;
     padding: 0 0.25rem 0 1rem;
+    border: none;
+    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0px 0px' : '0.25rem')};
 
     color: ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.text)};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: none;
-    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0px 0px' : '0.25rem')};
 
     :hover {
         background-color: ${(props) => (props.disabled ? props.theme.colors.grey1 : props.theme.colors.grey2)};
@@ -108,6 +107,7 @@ export const Input = styled.input<{ size?: number }>`
     height: 100%;
     margin-right: 0.5rem;
     padding: 0;
+    border: none;
 
     font-size: ${(props) => (props.size ? `${props.size}rem` : props.theme.font.size)};
     font-weight: 300;
@@ -117,7 +117,6 @@ export const Input = styled.input<{ size?: number }>`
     white-space: nowrap;
 
     background-color: transparent;
-    border: none;
     outline: 0;
 
     :disabled {

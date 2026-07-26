@@ -38,6 +38,18 @@ export const reactConfig = defineConfig({
 });
 
 /**
+ * Optional rules for projects that use Vitest.
+ */
+export const vitestConfig = defineConfig({
+    plugins: ['vitest'],
+    rules: {
+        // This is not part of Vitest's legacy recommended preset and would
+        // require annotating every existing vi.fn() call.
+        'vitest/require-mock-type-parameters': 'off',
+    },
+});
+
+/**
  * Root-only options that enable Oxlint's tsgo-backed rules and TypeScript
  * compiler diagnostics.
  *

@@ -56,22 +56,20 @@ const LabelStaticDisplay = styled.div<{ $viewOnly: boolean }>`
     overflow: hidden;
     display: box; /* stylelint-disable-line declaration-property-value-no-unknown */
     box-orient: vertical; /* stylelint-disable-line property-no-unknown */
+    -webkit-line-clamp: 3;
 
     width: 20ch;
     max-width: 100%;
     margin: 0;
     padding: 0.5rem calc(0.5rem + 1px); /* so its aligned with the input having 1px border */
+    border-radius: 4px;
 
     font-size: 1rem;
     color: ${(props) => props.theme.colors.grey4};
 
-    border-radius: 4px;
-
     box-align: center; /* stylelint-disable-line property-no-unknown */
 
     box-pack: center; /* stylelint-disable-line property-no-unknown */
-
-    -webkit-line-clamp: 3;
 
     ${(props) =>
         !props.$viewOnly &&

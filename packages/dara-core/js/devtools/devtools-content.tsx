@@ -11,11 +11,11 @@ const DevToolsContentWrapper = styled.div`
     flex-direction: column;
 
     width: 100%;
+    border-left: 1px solid ${(props) => props.theme.colors.grey5};
 
     color: ${(props) => props.theme.colors.text};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-left: 1px solid ${(props) => props.theme.colors.grey5};
 `;
 
 const HeaderWrapper = styled.div`
@@ -25,7 +25,6 @@ const HeaderWrapper = styled.div`
 
     width: 100%;
     margin: 0 auto;
-
     border-bottom: 1px solid;
     border-bottom-color: ${(props) => props.theme.colors.grey5};
 `;
@@ -56,9 +55,9 @@ const CloseButton = styled(Button)`
 const SelectionButton = styled(Button)<{
     $selected: boolean;
 }>`
-    color: ${(props) => props.theme.colors.text};
     border-bottom: 2px solid ${(props) => props.theme.colors.primary};
     border-radius: 0;
+    color: ${(props) => props.theme.colors.text};
 
     :hover:not(:disabled) {
         color: ${(props) => props.theme.colors.text};

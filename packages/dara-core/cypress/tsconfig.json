@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "composite": true,
+    "noEmit": true,
+    "tsBuildInfoFile": "../../../node_modules/.cache/tsgo/dara-core-cypress.tsbuildinfo",
     "target": "es2015",
     "lib": ["es2015", "dom"],
     // Cypress 10's webpack preprocessor still enables downlevelIteration internally.

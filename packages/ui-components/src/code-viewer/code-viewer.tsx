@@ -38,11 +38,11 @@ const TopBar = styled.div<{ $isLightTheme?: boolean }>`
     justify-content: space-between;
 
     padding: 0.5rem 1rem;
+    border-radius: 0.25rem 0.25rem 0 0;
 
     font-size: 0.875rem;
 
     background-color: ${(props) => (props.$isLightTheme ? theme.colors.blue2 : darkTheme.colors.blue2)} !important;
-    border-radius: 0.25rem 0.25rem 0 0;
 `;
 
 const CopyToClipboardContainer = styled.span`
@@ -74,9 +74,9 @@ const StyledPre = styled.pre<{ $isLightTheme?: boolean }>`
 
     margin: 0;
     padding: 1rem;
+    border-radius: 0 0 0.25rem 0.25rem;
 
     background-color: ${(props) => (props.$isLightTheme ? theme.colors.blue1 : darkTheme.colors.blue1)} !important;
-    border-radius: 0 0 0.25rem 0.25rem;
 `;
 
 function CodeViewer(props: CodeViewerProps): JSX.Element {

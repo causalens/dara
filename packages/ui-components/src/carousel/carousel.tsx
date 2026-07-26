@@ -70,11 +70,11 @@ const Button = styled.button`
     align-items: center;
 
     padding: 0;
+    border: none;
 
     color: ${(props) => props.theme.colors.grey4};
 
     background-color: inherit;
-    border: none;
 
     :hover {
         color: ${(props) => props.theme.colors.grey5};
@@ -92,11 +92,11 @@ const CircleSelect = styled.button<CircleSelectProps>`
     z-index: 3;
 
     padding: 0;
+    border: none;
 
     color: ${(props) => (props.selected ? props.theme.colors.grey4 : props.theme.colors.grey3)};
 
     background-color: inherit;
-    border: none;
 
     :hover {
         color: ${(props) => props.theme.colors.grey4};

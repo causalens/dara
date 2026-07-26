@@ -56,11 +56,11 @@ const ModalWrapper = styled.div<RenderProp>`
     max-height: 80vh;
     margin-top: ${(props) => (props.render ? 0 : '-50px')};
     padding: 1.75rem;
+    border-radius: 0.25rem;
 
     font-size: ${(props) => props.theme.font.size};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
     transition: margin-top ease-in 0.1s;

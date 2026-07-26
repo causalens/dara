@@ -33,4 +33,5 @@ pyrightconfig.json
 
 # JS
 **/node_modules
+.stylelintcache
 package-lock.json

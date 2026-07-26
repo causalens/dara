@@ -45,13 +45,13 @@ const PrimaryTextArea = styled.textarea<PrimaryTextAreaProps>`
     height: 100%;
     min-height: 3.4rem;
     padding: 1rem;
+    border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey1)};
+    border-radius: 0.25rem;
 
     font-size: 1rem;
     color: ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.text)};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey1)};
-    border-radius: 0.25rem;
     outline: 0;
 
     :hover:not(:disabled) {

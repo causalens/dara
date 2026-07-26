@@ -31,3 +31,15 @@ export default defineConfig({
     options: typeAwareOptions,
 });
 ```
+
+Vitest projects can opt into Oxlint's built-in Vitest rules:
+
+```ts
+import daraConfig, { typeAwareOptions, vitestConfig } from '@darajs/oxlint-config';
+import { defineConfig } from 'oxlint';
+
+export default defineConfig({
+    extends: [daraConfig, vitestConfig],
+    options: typeAwareOptions,
+});
+```

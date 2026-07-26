@@ -15,8 +15,8 @@
     "test-watch": "vitest"
   },
   "devDependencies": {
-    "@darajs/oxlint-config": "1.29.4",
     "@darajs/oxfmt-config": "1.29.4",
+    "@darajs/oxlint-config": "1.29.4",
     "@darajs/stylelint-config": "1.29.4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
@@ -29,7 +29,7 @@
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
     "rimraf": "^3.0.2",
-    "stylelint": "^15.0.0",
+    "stylelint": "^17.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^4.1.10"
   },

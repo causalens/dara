@@ -61,13 +61,13 @@ const DividerButton = styled.button`
     height: 24px;
     margin: 0;
     padding: 0;
+    border: none;
+    border-radius: 50%;
 
     color: ${(props) => props.theme.colors.background};
 
     opacity: 0;
     background-color: ${(props) => props.theme.colors.primary};
-    border: none;
-    border-radius: 50%;
     outline: none;
 
     transition: opacity 0.1s cubic-bezier(0.4, 0, 1, 1);
@@ -85,9 +85,9 @@ const LayerAddArea = styled.button<{ $viewOnly: boolean }>`
     height: 14px;
     margin: 0;
     padding: 0;
+    border: none;
 
     background-color: transparent;
-    border: none;
     outline: none;
 
     /* When AddArea is hovered, adjust border styles */

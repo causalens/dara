@@ -68,7 +68,6 @@ const LogoutButton = styled(Button)`
     height: 3rem;
     margin-left: 0.5rem;
     padding: 1rem;
-
     border-radius: 1rem;
 
     a {

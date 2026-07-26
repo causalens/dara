@@ -45,13 +45,13 @@ const NotificationWrapper = styled.div<NotificationWrapperProps>`
     width: 22rem;
     height: ${(props) => (props.hasTitle ? '5.625rem' : '4.375rem')};
     padding: 1rem;
+    border: 1px solid ${(props) => getStatusColor(props.status, props.theme.colors)};
+    border-radius: 0.25rem;
 
     color: ${(props) => getStatusColor(props.status, props.theme.colors)};
 
     background-color: ${(props) =>
         mix(0.1, getStatusColor(props.status, props.theme.colors), props.theme.colors.background)};
-    border: 1px solid ${(props) => getStatusColor(props.status, props.theme.colors)};
-    border-radius: 0.25rem;
     box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
 `;
 
@@ -70,24 +70,22 @@ const Heading = styled.h2`
     overflow: hidden;
     display: -webkit-box; /* stylelint-disable-line value-no-vendor-prefix */
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
 
     font-size: 1rem;
     font-weight: 700;
     text-overflow: ellipsis;
-
-    -webkit-line-clamp: 1;
 `;
 
 const Body = styled.span<NotificationBodyProps>`
     overflow: hidden;
     display: -webkit-box; /* stylelint-disable-line value-no-vendor-prefix */
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: ${(props) => (props.moreDetailsShown ? 1 : 2)};
 
     font-weight: 400;
     line-height: 1.25rem;
     text-overflow: ellipsis;
-
-    -webkit-line-clamp: ${(props) => (props.moreDetailsShown ? 1 : 2)};
 `;
 
 const Icon = styled.div<NotificationIconsProps>`
@@ -106,11 +104,11 @@ const MoreDetailsButton = styled.button`
     display: flex;
 
     padding-left: 0;
+    border: none;
 
     color: ${() => theme.colors.grey4};
 
     background: transparent;
-    border: none;
 
     :hover {
         text-decoration: underline;

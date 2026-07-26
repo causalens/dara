@@ -31,10 +31,10 @@ const InputWrapper = styled.div<NumericInputProps>`
     width: 22ch;
     height: 2.5rem;
     padding-right: 0.5rem;
-
-    background-color: ${(props) => props.theme.colors.grey1};
     border: 1px solid ${(props) => (props.errorMsg ? props.theme.colors.error : props.theme.colors.grey1)};
     border-radius: 0.25rem;
+
+    background-color: ${(props) => props.theme.colors.grey1};
 
     input {
         height: calc(2.5rem - 2px);

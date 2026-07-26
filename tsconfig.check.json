@@ -1,0 +1,26 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/dara-core/tests/js/tsconfig.json"
+    },
+    {
+      "path": "./packages/dara-core/cypress/tsconfig.json"
+    },
+    {
+      "path": "./packages/ui-causal-graph-editor/tsconfig.spec.json"
+    },
+    {
+      "path": "./packages/ui-causal-graph-editor/tsconfig.stories.json"
+    },
+    {
+      "path": "./packages/ui-components/tsconfig.spec.json"
+    },
+    {
+      "path": "./packages/ui-components/tsconfig.stories.json"
+    },
+    {
+      "path": "./packages/ui-notifications/tsconfig.stories.json"
+    }
+  ]
+}

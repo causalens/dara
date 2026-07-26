@@ -26,7 +26,6 @@ const TabWrapper = styled.div`
     flex-shrink: 0;
 
     width: 100%;
-
     border-radius: 1rem 1rem 0 0;
 `;
 
@@ -46,12 +45,12 @@ const TabComponent = styled.span<TabProps>`
 
     box-sizing: border-box;
     height: 2.5rem;
+    border-bottom: ${(props) =>
+        props.selected ? `2px solid ${props.theme.colors.primary}` : `1px solid ${props.theme.colors.grey3}`};
 
     color: ${(props) => (props.selected ? props.theme.colors.primary : props.theme.colors.grey3)};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-bottom: ${(props) =>
-        props.selected ? `2px solid ${props.theme.colors.primary}` : `1px solid ${props.theme.colors.grey3}`};
 
     :hover {
         color: ${(props) => (props.selected ? props.theme.colors.primary : props.theme.colors.text)};

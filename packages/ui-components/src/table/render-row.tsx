@@ -45,13 +45,13 @@ const CellPlaceholder = styled.div`
     min-width: 80px;
     height: 0.7rem;
     margin: 0.5rem;
+    border-radius: 0.5rem;
 
     background: ${(props) =>
         `linear-gradient(to right, ${props.theme.colors.grey2}, ${transparentize(0.2, props.theme.colors.grey3)}, ${
             props.theme.colors.grey2
         });`};
     background-size: 50%;
-    border-radius: 0.5rem;
 
     animation-name: ani-horizontal;
     animation-duration: 3.5s;
@@ -75,11 +75,11 @@ const Cell = styled.div<{ rowHeight: number }>`
 
     min-width: 80px;
     height: ${({ rowHeight }) => `${rowHeight}px`};
+    border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
 
     color: ${(props) => props.theme.colors.grey6};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
 
     :last-child {
         border-right: 0;

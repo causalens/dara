@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["dist/**", "**/*.spec.ts", "**/*.spec.tsx"],
+  "include": ["src/**/*", "tests/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": true,
+    "preserveSymlinks": false,
+    "rootDir": ".",
+    "tsBuildInfoFile": "../../node_modules/.cache/tsgo/ui-causal-graph-editor-stories.tsbuildinfo",
+    "types": ["node", "vite/client"]
+  }
+}

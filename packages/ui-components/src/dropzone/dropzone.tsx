@@ -33,11 +33,10 @@ const Dropzone = styled.div<DropzoneProps>`
     justify-content: center;
 
     margin-top: 20px;
-
-    color: ${(props) => props.theme.colors.text};
-
     border: 1px dashed ${(props) => (props.isDragActive ? props.theme.colors.primary : props.theme.colors.grey3)};
     border-radius: 0.25rem;
+
+    color: ${(props) => props.theme.colors.text};
 
     :hover {
         background-color: ${(props) => props.theme.colors.grey1};

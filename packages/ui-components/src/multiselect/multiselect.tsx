@@ -55,7 +55,6 @@ const Wrapper = styled.div<WrapperProps>`
     width: 100%;
     max-width: ${(props) => props.maxWidth};
     max-height: ${(props) => props.maxRows * (tagHeight + tagTopMargin)}rem;
-
     border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 `;
 
@@ -76,12 +75,12 @@ const InputWrapper = styled.div<InputWrapperProps>`
     min-height: 2.5rem;
     margin-right: 0.25rem;
     padding: 0.25rem 0.5rem 0.25rem 1rem;
+    border: none;
+    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     color: ${(props) => (props.isDisabled ? props.theme.colors.grey2 : props.theme.colors.text)};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: none;
-    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     :hover {
         background-color: ${(props) => (props.isDisabled ? props.theme.colors.grey1 : props.theme.colors.grey2)};
@@ -127,6 +126,7 @@ const Input = styled.input<InputProps>`
 
     margin-right: 0.5rem;
     padding: 0;
+    border: none;
 
     font-size: ${(props) => (props.size ? `${props.size}rem` : props.theme.font.size)};
     font-weight: 300;
@@ -136,7 +136,6 @@ const Input = styled.input<InputProps>`
     white-space: nowrap;
 
     background-color: transparent;
-    border: none;
     outline: 0;
 
     :disabled {
@@ -171,13 +170,13 @@ const Tag = styled.span<TagProps>`
 
     height: ${tagHeight}rem;
     padding: 0 0.75rem;
+    border: 1px solid ${(props) => props.theme.colors.primary};
+    border-radius: 1rem;
 
     font-size: 0.875rem;
     color: ${(props) => (props.disabled ? props.theme.colors.grey3 : props.theme.colors.text)};
 
     background-color: ${(props) => (props.disabled ? props.theme.colors.grey3 : props.theme.colors.blue3)};
-    border: 1px solid ${(props) => props.theme.colors.primary};
-    border-radius: 1rem;
 
     svg {
         width: 0.85rem;

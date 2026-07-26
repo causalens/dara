@@ -40,12 +40,12 @@ const SwitchWrapper = styled.div<EnabledProp>`
     padding: 0;
     padding-right: ${(props) => (props.enabled ? '1.75rem' : '0.5rem')};
     padding-left: ${(props) => (props.enabled ? '0.5rem' : '1.75rem')};
+    border-radius: 0.75rem;
 
     font-size: ${(props) => props.theme.font.size};
     color: ${(props) => props.theme.colors.blue1};
 
     background-color: ${(props) => (props.enabled ? props.theme.colors.primary : props.theme.colors.secondary)};
-    border-radius: 0.75rem;
 
     svg {
         color: ${(props) => props.theme.colors.blue1};
@@ -61,9 +61,9 @@ const SwitchHandle = styled.span<EnabledProp>`
 
     width: 1.25rem;
     height: 1.25rem;
+    border-radius: 0.625rem;
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-radius: 0.625rem;
 
     transition: left 100ms linear;
 `;

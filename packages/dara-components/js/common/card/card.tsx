@@ -23,6 +23,7 @@ export const CardDiv = injectCss(styled.div<BaseCardProps>`
 
     width: 100%;
     padding: 1.5rem;
+    border-radius: 1rem;
 
     color: ${(props) => props.theme.colors.text};
 
@@ -39,7 +40,6 @@ export const CardDiv = injectCss(styled.div<BaseCardProps>`
                   props.theme.colors.error
               )} 0%, ${transparentize(0.2, props.theme.colors.blue4)} 230%)`
             : props.theme.colors.blue1};
-    border-radius: 1rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 `);
 

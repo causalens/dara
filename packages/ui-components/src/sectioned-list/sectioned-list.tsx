@@ -59,9 +59,9 @@ const ListItemSpan = styled(StyledListItem)<ListSpanProps>`
     padding: ${(props) => (props?.heading || !props.section ? '0 0.7rem' : '0 1.5rem')};
     padding-right: 0.7rem;
 
+    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
     font-weight: ${(props) => (props?.heading ? 'bold' : 'normal')};
     color: ${(props) => getTextColor(props?.heading, props.isSelected, props.theme)};
-    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
 
     ${(props) => {
         if (props.heading) {

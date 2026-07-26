@@ -33,7 +33,6 @@ const ButtonBarWrapper = styled.div<ButtonBarWrapperProps>`
     flex: 1 1 auto;
 
     height: 2.5rem;
-
     border: 1px solid ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors?.[props.styling])};
     border-radius: 0.25rem;
 

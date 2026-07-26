@@ -10,11 +10,11 @@
   "license": "Apache-2.0",
   "dependencies": {
     "postcss": "^8.5.10",
-    "postcss-styled-syntax": "^0.6.4",
-    "stylelint": "^15.0.0",
-    "stylelint-config-clean-order": "^5.0.0",
-    "stylelint-config-standard": "^34.0.0",
-    "stylelint-order": "^6.0.3"
+    "postcss-styled-syntax": "^0.7.2",
+    "stylelint": "^17.14.1",
+    "stylelint-config-clean-order": "^10.0.0",
+    "stylelint-config-standard": "^40.0.0",
+    "stylelint-order": "^8.1.1"
   },
   "publishConfig": {
     "access": "public",

@@ -35,7 +35,6 @@ const List = styled.div<ListProps>`
     flex-direction: column;
 
     max-height: calc(${(props) => getMaxItems(props.maxItems) * 2}em + 2px);
-
     border: 1px solid ${(props) => props.theme.colors.grey3};
 `;
 

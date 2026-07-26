@@ -35,9 +35,9 @@ const ChatWrapper = styled.div<{ $isPopup?: boolean }>`
     width: ${(props) => (props.$isPopup ? '350px' : '100%')};
     height: ${(props) => (props.$isPopup ? 'calc(100vh - 2rem)' : '100%')};
     padding: 1.5rem;
+    border-radius: ${(props) => (props.$isPopup ? '0.4rem' : 0)};
 
     background-color: ${(props) => (props.$isPopup ? `${props.theme.colors.background}e6` : 'inherit')};
-    border-radius: ${(props) => (props.$isPopup ? '0.4rem' : 0)};
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
 

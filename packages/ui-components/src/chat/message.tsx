@@ -36,9 +36,9 @@ const InteractiveIcons = styled.div`
     gap: 0.5rem;
 
     padding: 0.3rem;
+    border-radius: 0.25rem;
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
 
@@ -51,10 +51,10 @@ const MessageWrapper = styled.div<{ $messageFromActiveUser: boolean }>`
 
     width: 100%;
     padding: 1rem;
+    border-radius: 0.25rem;
 
     background-color: ${(props) =>
         props.$messageFromActiveUser ? props.theme.colors.blue2 : props.theme.colors.blue1};
-    border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
     :hover ${InteractiveIcons} {
@@ -138,11 +138,10 @@ const AvatarIcon = styled.div`
 
     width: 2rem;
     height: 2rem;
+    border-radius: 50%;
 
     font-weight: 700;
     color: white;
-
-    border-radius: 50%;
 `;
 
 export interface MessageProps extends InteractiveComponentProps<Message> {

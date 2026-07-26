@@ -38,7 +38,6 @@ const BuilderBox = styled.div`
 
     width: 100%;
     height: 100%;
-
     border: 1px solid ${(props) => props.theme.colors.grey2};
     border-radius: 4px;
 `;
@@ -73,9 +72,9 @@ const SearchWrapper = styled.div`
     justify-content: flex-end;
 
     padding: 1rem 2rem;
+    border-bottom: ${(props) => `1px solid ${props.theme.colors.grey3}`};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-bottom: ${(props) => `1px solid ${props.theme.colors.grey3}`};
 `;
 
 export interface NodeHierarchyBuilderProps<T> {

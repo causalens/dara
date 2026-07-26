@@ -34,10 +34,9 @@ const NodeContent = styled.li`
         width: 0.9rem;
         height: 0.8rem;
         margin-right: 0.1rem;
+        border-bottom: thin solid ${(props) => props.theme.colors.grey6};
 
         vertical-align: top;
-
-        border-bottom: thin solid ${(props) => props.theme.colors.grey6};
     }
 
     &:last-child {

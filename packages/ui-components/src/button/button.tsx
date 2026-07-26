@@ -36,12 +36,11 @@ export const BaseButton = styled.button<BaseButtonProps>`
     height: 2.5rem;
     padding: ${(props) => (props.$hasAnchor ? 0 : '0 1rem')};
     padding: 0 1rem;
+    border: none;
+    border-radius: 0.25rem;
 
     font-size: 1rem;
     font-weight: 600;
-
-    border: none;
-    border-radius: 0.25rem;
 
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;

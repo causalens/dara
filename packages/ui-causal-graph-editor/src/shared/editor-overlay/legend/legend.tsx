@@ -39,9 +39,9 @@ const LegendWrapper = styled.div`
     gap: 2rem;
 
     padding: 1.5rem;
+    border-radius: 4px;
 
     background-color: ${({ theme }) => theme.colors.background};
-    border-radius: 4px;
     box-shadow: ${({ theme }) => theme.shadow.light};
 
     transition:

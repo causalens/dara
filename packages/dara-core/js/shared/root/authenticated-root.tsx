@@ -38,8 +38,8 @@ const RootWrapper = styled.div`
     }
 
     *::-webkit-scrollbar-track {
-        background: ${(props) => props.theme.colors.grey2};
         border-radius: 100px;
+        background: ${(props) => props.theme.colors.grey2};
     }
 
     *::-webkit-scrollbar-corner {
@@ -47,8 +47,8 @@ const RootWrapper = styled.div`
     }
 
     *::-webkit-scrollbar-thumb {
-        background-color: ${(props) => props.theme.colors.grey5};
         border-radius: 100px;
+        background-color: ${(props) => props.theme.colors.grey5};
     }
 `;
 

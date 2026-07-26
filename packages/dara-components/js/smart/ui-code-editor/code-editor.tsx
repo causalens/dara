@@ -33,12 +33,13 @@ const TooltipWrapper = styled.div`
     max-width: 550px;
     max-height: 300px;
     margin: -1px;
+    border-radius: 0.25rem;
 
     color: ${(props) => props.theme.colors.text};
-    word-break: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
 
     background-color: ${({ theme }) => theme.colors.background} !important;
-    border-radius: 0.25rem;
     box-shadow:
         rgb(0 0 0 / 10%) 0 1px 3px 0,
         rgb(0 0 0 / 6%) 0 1px 2px 0;

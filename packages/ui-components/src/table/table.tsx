@@ -81,7 +81,7 @@ const StyledFixedSizeList = styled(FixedSizeList)`
 
         position: sticky;
         z-index: 5;
-        inset: calc(2.5rem - 2px) 0 0 0;
+        inset: calc(2.5rem - 2px) 0 0;
 
         display: block;
 

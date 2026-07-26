@@ -42,10 +42,9 @@ const NodeLabel = styled.div<NodeLabelProps>`
     width: 100%;
     height: 100%;
     padding-top: 4px;
+    border: 2px solid transparent;
 
     text-align: center;
-
-    border: 2px solid transparent;
 
     :hover {
         border: ${(props) =>

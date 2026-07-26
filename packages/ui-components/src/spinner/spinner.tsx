@@ -63,9 +63,9 @@ const Loader = styled.span<LoaderProps>`
 
         width: 25%;
         height: 25%;
+        border-radius: 100%;
 
         background-color: ${(props) => props.color ?? props.theme.colors.grey4};
-        border-radius: 100%;
 
         animation: sk-chase-dot-before 2s infinite ease-in-out both;
     }

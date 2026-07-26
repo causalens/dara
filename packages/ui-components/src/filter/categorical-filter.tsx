@@ -31,22 +31,22 @@ export const FilterWrapper = styled.div`
 
     width: 17.5rem;
     padding: 1.25rem 0.5rem;
+    border-radius: 0.25rem;
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.light};
 `;
 
 export const StyledSearchBar = styled(SearchBar)`
     width: 15.5rem;
-    background-color: ${(props) => props.theme.colors.blue1};
     border: 1px solid ${(props) => props.theme.colors.blue1};
     border-radius: 0.25rem;
+    background-color: ${(props) => props.theme.colors.blue1};
 
     input {
         width: 15.5rem;
-        background-color: ${(props) => props.theme.colors.blue1};
         border: none;
+        background-color: ${(props) => props.theme.colors.blue1};
 
         :active:not(:disabled),
         :focus:not(:disabled) {
@@ -55,23 +55,24 @@ export const StyledSearchBar = styled(SearchBar)`
     }
 
     :hover:not(:disabled) {
-        background-color: ${(props) => props.theme.colors.blue1};
         border: 1px solid ${(props) => props.theme.colors.grey2};
+        background-color: ${(props) => props.theme.colors.blue1};
 
         input {
-            background-color: ${(props) => props.theme.colors.blue1};
             border: none;
+            background-color: ${(props) => props.theme.colors.blue1};
         }
     }
 `;
 
 const FilterButtons = styled.button`
+    border: none;
+
     font-size: 0.75rem;
     font-weight: 400;
     color: ${(props) => props.theme.colors.primary};
 
     background-color: inherit;
-    border: none;
 
     :hover {
         cursor: pointer;

@@ -22,13 +22,13 @@ const PromptWrapper = styled.div`
     min-width: 0;
     height: 40px;
     padding: 0.25rem 0.5rem;
+    border: 1px solid ${({ theme }) => mix(0.5, theme.colors.primary, theme.colors.blue1)};
+    border-radius: 4px;
 
     font-size: 0.875rem;
     color: ${({ theme }) => theme.colors.primary};
 
     background-color: ${({ theme }) => mix(0.1, theme.colors.primary, theme.colors.blue1)};
-    border: 1px solid ${({ theme }) => mix(0.5, theme.colors.primary, theme.colors.blue1)};
-    border-radius: 4px;
 `;
 
 const DismissText = styled.span`

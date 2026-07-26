@@ -32,9 +32,9 @@ const Track = styled.div<TrackProps>`
 
     width: 100%;
     height: ${(props) => (props.small ? '0.5rem' : '1rem')};
+    border-radius: ${(props) => (props.small ? '0.25rem' : '0.5rem')};
 
     background-color: ${(props) => props.theme.colors.grey2};
-    border-radius: ${(props) => (props.small ? '0.25rem' : '0.5rem')};
 `;
 
 interface BarProps {
@@ -56,9 +56,9 @@ const Bar = styled.div<BarProps>`
     overflow: ${(props) => (props.multi ? 'hidden' : 'visible')};
 
     height: 100%;
+    border-radius: ${(props) => (props.small ? '0.25rem' : '0.5rem')};
 
     background-color: ${(props) => getBarColor(props.color, props.theme.colors.primary)};
-    border-radius: ${(props) => (props.small ? '0.25rem' : '0.5rem')};
 `;
 
 interface ProgressProp {

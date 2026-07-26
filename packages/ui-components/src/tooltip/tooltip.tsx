@@ -51,10 +51,10 @@ const TooltipWrapper = styled.div<StylingProp>`
 
     max-width: 15rem;
     padding: 0.75rem 1rem;
-
-    word-break: break-word;
-
     border-radius: 0.25rem;
+
+    word-break: normal;
+    overflow-wrap: anywhere;
 
     transition: opacity 150ms ease-in-out;
 
