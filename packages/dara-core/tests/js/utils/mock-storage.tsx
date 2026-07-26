@@ -3,8 +3,8 @@ export class MockStorage implements Storage {
 
     length = 0;
 
-    getItem(key: string): string {
-        return this.storage.get(key);
+    getItem(key: string): string | null {
+        return this.storage.get(key) ?? null;
     }
 
     setItem(key: string, val: string): void {
@@ -21,7 +21,7 @@ export class MockStorage implements Storage {
 
     key(index: number): string | null {
         const keys = Array.from(this.storage.keys());
-        return keys[index] || null;
+        return keys[index] ?? null;
     }
 
     // Custom method to get all keys

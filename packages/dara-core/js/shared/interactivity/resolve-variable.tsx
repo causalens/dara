@@ -91,9 +91,10 @@ export async function resolveVariable<VariableType>(
         const resolvedValueMap = isVariable(variable.value_map)
             ? await resolveVariable(variable.value_map as any, client, taskContext, extras, resolver)
             : variable.value_map;
-        const resolvedDefault = isVariable(variable.default)
-            ? await resolveVariable(variable.default, client, taskContext, extras, resolver)
-            : variable.default;
+        const resolvedDefault =
+            variable.default !== undefined && isVariable(variable.default)
+                ? await resolveVariable(variable.default, client, taskContext, extras, resolver)
+                : variable.default;
 
         return {
             type: 'switch',

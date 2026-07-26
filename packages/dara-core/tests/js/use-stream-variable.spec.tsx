@@ -45,10 +45,7 @@ async function flushPendingRecoilUpdates(): Promise<void> {
  * Enqueue an SSE chunk safely.
  * Returns false when the stream has already been cancelled/closed.
  */
-function enqueueSSEChunkSafely(
-    controller: ReadableStreamDefaultController<Uint8Array>,
-    chunk: Uint8Array
-): boolean {
+function enqueueSSEChunkSafely(controller: ReadableStreamDefaultController<Uint8Array>, chunk: Uint8Array): boolean {
     try {
         controller.enqueue(chunk);
         return true;
@@ -263,7 +260,9 @@ describe('useVariable with StreamVariable', () => {
         server.use(
             http.post('/api/core/stream/test-suspend-deps', async ({ request }) => {
                 // Request body is in normalized format: { values: { data: [...], lookup: {...} } }
-                const body = (await request.json()) as { values: { data: unknown[]; lookup: Record<string, unknown> } };
+                const body = (await request.json()) as {
+                    values: { data: unknown[]; lookup: Record<string, unknown> };
+                };
                 const denormalizedValues = denormalize(body.values.data, body.values.lookup) as unknown[];
                 const depValue = denormalizedValues[0];
 
@@ -370,7 +369,9 @@ describe('useVariable with StreamVariable', () => {
         // Handler that returns different data based on dependency value with a delay
         server.use(
             http.post('/api/core/stream/test-nosuspend', async ({ request }) => {
-                const body = (await request.json()) as { values: { data: unknown[]; lookup: Record<string, unknown> } };
+                const body = (await request.json()) as {
+                    values: { data: unknown[]; lookup: Record<string, unknown> };
+                };
                 const denormalizedValues = denormalize(body.values.data, body.values.lookup) as unknown[];
                 const depValue = denormalizedValues[0];
 
@@ -645,7 +646,7 @@ describe('useVariable with StreamVariable', () => {
             expect(connectionKeys.length).toBe(1);
             const connectionKey = connectionKeys[0];
 
-            const controller = getConnectionController(connectionKey);
+            const controller = getConnectionController(connectionKey!);
             expect(controller).toBeDefined();
 
             // Manually abort the connection via the controller
@@ -833,22 +834,22 @@ describe('useVariable with StreamVariable', () => {
             );
 
             // page=1
-            registerStreamConnection('stream-uid', {}, 'atom-key-page1', mockStarts[0]);
+            registerStreamConnection('stream-uid', {}, 'atom-key-page1', mockStarts[0]!);
             expect(getActiveConnectionCount()).toBe(1);
 
             // page=2 — should abort page=1
-            registerStreamConnection('stream-uid', {}, 'atom-key-page2', mockStarts[1]);
-            expect(controllers[0].signal.aborted).toBe(true);
+            registerStreamConnection('stream-uid', {}, 'atom-key-page2', mockStarts[1]!);
+            expect(controllers[0]!.signal.aborted).toBe(true);
             expect(getActiveConnectionCount()).toBe(1);
 
             // page=3 — should abort page=2
-            registerStreamConnection('stream-uid', {}, 'atom-key-page3', mockStarts[2]);
-            expect(controllers[1].signal.aborted).toBe(true);
+            registerStreamConnection('stream-uid', {}, 'atom-key-page3', mockStarts[2]!);
+            expect(controllers[1]!.signal.aborted).toBe(true);
             expect(getActiveConnectionCount()).toBe(1);
 
             // Only page=3 should be active
             expect(getActiveConnectionKeys()).toEqual(['atom-key-page3']);
-            expect(controllers[2].signal.aborted).toBe(false);
+            expect(controllers[2]!.signal.aborted).toBe(false);
         });
 
         it('cleans up orphaned connections after timeout', async () => {

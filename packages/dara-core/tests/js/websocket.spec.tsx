@@ -74,7 +74,7 @@ describe('WebsocketClient', () => {
         client.sendMessage({ message: 'test' }, 'channel');
 
         // Check that the message was received
-        await expect(server).toReceiveMessage(
+        expect(await server.nextMessage).toBe(
             '{"channel":"channel","chunk_count":null,"message":{"message":"test"},"type":"message"}'
         );
     });
@@ -88,7 +88,7 @@ describe('WebsocketClient', () => {
         client.sendCustomMessage('test_custom', { message: 'test' });
 
         // Check that the message was received
-        await expect(server).toReceiveMessage(
+        expect(await server.nextMessage).toBe(
             '{"message":{"data":{"message":"test"},"kind":"test_custom"},"type":"custom"}'
         );
     });
@@ -119,7 +119,11 @@ describe('WebsocketClient', () => {
 
         const response = await result;
         expect(response).toEqual({
-            message: { data: { foo: 'bar' }, __response_for: receivedMessage.message.__rchan, kind: 'test_custom' },
+            message: {
+                data: { foo: 'bar' },
+                __response_for: receivedMessage.message.__rchan,
+                kind: 'test_custom',
+            },
             type: 'custom',
         });
     });

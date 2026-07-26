@@ -251,12 +251,12 @@ export interface DerivedVariable {
     loop_instance_uid?: string;
 }
 
-export interface SwitchVariable<T = any> {
+export interface SwitchVariable<T = any, TCondition = any> {
     __typename: 'SwitchVariable';
     uid: string;
-    value: Condition<T> | Variable<T> | T;
-    value_map: Variable<Record<string, any>> | Record<string, any>;
-    default: any;
+    value: Condition<TCondition> | Variable<TCondition> | TCondition;
+    value_map: Variable<Record<string, T>> | Record<string, T>;
+    default?: T;
 }
 
 export interface StateVariable {

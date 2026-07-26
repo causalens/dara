@@ -20,7 +20,7 @@ import { fireEvent, render } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Carousel, { CarouselProps } from './carousel';
+import Carousel, { type CarouselProps } from './carousel';
 
 function RenderCarousel(props: CarouselProps): JSX.Element {
     return (

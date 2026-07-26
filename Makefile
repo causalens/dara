@@ -20,22 +20,18 @@ prepare-docs:
 # Run lint / static testing
 JS_SOURCE_DIRS := \
 	'packages/{dara-components,dara-core}/js/' \
+	'packages/dara-core/{tests,cypress}/' \
 	'packages/{styled-components,ui-*}/src/'
 
 JS_SOURCE_FILES := \
 	'packages/{dara-components,dara-core}/js/**/*.{ts,tsx}' \
 	'packages/{styled-components,ui-*}/src/**/*.{ts,tsx}'
 
-JS_NON_BUILD_FILES := \
-	'packages/dara-core/{tests,cypress}/**/*.{ts,tsx}' \
-	'packages/{dara-components,dara-core}/js/**/*.{spec,stories}.{ts,tsx}' \
-	'packages/{styled-components,ui-*}/src/**/*.{spec,stories}.{ts,tsx}'
-
 JS_BIN := $(CURDIR)/node_modules/.bin
 
 lint-js:
 	$(JS_BIN)/glob -A -c $(JS_BIN)/oxlint $(JS_SOURCE_DIRS)
-	$(JS_BIN)/glob -c $(JS_BIN)/oxlint -g-c -goxlint.non-build.config.mts $(JS_NON_BUILD_FILES)
+	$(JS_BIN)/tsc -b tsconfig.check.json
 	$(JS_BIN)/stylelint $(JS_SOURCE_FILES) --cache --cache-strategy content
 
 lint:

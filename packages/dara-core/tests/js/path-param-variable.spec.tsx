@@ -212,6 +212,8 @@ describe('Path Param Variable', () => {
                             // data expected by our sync to be a route definition
                             return {
                                 data: {
+                                    derived_variables: [],
+                                    py_components: [],
                                     route_definition: {
                                         full_path: '/blog/:id',
                                         path: '/blog/:id',

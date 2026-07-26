@@ -22,7 +22,11 @@ async function withMockHref(callback: (hrefSetter: Mock) => void | Promise<void>
         });
         await callback(mock);
     } finally {
-        window.location = originalLocation;
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: originalLocation,
+        });
     }
 }
 

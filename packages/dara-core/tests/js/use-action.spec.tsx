@@ -415,7 +415,9 @@ describe('useAction', () => {
         });
 
         await waitFor(() =>
-            expect(getContent()).not.toEqual({ nested: { inner_nested: { key: 'value' }, key: 'updated' } })
+            expect(getContent()).not.toEqual({
+                nested: { inner_nested: { key: 'value' }, key: 'updated' },
+            })
         );
 
         expect(getContent()).toEqual({ nested: { inner_nested: { key: 'updated' }, key: 'updated' } });
@@ -665,7 +667,9 @@ describe('useAction', () => {
         });
 
         await waitFor(() =>
-            expect(getContent()).not.toEqual({ nested: { inner_nested: { key: 'value' }, key: 'updated' } })
+            expect(getContent()).not.toEqual({
+                nested: { inner_nested: { key: 'value' }, key: 'updated' },
+            })
         );
 
         expect(getContent()).toEqual({ nested: { inner_nested: { key: 'updated' }, key: 'updated' } });
@@ -863,7 +867,7 @@ describe('useAction', () => {
 
         server.use(
             http.post('/api/core/action/:uid', async (info) => {
-                serverReceivedMessage = await info.request.json();
+                serverReceivedMessage = (await info.request.json()) as Record<string, any>;
                 return HttpResponse.json({
                     execution_id: 'execution_uid',
                 });
@@ -1397,8 +1401,18 @@ describe('useAction', () => {
             act(() => {
                 sendBatchedActions(wsClient, executionId, [
                     BATCH_START_IMPL,
-                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varA, value: 'a-updated' } as any,
-                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varB, value: 'b-updated' } as any,
+                    {
+                        __typename: 'ActionImpl',
+                        name: 'UpdateVariable',
+                        variable: varA,
+                        value: 'a-updated',
+                    } as any,
+                    {
+                        __typename: 'ActionImpl',
+                        name: 'UpdateVariable',
+                        variable: varB,
+                        value: 'b-updated',
+                    } as any,
                     BATCH_END_IMPL,
                     null as any,
                 ]);
@@ -1488,7 +1502,12 @@ describe('useAction', () => {
             act(() => {
                 sendBatchedActions(wsClient, executionId, [
                     BATCH_START_IMPL,
-                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varA, value: 'a-first' } as any,
+                    {
+                        __typename: 'ActionImpl',
+                        name: 'UpdateVariable',
+                        variable: varA,
+                        value: 'a-first',
+                    } as any,
                     BATCH_END_IMPL,
                 ]);
             });
@@ -1502,7 +1521,12 @@ describe('useAction', () => {
             act(() => {
                 sendBatchedActions(wsClient, executionId, [
                     BATCH_START_IMPL,
-                    { __typename: 'ActionImpl', name: 'UpdateVariable', variable: varB, value: 'b-second' } as any,
+                    {
+                        __typename: 'ActionImpl',
+                        name: 'UpdateVariable',
+                        variable: varB,
+                        value: 'b-second',
+                    } as any,
                     BATCH_END_IMPL,
                     null as any,
                 ]);
@@ -1651,10 +1675,7 @@ describe('useAction', () => {
 
             // Now the handler should have been called
             await waitFor(() => expect(onUnhandledAction).toHaveBeenCalledTimes(1));
-            expect(onUnhandledAction).toHaveBeenCalledWith(
-                expect.objectContaining({ input: 'input' }),
-                customAction
-            );
+            expect(onUnhandledAction).toHaveBeenCalledWith(expect.objectContaining({ input: 'input' }), customAction);
         });
 
         it('should support read-after-write within a batch via transaction snapshot', async () => {

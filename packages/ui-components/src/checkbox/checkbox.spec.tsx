@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { RenderResult, fireEvent, render, waitFor } from '@testing-library/react';
+import { type RenderResult, fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Checkbox, { CheckboxProps } from './checkbox';
+import Checkbox, { type CheckboxProps } from './checkbox';
 
 function renderCheckbox(props: CheckboxProps = {}): RenderResult {
     return render(

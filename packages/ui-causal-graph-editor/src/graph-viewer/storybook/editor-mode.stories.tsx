@@ -16,8 +16,9 @@
  */
 import type { Meta } from '@storybook/react-vite';
 
+import { completeCausalGraph } from '../../../tests/mocks/graph-builder';
 import { FcoseLayout } from '../../shared/graph-layout';
-import { type CausalGraph, EdgeType, EditorMode } from '../../types';
+import { EdgeType, EditorMode, VariableType } from '../../types';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 import { Template, pagCausalGraph } from './stories-utils';
 
@@ -26,14 +27,14 @@ export default {
     title: 'CausalGraphEditor/GraphEditor/EditorMode',
 } as Meta;
 
-export const Pag = Template.bind({});
+export const Pag: typeof Template = Template.bind({});
 Pag.args = {
     editable: true,
     graphData: pagCausalGraph,
     graphLayout: FcoseLayout.Builder.build(),
 };
 
-const resolverGraph: CausalGraph = {
+const resolverGraph = completeCausalGraph({
     edges: {
         input1: {
             input4: {
@@ -107,9 +108,9 @@ const resolverGraph: CausalGraph = {
             variable_type: VariableType.UNSPECIFIED,
         },
     },
-};
+});
 
-export const Resolver = Template.bind({});
+export const Resolver: typeof Template = Template.bind({});
 Resolver.args = {
     editable: true,
     editorMode: EditorMode.RESOLVER,

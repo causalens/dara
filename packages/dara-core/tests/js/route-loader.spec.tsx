@@ -161,7 +161,7 @@ describe('Route Loader', () => {
             // mock the route loader endpoint
             http.post('/api/core/route/:route_id', async (ctx) => {
                 // action payload sent, not checking content exactly here
-                const body = await ctx.request.json();
+                const body = (await ctx.request.json()) as Record<string, any>;
                 expect(body!.action_payloads).toHaveLength(1);
 
                 const stream = new ReadableStream({
@@ -270,7 +270,7 @@ describe('Route Loader', () => {
             // mock the route loader endpoint
             http.post('/api/core/route/:route_id', async (ctx) => {
                 // dv payload sent, not checking content exactly here
-                const body = await ctx.request.json();
+                const body = (await ctx.request.json()) as Record<string, any>;
                 expect(body!.derived_variable_payloads).toHaveLength(1);
 
                 const stream = new ReadableStream({
@@ -320,7 +320,7 @@ describe('Route Loader', () => {
             })
         );
         function DvDisplay(): JSX.Element {
-            const [dvValue] = useVariable(dv);
+            const [dvValue] = useVariable<string>(dv);
             return <div data-testid="content">{dvValue}</div>;
         }
         function TestDisplay(): JSX.Element {
@@ -415,7 +415,7 @@ describe('Route Loader', () => {
             // mock the route loader endpoint
             http.post('/api/core/route/:route_id', async (ctx) => {
                 // py_comp payload sent, not checking content exactly here
-                const body = await ctx.request.json();
+                const body = (await ctx.request.json()) as Record<string, any>;
                 expect(body!.py_component_payloads).toHaveLength(1);
 
                 const stream = new ReadableStream({

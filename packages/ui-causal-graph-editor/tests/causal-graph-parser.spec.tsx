@@ -50,9 +50,16 @@ describe('CausalGraphParser', () => {
     });
 
     it('should check that extras in graph are parsed correctly', () => {
-        const parsedGraph = causalGraphParser(MockCausalGraphWithExtras as CausalGraph);
+        type NodeWithExtras = CausalGraphNode & { erased: unknown; redacted: unknown };
+        type EdgeWithExtras = CausalGraph['edges'][string][string] & { erased: unknown };
+        const mockGraph = MockCausalGraphWithExtras as CausalGraph & {
+            defaults: unknown;
+            edges: Record<string, Record<string, EdgeWithExtras>>;
+            nodes: Record<string, NodeWithExtras>;
+        };
+        const parsedGraph = causalGraphParser(mockGraph);
 
-        const { defaults, edges, nodes } = MockCausalGraphWithExtras;
+        const { defaults, edges, nodes } = mockGraph;
 
         // Checks that the extras are parsed correctly to Nodes
         for (const node of parsedGraph.nodes()) {
@@ -86,24 +93,26 @@ describe('CausalGraphParser', () => {
     });
 
     it('should check that for TimeSeriesCausalGraph an attribute for layering is added', () => {
-        const parsedGraph = causalGraphParser(MockTimeSeriesCausalGraph as CausalGraph);
+        type TimeSeriesNode = CausalGraphNode & { variable_name: string };
+        const mockGraph = MockTimeSeriesCausalGraph as CausalGraph & {
+            nodes: Record<string, TimeSeriesNode>;
+        };
+        const parsedGraph = causalGraphParser(mockGraph);
 
-        const { nodes } = MockTimeSeriesCausalGraph;
+        const { nodes } = mockGraph;
 
         // group nodes by variable name
-        const groupedByVariableName: Record<string, Array<CausalGraphNode>> = Object.values(nodes).reduce(
-            (acc, node) => {
-                acc[node.variable_name] = acc[node.variable_name] || [];
-                acc[node.variable_name].push(node);
-                return acc;
-            },
-            {}
-        );
+        const groupedByVariableName = Object.values(nodes).reduce<Record<string, TimeSeriesNode[]>>((acc, node) => {
+            const group = acc[node.variable_name] ?? [];
+            group.push(node);
+            acc[node.variable_name] = group;
+            return acc;
+        }, {});
 
         // get a list of node names that share a variable_name
         const identifiersOfDuplicates = Object.values(groupedByVariableName)
-            .filter((group: CausalGraphNode[]) => group.length > 1)
-            .flatMap((group: CausalGraphNode[]) => group.map((obj: CausalGraphNode) => obj.identifier));
+            .filter((group) => group.length > 1)
+            .flatMap((group) => group.map((node) => node.identifier));
 
         // check that the time_series_variable attribute is added to the nodes that share a variable_name
         identifiersOfDuplicates.forEach((id) => {
@@ -113,8 +122,8 @@ describe('CausalGraphParser', () => {
 
         // get a list of node names that do not share a variable_name
         const identifiersOfSingles = Object.values(groupedByVariableName)
-            .filter((group: CausalGraphNode[]) => group.length === 1)
-            .flatMap((group: CausalGraphNode[]) => group.map((obj: CausalGraphNode) => obj.identifier));
+            .filter((group) => group.length === 1)
+            .flatMap((group) => group.map((node) => node.identifier));
 
         // check that the time_series_variable attribute is not added to the nodes that do not share a variable_name
         identifiersOfSingles.forEach((id) => {

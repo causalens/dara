@@ -55,9 +55,9 @@ describe('AuthenticatedRoot', () => {
 
         // Other session value should be cleaned up
         await waitFor(() => {
-            expect(localStorage.getItem(invalidKey)).toEqual(undefined);
+            expect(localStorage.getItem(invalidKey)).toEqual(null);
             expect(localStorage.getItem(validKey)).toEqual('val2');
-            expect(sessionStorage.getItem(invalidKey)).toEqual(undefined);
+            expect(sessionStorage.getItem(invalidKey)).toEqual(null);
             expect(sessionStorage.getItem(validKey)).toEqual('val4');
         });
     });

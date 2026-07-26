@@ -77,7 +77,7 @@ export const Select: Story = {
 };
 
 export const ControlledSelect = (props: SelectProps): JSX.Element => {
-    const [selectedItem, setSelectedItem] = React.useState<Item>(props.selectedItem);
+    const [selectedItem, setSelectedItem] = React.useState<Item | null | undefined>(props.selectedItem);
 
     return (
         <div style={{ width: '12.5em' }}>

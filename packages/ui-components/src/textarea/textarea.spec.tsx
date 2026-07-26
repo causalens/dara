@@ -20,7 +20,7 @@ import * as React from 'react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import TextArea, { TextAreaProps } from './textarea';
+import TextArea, { type TextAreaProps } from './textarea';
 
 const keyDownFilter = (e: React.KeyboardEvent<HTMLTextAreaElement>): boolean => {
     if (e.key !== 'A' && e.key !== 'b') {

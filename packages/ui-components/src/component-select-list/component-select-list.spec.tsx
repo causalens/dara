@@ -18,7 +18,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import ComponentSelectList, { ComponentSelectListProps } from './component-select-list';
+import ComponentSelectList, { type ComponentSelectListProps } from './component-select-list';
 
 // Disabling as it's just for tests
 /* eslint-disable jsx-a11y/alt-text */

@@ -732,6 +732,7 @@ describe('StreamVariable', () => {
                 value: new URL('https://test.com/current-route'),
             });
             window.dara = {
+                ...originalDara,
                 base_url: 'https://test.com',
             };
 

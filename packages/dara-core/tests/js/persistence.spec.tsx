@@ -16,6 +16,15 @@ vi.mock('lodash/debounce', () => vi.fn((fn) => fn));
 
 const SESSION_TOKEN = 'TEST_TOKEN';
 
+function backendStore(uid: string, readonly = false): BackendStore {
+    return {
+        __typename: 'BackendStore',
+        readonly,
+        scope: 'global',
+        uid,
+    };
+}
+
 describe('Variable Persistence', () => {
     beforeAll(() => {
         server.listen();
@@ -94,10 +103,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: 'foo',
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid',
-                    },
+                    store: backendStore('store-uid'),
                     uid: 'session-test-1',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -139,10 +145,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: 'foo',
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid',
-                    },
+                    store: backendStore('store-uid'),
                     uid: 'session-test-1',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -199,11 +202,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: 'foo',
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid',
-                        readonly: true,
-                    },
+                    store: backendStore('store-uid', true),
                     uid: 'session-test-1',
                 } as SingleVariable<any, BackendStore>),
             { wrapper: Wrapper }
@@ -215,10 +214,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: 'foo',
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid-2',
-                    },
+                    store: backendStore('store-uid-2'),
                     uid: 'session-test-2',
                 } as SingleVariable<any, BackendStore>),
             { wrapper: Wrapper }
@@ -282,10 +278,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: 'foo',
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid',
-                    },
+                    store: backendStore('store-uid'),
                     uid: 'session-test-1',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -311,10 +304,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: 'foo',
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid-2',
-                    },
+                    store: backendStore('store-uid-2'),
                     uid: 'session-test-2',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -382,10 +372,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: 'foo',
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid',
-                    },
+                    store: backendStore('store-uid'),
                     uid: 'session-test-1',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -457,10 +444,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: {},
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'store-uid',
-                    },
+                    store: backendStore('store-uid'),
                     uid: 'session-test-1',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -727,10 +711,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: { count: 0 },
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'sequence-validation-store',
-                    },
+                    store: backendStore('sequence-validation-store'),
                     uid: 'sequence-validation-var',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -775,9 +756,7 @@ describe('Variable Persistence', () => {
             expect(result.current[0]).toEqual({ count: 50 });
         });
 
-        expect(consoleSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Sequence number mismatch')
-        );
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Sequence number mismatch'));
 
         consoleSpy.mockRestore();
         consoleErrorSpy.mockRestore();
@@ -809,10 +788,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: { count: 0 },
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'dedup-store',
-                    },
+                    store: backendStore('dedup-store'),
                     uid: 'dedup-var',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -885,10 +861,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: { foo: 'bar' },
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'echo-store',
-                    },
+                    store: backendStore('echo-store'),
                     uid: 'echo-var',
                 } as SingleVariable<any, BackendStore>),
             {
@@ -941,10 +914,7 @@ describe('Variable Persistence', () => {
                     __typename: 'Variable',
                     default: { count: 0 },
                     nested: [],
-                    store: {
-                        __typename: 'BackendStore',
-                        uid: 'sequence-reset-store',
-                    },
+                    store: backendStore('sequence-reset-store'),
                     uid: 'sequence-reset-var',
                 } as SingleVariable<any, BackendStore>),
             {

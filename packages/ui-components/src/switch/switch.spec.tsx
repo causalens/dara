@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Switch, { SwitchProps } from './switch';
+import Switch, { type SwitchProps } from './switch';
 
 function RenderSwitch(props: SwitchProps): JSX.Element {
     return (

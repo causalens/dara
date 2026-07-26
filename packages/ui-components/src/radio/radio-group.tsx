@@ -144,7 +144,7 @@ export interface RadioItem {
     label: React.ReactNode;
 }
 
-export interface RadioGroupProps extends InteractiveComponentProps<RadioItem> {
+export interface RadioGroupProps extends Omit<InteractiveComponentProps<RadioItem>, 'initialValue' | 'value'> {
     /** An optional id for the component */
     id?: string;
     /** An optional value which determines the direction of the radio group components by default is vertical */
@@ -153,8 +153,12 @@ export interface RadioGroupProps extends InteractiveComponentProps<RadioItem> {
     isListStyle?: boolean;
     /** The items to pick from the list. Each should have a label and a value */
     items: Array<RadioItem>;
+    /** The value of the initially selected item */
+    initialValue?: RadioItem['value'];
     /** An optional onChange handler, will be called whenever the state of the checkbox changes */
     onChange?: (value: RadioItem, e?: React.FormEvent<HTMLInputElement>) => void | Promise<void>;
+    /** The selected item in controlled mode, or null when no item is selected */
+    value?: RadioItem | null;
 }
 
 /**

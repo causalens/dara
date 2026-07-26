@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 import type { Meta } from '@storybook/react-vite';
-import React from 'react';
 
 import styled, { theme } from '@darajs/styled-components';
 
 import ContextMenu, { type MenuAction, useContextMenu } from './context-menu';
 
-const ResultItem = ContextMenu<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>>('div');
+const ResultItem = ContextMenu('div');
 
 const StyledResult = styled(ResultItem)`
     width: 100px;
