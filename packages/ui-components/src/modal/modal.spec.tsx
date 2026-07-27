@@ -18,7 +18,7 @@ import { fireEvent, render } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Modal, { ModalProps } from './modal';
+import Modal, { type ModalProps } from './modal';
 
 const CHILDREN = 'children';
 
@@ -59,7 +59,7 @@ describe('Modal', () => {
         // Wait for modal to finish mounting
         let modelContent = await findByText(CHILDREN);
         // Fire off transition-end so it sets `mounted` properly
-        fireEvent.transitionEnd(modelContent.parentElement);
+        fireEvent.transitionEnd(modelContent.parentElement!);
         await findByText(CHILDREN);
 
         // Re-render with render=false
@@ -71,11 +71,11 @@ describe('Modal', () => {
         expect(onClose).toHaveBeenCalledTimes(0);
 
         // Fire off transition-end
-        fireEvent.transitionEnd(modelContent.parentElement);
+        fireEvent.transitionEnd(modelContent.parentElement!);
 
         // Only now after ending the transition should the model unmount and call onClosed
-        modelContent = queryByText(CHILDREN);
-        expect(modelContent).not.toBeInTheDocument();
+        const removedContent = queryByText(CHILDREN);
+        expect(removedContent).not.toBeInTheDocument();
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
@@ -89,7 +89,7 @@ describe('Modal', () => {
         const modelContent = await findByText(CHILDREN);
 
         // 1. click background
-        fireEvent.click(modelContent.parentElement);
+        fireEvent.click(modelContent.parentElement!);
         expect(attemptClose).toHaveBeenCalledTimes(1);
 
         // 2. press escape

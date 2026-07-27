@@ -70,7 +70,7 @@ function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Elemen
                 ...style,
             }}
         >
-            {props.scroll ?
+            {props.scroll ? (
                 <AutoSizer>
                     {({ height, width }) => (
                         <div
@@ -87,7 +87,9 @@ function Stack(props: StackProps, ref: ForwardedRef<HTMLDivElement>): JSX.Elemen
                         </div>
                     )}
                 </AutoSizer>
-            :   stackContent}
+            ) : (
+                stackContent
+            )}
         </StyledStack>
     );
 }

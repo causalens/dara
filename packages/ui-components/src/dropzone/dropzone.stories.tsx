@@ -28,7 +28,7 @@ export default meta;
 type Story = StoryObj<UploadDropzoneProps>;
 
 export const Dropzone: Story = {
-    render: (props: UploadDropzoneProps): JSX.Element => {
+    render: function DropzoneStory(props: UploadDropzoneProps): JSX.Element {
         const [files, setFiles] = useState<string[]>([]);
 
         const handleDrop = (acceptedFiles: Array<File>): void => {

@@ -28,6 +28,12 @@ const meta: Meta<DatePickerProps> = {
 
 export default meta;
 type Story = StoryObj<DatePickerProps>;
+type RangeDatePickerProps = Omit<DatePickerProps, 'initialValue' | 'onChange' | 'selectsRange' | 'value'> & {
+    initialValue?: [Date, Date];
+    onChange?: (date: [Date, Date], e?: React.SyntheticEvent<SVGSVGElement, Event>) => void | Promise<void>;
+    selectsRange: true;
+    value?: [Date, Date];
+};
 
 export const PlainDatepicker: Story = {
     args: {
@@ -105,7 +111,7 @@ const yearItems: Item[] = [
     },
 ];
 export const DatepickerSelect = (args: SelectProps): JSX.Element => {
-    const [selectedItem, setSelectedItem] = useState<Item>(args.selectedItem);
+    const [selectedItem, setSelectedItem] = useState<Item | null | undefined>(args.selectedItem);
 
     return <DatepickerSelectComponent {...args} onSelect={(e) => setSelectedItem(e)} selectedItem={selectedItem} />;
 };
@@ -114,7 +120,7 @@ DatepickerSelect.args = {
     selectedItem: yearItems[7],
 };
 
-export const ControlledRangeDatetime = (args: DatePickerProps): JSX.Element => {
+export const ControlledRangeDatetime = (args: RangeDatePickerProps): JSX.Element => {
     const [value, setValue] = useState<[Date, Date]>([new Date(), new Date()]);
     return (
         <div>
@@ -126,9 +132,10 @@ export const ControlledRangeDatetime = (args: DatePickerProps): JSX.Element => {
             <h3>Component</h3>
             <DatepickerComponent
                 {...args}
-                onChange={(e) => {
+                onChange={(e: [Date, Date]) => {
                     setValue(e);
                 }}
+                selectsRange={true}
                 value={value}
             />
             <div>

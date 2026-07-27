@@ -93,7 +93,7 @@ class PatchQueue {
         applyFn: ApplyPatchesFn
     ): void {
         const queue = this.getQueue(storeUid);
-        queue.add(() => applyFn(storeUid, patches, sequenceNumber));
+        void queue.add(() => applyFn(storeUid, patches, sequenceNumber));
     }
 }
 
@@ -187,7 +187,7 @@ function BackendStoreSync({ children }: { children: React.ReactNode }): JSX.Elem
                 sequenceNumber: number
             ) => {
                 // Validate sequence number to ensure UI state is in sync with backend
-                const expectedSequence = STORE_SEQUENCE_MAP.get(storeUid) || 0;
+                const expectedSequence = STORE_SEQUENCE_MAP.get(storeUid) ?? 0;
                 if (sequenceNumber !== expectedSequence + 1) {
                     // Stale patch that arrived before a recovery updated the sequence — skip it
                     if (sequenceNumber <= expectedSequence) {
@@ -510,7 +510,7 @@ export function PathParamSync({ children }: { children: React.ReactNode }): Reac
             // navigate once, building the full pathname with updated params
             // NOTE: This assumes the path param names are unique across matches
             // which we currently validate in the router compilation step
-            navigate({
+            void navigate({
                 pathname: generatePath(fullPathname, newParams),
                 // preserve current search
                 search: locationRef.current.search,
@@ -620,14 +620,14 @@ function localStorageEffect<T>(
                 if (!readValue) {
                     const isDefaultDerived = isDerivedVariable(variable.default);
 
-                    return isDefaultDerived ?
-                            getOrRegisterDerivedVariable(
-                                variable.default as DerivedVariable,
-                                wsClient,
-                                taskContext,
-                                extrasSerializable.extras
-                            )
-                        :   variable.default;
+                    return isDefaultDerived
+                        ? getOrRegisterDerivedVariable(
+                              variable.default as DerivedVariable,
+                              wsClient,
+                              taskContext,
+                              extrasSerializable.extras
+                          )
+                        : variable.default;
                 }
             }
 

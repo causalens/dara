@@ -18,8 +18,8 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { Item } from '../types';
-import ButtonBar, { ButtonProps } from './button-bar';
+import type { Item } from '../types';
+import ButtonBar, { type ButtonProps } from './button-bar';
 
 const items: Array<Item> = [
     {

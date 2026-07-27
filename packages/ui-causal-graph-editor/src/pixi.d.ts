@@ -37,7 +37,8 @@ declare global {
         }
     }
     namespace pixi_viewport {
-        export = PixiViewport;
+        export type Viewport = PixiViewport.Viewport;
+        export const Viewport: typeof PixiViewport.Viewport;
     }
     interface Window {
         PIXI?: typeof PIXI;

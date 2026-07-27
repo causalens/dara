@@ -81,7 +81,7 @@ const StyledFixedSizeList = styled(FixedSizeList)`
 
         position: sticky;
         z-index: 5;
-        inset: calc(2.5rem - 2px) 0 0 0;
+        inset: calc(2.5rem - 2px) 0 0;
 
         display: block;
 
@@ -215,6 +215,8 @@ const getSortIcon = (isSorted?: boolean, isSortedDesc?: boolean): IconDefinition
 const getSortKey = (sortBy: Array<SortingRule<string>>, columns: Array<TableColumn>): Array<SortingRule<string>> => {
     return sortBy.map((sort) => ({
         ...sort,
+        // An empty sort key has historically used the column accessor.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
         id: columns.find((col) => col.accessor === sort.id)?.sortKey || sort.id,
     }));
 };
@@ -244,8 +246,8 @@ const caseInsensitiveAlphanumeric = (rowA: any, rowB: any, columnId: string): nu
     for (let i = 0; i < len; i++) {
         const aa = a[i];
         const bb = b[i];
-        const an = parseInt(aa);
-        const bn = parseInt(bb);
+        const an = parseInt(aa, 10);
+        const bn = parseInt(bb, 10);
         const aIsNaN = Number.isNaN(an);
         const bIsNaN = Number.isNaN(bn);
 
@@ -309,7 +311,7 @@ const appendStickyOffsets = (columns: Array<TableColumn>): Array<TableColumn> =>
     const rightStickyColumnWidths = columns
         .filter((col) => col.sticky === 'right')
         .slice(1)
-        .map((col) => parseInt(col.width as any) || 150);
+        .map((col) => parseInt(col.width as any, 10) || 150);
 
     return columns.map((col) => {
         // Handle left-sticky columns: offset increases from left to right
@@ -320,7 +322,7 @@ const appendStickyOffsets = (columns: Array<TableColumn>): Array<TableColumn> =>
             };
 
             // Width can be a number or a px string; fall back to 150 if not set
-            const width = parseInt(col.width as any) || 150;
+            const width = parseInt(col.width as any, 10) || 150;
             leftOffset += width;
 
             return nextCol;
@@ -399,11 +401,15 @@ const createActionColumn = (
     return {
         Cell: ActionCell,
         Header: actions.includes(Actions.SELECT) && !disableSelectAll ? SelectHeader : '',
+        // An empty accessor has historically used the action-column default.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
         accessor: accessor || 'actions',
         actions,
         disableSortBy: true,
         maxWidth: width,
         minWidth: actions.includes(Actions.SELECT) ? 52 : 48,
+        // Empty sticky values have historically disabled sticky positioning.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
         sticky: (sticky || null) as 'left' | 'right' | undefined,
         width,
     };
@@ -580,14 +586,18 @@ const Table = forwardRef(
         // This state helps in retaining the current sorted column even if the data gets updated
         const [currentSortBy, setCurrentSortBy] = useState<Array<SortingRule<string>>>(initialSort);
 
+        // Zero and NaN have historically selected the default row height.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
         const tableRowHeight = rowHeight || DEFAULT_ROW_HEIGHT;
+        // Oxlint cannot infer that useDeepCompare returns a stable dependency list.
+        // oxlint-disable react-hooks/exhaustive-deps
         useEffect(
             () => {
                 setCurrentSortBy(initialSort);
             },
-            // eslint-disable-next-line react-hooks/exhaustive-deps
             useDeepCompare([initialSort])
         );
+        // oxlint-enable react-hooks/exhaustive-deps
 
         if (!data && !getItem) {
             throw new Error('One of data and getItem must be passed to the table component');
@@ -647,7 +657,7 @@ const Table = forwardRef(
         const hasFixedColumns = useMemo(() => mappedColumns.some((column) => 'sticky' in column), [mappedColumns]);
         // Calculate table column manually here in case it's passed in with px, useTable version goes to NaN
         const totalColumnsWidth = useMemo(
-            () => mappedColumns.reduce((acc, column) => acc + (parseInt(column.width as any) || 150), 0),
+            () => mappedColumns.reduce((acc, column) => acc + (parseInt(column.width as any, 10) || 150), 0),
             [mappedColumns]
         );
 
@@ -674,7 +684,7 @@ const Table = forwardRef(
         } = useTable<any>(
             {
                 columns: mappedColumns,
-                data: data || infiniteData,
+                data: data ?? infiniteData,
                 filterTypes,
                 sortTypes: {
                     alphanumeric: caseInsensitiveAlphanumeric,
@@ -709,7 +719,7 @@ const Table = forwardRef(
         // If onSort is passed then delegate sorting to parent component
         useEffect(() => {
             if (onSort) {
-                onSort(getSortKey(sortBy, mappedColumns));
+                void onSort(getSortKey(sortBy, mappedColumns));
             } else {
                 setCurrentSortBy(sortBy);
             }
@@ -718,7 +728,7 @@ const Table = forwardRef(
 
         useEffect(() => {
             if (onFilter) {
-                onFilter(filters);
+                void onFilter(filters);
             }
         }, [onFilter, filters]);
 
@@ -728,104 +738,110 @@ const Table = forwardRef(
                 return (
                     <div key="table-inner">
                         <Header style={{ width: `max(${totalColumnsWidth}px, 100%)` }}>
-                            {headerGroups.map((headerGroup, gidx) => (
-                                <HeaderRow {...headerGroup.getHeaderGroupProps()} key={`group-${gidx}`}>
-                                    {headerGroup.headers.map((col: ColumnHeader, cidx) => {
-                                        const headerProps = col.getHeaderProps();
-                                        const sortProps = col.getSortByToggleProps();
-                                        const headerContent = col.render('Header');
-                                        const resizerProps = col.getResizerProps();
-                                        const numVisibleColumns = allColumns.filter(
-                                            (column) => column.isVisible
-                                        ).length;
-                                        const showSort = !col.disableSortBy;
-                                        const showFilter = col.canFilter && col.filter;
-                                        const showOptions = cidx === numVisibleColumns - 1 && showTableOptions;
-                                        const showHeaderCellButtonContainer = showSort || showFilter || showOptions;
-                                        return (
-                                            <HeaderCell
-                                                {...headerProps}
-                                                key={`col-${gidx}-${cidx}`}
-                                                style={{
-                                                    ...headerProps.style,
-                                                    maxWidth: col.maxWidth,
-                                                    // If width calc has messed up then use the raw width from the column
-                                                    width:
-                                                        (headerProps.style as any).width === 'NaNpx' ?
-                                                            mappedColumns[cidx].width
-                                                        :   (headerProps.style as any).width,
-                                                    // For left-sticky columns, explicitly set the left offset so
-                                                    // multiple sticky columns are positioned correctly next to
-                                                    // each other.
-                                                    ...(col.sticky === 'left' && typeof col.stickyOffset === 'number' ?
-                                                        {
-                                                            left: `${col.stickyOffset}px`,
-                                                        }
-                                                    :   {}),
-                                                    ...(col.sticky === 'right' && typeof col.stickyOffset === 'number' ?
-                                                        {
-                                                            right: `${col.stickyOffset}px`,
-                                                        }
-                                                    :   {}),
-                                                }}
-                                            >
-                                                <HeaderTooltipContainer
-                                                    isPrimitiveHeader={typeof headerContent === 'string'}
+                            {headerGroups.map((headerGroup) => {
+                                const { key: headerGroupKey, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
+                                return (
+                                    <HeaderRow key={headerGroupKey} {...headerGroupProps}>
+                                        {headerGroup.headers.map((col: ColumnHeader, cidx) => {
+                                            const { key: headerCellKey, ...headerProps } = col.getHeaderProps();
+                                            const sortProps = col.getSortByToggleProps();
+                                            const headerContent = col.render('Header');
+                                            const resizerProps = col.getResizerProps();
+                                            const numVisibleColumns = allColumns.filter(
+                                                (column) => column.isVisible
+                                            ).length;
+                                            const showSort = !col.disableSortBy;
+                                            const showFilter = col.canFilter && col.filter;
+                                            const showOptions = cidx === numVisibleColumns - 1 && showTableOptions;
+                                            const showHeaderCellButtonContainer =
+                                                Boolean(showSort) || Boolean(showFilter) || Boolean(showOptions);
+                                            return (
+                                                <HeaderCell
+                                                    key={headerCellKey}
+                                                    {...headerProps}
+                                                    style={{
+                                                        ...headerProps.style,
+                                                        maxWidth: col.maxWidth,
+                                                        // If width calc has messed up then use the raw width from the column
+                                                        width:
+                                                            (headerProps.style as any).width === 'NaNpx'
+                                                                ? mappedColumns[cidx].width
+                                                                : (headerProps.style as any).width,
+                                                        // For left-sticky columns, explicitly set the left offset so
+                                                        // multiple sticky columns are positioned correctly next to
+                                                        // each other.
+                                                        ...(col.sticky === 'left' &&
+                                                        typeof col.stickyOffset === 'number'
+                                                            ? {
+                                                                  left: `${col.stickyOffset}px`,
+                                                              }
+                                                            : {}),
+                                                        ...(col.sticky === 'right' &&
+                                                        typeof col.stickyOffset === 'number'
+                                                            ? {
+                                                                  right: `${col.stickyOffset}px`,
+                                                              }
+                                                            : {}),
+                                                    }}
                                                 >
-                                                    <HeaderContentWrapper
-                                                        {...sortProps}
+                                                    <HeaderTooltipContainer
                                                         isPrimitiveHeader={typeof headerContent === 'string'}
-                                                        title={typeof headerContent === 'string' ? headerContent : ''}
                                                     >
-                                                        {headerContent}
-                                                    </HeaderContentWrapper>
-                                                    {col.tooltip && (
-                                                        <Tooltip content={col.tooltip}>
-                                                            <TooltipIcon icon={faCircleQuestion} />
-                                                        </Tooltip>
-                                                    )}
-                                                </HeaderTooltipContainer>
-                                                {showHeaderCellButtonContainer && (
-                                                    <HeaderCellButtonContainer>
-                                                        <HeaderIconsWrapper>
-                                                            {showSort && (
-                                                                <HeaderIconWrapper>
-                                                                    <SortIcon
-                                                                        {...sortProps}
-                                                                        className="tableSortArrow"
-                                                                        icon={getSortIcon(
-                                                                            col.isSorted,
-                                                                            col.isSortedDesc
-                                                                        )}
-                                                                        isSorted={col.isSorted}
-                                                                    />
-                                                                </HeaderIconWrapper>
-                                                            )}
-                                                            {showFilter ?
-                                                                <FilterContainer col={col} />
-                                                            :   null}
+                                                        <HeaderContentWrapper
+                                                            {...sortProps}
+                                                            isPrimitiveHeader={typeof headerContent === 'string'}
+                                                            title={
+                                                                typeof headerContent === 'string' ? headerContent : ''
+                                                            }
+                                                        >
+                                                            {headerContent}
+                                                        </HeaderContentWrapper>
+                                                        {col.tooltip && (
+                                                            <Tooltip content={col.tooltip}>
+                                                                <TooltipIcon icon={faCircleQuestion} />
+                                                            </Tooltip>
+                                                        )}
+                                                    </HeaderTooltipContainer>
+                                                    {showHeaderCellButtonContainer && (
+                                                        <HeaderCellButtonContainer>
+                                                            <HeaderIconsWrapper>
+                                                                {showSort && (
+                                                                    <HeaderIconWrapper>
+                                                                        <SortIcon
+                                                                            {...sortProps}
+                                                                            className="tableSortArrow"
+                                                                            icon={getSortIcon(
+                                                                                col.isSorted,
+                                                                                col.isSortedDesc
+                                                                            )}
+                                                                            isSorted={col.isSorted}
+                                                                        />
+                                                                    </HeaderIconWrapper>
+                                                                )}
+                                                                {showFilter ? <FilterContainer col={col} /> : null}
 
-                                                            {showOptions && (
-                                                                <OptionsMenu
-                                                                    allColumns={allColumns}
-                                                                    allowColumnHiding={allowHiding}
-                                                                    numVisibleColumns={numVisibleColumns}
-                                                                    resetResizing={resetResizing}
-                                                                    setAllFilters={setAllFilters}
-                                                                    style={tableOptionsStyle}
-                                                                />
-                                                            )}
-                                                        </HeaderIconsWrapper>
-                                                        <ResizeBorder {...resizerProps} />
-                                                    </HeaderCellButtonContainer>
-                                                )}
-                                            </HeaderCell>
-                                        );
-                                    })}
-                                </HeaderRow>
-                            ))}
+                                                                {showOptions && (
+                                                                    <OptionsMenu
+                                                                        allColumns={allColumns}
+                                                                        allowColumnHiding={allowHiding}
+                                                                        numVisibleColumns={numVisibleColumns}
+                                                                        resetResizing={resetResizing}
+                                                                        setAllFilters={setAllFilters}
+                                                                        style={tableOptionsStyle}
+                                                                    />
+                                                                )}
+                                                            </HeaderIconsWrapper>
+                                                            <ResizeBorder {...resizerProps} />
+                                                        </HeaderCellButtonContainer>
+                                                    )}
+                                                </HeaderCell>
+                                            );
+                                        })}
+                                    </HeaderRow>
+                                );
+                            })}
                         </Header>
-                        <div {...tableProps} {...rest} key="table-body-inner" style={tableStyle}>
+                        <div key="table-body-inner" {...tableProps} {...rest} style={tableStyle}>
                             {children}
                         </div>
                     </div>
@@ -848,7 +864,7 @@ const Table = forwardRef(
                             <StyledFixedSizeList
                                 height={height}
                                 innerElementType={renderTable}
-                                itemCount={itemCount || rows.length}
+                                itemCount={itemCount ?? rows.length}
                                 itemData={createItemData(
                                     width,
                                     currentEditCell,

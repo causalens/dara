@@ -63,9 +63,9 @@ const Loader = styled.span<LoaderProps>`
 
         width: 25%;
         height: 25%;
+        border-radius: 100%;
 
         background-color: ${(props) => props.color ?? props.theme.colors.grey4};
-        border-radius: 100%;
 
         animation: sk-chase-dot-before 2s infinite ease-in-out both;
     }
@@ -174,7 +174,9 @@ function Spinner(props: SpinnerProps): JSX.Element {
                 <div className="sk-chase-dot" />
                 <div className="sk-chase-dot" />
             </Loader>
-            {(props.showText || props.text) && <LoadingText color={props.color}>{props.text ?? 'LOADING'}</LoadingText>}
+            {(Boolean(props.showText) || Boolean(props.text)) && (
+                <LoadingText color={props.color}>{props.text ?? 'LOADING'}</LoadingText>
+            )}
         </Wrapper>
     );
 }

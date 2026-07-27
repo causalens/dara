@@ -45,13 +45,13 @@ const CellPlaceholder = styled.div`
     min-width: 80px;
     height: 0.7rem;
     margin: 0.5rem;
+    border-radius: 0.5rem;
 
     background: ${(props) =>
         `linear-gradient(to right, ${props.theme.colors.grey2}, ${transparentize(0.2, props.theme.colors.grey3)}, ${
             props.theme.colors.grey2
         });`};
     background-size: 50%;
-    border-radius: 0.5rem;
 
     animation-name: ani-horizontal;
     animation-duration: 3.5s;
@@ -75,11 +75,11 @@ const Cell = styled.div<{ rowHeight: number }>`
 
     min-width: 80px;
     height: ${({ rowHeight }) => `${rowHeight}px`};
+    border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
 
     color: ${(props) => props.theme.colors.grey6};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
 
     :last-child {
         border-right: 0;
@@ -180,9 +180,9 @@ const RenderRow = React.memo(
                                 const headerProps = col.getHeaderProps();
                                 // If width calc has messed up then use the raw width from the column
                                 const headerWidth =
-                                    headerProps.style.width === 'NaNpx' ?
-                                        mappedColumns[cidx].width
-                                    :   headerProps.style.width;
+                                    headerProps.style.width === 'NaNpx'
+                                        ? mappedColumns[cidx].width
+                                        : headerProps.style.width;
 
                                 return (
                                     <CellPlaceholder
@@ -202,7 +202,7 @@ const RenderRow = React.memo(
         prepareRow(row);
         const onClick = (): void => {
             if (onClickRow) {
-                throttledClickRow(row.original);
+                void throttledClickRow(row.original);
             }
         };
         const { style: rowStyle, ...restRow } = row.getRowProps({ style: renderRowStyle });
@@ -218,8 +218,8 @@ const RenderRow = React.memo(
             row.original && cols.length > 0 ? cols.map((col) => String(row.original[col] ?? '')).join('_') : undefined;
         return (
             <Row
-                {...restRow}
                 key={`row-${index}`}
+                {...restRow}
                 data-row-id={rowDataId}
                 onClick={onClick}
                 onClickRow={onClickRow}
@@ -235,9 +235,9 @@ const RenderRow = React.memo(
                     const cellProps = cell.getCellProps();
                     return (
                         <Cell
+                            key={`cell-${index}-${colIdx}`}
                             {...cellProps}
                             rowHeight={rowHeight}
-                            key={`cell-${index}-${colIdx}`}
                             style={{
                                 ...cellProps.style,
                                 backgroundColor,
@@ -245,31 +245,27 @@ const RenderRow = React.memo(
                                 maxWidth: cell.column?.maxWidth,
                                 width:
                                     // If width calc has messed up then use the raw width from the column
-                                    cellProps.style.width === 'NaNpx' ?
-                                        mappedColumns[colIdx].width
-                                    :   cellProps.style.width,
+                                    cellProps.style.width === 'NaNpx'
+                                        ? mappedColumns[colIdx].width
+                                        : cellProps.style.width,
                                 // For left-sticky columns, explicitly set the left offset so
                                 // multiple sticky columns are positioned correctly next to
                                 // each other.
-                                ...((
-                                    mappedColumns[colIdx]?.sticky === 'left' &&
-                                    typeof mappedColumns[colIdx]?.stickyOffset === 'number'
-                                ) ?
-                                    {
-                                        left: `${mappedColumns[colIdx].stickyOffset}px`,
-                                    }
-                                :   {}),
+                                ...(mappedColumns[colIdx]?.sticky === 'left' &&
+                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                    ? {
+                                          left: `${mappedColumns[colIdx].stickyOffset}px`,
+                                      }
+                                    : {}),
                                 // For right-sticky columns, explicitly set the right offset so
                                 // multiple sticky columns are positioned correctly next to
                                 // each other.
-                                ...((
-                                    mappedColumns[colIdx]?.sticky === 'right' &&
-                                    typeof mappedColumns[colIdx]?.stickyOffset === 'number'
-                                ) ?
-                                    {
-                                        right: `${mappedColumns[colIdx].stickyOffset}px`,
-                                    }
-                                :   {}),
+                                ...(mappedColumns[colIdx]?.sticky === 'right' &&
+                                typeof mappedColumns[colIdx]?.stickyOffset === 'number'
+                                    ? {
+                                          right: `${mappedColumns[colIdx].stickyOffset}px`,
+                                      }
+                                    : {}),
                             }}
                         >
                             <CellContent hasRowHeight={rowHeight !== DEFAULT_ROW_HEIGHT}>

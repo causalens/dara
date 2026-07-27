@@ -100,7 +100,7 @@ function CausalGraphViewer(props: CausalGraphViewerProps): React.ReactNode {
 
     const onGraphUpdate = (value: CausalGraph): void => {
         setCausalGraphVariable(value);
-        onUpdate(value);
+        void onUpdate(value);
     };
 
     if (!props.causal_graph) {

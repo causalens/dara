@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react-vite';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 import React, { useState } from 'react';
 
 import {
     type BaseSliderProps,
     CategoricalSlider as CategoricalSliderComponent,
+    type CategoricalSliderProps,
     Slider as SliderComponent,
 } from './slider';
 
@@ -30,7 +31,7 @@ const meta: Meta<typeof SliderComponent> = {
 
 export default meta;
 
-export const Slider = (args: BaseSliderProps<number>): JSX.Element => (
+export const Slider: StoryFn<BaseSliderProps<number>> = (args) => (
     <div style={{ alignItems: 'center', display: 'flex', height: '100%', width: '100%' }}>
         <SliderComponent {...args} />
     </div>
@@ -50,7 +51,7 @@ Slider.args = {
     trackToEnd: false,
 };
 
-export const SliderTicksNumber = Slider.bind({});
+export const SliderTicksNumber: typeof Slider = Slider.bind({});
 SliderTicksNumber.args = {
     domain: [0, 2],
 
@@ -62,7 +63,7 @@ SliderTicksNumber.args = {
     ticks: 5,
 };
 
-export const SliderMultiThumb = Slider.bind({});
+export const SliderMultiThumb: typeof Slider = Slider.bind({});
 SliderMultiThumb.args = {
     domain: [0, 2],
 
@@ -75,14 +76,14 @@ SliderMultiThumb.args = {
     thumbLabels: ['min', 'max'],
 };
 
-export const ControlledSlider = (args: BaseSliderProps<number>): JSX.Element => {
+export const ControlledSlider: StoryFn<BaseSliderProps<number>> = (args) => {
     const { ...argsWithoutValue } = args;
 
     const [value, setValue] = useState([1.0]);
 
-    function onChange(vals): void {
+    function onChange(vals: number[]): void {
         setValue(vals);
-        args.onChange?.(vals);
+        void args.onChange?.(vals);
     }
 
     return (
@@ -100,14 +101,14 @@ ControlledSlider.args = {
     ticks: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0],
 };
 
-export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX.Element => {
-    const [domain, setDomain] = useState([1, 151]);
+export const ControlledSliderIncompatible: StoryFn<BaseSliderProps<number>> = (args) => {
+    const [domain, setDomain] = useState<[number, number]>([1, 151]);
     const [step, setStep] = useState(1);
     const [value, setValue] = useState([102]);
 
-    function onChange(vals): void {
+    function onChange(vals: number[]): void {
         setValue(vals);
-        args.onChange?.(vals);
+        void args.onChange?.(vals);
     }
 
     function changeDomain(): void {
@@ -133,7 +134,7 @@ export const ControlledSliderIncompatible = (args: BaseSliderProps<number>): JSX
     );
 };
 
-export const CategoricalSlider = (args: BaseSliderProps<string>): JSX.Element => {
+export const CategoricalSlider: StoryFn<CategoricalSliderProps> = (args) => {
     return (
         <div style={{ alignItems: 'center', display: 'flex', height: '100%', width: '100%' }}>
             <CategoricalSliderComponent {...args} />
@@ -146,7 +147,7 @@ CategoricalSlider.args = {
     initialValue: ['med'],
 };
 
-export const MultipleThumbs = Slider.bind({});
+export const MultipleThumbs: typeof Slider = Slider.bind({});
 MultipleThumbs.args = {
     domain: [0, 10],
 
@@ -155,7 +156,7 @@ MultipleThumbs.args = {
     step: 0.1,
 };
 
-export const TrackLabels = Slider.bind({});
+export const TrackLabels: typeof Slider = Slider.bind({});
 TrackLabels.args = {
     domain: [1, 16],
 
@@ -166,7 +167,7 @@ TrackLabels.args = {
     trackToStart: false,
 };
 
-export const SmallDecimals = Slider.bind({});
+export const SmallDecimals: typeof Slider = Slider.bind({});
 SmallDecimals.args = {
     domain: [0, 1],
 
@@ -174,7 +175,7 @@ SmallDecimals.args = {
     step: 0.002,
 };
 
-export const NegativeValues = Slider.bind({});
+export const NegativeValues: typeof Slider = Slider.bind({});
 NegativeValues.args = {
     domain: [-100, 100],
 

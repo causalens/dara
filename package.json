@@ -8,5 +8,11 @@
   "dependencies": {
     "glob": "^11.1.0",
     "lerna": "^9.0.0"
+  },
+  "devDependencies": {
+    "@darajs/oxlint-config": "workspace:*",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "stylelint": "^17.14.1"
   }
 }

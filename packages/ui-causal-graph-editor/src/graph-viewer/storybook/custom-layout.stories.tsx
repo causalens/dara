@@ -143,7 +143,7 @@ Object.entries(predefinedLayout.layout).forEach(([nodeKey, position]) => {
     set(PredefinedGraph.nodes[nodeKey], 'meta.rendering_properties.y', position.y);
 });
 
-export const CustomPositions = Template.bind({});
+export const CustomPositions: typeof Template = Template.bind({});
 CustomPositions.args = {
     editable: true,
     graphData: PredefinedGraph,
@@ -151,7 +151,7 @@ CustomPositions.args = {
 };
 
 // User provided custom layout but no initial positions -> falls back to default
-export const CustomLayoutNoPositions = Template.bind({});
+export const CustomLayoutNoPositions: typeof Template = Template.bind({});
 CustomLayoutNoPositions.args = {
     editable: true,
     graphData: SHIPPED_UNITS,

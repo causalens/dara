@@ -234,7 +234,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(fakeButton);
         });
 
-        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]);
+        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]!);
         let currentProgress = getProgress();
 
         // Start from current progress - 50
@@ -310,7 +310,7 @@ describe('ProgressTracker', () => {
 
         await waitFor(() => expect(getByText('Faking progress')).toBeInTheDocument());
 
-        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]);
+        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]!);
         let currentProgress = getProgress();
 
         // advance the timer a couple times to see it increasing automatically, without new messages coming in
@@ -381,7 +381,7 @@ describe('ProgressTracker', () => {
 
         await waitFor(() => expect(getByText('Faking progress')).toBeInTheDocument());
 
-        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]);
+        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]!);
         let currentProgress = getProgress();
 
         // advance the timer a couple times to see it increasing automatically, without new messages coming in

@@ -60,6 +60,8 @@ RecoilEnv.RECOIL_DUPLICATE_ATOM_KEY_CHECKING_ENABLED = false;
 // This simplifies the tests as we don't have to pass credentials: 'include' to every request
 // In reality in a browser we're always dealing with same-origin in Dara so this is fine
 global.fetch = (input, info?) => {
+    // Preserve the mock's historical handling of an empty request string.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
     const init = info || {};
     init.credentials = 'include';
     return fetchPolyfill(input, init);

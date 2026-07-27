@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react-vite';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 import { useState } from 'react';
 
 import type { NodeHierarchyBuilderProps } from './node-hierarchy-builder';
@@ -25,9 +25,9 @@ export default {
     title: 'CausalGraphEditor/Node Hierarchy Builder',
 } as Meta;
 
-const Template = (args: NodeHierarchyBuilderProps<any>): JSX.Element => <NodeHierarchyBuilderComponent {...args} />;
+const Template: StoryFn<NodeHierarchyBuilderProps<any>> = (args) => <NodeHierarchyBuilderComponent {...args} />;
 
-export const BaseScenario = Template.bind({});
+export const BaseScenario: typeof Template = Template.bind({});
 BaseScenario.args = {
     nodes: [
         ['first long node', 'second'],
@@ -36,7 +36,7 @@ BaseScenario.args = {
     ],
 };
 
-export const MetaScenario = Template.bind({});
+export const MetaScenario: typeof Template = Template.bind({});
 MetaScenario.args = {
     nodeFontSize: 10,
     nodeSize: 80,
@@ -69,7 +69,7 @@ MetaScenario.args = {
     wrapNodeText: true,
 };
 
-function generateLayers(layers = 40): Array<string[]> {
+function generateLayers(layers = 40): Array<number[]> {
     const nodes = [];
     let counter = 0;
 
@@ -87,17 +87,17 @@ function generateLayers(layers = 40): Array<string[]> {
     return nodes;
 }
 
-export const LargeNodeNumber = Template.bind({});
+export const LargeNodeNumber: typeof Template = Template.bind({});
 LargeNodeNumber.args = {
     nodes: generateLayers(),
 };
 
-export const Scrollable = Template.bind({});
+export const Scrollable: typeof Template = Template.bind({});
 Scrollable.args = {
     nodes: Array.from({ length: 30 }, (_, i) => [`node ${i}`]),
 };
 
-export const Controlled = (args: NodeHierarchyBuilderProps<any>): JSX.Element => {
+export const Controlled: StoryFn<NodeHierarchyBuilderProps<any>> = (args) => {
     const [nodes, setNodes] = useState(args.nodes);
 
     return <NodeHierarchyBuilderComponent {...args} nodes={nodes} onUpdate={setNodes} />;

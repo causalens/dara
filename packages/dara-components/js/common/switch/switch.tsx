@@ -31,7 +31,7 @@ function Switch(props: SwitchProps): JSX.Element {
 
     function onChange(enabled: boolean): void {
         setValue(enabled);
-        onChangeAction(enabled);
+        void onChangeAction(enabled);
         formCtx.updateForm(enabled);
     }
 

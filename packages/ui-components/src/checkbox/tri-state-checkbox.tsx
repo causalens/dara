@@ -94,9 +94,9 @@ function TriStateCheckbox(props: CheckboxProps): JSX.Element {
 
         if (props.onChange) {
             if (state === CheckboxState.UNCHECKED) {
-                props.onChange(CheckboxState.CHECKED, e);
+                void props.onChange(CheckboxState.CHECKED, e);
             } else {
-                props.onChange(CheckboxState.UNCHECKED, e);
+                void props.onChange(CheckboxState.UNCHECKED, e);
             }
         }
     };

@@ -19,7 +19,7 @@ import { format } from 'date-fns';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import DatePicker, { DatePickerProps } from './datepicker';
+import DatePicker, { type DatePickerProps } from './datepicker';
 
 function RenderDatePicker(props: DatePickerProps = { shouldCloseOnSelect: true }): JSX.Element {
     return (

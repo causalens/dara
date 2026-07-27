@@ -111,11 +111,11 @@ export async function fetchDerivedVariable<T>({
     wsClient,
 }: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<T>> {
     const cacheControl =
-        cache === null ?
-            ({
-                'cache-control': 'none',
-            } as const)
-        :   undefined;
+        cache === null
+            ? ({
+                  'cache-control': 'none',
+              } as const)
+            : undefined;
 
     const ws_channel = await wsClient.getChannel();
 
@@ -212,8 +212,9 @@ export function resolveValue(
     if (isResolvedServerVariable(value)) {
         return {
             ...value,
-            sequence_number:
-                isRecoilValue(value.sequence_number) ? getter(value.sequence_number) : value.sequence_number,
+            sequence_number: isRecoilValue(value.sequence_number)
+                ? getter(value.sequence_number)
+                : value.sequence_number,
         };
     }
 

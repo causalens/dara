@@ -133,24 +133,22 @@ export function useRenderEngine({
     const engine = React.useRef<Engine | null>(null);
     const listeners = React.useRef<Partial<EngineEvents>>({});
 
-    if (!engine.current) {
-        engine.current = new Engine(
-            graph,
-            layout,
-            editable,
-            editorMode,
-            theme,
-            constraints,
-            zoomThresholds,
-            errorHandler,
-            processEdgeStyle,
-            requireFocusToZoom
-        );
-    }
+    engine.current ??= new Engine(
+        graph,
+        layout,
+        editable,
+        editorMode,
+        theme,
+        constraints,
+        zoomThresholds,
+        errorHandler,
+        processEdgeStyle,
+        requireFocusToZoom
+    );
     // Start engine after first render, stop it on destroy
     React.useEffect(() => {
         if (parentRef.current) {
-            engine.current!.start(parentRef.current).then(() => {
+            void engine.current!.start(parentRef.current).then(() => {
                 // Attach listeners for each event type
                 ENGINE_EVENTS.forEach((eventName) => {
                     engine.current!.addListener(eventName, (...args) => {
@@ -219,7 +217,7 @@ export function useRenderEngine({
         },
         resetLayout: () => {
             if (engine.current!.initialized) {
-                engine.current!.debouncedUpdateLayout();
+                void engine.current!.debouncedUpdateLayout();
             }
         },
         resetViewport: () => {

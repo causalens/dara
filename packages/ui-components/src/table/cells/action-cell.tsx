@@ -104,7 +104,7 @@ export function ActionCell(props: ActionCellProps): JSX.Element | null | undefin
     }
     const onClick = (e: React.SyntheticEvent, actionId: string): void => {
         e.stopPropagation();
-        props.onAction?.(actionId, props.row.original);
+        void props.onAction?.(actionId, props.row.original);
     };
 
     // A single action cell should have the functionality of the action cell wherever you click on the cell

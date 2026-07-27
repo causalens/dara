@@ -86,7 +86,7 @@ const NavigateTo: ActionHandler<NavigateToImpl> = async (ctx, actionImpl): Promi
 
     // use router navigate if the url is relative
     const resolvedTo = await resolveTo(to, ctx);
-    ctx.navigate(resolvedTo, actionImpl.options);
+    void ctx.navigate(resolvedTo, actionImpl.options);
 };
 
 export default NavigateTo;

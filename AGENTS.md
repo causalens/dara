@@ -42,6 +42,6 @@ cd packages/dara-core
 DARA_TEST_FLAG=True poetry run pytest <args>
 ```
 
-- JS changes: run `pnpm lerna run lint` and `pnpm lerna run format:check` from the repo root.
-- If your change is broad or cross-cutting, prefer the same aggregate commands CI uses: `poetry anthology run test`, `pnpm lerna run lint`, and `pnpm lerna run format:check`.
+- JS changes: run `make lint-js` and `pnpm lerna run format:check` from the repo root.
+- If your change is broad or cross-cutting, prefer the same aggregate commands CI uses: `poetry anthology run test`, `make lint-js`, and `pnpm lerna run format:check`.
 - PR body linting is enforced by `.github/prace.yml`; when using the PR template, make sure all required checkboxes are checked before opening or updating the PR.

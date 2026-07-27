@@ -59,9 +59,9 @@ const ListItemSpan = styled(StyledListItem)<ListSpanProps>`
     padding: ${(props) => (props?.heading || !props.section ? '0 0.7rem' : '0 1.5rem')};
     padding-right: 0.7rem;
 
+    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
     font-weight: ${(props) => (props?.heading ? 'bold' : 'normal')};
     color: ${(props) => getTextColor(props?.heading, props.isSelected, props.theme)};
-    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
 
     ${(props) => {
         if (props.heading) {
@@ -142,6 +142,9 @@ const SectionedListItem = ({
     if (item.heading) {
         delete itemProps.onClick;
     }
+    // Empty CSS values have historically selected the theme default.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    const badgeColor = item.badge?.color || theme.colors.primary;
 
     return (
         <ListItemSpan
@@ -156,7 +159,7 @@ const SectionedListItem = ({
             isHighlighted={isHighlighted}
         >
             {item.label || item.section}
-            {item.badge && <Badge color={item.badge.color || theme.colors.primary}>{item.badge.label}</Badge>}
+            {item.badge && <Badge color={badgeColor}>{item.badge.label}</Badge>}
         </ListItemSpan>
     );
 };
@@ -173,9 +176,9 @@ function SectionedList(props: SectionedListProps): JSX.Element {
     const [pendingHighlight, setPendingHighlight] = useState<number | null>(null);
     const [items, setItems] = useState(unpackedItems);
     const [inputValue, setInputValue] = useState(
-        props.selectedItem?.label && props.selectedItem.label !== 'null' ?
-            props.selectedItem.label
-        :   props.placeholder ?? ''
+        props.selectedItem?.label && props.selectedItem.label !== 'null'
+            ? props.selectedItem.label
+            : (props.placeholder ?? '')
     );
 
     const [kbdHighlightIdx, setKbdHighlightIdx] = React.useState<number | undefined>();
@@ -243,7 +246,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                     (props.selectedItem && changes.selectedItem?.value !== props.selectedItem?.value) ||
                     !props.selectedItem
                 ) {
-                    props.onSelect(changes.selectedItem as ListItem);
+                    void props.onSelect(changes.selectedItem as ListItem);
                 }
             }
         },
@@ -264,9 +267,9 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ) {
                 // This is a hack to change the highlight in the next render cycle so filteredItems had time to update
                 setPendingHighlight(
-                    changes.selectedItem ?
-                        (props.items as ListItem[]).findIndex((i) => i.value === changes.selectedItem!.value)
-                    :   0
+                    changes.selectedItem
+                        ? (props.items as ListItem[]).findIndex((i) => i.value === changes.selectedItem!.value)
+                        : 0
                 );
                 return {
                     ...changes,
@@ -288,7 +291,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ) {
                 return {
                     ...changes,
-                    inputValue: changes.selectedItem?.label || '',
+                    inputValue: changes.selectedItem?.label ?? '',
                 };
             }
             // jump section headings when navigating with keys

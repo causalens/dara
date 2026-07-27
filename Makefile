@@ -18,8 +18,24 @@ prepare-docs:
 	tooling/scripts/prepare_docs.sh
 
 # Run lint / static testing
+JS_SOURCE_DIRS := \
+	'packages/{dara-components,dara-core}/js/' \
+	'packages/dara-core/{tests,cypress}/' \
+	'packages/ui-causal-graph-editor/tests/' \
+	'packages/{styled-components,ui-*}/src/'
+
+JS_SOURCE_FILES := \
+	'packages/{dara-components,dara-core}/js/**/*.{ts,tsx}' \
+	'packages/{styled-components,ui-*}/src/**/*.{ts,tsx}'
+
+JS_BIN := $(CURDIR)/node_modules/.bin
+
+lint-js:
+	$(JS_BIN)/glob -A -c $(JS_BIN)/oxlint $(JS_SOURCE_DIRS)
+	$(JS_BIN)/stylelint $(JS_SOURCE_FILES) --cache --cache-strategy content
+
 lint:
-	poetry anthology run lint && pnpm lerna run lint
+	poetry anthology run lint && $(MAKE) lint-js
 
 format:
 	poetry anthology run format && pnpm lerna run format
@@ -103,6 +119,8 @@ update-ui-deps:
 	pnpm --recursive --latest update\
 		@darajs/styled-components\
 		@darajs/eslint-config\
+		@darajs/oxfmt-config\
+		@darajs/oxlint-config\
 		@darajs/prettier-config\
 		@darajs/stylelint-config\
 		@darajs/ui-causal-graph-editor\

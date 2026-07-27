@@ -1283,7 +1283,7 @@ describe('useVariable', () => {
                         <button
                             data-testid="trigger"
                             onClick={(e) => {
-                                callAction(e);
+                                void callAction(e);
                             }}
                             type="button"
                         >
@@ -1389,7 +1389,7 @@ describe('useVariable', () => {
                         <button
                             data-testid="trigger"
                             onClick={(e) => {
-                                callAction(e);
+                                void callAction(e);
                             }}
                             type="button"
                         >
@@ -1515,7 +1515,7 @@ describe('useVariable', () => {
                         <button
                             data-testid="trigger"
                             onClick={(e) => {
-                                callAction(e);
+                                void callAction(e);
                             }}
                             type="button"
                         >
@@ -1735,7 +1735,7 @@ describe('useVariable', () => {
                 const [value, setValue] = useVariable<string>(variable);
 
                 const handleNavigateToTarget = (): void => {
-                    navigate('/target');
+                    void navigate('/target');
                 };
 
                 const handleUpdateUrlParam = (): void => {
@@ -1835,7 +1835,7 @@ describe('useVariable', () => {
                 const [value, setValue] = useVariable<string>(variable);
 
                 const handleNavigateToTarget = (): void => {
-                    navigate('/target');
+                    void navigate('/target');
                 };
 
                 const handleUpdateValue = (): void => {

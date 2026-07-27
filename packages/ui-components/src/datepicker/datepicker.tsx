@@ -22,6 +22,7 @@ import range from 'lodash/range';
 import { transparentize } from 'polished';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDatePicker, { type ReactDatePickerCustomHeaderProps } from 'react-datepicker';
+
 import 'react-datepicker/dist/react-datepicker.css';
 
 import styled from '@darajs/styled-components';
@@ -109,12 +110,12 @@ const DatepickerWrapper = styled.div<DatepickerWrapperProps>`
     .react-datepicker {
         width: 16.45rem;
         height: 18.5rem;
+        border: 1px solid ${(props) => props.theme.colors.grey1};
 
         font-family: Manrope, sans-serif;
         font-size: 0.75rem;
 
         background-color: ${(props) => props.theme.colors.grey1};
-        border: 1px solid ${(props) => props.theme.colors.grey1};
         box-shadow: ${(props) => props.theme.shadow.light};
 
         svg {
@@ -146,11 +147,11 @@ const DatepickerWrapper = styled.div<DatepickerWrapperProps>`
                 margin-right: 3px;
                 margin-left: 3px;
                 padding: 1.25em 0.75em 0;
+                border: none;
 
                 color: ${(props) => props.theme.colors.text};
 
                 background-color: ${(props) => props.theme.colors.grey1};
-                border: none;
 
                 .react-datepicker__day-names {
                     display: flex;
@@ -332,15 +333,15 @@ const DateInput = styled.input<DateInputProps>`
     width: 8.5rem;
     height: 2.5rem;
     padding: 0 1rem;
+    border: 1px solid ${(props) => props.theme.colors.grey1};
+    border-radius: 0.25rem;
+    border-radius: ${(props) => (props.isTimeRange ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     font-size: 1rem;
     color: ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.text)};
     text-align: center;
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: 1px solid ${(props) => props.theme.colors.grey1};
-    border-radius: 0.25rem;
-    border-radius: ${(props) => (props.isTimeRange ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
     outline: 0;
 
     :focus:not(:disabled) {
@@ -379,12 +380,11 @@ const TimeInput = styled(Input)<TimeInputProps>`
         justify-content: center;
 
         padding: 0.5rem;
+        border-radius: ${(props) => (props.isRange ? '0rem 0rem 0.25rem 0.25rem' : '0.25rem')};
 
         font-size: 1rem;
         color: ${(props) => props.theme.colors.text};
         text-align: center;
-
-        border-radius: ${(props) => (props.isRange ? '0rem 0rem 0.25rem 0.25rem' : '0.25rem')};
 
         :focus:not(:disabled) {
             border: 1px solid ${(props) => props.theme.colors.grey3};
@@ -405,7 +405,6 @@ const TimeInput = styled(Input)<TimeInputProps>`
             display: block;
 
             width: 6rem;
-
             border-top: ${(props) => (props.isRange ? `1px solid ${props.theme.colors.grey2}` : 'none')};
         }
     }
@@ -622,7 +621,7 @@ function getNewDatetime(date: InternalDatepickerValue, time: TimeValue): Interna
 function DatePicker(props: DatePickerProps): JSX.Element {
     const value = props.value ?? props.initialValue;
     const [selectedDate, setSelectedDate] = useState<InternalDatepickerValue>(
-        value || (props.selectsRange ? [null, null] : null)
+        value ?? (props.selectsRange ? [null, null] : null)
     );
     const [selectedTime, setSelectedTime] = useState<TimeValue>(() =>
         getInitialTime(value, props.selectsRange as boolean)
@@ -771,7 +770,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
     useEffect(() => {
         const newValue = props.value ?? props.initialValue;
 
-        const newDate: InternalDatepickerValue = newValue || (props.selectsRange ? [null, null] : null);
+        const newDate: InternalDatepickerValue = newValue ?? (props.selectsRange ? [null, null] : null);
 
         // Skip if the value is the same as the current state, this is necessary to prevent loops
         if (JSON.stringify(newDate) === JSON.stringify(selectedDateRef.current)) {
@@ -800,7 +799,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         }
         // We have to typecast to make compiler happy as we don't know which type it is at this point
         const newDateTime = getNewDatetime(selectedDate, time);
-        props.onChange?.(newDateTime as Date & [Date, Date]);
+        void props.onChange?.(newDateTime as Date & [Date, Date]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, selectedTime]);
 

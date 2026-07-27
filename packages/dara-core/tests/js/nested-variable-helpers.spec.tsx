@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
+
 import { resolveNested, setNested } from '../../js/shared/interactivity/nested';
 
 describe('Nested variable helpers', () => {
@@ -13,12 +14,12 @@ describe('Nested variable helpers', () => {
 
             // Nested not provided
             expect(resolveNested(testObject, [])).toBe(testObject);
-            expect(resolveNested(testObject, undefined)).toBe(testObject);
+            expect(resolveNested(testObject, undefined as unknown as never[])).toBe(testObject);
 
             // Not an object or empty object
             expect(resolveNested(emptyObject, [] as never[])).toBe(emptyObject);
-            expect(resolveNested(undefined, ['anything' as never])).toBe(undefined);
-            expect(resolveNested(null, ['anything' as never])).toBe(null);
+            expect(resolveNested(undefined as unknown as Record<string, any>, ['anything' as never])).toBe(undefined);
+            expect(resolveNested(null as unknown as Record<string, any>, ['anything' as never])).toBe(null);
 
             // This is prevented by TypeScript but needs to be tested just in case
             expect(resolveNested('something' as unknown as Record<string, any>, ['anything' as never])).toBe(
@@ -59,12 +60,14 @@ describe('Nested variable helpers', () => {
 
             // Nested not provided
             expect(setNested(testObject, [], 'anything')).toStrictEqual(testObject);
-            expect(setNested(testObject, undefined, 'anything')).toStrictEqual(testObject);
+            expect(setNested(testObject, undefined as unknown as never[], 'anything')).toStrictEqual(testObject);
 
             // Not an object or empty object
             expect(setNested(emptyObject, [] as never[], 'anything')).toStrictEqual(emptyObject);
-            expect(setNested(undefined, ['anything' as never], 'anything')).toBe(undefined);
-            expect(setNested(null, ['anything' as never], 'anything')).toBe(null);
+            expect(setNested(undefined as unknown as Record<string, any>, ['anything' as never], 'anything')).toBe(
+                undefined
+            );
+            expect(setNested(null as unknown as Record<string, any>, ['anything' as never], 'anything')).toBe(null);
 
             // This is prevented by TypeScript but needs to be tested just in case
             expect(setNested('something' as unknown as Record<string, any>, ['anything' as never], 'anything')).toBe(

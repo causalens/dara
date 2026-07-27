@@ -127,7 +127,7 @@ function useInfiniteLoader<T>(
                 setInternalData((current) => [...current, ...data]);
                 setItemCount(totalCount);
             } catch (err) {
-                onError?.(err as Error);
+                void onError?.(err as Error);
             }
         },
         [batchSize, currentStartIdx, currentStopIdx, onError]
@@ -135,13 +135,13 @@ function useInfiniteLoader<T>(
 
     useEffect(() => {
         onLoadRef.current = onLoadData;
-        onItemsRendered(currentRange, true);
+        void onItemsRendered(currentRange, true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [onLoadData]);
 
     const refresh = useCallback(
         () => {
-            onItemsRendered(currentRange, true);
+            void onItemsRendered(currentRange, true);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         useDeepCompare([currentRange])

@@ -43,7 +43,7 @@ function Textarea(props: TextareaProps): JSX.Element {
 
         // debounce the update to the variable and the form to prevent multiple updates being fired at once
         debouncedSetValue(val);
-        debouncedAction(val);
+        void debouncedAction(val);
         debouncedUpdateForm(val);
     }
 

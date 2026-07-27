@@ -3,6 +3,7 @@ import type { Extension } from '@codemirror/state';
 import { EditorState, Prec } from '@codemirror/state';
 import type { Tooltip as CodemirrorTooltip, KeyBinding, ViewUpdate } from '@codemirror/view';
 import { EditorView, hoverTooltip, keymap, tooltips } from '@codemirror/view';
+
 import '@vscode/codicons/dist/codicon.css';
 import type { FunctionComponent } from 'react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -32,12 +33,13 @@ const TooltipWrapper = styled.div`
     max-width: 550px;
     max-height: 300px;
     margin: -1px;
+    border-radius: 0.25rem;
 
     color: ${(props) => props.theme.colors.text};
-    word-break: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
 
     background-color: ${({ theme }) => theme.colors.background} !important;
-    border-radius: 0.25rem;
     box-shadow:
         rgb(0 0 0 / 10%) 0 1px 3px 0,
         rgb(0 0 0 / 6%) 0 1px 2px 0;
@@ -225,15 +227,15 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
 
     // remap the hotkeys to pass it the viewRef
     const hotkeys = useMemo(() => {
-        return configurableHotkeys?.hotkeyBindings ?
-                Object.keys(configurableHotkeys.hotkeyBindings).reduce((acc, key) => {
-                    acc[key] = (e: KeyboardEvent) => {
-                        configurableHotkeys.hotkeyBindings?.[key]?.(e, viewRef.current!);
-                    };
-                    return acc;
-                }, {} as KeyBindingMap)
-            :   {};
-    }, [configurableHotkeys?.hotkeyBindings, viewRef]);
+        return configurableHotkeys?.hotkeyBindings
+            ? Object.keys(configurableHotkeys.hotkeyBindings).reduce((acc, key) => {
+                  acc[key] = (e: KeyboardEvent) => {
+                      configurableHotkeys.hotkeyBindings?.[key]?.(e, viewRef.current!);
+                  };
+                  return acc;
+              }, {} as KeyBindingMap)
+            : {};
+    }, [configurableHotkeys, viewRef]);
 
     // These shortcuts are specifically for when the code editor is in focus
     useFocusTinykeys(hotkeys, ref, {
@@ -287,88 +289,88 @@ const UiCodeEditor: FunctionComponent<CodeEditorProps> = ({
                     }
                 }),
                 // This block of extensions is only applied if LSP is enabled
-                enableLsp ?
-                    [
-                        // signature help
-                        signatureHelp,
-                        // completion
-                        autocompletion({
-                            override: [(ctx) => getLspCompletion(client, ctx, uri!)],
-                            // use original sorting order from the LSP
-                            compareCompletions: () => 1,
-                            // reactivate completion when completing paths
-                            activateOnCompletion: (completion) =>
-                                completion.type === 'file' &&
-                                typeof completion.apply === 'string' &&
-                                completion.apply.endsWith('/'),
-                        }),
-                        // go-to-definition
-                        enableGoToDef ?
-                            goToDefinitionExtension(async (ch, line) => {
-                                const res = await getLspDefinition(client, uri!, line, ch);
-                                if (res) {
-                                    goToDef(res.definitions);
-                                }
-                            })
-                        :   [],
-                        tooltips({
-                            parent: document.body,
-                        }),
-                        // inspect
-                        hoverTooltip(async (view, pos): Promise<CodemirrorTooltip | null> => {
-                            // TODO: when this is moved to base Dara it should have a default implementation
-                            if (!tooltipRenderer) {
-                                return null;
-                            }
+                enableLsp
+                    ? [
+                          // signature help
+                          signatureHelp,
+                          // completion
+                          autocompletion({
+                              override: [(ctx) => getLspCompletion(client, ctx, uri!)],
+                              // use original sorting order from the LSP
+                              compareCompletions: () => 1,
+                              // reactivate completion when completing paths
+                              activateOnCompletion: (completion) =>
+                                  completion.type === 'file' &&
+                                  typeof completion.apply === 'string' &&
+                                  completion.apply.endsWith('/'),
+                          }),
+                          // go-to-definition
+                          enableGoToDef
+                              ? goToDefinitionExtension(async (ch, line) => {
+                                    const res = await getLspDefinition(client, uri!, line, ch);
+                                    if (res) {
+                                        goToDef(res.definitions);
+                                    }
+                                })
+                              : [],
+                          tooltips({
+                              parent: document.body,
+                          }),
+                          // inspect
+                          hoverTooltip(async (view, pos): Promise<CodemirrorTooltip | null> => {
+                              // TODO: when this is moved to base Dara it should have a default implementation
+                              if (!tooltipRenderer) {
+                                  return null;
+                              }
 
-                            const wordRange = view.state.wordAt(pos);
+                              const wordRange = view.state.wordAt(pos);
 
-                            if (!wordRange) {
-                                return null;
-                            }
+                              if (!wordRange) {
+                                  return null;
+                              }
 
-                            const inspectedSubstring = view.state.doc.sliceString(wordRange.from, wordRange.to);
-                            const linePosInfo = view.state.doc.lineAt(pos);
+                              const inspectedSubstring = view.state.doc.sliceString(wordRange.from, wordRange.to);
+                              const linePosInfo = view.state.doc.lineAt(pos);
 
-                            const ch = pos - linePosInfo.from;
-                            const line = linePosInfo.number - 1;
+                              const ch = pos - linePosInfo.from;
+                              const line = linePosInfo.number - 1;
 
-                            const inspection = await getLspInspection(client, uri!, line, ch);
+                              const inspection = await getLspInspection(client, uri!, line, ch);
 
-                            if (!inspection) {
-                                return null;
-                            }
+                              if (!inspection) {
+                                  return null;
+                              }
 
-                            return {
-                                above: true,
-                                create: () => {
-                                    const dom = tooltipRef.current!;
+                              return {
+                                  above: true,
+                                  create: () => {
+                                      const dom = tooltipRef.current!;
 
-                                    setTooltipContent(
-                                        tooltipRenderer({
-                                            characterPos: ch,
-                                            lineNumber: line,
-                                            inspectedSubstring,
-                                            contents: inspection.contents,
-                                            source: inspection.source,
-                                        })
-                                    );
-                                    setSignatureTooltipContent(null);
+                                      setTooltipContent(
+                                          tooltipRenderer({
+                                              characterPos: ch,
+                                              lineNumber: line,
+                                              inspectedSubstring,
+                                              contents: inspection.contents,
+                                              source: inspection.source,
+                                          })
+                                      );
+                                      setSignatureTooltipContent(null);
 
-                                    return {
-                                        dom,
-                                        overlap: true,
-                                        destroy: () => {
-                                            setTooltipContent(null);
-                                        },
-                                    };
-                                },
-                                end: wordRange.to,
-                                pos: wordRange.from,
-                            };
-                        }),
-                    ].filter((x) => x !== null)
-                :   [],
+                                      return {
+                                          dom,
+                                          overlap: true,
+                                          destroy: () => {
+                                              setTooltipContent(null);
+                                          },
+                                      };
+                                  },
+                                  end: wordRange.to,
+                                  pos: wordRange.from,
+                              };
+                          }),
+                      ].filter((x) => x !== null)
+                    : [],
                 keymap.of([
                     {
                         key: 'Escape',

@@ -106,9 +106,9 @@ export function parseGraphNode(
     // Everything that's not an available input or an output is latent
     // If available inputs is not provided, nothing is latent
     const isLatent =
-        availableInputs && Array.isArray(availableInputs) ?
-            !availableInputs.includes(nodeKey) && Object.keys(data.edges).includes(nodeKey)
-        :   false;
+        availableInputs && Array.isArray(availableInputs)
+            ? !availableInputs.includes(nodeKey) && Object.keys(data.edges).includes(nodeKey)
+            : false;
 
     const originalEntries = Object.entries(nodeData.meta?.rendering_properties ?? {}) as Entries<FlatNodeRenderingMeta>;
 

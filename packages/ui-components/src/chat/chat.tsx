@@ -35,9 +35,9 @@ const ChatWrapper = styled.div<{ $isPopup?: boolean }>`
     width: ${(props) => (props.$isPopup ? '350px' : '100%')};
     height: ${(props) => (props.$isPopup ? 'calc(100vh - 2rem)' : '100%')};
     padding: 1.5rem;
+    border-radius: ${(props) => (props.$isPopup ? '0.4rem' : 0)};
 
     background-color: ${(props) => (props.$isPopup ? `${props.theme.colors.background}e6` : 'inherit')};
-    border-radius: ${(props) => (props.$isPopup ? '0.4rem' : 0)};
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
 
@@ -178,7 +178,7 @@ function Chat(props: ChatProps): JSX.Element {
             const newMessages = [...localMessages, newMessage];
 
             // Add the new message to the chat
-            props.onUpdate?.(newMessages);
+            void props.onUpdate?.(newMessages);
             setLocalMessages(newMessages);
 
             // Clear the reply field and scroll to the bottom of the chat to show latest message
@@ -196,7 +196,7 @@ function Chat(props: ChatProps): JSX.Element {
             return m;
         });
         // Update the chat
-        props.onUpdate?.(newMessages);
+        void props.onUpdate?.(newMessages);
         setLocalMessages(newMessages);
     };
 
@@ -204,7 +204,7 @@ function Chat(props: ChatProps): JSX.Element {
         // Remove the message with the given id
         const newMessages = localMessages.filter((message) => message.id !== id);
         // Update the chat
-        props.onUpdate?.(newMessages);
+        void props.onUpdate?.(newMessages);
         setLocalMessages(newMessages);
     };
 

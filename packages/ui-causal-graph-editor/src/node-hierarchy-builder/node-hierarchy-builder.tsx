@@ -38,7 +38,6 @@ const BuilderBox = styled.div`
 
     width: 100%;
     height: 100%;
-
     border: 1px solid ${(props) => props.theme.colors.grey2};
     border-radius: 4px;
 `;
@@ -73,9 +72,9 @@ const SearchWrapper = styled.div`
     justify-content: flex-end;
 
     padding: 1rem 2rem;
+    border-bottom: ${(props) => `1px solid ${props.theme.colors.grey3}`};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-bottom: ${(props) => `1px solid ${props.theme.colors.grey3}`};
 `;
 
 export interface NodeHierarchyBuilderProps<T> {
@@ -142,7 +141,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
     }, [props.nodes, returnStrings, setHierarchy]);
 
     useUpdateEffect(() => {
-        props.onUpdate?.(parseLayerItems(hierarchy, returnStrings as any) as T[][]);
+        void props.onUpdate?.(parseLayerItems(hierarchy, returnStrings as any) as T[][]);
     }, [hierarchy, returnStrings]);
 
     useEffect(() => {
@@ -159,9 +158,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
             for (const [idx, layer] of currentHierarchyData.current.entries()) {
                 // Layer with some selected nodes
                 if (layer.nodes.some((node) => node.selected)) {
-                    if (!firstSelectedLayer) {
-                        firstSelectedLayer = idx;
-                    }
+                    firstSelectedLayer ??= idx;
 
                     // Check if it's visible
                     if (isInView(layersRef.current[idx], layersWrapperRef.current)) {
@@ -173,7 +170,7 @@ function NodeHierarchyBuilder<T extends string | Node>(props: NodeHierarchyBuild
             }
 
             // None of the layers containing selected nodes are visible, let's scroll to the first one if possible
-            if (!anySelectedVisible && firstSelectedLayer) {
+            if (!anySelectedVisible && firstSelectedLayer !== null) {
                 layersRef.current[firstSelectedLayer].scrollIntoView({ behavior: 'smooth' });
             }
         }

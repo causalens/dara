@@ -21,6 +21,12 @@ interface ListProps {
     maxItems?: number;
 }
 
+function getMaxItems(maxItems?: number): number {
+    // Zero and NaN have historically selected the default list size.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    return maxItems || 5;
+}
+
 const List = styled.div<ListProps>`
     z-index: 5000;
 
@@ -28,8 +34,7 @@ const List = styled.div<ListProps>`
     display: ${(props) => (props.isOpen ? 'flex' : 'none')};
     flex-direction: column;
 
-    max-height: calc(${(props) => (props.maxItems || 5) * 2}em + 2px);
-
+    max-height: calc(${(props) => getMaxItems(props.maxItems) * 2}em + 2px);
     border: 1px solid ${(props) => props.theme.colors.grey3};
 `;
 

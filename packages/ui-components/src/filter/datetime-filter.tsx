@@ -38,16 +38,16 @@ const DatepickerWrapper = styled.div`
     input {
         width: 6.7rem;
         padding: 0;
-        background-color: ${(props) => props.theme.colors.background};
         border: 1px solid ${(props) => props.theme.colors.background};
+        background-color: ${(props) => props.theme.colors.background};
 
         ::after {
             width: 5rem;
         }
 
         :hover:not(:disabled) {
-            background-color: ${(props) => props.theme.colors.background};
             border: 1px solid ${(props) => props.theme.colors.grey4};
+            background-color: ${(props) => props.theme.colors.background};
         }
     }
 
@@ -74,9 +74,9 @@ const DatepickerWrapper = styled.div`
     .react-datepicker {
         margin-bottom: -1rem;
         margin-left: -0.5rem;
+        border: none;
 
         background-color: ${(props) => props.theme.colors.grey1};
-        border: none;
         box-shadow: none;
 
         /* stylelint-disable -- external classnames */
@@ -222,7 +222,7 @@ function DatetimeFilter(props: DatetimeFilterProps): JSX.Element {
             <StyledApply
                 disabled={disableApply}
                 onClick={(e) => {
-                    props.onChange?.(filteredValues, e);
+                    void props.onChange?.(filteredValues, e);
                     props?.column?.setFilter(filteredValues || undefined);
                     setPreviousFilter(filteredValues);
                 }}

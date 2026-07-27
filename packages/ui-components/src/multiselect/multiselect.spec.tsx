@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import MultiSelect, { MultiSelectProps } from './multiselect';
+import MultiSelect, { type MultiSelectProps } from './multiselect';
 
 const sampleItems = [
     {
@@ -98,9 +98,9 @@ describe('MultiSelect', () => {
         const input = container.querySelector('[id$=-input]');
 
         // Wait for multiselect to be responsive
-        await new Promise((r) => setTimeout(() => r(), 100));
+        await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
-        userEvent.type(input, 'value 1', { delay: 5 });
+        await userEvent.type(input!, 'value 1', { delay: 5 });
 
         await waitFor(() => {
             expect(onTermChangeStub).toHaveBeenCalledTimes(7);
@@ -142,7 +142,7 @@ describe('MultiSelect', () => {
         expect(onSelectStub.mock.results[1].value).toEqual([sampleItems[0], sampleItems[1]]);
 
         const removeTagButton = container.querySelector('[data-icon="xmark"');
-        userEvent.click(removeTagButton);
+        userEvent.click(removeTagButton!);
         expect(multiselect).not.toHaveTextContent(sampleItems[0].label);
     });
 
@@ -165,15 +165,15 @@ describe('MultiSelect', () => {
         expect(input).toHaveAttribute('placeholder', 'test');
         expect(input).toHaveAttribute('value', '');
 
-        await new Promise((r) => setTimeout(() => r(), 100));
+        await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
-        userEvent.type(input, 'new input', { delay: 5 });
+        await userEvent.type(input!, 'new input', { delay: 5 });
 
         await waitFor(() => {
             expect(input).toHaveAttribute('value', 'new input');
         });
 
-        userEvent.clear(input);
+        userEvent.clear(input!);
 
         // Using fireEvent here as selectOption doesn't work
         fireEvent.click(options.children[0]);

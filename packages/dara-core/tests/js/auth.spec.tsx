@@ -60,6 +60,7 @@ describe('resolve_referrer', () => {
 
     it('should resolve the full path when no base_url is set', () => {
         window.dara = {
+            ...window.dara,
             base_url: 'https://test.com/',
         };
 
@@ -68,6 +69,7 @@ describe('resolve_referrer', () => {
 
     it("should remove the path part of the base_url when it's set", () => {
         window.dara = {
+            ...window.dara,
             base_url: 'https://test.com/test',
         };
 
@@ -120,6 +122,7 @@ describe('verifySessionToken', () => {
         });
 
         window.dara = {
+            ...window.dara,
             base_url: 'https://test.com',
         };
         setSessionIdentifier('existing-session');
@@ -219,6 +222,7 @@ describe('handleAuthErrors', () => {
         });
 
         window.dara = {
+            ...window.dara,
             base_url: 'https://test.com',
         };
         setSessionIdentifier('session-id');
@@ -258,7 +262,9 @@ describe('handleAuthErrors', () => {
     });
 
     it('redirects authorization failures to the error page even when login is requested', async () => {
-        const handled = await handleAuthError('unauthorized', 403, { authenticationFailureRedirect: 'login' });
+        const handled = await handleAuthError('unauthorized', 403, {
+            authenticationFailureRedirect: 'login',
+        });
 
         expect(handled).toBe(true);
         expect(window.location.pathname).toBe('/error');
@@ -276,7 +282,9 @@ describe('handleAuthErrors', () => {
     });
 
     it('can redirect authentication failures to the error page', async () => {
-        const handled = await handleAuthError('invalid_token', 401, { authenticationFailureRedirect: 'error' });
+        const handled = await handleAuthError('invalid_token', 401, {
+            authenticationFailureRedirect: 'error',
+        });
 
         expect(handled).toBe(true);
         expect(window.location.pathname).toBe('/error');

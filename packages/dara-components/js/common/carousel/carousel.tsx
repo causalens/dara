@@ -45,7 +45,7 @@ function Carousel(props: CarouselProps): JSX.Element {
 
     function handleChange(val: number): void {
         setValue(val);
-        onCarouselAction(val);
+        void onCarouselAction(val);
     }
 
     const remappedItems = useMemo<UICarouselItem[]>(

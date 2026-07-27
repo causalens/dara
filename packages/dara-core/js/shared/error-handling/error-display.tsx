@@ -16,9 +16,9 @@ const StyledErrorDisplay = styled.div`
 
     height: min-content;
     padding: 1rem;
+    border-radius: 0.25rem;
 
     background-color: ${(props) => transparentize(0.9, props.theme.colors.error)};
-    border-radius: 0.25rem;
 `;
 const ErrorDisplayWrapper = injectCss(StyledErrorDisplay);
 
@@ -71,14 +71,14 @@ const RetryButton = styled.button`
 
     width: 40px;
     height: 40px;
-
-    color: ${(props) => props.theme.colors.error};
-
-    background-color: inherit;
     border: none;
     border: 1px solid;
     border-color: ${(props) => props.theme.colors.error};
     border-radius: 5px;
+
+    color: ${(props) => props.theme.colors.error};
+
+    background-color: inherit;
 
     transition-timing-function: ease;
     transition-duration: 100ms;
@@ -90,8 +90,8 @@ const RetryButton = styled.button`
     }
 
     &:hover {
-        color: ${(props) => props.theme.colors.errorHover};
         border-color: ${(props) => props.theme.colors.errorHover};
+        color: ${(props) => props.theme.colors.errorHover};
 
         i {
             transform: rotate(180deg);

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.build.json",
+  "exclude": ["dist/**", "**/*.stories.ts", "**/*.stories.tsx"],
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": true,
+    "preserveSymlinks": false,
+    "tsBuildInfoFile": "../../node_modules/.cache/tsgo/ui-components-spec.tsbuildinfo",
+    "types": ["node", "vite/client", "vitest/globals", "@testing-library/jest-dom/vitest"]
+  }
+}

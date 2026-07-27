@@ -124,6 +124,8 @@ export async function validateResponse(
         let message = fallbackMessage;
         try {
             const json = await res.json();
+            // Empty response fields should not suppress a useful detail or caller-provided fallback.
+            // oxlint-disable-next-line typescript/prefer-nullish-coalescing
             message = json?.message || json?.detail || fallbackMessage;
         } catch {
             if (fallbackMessage) {

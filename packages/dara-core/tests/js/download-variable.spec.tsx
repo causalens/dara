@@ -1,7 +1,25 @@
-import { describe, expect, it } from "vitest";
-import { processDataForDownload, restoreColumnName } from '../../js/actions/download-variable';
+import { describe, expect, it } from 'vitest';
+
+import {
+    createCsvFromMatrix,
+    createMatrixFromArrayOfObjects,
+    processDataForDownload,
+    restoreColumnName,
+} from '../../js/actions/download-variable';
 
 describe('Download Variable Processing Utils', () => {
+    it('serializes missing record fields as empty CSV cells', async () => {
+        const matrix = createMatrixFromArrayOfObjects([{ first: 1, second: 2 }, { first: 3 }]);
+        const csv = new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.addEventListener('error', reject);
+            reader.addEventListener('load', () => resolve(reader.result as string));
+            reader.readAsText(createCsvFromMatrix(matrix));
+        });
+
+        await expect(csv).resolves.toBe('first,second\n1,2\n3,');
+    });
+
     describe('restoreColumnName', () => {
         it('should restore original column names from __col__ format', () => {
             expect(restoreColumnName('__col__0__Sales')).toBe('Sales');
@@ -175,4 +193,3 @@ describe('Download Variable Processing Utils', () => {
         });
     });
 });
-

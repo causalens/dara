@@ -106,7 +106,7 @@ export function useEdgeConstraintEncoder(
     );
 
     useUpdateEffect(() => {
-        onUpdate?.(parseConstraintItems(constraints));
+        void onUpdate?.(parseConstraintItems(constraints));
     }, [constraints]);
 
     function updateConstraint(edgeConstraint: EdgeConstraintItem): void {

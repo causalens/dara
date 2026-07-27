@@ -19,9 +19,9 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Tabs, { TabsProps } from './tabs';
+import Tabs, { type TabsProps } from './tabs';
 
-function RenderTabs(props: TabsProps): JSX.Element {
+function RenderTabs(props: TabsProps<string>): JSX.Element {
     return (
         <ThemeProvider theme={theme}>
             <Tabs {...props} />

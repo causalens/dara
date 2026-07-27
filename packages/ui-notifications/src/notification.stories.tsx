@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react-vite';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 
 import { Status } from '@darajs/ui-utils';
 
@@ -26,7 +26,7 @@ export default {
     title: 'UI Components/Notification',
 } as Meta;
 
-const Template = (args: NotificationProps): JSX.Element => <NotificationComponent {...args} />;
+const Template: StoryFn<NotificationProps> = (args) => <NotificationComponent {...args} />;
 
 const infoMessage: NotificationPayload = {
     key: 'test',
@@ -34,7 +34,7 @@ const infoMessage: NotificationPayload = {
     status: Status.CREATED,
 };
 
-export const InfoNotification = Template.bind({});
+export const InfoNotification: typeof Template = Template.bind({});
 
 InfoNotification.args = {
     notification: infoMessage,
@@ -47,7 +47,7 @@ const infoTitleMessage: NotificationPayload = {
     title: 'Information',
 };
 
-export const TitleInfoNotification = Template.bind({});
+export const TitleInfoNotification: typeof Template = Template.bind({});
 
 TitleInfoNotification.args = {
     notification: infoTitleMessage,
@@ -60,7 +60,7 @@ const successMessage: NotificationPayload = {
     title: 'Success',
 };
 
-export const SuccessNotification = Template.bind({});
+export const SuccessNotification: typeof Template = Template.bind({});
 
 SuccessNotification.args = {
     notification: successMessage,
@@ -73,7 +73,7 @@ const warningMessage: NotificationPayload = {
     title: 'Warning',
 };
 
-export const WarningNotification = Template.bind({});
+export const WarningNotification: typeof Template = Template.bind({});
 
 WarningNotification.args = {
     notification: warningMessage,
@@ -86,7 +86,7 @@ const errorMessage: NotificationPayload = {
     title: 'Error',
 };
 
-export const ErrorNotification = Template.bind({});
+export const ErrorNotification: typeof Template = Template.bind({});
 
 ErrorNotification.args = {
     notification: errorMessage,
@@ -106,7 +106,7 @@ const longWarning: NotificationPayload = {
     title: 'Warning',
 };
 
-export const LongWarning = Template.bind({});
+export const LongWarning: typeof Template = Template.bind({});
 LongWarning.args = {
     notification: longWarning,
     onMoreDetailsClick: (
@@ -128,7 +128,7 @@ const longInfo: NotificationPayload = {
     status: Status.CREATED,
     title: 'Information',
 };
-export const LongInformation = Template.bind({});
+export const LongInformation: typeof Template = Template.bind({});
 LongInformation.args = {
     notification: longInfo,
     onMoreDetailsClick: (

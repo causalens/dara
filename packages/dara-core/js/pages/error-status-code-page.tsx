@@ -47,7 +47,7 @@ function ErrorPage(props: { code?: string }): JSX.Element {
 
     const code = props.code ?? query.get('code');
 
-    const errorConfig = (code && errorMessages[code]) || errorMessages.default!;
+    const errorConfig = code ? (errorMessages[code] ?? errorMessages.default!) : errorMessages.default!;
 
     return (
         <CenteredDivWithGap>

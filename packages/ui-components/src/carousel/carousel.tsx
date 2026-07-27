@@ -70,11 +70,11 @@ const Button = styled.button`
     align-items: center;
 
     padding: 0;
+    border: none;
 
     color: ${(props) => props.theme.colors.grey4};
 
     background-color: inherit;
-    border: none;
 
     :hover {
         color: ${(props) => props.theme.colors.grey5};
@@ -92,11 +92,11 @@ const CircleSelect = styled.button<CircleSelectProps>`
     z-index: 3;
 
     padding: 0;
+    border: none;
 
     color: ${(props) => (props.selected ? props.theme.colors.grey4 : props.theme.colors.grey3)};
 
     background-color: inherit;
-    border: none;
 
     :hover {
         color: ${(props) => props.theme.colors.grey4};
@@ -164,7 +164,7 @@ const CarouselItemContainer = (props: CarouselItemContainerProps): JSX.Element =
                         />
                     </ImageWrapper>
                 )}
-                {(props.item.title || props.item.subtitle) && (
+                {(Boolean(props.item.title) || Boolean(props.item.subtitle)) && (
                     <TextWrapper
                         style={{
                             gap: `${props.item.title && props.item.subtitle ? '0.5rem' : '0'}`,
@@ -175,7 +175,7 @@ const CarouselItemContainer = (props: CarouselItemContainerProps): JSX.Element =
                         <span>{props.item.subtitle}</span>
                     </TextWrapper>
                 )}
-                {props.item.component && props.item.component}
+                {props.item.component}
             </div>
         </CarouselItemWrapper>
     );
@@ -204,7 +204,7 @@ export interface CarouselProps {
  * @param {CarouselProps} props - the props of the component
  */
 function Carousel(props: CarouselProps): JSX.Element {
-    const [activeIndex, setActiveIndex] = useState(props.value || props.initialValue || 0);
+    const [activeIndex, setActiveIndex] = useState(props.value ?? props.initialValue ?? 0);
 
     const updateIndex = useCallback(
         (newIndex: number): void => {
@@ -214,7 +214,7 @@ function Carousel(props: CarouselProps): JSX.Element {
             } else if (newIndex >= props.items.length) {
                 _newIndex = 0;
             }
-            props.onChange?.(_newIndex);
+            void props.onChange?.(_newIndex);
             // uncontrolled component
             if (props.value === undefined) {
                 setActiveIndex(_newIndex);
@@ -225,7 +225,7 @@ function Carousel(props: CarouselProps): JSX.Element {
     );
 
     useEffect(() => {
-        setActiveIndex(props.value || props.initialValue || 0);
+        setActiveIndex(props.value ?? props.initialValue ?? 0);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.value]);
 

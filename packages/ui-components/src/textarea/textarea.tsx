@@ -45,13 +45,13 @@ const PrimaryTextArea = styled.textarea<PrimaryTextAreaProps>`
     height: 100%;
     min-height: 3.4rem;
     padding: 1rem;
+    border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey1)};
+    border-radius: 0.25rem;
 
     font-size: 1rem;
     color: ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.text)};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey1)};
-    border-radius: 0.25rem;
     outline: 0;
 
     :hover:not(:disabled) {
@@ -156,7 +156,7 @@ function TextArea({
     const onChangeText = (e: React.SyntheticEvent<HTMLTextAreaElement>): void => {
         const target = e.target as HTMLInputElement;
         if (onChange) {
-            onChange(target.value, e);
+            void onChange(target.value, e);
         }
     };
 
@@ -168,7 +168,7 @@ function TextArea({
             return;
         }
         if (e.key === Key.ENTER && onComplete) {
-            onComplete();
+            void onComplete();
         }
     };
 

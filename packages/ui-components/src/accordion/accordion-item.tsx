@@ -27,9 +27,9 @@ interface WrapperProps {
 
 const AccordionItemWrapper = styled.div<WrapperProps>`
     width: 100%;
-    background-color: ${(props) => props.backgroundColor ?? props.theme.colors.blue1};
     border: 1px solid ${(props) => props.theme.colors.grey1};
     border-radius: 0.25rem;
+    background-color: ${(props) => props.backgroundColor ?? props.theme.colors.blue1};
 
     /* Define the animation used for collapsing */
     /* stylelint-disable-next-line -- external classname */
@@ -51,14 +51,14 @@ const AccordionLabel = styled.dt<AccordionLabelProps>`
 
     width: 100%;
     padding: 0.5rem 1rem;
+    border: none;
+    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     font-size: 1.2em;
     font-weight: 400;
     color: ${(props) => props.theme.colors.text};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: none;
-    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     &:hover {
         background-color: ${(props) => props.theme.colors.grey2};

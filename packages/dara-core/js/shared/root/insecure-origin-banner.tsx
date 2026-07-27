@@ -15,6 +15,7 @@ const Banner = styled.div`
     box-sizing: border-box;
     width: 100%;
     padding: 0.75rem 1rem;
+    border-bottom: 1px solid ${(props) => transparentize(0.7, props.theme.colors.error)};
 
     font-size: 0.875rem;
     line-height: 1.4;
@@ -23,13 +24,12 @@ const Banner = styled.div`
     letter-spacing: 0.01em;
 
     background-color: ${(props) => transparentize(0.9, props.theme.colors.error)};
-    border-bottom: 1px solid ${(props) => transparentize(0.7, props.theme.colors.error)};
 `;
 
 const InlineCode = styled.code`
     font-family: monospace;
     font-size: inherit;
-    word-break: break-word;
+    word-break: normal;
     overflow-wrap: anywhere;
 `;
 

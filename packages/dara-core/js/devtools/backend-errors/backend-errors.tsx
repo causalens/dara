@@ -43,7 +43,6 @@ const Toolbar = styled.div`
     padding-top: 0.25rem;
     padding-bottom: 0.25rem;
     padding-left: 0.5rem;
-
     border-bottom: 1px solid;
     border-bottom-color: ${(props) => props.theme.colors.grey5};
 `;

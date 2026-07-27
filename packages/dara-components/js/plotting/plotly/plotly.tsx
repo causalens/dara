@@ -295,7 +295,7 @@ function handleEvent<T extends PlotlyEventName>(
     eventActions?.forEach((eventAction) => {
         if (eventAction?.handler) {
             const filteredData = filterEventData(figure, eventData, eventType);
-            eventAction.handler(filteredData.points);
+            void eventAction.handler(filteredData.points);
         }
         if (eventAction?.custom_js) {
             const newFigure = executeCustomJs(eventAction.custom_js, eventData, figure);
@@ -385,7 +385,7 @@ function Plotly(props: PlotlyProps): JSX.Element {
 
     React.useEffect(() => {
         if (!Component) {
-            initializePlotly();
+            void initializePlotly();
         }
     }, [Component, initializePlotly]);
 

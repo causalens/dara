@@ -59,12 +59,12 @@ const StyledInput = styled(Input)<StyledInputProps>`
 
     input {
         width: ${(props) => (props.showTwoInputs ? '106px' : '100%')};
-        background-color: ${(props) => props.theme.colors.background};
         border: 1px solid ${(props) => (props.showError ? props.theme.colors.error : props.theme.colors.background)};
+        background-color: ${(props) => props.theme.colors.background};
 
         :hover:not(:disabled) {
-            background-color: ${(props) => props.theme.colors.background};
             border: 1px solid ${(props) => (props.showError ? props.theme.colors.error : props.theme.colors.grey3)};
+            background-color: ${(props) => props.theme.colors.background};
         }
 
         :active:not(:disabled),
@@ -209,7 +209,7 @@ function NumericFilter(props: NumericFilterProps): JSX.Element {
             <ApplyButton
                 disabled={disableApply}
                 onClick={(e) => {
-                    props.onChange?.(filteredValues, e);
+                    void props.onChange?.(filteredValues, e);
                     props?.column?.setFilter(filteredValues || undefined);
                     setPreviousFilter(filteredValues);
                 }}

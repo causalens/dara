@@ -18,7 +18,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { BaseSliderProps, Slider, computeStep } from './slider';
+import { type BaseSliderProps, Slider, computeStep } from './slider';
 
 const domain: [number, number] = [0, 100];
 const initialValue = [20, 60];

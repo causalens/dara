@@ -65,13 +65,13 @@ function OIDCAuthSSOCallback(): JSX.Element {
         getSSOCallbackResult(search, routerContext.defaultPath)
             .then((result) => {
                 if (result) {
-                    navigate(result.redirectTo);
+                    void navigate(result.redirectTo);
                 }
             })
             .catch((err) => {
                 // eslint-disable-next-line no-console
                 console.error('Failed to run SSO callback', err);
-                navigate('/logout');
+                void navigate('/logout');
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

@@ -113,6 +113,10 @@ develop = true
 path = "packages/eslint-config"
 develop = true
 
+[tool.poetry.dev-dependencies.oxlint-config]
+path = "packages/oxlint-config"
+develop = true
+
 [tool.poetry.dev-dependencies.ui-widgets]
 path = "packages/ui-widgets"
 develop = true
@@ -139,6 +143,10 @@ develop = true
 
 [tool.poetry.dev-dependencies.prettier-config]
 path = "packages/prettier-config"
+develop = true
+
+[tool.poetry.dev-dependencies.oxfmt-config]
+path = "packages/oxfmt-config"
 develop = true
 
 [build-system]

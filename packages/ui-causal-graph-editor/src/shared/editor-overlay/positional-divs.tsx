@@ -136,10 +136,10 @@ export const PanelDiv = styled.div<{ $hide?: boolean; $disabled?: boolean }>`
     max-width: calc(100% - 20px);
     max-height: calc(100% * 0.85);
     padding: 1.5rem;
+    border-radius: 4px;
 
     opacity: ${(props) => (props.$hide ? 0 : 1)};
     background-color: ${(props) => props.theme.colors.grey1};
-    border-radius: 4px;
     box-shadow: ${(props) => props.theme.shadow.light};
 
     transition: opacity 0.2s ease-in-out;

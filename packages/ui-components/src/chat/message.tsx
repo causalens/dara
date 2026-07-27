@@ -36,9 +36,9 @@ const InteractiveIcons = styled.div`
     gap: 0.5rem;
 
     padding: 0.3rem;
+    border-radius: 0.25rem;
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 `;
 
@@ -51,10 +51,10 @@ const MessageWrapper = styled.div<{ $messageFromActiveUser: boolean }>`
 
     width: 100%;
     padding: 1rem;
+    border-radius: 0.25rem;
 
     background-color: ${(props) =>
         props.$messageFromActiveUser ? props.theme.colors.blue2 : props.theme.colors.blue1};
-    border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
     :hover ${InteractiveIcons} {
@@ -138,11 +138,10 @@ const AvatarIcon = styled.div`
 
     width: 2rem;
     height: 2rem;
+    border-radius: 50%;
 
     font-weight: 700;
     color: white;
-
-    border-radius: 50%;
 `;
 
 export interface MessageProps extends InteractiveComponentProps<Message> {
@@ -243,7 +242,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
             updated_at: new Date().toISOString(),
         };
 
-        props?.onChange!(newMessage);
+        void props?.onChange!(newMessage);
         setLocalMessage(newMessage);
         // reset the textarea message to the message without the /n and trailing whitespace
         setEditMessage(newMessage.message);
@@ -252,7 +251,7 @@ function MessageComponent(props: MessageProps): JSX.Element {
 
     const onDelete = (): void => {
         if (props.onDelete) {
-            props.onDelete(props.value.id);
+            void props.onDelete(props.value.id);
         }
     };
 
@@ -287,12 +286,14 @@ function MessageComponent(props: MessageProps): JSX.Element {
                 {!editMode && props.isEditable && props.didUserWriteMessage && (
                     <InteractiveIcons>
                         <EditIcon
+                            tabIndex={0}
                             aria-label="Edit message"
                             data-testid="message-edit-button"
                             onClick={() => setEditMode(true)}
                             role="button"
                         />
                         <DeleteIcon
+                            tabIndex={0}
                             aria-label="Delete message"
                             data-testid="message-delete-button"
                             onClick={onDelete}

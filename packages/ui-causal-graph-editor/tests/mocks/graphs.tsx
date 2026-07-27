@@ -1,4 +1,5 @@
 import { type CausalGraph, EdgeType, VariableType } from '../../src/types';
+import { completeCausalGraph } from './graph-builder';
 
 export const SIMPLE: CausalGraph = {
     edges: {
@@ -620,7 +621,7 @@ export const FRAUD: CausalGraph = {
     version: '2',
 };
 
-export const SHIPPED_UNITS: CausalGraph = {
+export const SHIPPED_UNITS: CausalGraph = completeCausalGraph({
     edges: {
         'amg click throughs': {
             'ara rev shipped units acfu,7': {
@@ -918,4 +919,4 @@ export const SHIPPED_UNITS: CausalGraph = {
         },
     },
     version: '0.1.10',
-};
+});

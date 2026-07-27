@@ -57,7 +57,6 @@ const Wrapper = styled.div<WrapperProps>`
     width: 100%;
     min-width: 4rem;
     height: 2.5rem;
-
     border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     ${(props) => {
@@ -95,13 +94,13 @@ const SelectButton = styled.button<SelectButtonProps>`
     width: 100%;
     height: 100%;
     padding: 0 0.5rem 0 1rem;
+    border: none;
+    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     font-size: 1rem;
     color: ${(props) => props.theme.colors.text};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: none;
-    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
     outline: 0;
 
     :not(:enabled) {
@@ -172,7 +171,7 @@ function Select(props: SelectProps): JSX.Element {
         items: props.items,
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
-            props.onSelect?.(selected as Item);
+            void props.onSelect?.(selected as Item);
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
         // Only set the selectedItem key if it has been explicitly set in props
@@ -181,6 +180,8 @@ function Select(props: SelectProps): JSX.Element {
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,
+        // Empty placement strings have historically selected the default.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
         placement: props.placement || 'bottom-start',
         middleware: [flip(), shift(), ...(applySameWidthModifier ? [matchWidthToReference(+2)] : [])],
         whileElementsMounted: isOpen ? autoUpdate : undefined,

@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react-vite';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 
 import { Accordion } from '@darajs/ui-components';
 
+import { completeCausalGraph } from '../../../tests/mocks/graph-builder';
 import { CircularLayout, FcoseLayout, PlanarLayout, SpringLayout } from '../../shared/graph-layout';
 import type { CausalGraph } from '../../types';
 import { EdgeType, VariableType } from '../../types';
@@ -32,7 +33,7 @@ export default {
     title: 'CausalGraphEditor/GraphEditor',
 } as Meta;
 
-export const Interactive = (args: CausalGraphEditorProps): JSX.Element => {
+export const Interactive: StoryFn<CausalGraphEditorProps> = (args) => {
     const [nodeNumber, setNodeNumber] = useState(3);
     const [useStrenghts, setUseStrengths] = useState(false);
     const [initialGraphData, setInitialGraphData] = useState<CausalGraph>({
@@ -42,7 +43,7 @@ export const Interactive = (args: CausalGraphEditorProps): JSX.Element => {
     });
 
     function updateInitialGraph(val: number): void {
-        const updatedGraph = { ...initialGraphData, edges: {}, nodes: {} };
+        const updatedGraph: CausalGraph = { ...initialGraphData, edges: {}, nodes: {} };
 
         let firstKey: string | null = null;
 
@@ -50,20 +51,25 @@ export const Interactive = (args: CausalGraphEditorProps): JSX.Element => {
             const newKey = `node-${i}`;
 
             updatedGraph.nodes[newKey] = {
+                identifier: newKey,
                 meta: { rendering_properties: {} },
                 variable_type: VariableType.UNSPECIFIED,
             };
 
             if (firstKey) {
                 updatedGraph.edges[firstKey][newKey] = {
+                    destination: updatedGraph.nodes[newKey],
                     edge_type: EdgeType.DIRECTED_EDGE,
-                    meta: { rendering_properties: {} },
+                    meta: {
+                        rendering_properties: useStrenghts
+                            ? {
+                                  thickness: i,
+                                  tooltip: `Thickness: ${i}`,
+                              }
+                            : {},
+                    },
+                    source: updatedGraph.nodes[firstKey],
                 };
-
-                if (useStrenghts) {
-                    updatedGraph.edges[firstKey][newKey].meta.rendering_properties.thickness = i;
-                    updatedGraph.edges[firstKey][newKey].meta.rendering_properties.tooltip = `Thickness: ${i}`;
-                }
             } else {
                 firstKey = newKey;
                 updatedGraph.edges[firstKey] = {};
@@ -78,7 +84,7 @@ export const Interactive = (args: CausalGraphEditorProps): JSX.Element => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodeNumber, useStrenghts]);
 
-    function onUpdate(data): void {
+    function onUpdate(data: CausalGraph): void {
         setInitialGraphData(data);
     }
 
@@ -129,7 +135,7 @@ Interactive.args = {
 /**
  * Tests scenario where the graph is collapsed, to ensure e.g. tooltips don't bleed out of the container
  */
-export const Collapsed = (args: CausalGraphEditorProps): JSX.Element => {
+export const Collapsed: StoryFn<CausalGraphEditorProps> = (args) => {
     return (
         <Accordion
             items={[
@@ -147,7 +153,7 @@ Collapsed.args = {
     graphLayout: PlanarLayout.Builder.build(),
 };
 
-export const Scrollable = (args: CausalGraphEditorProps): JSX.Element => {
+export const Scrollable: StoryFn<CausalGraphEditorProps> = (args) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '500px', overflow: 'auto' }}>
             {Array(50)
@@ -170,14 +176,14 @@ Scrollable.args = {
     graphLayout: PlanarLayout.Builder.build(),
 };
 
-export const Circular = Template.bind({});
+export const Circular: typeof Template = Template.bind({});
 Circular.args = {
     editable: true,
     graphData: causalGraph,
     graphLayout: CircularLayout.Builder.build(),
 };
 
-const singleLetterGraph: CausalGraph = {
+const singleLetterGraph = completeCausalGraph({
     edges: {
         'a b c': {
             b: {
@@ -201,15 +207,15 @@ const singleLetterGraph: CausalGraph = {
         },
     },
     version: '2.0',
-};
-export const SingleLetter = Template.bind({});
+});
+export const SingleLetter: typeof Template = Template.bind({});
 SingleLetter.args = {
     editable: true,
     graphData: singleLetterGraph,
     graphLayout: SpringLayout.Builder.nodeFontSize(80).build(),
 };
 
-const longWordGraph: CausalGraph = {
+const longWordGraph = completeCausalGraph({
     edges: {
         super_long_single_word_without_spaces: {
             b: {
@@ -233,16 +239,16 @@ const longWordGraph: CausalGraph = {
         },
     },
     version: '2.0',
-};
+});
 
-export const LongWord = Template.bind({});
+export const LongWord: typeof Template = Template.bind({});
 LongWord.args = {
     editable: true,
     graphData: longWordGraph,
     graphLayout: SpringLayout.Builder.build(),
 };
 
-export const TimeSeries = Template.bind({});
+export const TimeSeries: typeof Template = Template.bind({});
 
 const timeSeriesLayout = FcoseLayout.Builder.build();
 
@@ -252,7 +258,7 @@ TimeSeries.args = {
     graphLayout: timeSeriesLayout,
 };
 
-export const Empty = Template.bind({});
+export const Empty: typeof Template = Template.bind({});
 Empty.args = {
     editable: false,
     graphData: {

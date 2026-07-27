@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import SectionedList, { ListItem, SectionedListProps } from './sectioned-list';
+import SectionedList, { type ListItem, type SectionedListProps } from './sectioned-list';
 
 const sampleListItems = (header: string): Array<ListItem> => [
     {
@@ -103,7 +103,7 @@ describe('Sectioned List', () => {
         const input = container.querySelector('[id$=-input]');
 
         // Wait for SectionedList to be responsive
-        userEvent.type(input, '3', { delay: 5 });
+        await userEvent.type(input!, '3', { delay: 5 });
         await new Promise<void>((r) => setTimeout(() => r(), 100));
 
         for (let idx = 0; idx < options.childElementCount; idx++) {

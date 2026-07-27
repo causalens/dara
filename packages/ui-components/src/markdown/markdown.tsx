@@ -36,9 +36,9 @@ export const CustomMarkdownWrapper = styled.div`
 
         code {
             padding: 0.1rem;
-            background-color: ${(props) => props.theme.colors.grey1};
             border: 1px solid ${(props) => props.theme.colors.grey3};
             border-radius: 0.25rem;
+            background-color: ${(props) => props.theme.colors.grey1};
         }
     }
 
@@ -58,7 +58,8 @@ export const CustomMarkdownWrapper = styled.div`
 
     a {
         color: ${(props) => props.theme.colors.primary};
-        word-break: break-word;
+        word-break: normal;
+        overflow-wrap: anywhere;
     }
 
     blockquote {
@@ -67,12 +68,11 @@ export const CustomMarkdownWrapper = styled.div`
         margin-top: 1.5rem;
         margin-bottom: 1.5rem;
         padding-left: 1rem;
+        border-left: 0.25rem solid ${(props) => props.theme.colors.grey3};
 
         font-weight: 500;
         font-style: italic;
         color: ${(props) => props.theme.colors.grey6};
-
-        border-left: 0.25rem solid ${(props) => props.theme.colors.grey3};
 
         p:first-of-type::before {
             content: open-quote;
@@ -163,13 +163,13 @@ export const CustomMarkdownWrapper = styled.div`
         margin-top: 1.7rem;
         margin-bottom: 1.7rem;
         padding: 0 0.5em;
+        border: 1px solid ${(props) => props.theme.colors.blue3};
+        border-radius: 0.375rem;
 
         font-size: 0.9rem;
         line-height: 1.7;
 
         background-color: ${(props) => props.theme.colors.blue2};
-        border: 1px solid ${(props) => props.theme.colors.blue3};
-        border-radius: 0.375rem;
 
         div {
             background-color: ${(props) => props.theme.colors.blue2} !important;
@@ -201,9 +201,9 @@ export const CustomMarkdownWrapper = styled.div`
 
             code {
                 padding: 0.1em;
-                background-color: ${(props) => props.theme.colors.grey1};
                 border: 1px solid ${(props) => props.theme.colors.grey3};
                 border-radius: 0.25rem;
+                background-color: ${(props) => props.theme.colors.grey1};
             }
 
             p {
@@ -352,7 +352,7 @@ export function CodeDisplay(
 ): React.ReactElement {
     const theme = useTheme();
     const { children, ...rest } = props;
-    const match = /language-(\w+)/.exec(props.className || '');
+    const match = /language-(\w+)/.exec(props.className ?? '');
 
     const parsed = React.useMemo(() => {
         return childrenToString(children).trim().replace(/\n\n/g, '\n');

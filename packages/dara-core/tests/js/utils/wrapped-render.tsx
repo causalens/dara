@@ -113,6 +113,13 @@ export const daraData: DaraData = {
     powered_by_causalens: false,
     router: {
         children: [],
+        default_path: null,
+        route_matches: {
+            __typename: 'Variable',
+            default: [],
+            nested: [],
+            uid: 'route-matches',
+        },
     },
     theme: { base: 'dark', main: 'dark' },
     title: 'Test App',
@@ -186,6 +193,13 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
                 powered_by_causalens: false,
                 router: {
                     children: [],
+                    default_path: null,
+                    route_matches: {
+                        __typename: 'Variable',
+                        default: [],
+                        nested: [],
+                        uid: 'route-matches',
+                    },
                 },
                 theme: { base: 'dark', main: 'dark' },
                 title: 'Test App',

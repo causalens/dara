@@ -68,7 +68,7 @@ function NodeHierarchyBuilder(props: NodeHierarchyBuilderProps): JSX.Element {
 
     function onUpdate(newNodes: string[][]): void {
         setNodes(newNodes);
-        updateHandler(newNodes);
+        void updateHandler(newNodes);
     }
 
     return (

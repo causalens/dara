@@ -1,0 +1,42 @@
+{
+  "name": "@darajs/oxfmt-config",
+  "version": "1.29.4",
+  "description": "Dara Oxfmt configuration",
+  "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.d.ts",
+    "index.js"
+  ],
+  "scripts": {
+    "lint": "oxlint --type-aware --type-check index.js index.d.ts",
+    "format": "oxfmt -c index.js index.js index.d.ts package.json --write",
+    "format:check": "oxfmt -c index.js index.js index.d.ts package.json --check"
+  },
+  "peerDependencies": {
+    "oxfmt": "^0.60.0"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001"
+  },
+  "publishConfig": {
+    "access": "public",
+    "timeout": 60000
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/causalens/dara.git",
+    "directory": "packages/oxfmt-config"
+  }
+}

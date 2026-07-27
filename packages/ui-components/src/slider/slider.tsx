@@ -99,9 +99,9 @@ const SliderRail = styled.div`
 
     width: 100%;
     height: 0.25rem;
+    border-radius: 0.125rem;
 
     background-color: ${(props) => props.theme.colors.grey2};
-    border-radius: 0.125rem;
 `;
 
 interface HasTicksProp {
@@ -117,9 +117,9 @@ const StyledSliderThumb = styled(SliderThumb)<HasTicksProp>`
 
     width: 1rem;
     height: 1rem;
+    border-radius: 50%;
 
     background-color: ${(props) => props.theme.colors.primary};
-    border-radius: 50%;
 
     &[data-focus-visible] {
         outline: 2px solid ${(props) => props.theme.colors.primary};
@@ -142,9 +142,9 @@ const Track = styled.div`
     transform: translateY(-50%);
 
     height: 0.25rem;
+    border-radius: 0.125rem;
 
     background-color: ${(props) => props.theme.colors.primary};
-    border-radius: 0.125rem;
 `;
 
 const TrackLabel = styled.span`
@@ -181,9 +181,9 @@ const Tick = styled.span<TickProps>`
         width: 0.125rem;
         height: 0.125rem;
         margin-top: -0.685rem;
+        border-radius: 50%;
 
         background-color: ${(props) => props.theme.colors.grey3};
-        border-radius: 50%;
     }
 `;
 
@@ -288,7 +288,7 @@ function useValueCorrection<T>(
         // Only fire onChange if values actually changed
         if (!isEqual(values, correctedValues)) {
             const formattedValues = correctedValues.map(getValueLabel!);
-            onChange(formattedValues);
+            void onChange(formattedValues);
         }
 
         previousConstraints.current = { domain, step };
@@ -361,7 +361,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
     // Handle controlled/uncontrolled mode
     const defaultValue = useMemo(() => {
-        const initial = initialValue?.map((v) => mapToClosestStep(v, adjustedStep, domain)) || [domain[0]];
+        const initial = initialValue?.map((v) => mapToClosestStep(v, adjustedStep, domain)) ?? [domain[0]];
         return initial.length === 1 ? initial[0] : initial;
     }, [initialValue, adjustedStep, domain]);
 
@@ -385,7 +385,7 @@ function BaseSlider<T extends string | number | React.ReactNode>({
 
             const valueArray = Array.isArray(value) ? value : [value];
             const formattedValues = valueArray.map(getValueLabel!);
-            onChange(formattedValues);
+            void onChange(formattedValues);
         },
         [onChange, getValueLabel]
     );
@@ -586,8 +586,10 @@ export function Slider(props: BaseSliderProps<number>): JSX.Element {
     return <BaseSlider<number> {...props} getValueLabel={(val: number) => round(val, 4)} />;
 }
 
-export interface CategoricalSliderProps
-    extends Omit<BaseSliderProps<string>, 'domain' | 'initialValue' | 'disableInputAlternative'> {
+export interface CategoricalSliderProps extends Omit<
+    BaseSliderProps<string>,
+    'domain' | 'initialValue' | 'disableInputAlternative'
+> {
     /** The set of string values to have as options on the slider */
     domain: Array<string>;
     /** the initialValue of the slider */
@@ -602,7 +604,7 @@ export interface CategoricalSliderProps
  * @param {BaseSliderProps<string>} props - the component props
  */
 export function CategoricalSlider(props: CategoricalSliderProps): JSX.Element {
-    const initialValue = props.initialValue?.map((val) => props.domain.indexOf(val)) || [0];
+    const initialValue = props.initialValue?.map((val) => props.domain.indexOf(val)) ?? [0];
 
     return (
         <BaseSlider<string>

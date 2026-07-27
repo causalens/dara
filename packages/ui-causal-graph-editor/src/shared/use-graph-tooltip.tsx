@@ -65,7 +65,7 @@ export default function useGraphTooltip(
         // NOTE: This is technically async but will resolve immediately as it's resolved
         // in response to IntersectionObserver callback, which is guaranteed to fire
         // the next render cycle
-        isRectVisible(tooltipRef.current!()).then((isVisible) => {
+        void isRectVisible(tooltipRef.current!()).then((isVisible) => {
             setTooltipContent(isVisible ? content : null);
         });
     }

@@ -23,8 +23,8 @@ const CenteredDivWithGap = styled.div`
 
     code {
         padding: 0.2rem;
-        background-color: ${(props) => props.theme.colors.grey2};
         border-radius: 0.5rem;
+        background-color: ${(props) => props.theme.colors.grey2};
     }
 `;
 

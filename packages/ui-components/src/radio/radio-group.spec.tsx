@@ -19,8 +19,8 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { Item } from '../types';
-import RadioGroup, { RadioGroupProps } from './radio-group';
+import type { Item } from '../types';
+import RadioGroup, { type RadioGroupProps } from './radio-group';
 
 function RenderRadioGroup(props: RadioGroupProps): JSX.Element {
     return (

@@ -33,11 +33,10 @@ const Dropzone = styled.div<DropzoneProps>`
     justify-content: center;
 
     margin-top: 20px;
-
-    color: ${(props) => props.theme.colors.text};
-
     border: 1px dashed ${(props) => (props.isDragActive ? props.theme.colors.primary : props.theme.colors.grey3)};
     border-radius: 0.25rem;
+
+    color: ${(props) => props.theme.colors.text};
 
     :hover {
         background-color: ${(props) => props.theme.colors.grey1};
@@ -91,7 +90,7 @@ function UploadDropzone(props: UploadDropzoneProps): JSX.Element {
         const handlePaste = (ev: ClipboardEvent): void => {
             const blob = new Blob([ev.clipboardData!.getData('Text')], { type: 'text/plain' });
             const file = new File([blob], 'pasted_data', { type: 'text/plain' });
-            props.onDrop([file], [], ev);
+            void props.onDrop([file], [], ev);
         };
 
         document.addEventListener('paste', handlePaste);

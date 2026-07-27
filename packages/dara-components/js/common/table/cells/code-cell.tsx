@@ -19,9 +19,9 @@ function CodeCell(language: Language): (props: CodeCellProps) => JSX.Element {
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <pre className={className} style={style}>
                         {tokens.map((line, i) => (
-                            <div {...getLineProps({ key: i, line })} key={i}>
+                            <div key={i} {...getLineProps({ key: i, line })}>
                                 {line.map((token, key) => (
-                                    <span {...getTokenProps({ key, token })} key={key} />
+                                    <span key={key} {...getTokenProps({ key, token })} />
                                 ))}
                             </div>
                         ))}

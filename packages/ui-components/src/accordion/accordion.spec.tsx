@@ -19,8 +19,8 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import Badge from '../badge/badge';
-import { AccordionItemType } from '../types';
-import Accordion, { AccordionProps } from './accordion';
+import type { AccordionItemType } from '../types';
+import Accordion, { type AccordionProps } from './accordion';
 
 function RenderAccordion(props: AccordionProps): JSX.Element {
     return (
@@ -82,7 +82,7 @@ describe('Accordion Component', () => {
             return (
                 <div>
                     <span>{item.label}</span>
-                    {item.badge && <Badge color={item.badge.color}>{item.badge.label}</Badge>}
+                    {item.badge && <Badge color={item.badge.color!}>{item.badge.label}</Badge>}
                 </div>
             );
         };

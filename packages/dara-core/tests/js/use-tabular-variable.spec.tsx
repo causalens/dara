@@ -1,6 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { HttpResponse, http } from 'msw';
-import type { ResponseResolverInfo } from 'msw/lib/core/handlers/RequestHandler';
+import { HttpResponse, http, type HttpResponseResolver } from 'msw';
 
 import type { ServerVariableMessage } from '@/api/websocket';
 import {
@@ -16,8 +15,8 @@ import { MockWebSocketClient, Wrapper, server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 import { mockSchema } from './utils/test-server-handlers';
 
-const createMockDataResponse = async (info: ResponseResolverInfo<any>): Promise<DataResponse> => {
-    const body = await info.request.json();
+const createMockDataResponse = async (info: Parameters<HttpResponseResolver>[0]): Promise<DataResponse> => {
+    const body = (await info.request.json()) as Record<string, any>;
     const { searchParams } = new URL(info.request.url);
     return {
         count: 10,
@@ -231,7 +230,7 @@ describe('useTabularVariable', () => {
 
         it('callback returns value correctly if task is returned', async () => {
             // keep original request around so we can use it in the task result
-            let originalRequest: ResponseResolverInfo<any>;
+            let originalRequest: Parameters<HttpResponseResolver>[0];
 
             // Force the tabular endpoint to signify that a task has started
             server.use(

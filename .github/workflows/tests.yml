@@ -122,7 +122,7 @@ jobs:
       - name: Prepare JS packages
         run: make prepare-dev
       - name: Run JS linting
-        run: pnpm lerna run lint
+        run: make lint-js
       - name: Run JS format check
         run: pnpm lerna run format:check
       - name: Run JS security scan

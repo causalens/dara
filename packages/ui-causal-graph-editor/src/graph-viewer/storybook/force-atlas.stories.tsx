@@ -26,7 +26,7 @@ export default {
     title: 'CausalGraphEditor/GraphEditor/ForceAtlas',
 } as Meta;
 
-export const ForceAtlas = Template.bind({});
+export const ForceAtlas: typeof Template = Template.bind({});
 ForceAtlas.args = {
     editable: true,
     graphData: FRAUD,

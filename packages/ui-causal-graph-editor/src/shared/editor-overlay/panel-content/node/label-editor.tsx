@@ -85,7 +85,7 @@ function LabelEditor(props: LabelEditorProps): JSX.Element {
 
     const updateLabel = useCallback(
         (id: string, val: string) => {
-            props.onLabelChange(id, val);
+            void props.onLabelChange(id, val);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [props.onLabelChange]
@@ -105,9 +105,10 @@ function LabelEditor(props: LabelEditorProps): JSX.Element {
 
     return (
         <LabelEditorWrapper $editable={editable as boolean}>
-            {editable && editEnabled ?
+            {editable && editEnabled ? (
                 <StyledInput onChange={onLabelChange} value={label} />
-            :   <span
+            ) : (
+                <span
                     onClick={() => onEnableEditing()}
                     onKeyDown={(k) => k.key === 'Enter' && onEnableEditing()}
                     role="button"
@@ -115,7 +116,7 @@ function LabelEditor(props: LabelEditorProps): JSX.Element {
                 >
                     {label}
                 </span>
-            }
+            )}
         </LabelEditorWrapper>
     );
 }

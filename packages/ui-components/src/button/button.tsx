@@ -36,12 +36,11 @@ export const BaseButton = styled.button<BaseButtonProps>`
     height: 2.5rem;
     padding: ${(props) => (props.$hasAnchor ? 0 : '0 1rem')};
     padding: 0 1rem;
+    border: none;
+    border-radius: 0.25rem;
 
     font-size: 1rem;
     font-weight: 600;
-
-    border: none;
-    border-radius: 0.25rem;
 
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
@@ -118,28 +117,28 @@ interface StyledButtonProps {
 
 const PrimaryButton = styled(BaseButton)<StyledButtonProps>`
     ${(props) =>
-        props.outline ?
-            getOutlinedButtonStyle(props.theme.colors.primary, props.disabled, props.theme)
-        :   getFilledButtonStyle(
-                props.theme.colors.primary,
-                props.theme.colors.primaryHover,
-                props.theme.colors.primaryDown,
-                props.disabled,
-                props.theme
-            )}
+        props.outline
+            ? getOutlinedButtonStyle(props.theme.colors.primary, props.disabled, props.theme)
+            : getFilledButtonStyle(
+                  props.theme.colors.primary,
+                  props.theme.colors.primaryHover,
+                  props.theme.colors.primaryDown,
+                  props.disabled,
+                  props.theme
+              )}
 `;
 
 const SecondaryButton = styled(BaseButton)<StyledButtonProps>`
     ${(props) =>
-        props.outline ?
-            getOutlinedButtonStyle(props.theme.colors.secondary, props.disabled, props.theme)
-        :   getFilledButtonStyle(
-                props.theme.colors.secondary,
-                props.theme.colors.secondaryHover,
-                props.theme.colors.secondaryDown,
-                props.disabled,
-                props.theme
-            )}
+        props.outline
+            ? getOutlinedButtonStyle(props.theme.colors.secondary, props.disabled, props.theme)
+            : getFilledButtonStyle(
+                  props.theme.colors.secondary,
+                  props.theme.colors.secondaryHover,
+                  props.theme.colors.secondaryDown,
+                  props.disabled,
+                  props.theme
+              )}
 `;
 
 const GhostButton = styled(BaseButton)<StyledButtonProps>`
@@ -156,29 +155,29 @@ const GhostButton = styled(BaseButton)<StyledButtonProps>`
 
 const ErrorButton = styled(BaseButton)<StyledButtonProps>`
     ${(props) =>
-        props.outline ?
-            getOutlinedButtonStyle(props.theme.colors.error, props.disabled, props.theme)
-        :   getFilledButtonStyle(
-                props.theme.colors.error,
-                props.theme.colors.errorHover,
-                props.theme.colors.errorDown,
-                props.disabled,
-                props.theme
-            )}
+        props.outline
+            ? getOutlinedButtonStyle(props.theme.colors.error, props.disabled, props.theme)
+            : getFilledButtonStyle(
+                  props.theme.colors.error,
+                  props.theme.colors.errorHover,
+                  props.theme.colors.errorDown,
+                  props.disabled,
+                  props.theme
+              )}
 `;
 
 const PlainButton = styled(BaseButton)<StyledButtonProps>`
     ${(props) =>
-        props.outline ?
-            getOutlinedButtonStyle(props.theme.colors.grey6, props.disabled, props.theme)
-        :   getFilledButtonStyle(
-                'transparent',
-                props.theme.colors.grey1,
-                props.theme.colors.grey2,
-                props.disabled,
-                props.theme,
-                props.theme.colors.grey6
-            )}
+        props.outline
+            ? getOutlinedButtonStyle(props.theme.colors.grey6, props.disabled, props.theme)
+            : getFilledButtonStyle(
+                  'transparent',
+                  props.theme.colors.grey1,
+                  props.theme.colors.grey2,
+                  props.disabled,
+                  props.theme,
+                  props.theme.colors.grey6
+              )}
 `;
 
 const AnchorWrapper = styled.a`
@@ -267,21 +266,25 @@ function Button(
 ): JSX.Element {
     const currentTheme = useTheme();
     const Component = stylingMap[styling];
-    const content =
-        loading ? <StyledLoading color={outline ? currentTheme.colors.grey2 : currentTheme.colors.blue1} /> : children;
-    const wrappedContent =
-        href ?
-            <AnchorWrapper download={download} href={href}>
-                {content}
-            </AnchorWrapper>
-        :   content;
+    const content = loading ? (
+        <StyledLoading color={outline ? currentTheme.colors.grey2 : currentTheme.colors.blue1} />
+    ) : (
+        children
+    );
+    const wrappedContent = href ? (
+        <AnchorWrapper download={download} href={href}>
+            {content}
+        </AnchorWrapper>
+    ) : (
+        content
+    );
 
     return (
         <Component
             $hasAnchor={!!href}
             autoFocus={autoFocus}
             className={className}
-            disabled={disabled || loading}
+            disabled={Boolean(disabled) || Boolean(loading)}
             id={id}
             onClick={onClick}
             outline={outline}

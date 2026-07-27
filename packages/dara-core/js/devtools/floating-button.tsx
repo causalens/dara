@@ -20,13 +20,13 @@ const FloatingDevtoolButton = styled.button<{
 
     width: ${BUTTON_SIZE}px;
     height: ${BUTTON_SIZE}px;
+    border: 1px solid;
+    border-color: ${(props) => props.theme.colors.secondary};
+    border-radius: 30%;
 
     color: ${(props) => props.theme.colors.blue1};
 
     background-color: ${(props) => props.theme.colors.secondary};
-    border: 1px solid;
-    border-color: ${(props) => props.theme.colors.secondary};
-    border-radius: 30%;
 
     transition: ${(props) => (!props.$isDragging ? 'left top' : 'none')} 150ms ease 0s;
 `;

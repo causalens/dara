@@ -48,7 +48,7 @@ function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
             }
 
             setValue(newValues);
-            onChangeAction(newValues);
+            void onChangeAction(newValues);
             formCtx.updateForm(newValues);
         },
         [setValue]

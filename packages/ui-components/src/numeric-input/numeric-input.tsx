@@ -31,10 +31,10 @@ const InputWrapper = styled.div<NumericInputProps>`
     width: 22ch;
     height: 2.5rem;
     padding-right: 0.5rem;
-
-    background-color: ${(props) => props.theme.colors.grey1};
     border: 1px solid ${(props) => (props.errorMsg ? props.theme.colors.error : props.theme.colors.grey1)};
     border-radius: 0.25rem;
+
+    background-color: ${(props) => props.theme.colors.grey1};
 
     input {
         height: calc(2.5rem - 2px);
@@ -101,7 +101,7 @@ const numericFilter =
     (integerOnly?: boolean) =>
     (e: React.KeyboardEvent<HTMLInputElement>): boolean => {
         // Check for numbers
-        if (parseInt(e.key) || parseInt(e.key) === 0) {
+        if (parseInt(e.key, 10) || parseInt(e.key, 10) === 0) {
             return true;
         }
 
@@ -142,7 +142,8 @@ const getInitialValue = (value?: number, initialValue?: number): string => {
 };
 
 export interface NumericInputProps
-    extends InteractiveComponentProps<number>,
+    extends
+        InteractiveComponentProps<number>,
         // `value`, `initialValue`, and `onChange` have a different signature compared to the standard input element
         Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'initialValue'> {
     /** An optional parameter to restrict the field to just integers */
@@ -200,7 +201,7 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
 
             // controlled
             if (value !== undefined) {
-                onChange?.(nextValueNumber, {
+                void onChange?.(nextValueNumber, {
                     target: {
                         value: nextValueStr,
                     },
@@ -231,11 +232,11 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
 
         const handleOnChange = useCallback(
             (v: string, e?: React.SyntheticEvent<HTMLInputElement>) => {
-                const parsed = props.integerOnly ? parseInt(v) : parseFloat(v);
+                const parsed = props.integerOnly ? parseInt(v, 10) : parseFloat(v);
                 // uncontrolled component
                 if (value === undefined) {
                     setInput(v);
-                    onChange?.(parsed, e);
+                    void onChange?.(parsed, e);
                     return;
                 }
                 // In controlled mode, we need to take over the input updates whenever the value is not a valid number
@@ -260,7 +261,7 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
                 if (input.endsWith('.')) {
                     setInput(v);
                 }
-                onChange?.(parsed, e);
+                void onChange?.(parsed, e);
             },
             [props.integerOnly, value, onChange, input]
         );

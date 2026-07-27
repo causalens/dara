@@ -31,6 +31,13 @@ export interface BadgeProps {
     width?: string;
 }
 
+function getWidth(width?: string): string {
+    if (width) {
+        return width;
+    }
+    return 'auto';
+}
+
 /**
  * A simple badge component
  *
@@ -41,17 +48,17 @@ const Badge = styled.span.withConfig({ shouldForwardProp })<BadgeProps>`
     align-items: center;
     justify-content: center;
 
-    width: ${(props) => props.width || 'auto'};
+    width: ${(props) => getWidth(props.width)};
     height: ${(props) => (props.height ? `${props.height}px` : '2rem')};
     padding: 0 0.75rem;
+    border: 1px solid ${(props) => props.color};
+    border-radius: ${(props) => (props.height ? `${props.height / 2}px` : '1rem')};
 
     font-size: 0.875rem;
     font-weight: 400;
     color: ${(props) => (props.outline ? props.color : props.theme.colors.blue1)};
 
     background-color: ${(props) => (props.outline ? props.theme.colors.blue1 : props.color)};
-    border: 1px solid ${(props) => props.color};
-    border-radius: ${(props) => (props.height ? `${props.height / 2}px` : '1rem')};
 `;
 
 export default Badge;

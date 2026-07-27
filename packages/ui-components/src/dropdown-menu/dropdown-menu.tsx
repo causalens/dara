@@ -9,8 +9,9 @@ export const StyledDropdown = styled.div`
     display: flex;
     flex-direction: column;
 
-    background-color: ${(props) => props.theme.colors.blue1};
     border-radius: 4px;
+
+    background-color: ${(props) => props.theme.colors.blue1};
     outline: none;
     box-shadow: rgb(0 0 0 / 10%) 0 2px 5px;
 
@@ -63,14 +64,14 @@ export const StyledDropdownMenuItem = styled.button`
     min-width: 160px;
     height: fit-content;
     padding: 5px 8px;
+    border: none;
+    border-radius: 4px;
 
     font-size: 0.9rem;
     color: ${(props) => props.theme.colors.text};
     white-space: nowrap;
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border: none;
-    border-radius: 4px;
     box-shadow: none;
 
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);

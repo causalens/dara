@@ -16,6 +16,7 @@
  */
 import type { Meta } from '@storybook/react-vite';
 
+import { completeCausalGraph } from '../../../tests/mocks/graph-builder';
 import { SpringLayout } from '../../shared/graph-layout';
 import { EdgeConstraintType, EditorMode } from '../../types';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
@@ -26,12 +27,12 @@ export default {
     title: 'CausalGraphEditor/GraphEditor/VisualEdgeEncoder',
 } as Meta;
 
-export const VisualEdgeEncoder = Template.bind({});
+export const VisualEdgeEncoder: typeof Template = Template.bind({});
 
 VisualEdgeEncoder.args = {
     editable: true,
     editorMode: EditorMode.EDGE_ENCODER,
-    graphData: {
+    graphData: completeCausalGraph({
         edges: {
             'first node': {
                 'second node': {},
@@ -42,7 +43,7 @@ VisualEdgeEncoder.args = {
             'second node': {},
             'third node': {},
         },
-    },
+    }),
     graphLayout: SpringLayout.Builder.build(),
     initialConstraints: [
         {

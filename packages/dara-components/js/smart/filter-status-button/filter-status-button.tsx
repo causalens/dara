@@ -21,12 +21,12 @@ const StyledButton = styled.button<{ $active: boolean; $top?: string }>`
 
     height: 2.5rem;
     padding: 0 1rem;
+    border: none;
 
     font-size: ${(props) => props.theme.font.size};
     color: ${(props) => (props.$active ? props.theme.colors.blue4 : props.theme.colors.background)};
 
     background-color: ${(props) => (props.$active ? props.theme.colors.primary : props.theme.colors.primaryHover)};
-    border: none;
 
     transition: transform 0.35s ease;
 
@@ -57,7 +57,7 @@ function FilterStatusButton(props: FilterStatusButtonProps): JSX.Element {
     const onClick = useAction(props.on_click);
 
     function clickHandler(): void {
-        onClick(null);
+        void onClick(null);
     }
 
     return ReactDOM.createPortal(

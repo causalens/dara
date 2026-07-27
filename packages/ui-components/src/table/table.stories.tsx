@@ -300,12 +300,12 @@ const columns = [
 ];
 
 export const Table = (args: Props<any>): JSX.Element => {
-    const tableRef = useRef<TableHandle>();
+    const tableRef = useRef<TableHandle>(null);
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
             {/* eslint-disable jsx-a11y/control-has-associated-label */}
-            <button onClick={() => tableRef.current.resetFilters()} type="button">
+            <button onClick={() => tableRef.current?.resetFilters()} type="button">
                 Reset filters
             </button>
             <TableComponent ref={tableRef} {...args} />
@@ -316,18 +316,16 @@ export const Table = (args: Props<any>): JSX.Element => {
 Table.args = {
     columns,
     data: sampleData,
-    onFilter: null,
-    onSort: null,
     onClickRow: fn(),
 } as Props<any>;
 
 export const TableSmallFont = (args: Props<any>): JSX.Element => {
-    const tableRef = useRef<TableHandle>();
+    const tableRef = useRef<TableHandle>(null);
 
     return (
         <div style={{ fontSize: '12px', height: '100%', width: '100%' }}>
             {/* eslint-disable jsx-a11y/control-has-associated-label */}
-            <button onClick={() => tableRef.current.resetFilters()} type="button">
+            <button onClick={() => tableRef.current?.resetFilters()} type="button">
                 Reset filters
             </button>
             <TableComponent ref={tableRef} {...args} />
@@ -338,17 +336,15 @@ export const TableSmallFont = (args: Props<any>): JSX.Element => {
 TableSmallFont.args = {
     columns,
     data: sampleData,
-    onFilter: null,
-    onSort: null,
 } as Props<any>;
 
 export const TableInfinite = (args: Props<any>): JSX.Element => {
-    const tableRef = useRef<TableHandle>();
+    const tableRef = useRef<TableHandle>(null);
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
             {/* eslint-disable jsx-a11y/control-has-associated-label */}
-            <button onClick={() => tableRef.current.resetFilters()} type="button">
+            <button onClick={() => tableRef.current?.resetFilters()} type="button">
                 Reset filters
             </button>
             <TableComponent ref={tableRef} {...args} />
@@ -562,8 +558,6 @@ export const TableCaseInsensitiveSort = (args: Props<any>): JSX.Element => {
 TableCaseInsensitiveSort.args = {
     columns: caseInsensitiveSortColumns,
     data: caseInsensitiveSortData,
-    onFilter: null,
-    onSort: null,
 } as Props<any>;
 
 TableCaseInsensitiveSort.parameters = {

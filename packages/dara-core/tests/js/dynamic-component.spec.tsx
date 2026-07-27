@@ -543,7 +543,7 @@ describe('DynamicComponent', () => {
                     <button
                         data-testid="trigger"
                         onClick={(e) => {
-                            callAction(e);
+                            void callAction(e);
                         }}
                         type="button"
                     >
@@ -656,7 +656,7 @@ describe('DynamicComponent', () => {
                     <button
                         data-testid="trigger"
                         onClick={(e) => {
-                            callAction(e);
+                            void callAction(e);
                         }}
                         type="button"
                     >

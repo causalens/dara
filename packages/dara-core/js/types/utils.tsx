@@ -4,7 +4,6 @@ import {
     type ActionImpl,
     type AnnotatedAction,
     type AnyVariable,
-    type ComponentInstance,
     type Condition,
     type DerivedVariable,
     type LoopVariable,
@@ -104,7 +103,7 @@ export function isStreamVariable<T>(variable: AnyVariable<T> | T): variable is S
  *
  * @param value value to check
  */
-export function isResolvedDerivedVariable(value: any | ResolvedDerivedVariable): value is ResolvedDerivedVariable {
+export function isResolvedDerivedVariable(value: any): value is ResolvedDerivedVariable {
     return (
         value &&
         typeof value === 'object' &&
@@ -115,7 +114,7 @@ export function isResolvedDerivedVariable(value: any | ResolvedDerivedVariable):
     );
 }
 
-export function isResolvedServerVariable(value: any | ResolvedServerVariable): value is ResolvedServerVariable {
+export function isResolvedServerVariable(value: any): value is ResolvedServerVariable {
     return (
         value &&
         typeof value === 'object' &&
@@ -126,7 +125,7 @@ export function isResolvedServerVariable(value: any | ResolvedServerVariable): v
     );
 }
 
-export function isResolvedSwitchVariable(value: any | ResolvedSwitchVariable): value is ResolvedSwitchVariable {
+export function isResolvedSwitchVariable(value: any): value is ResolvedSwitchVariable {
     return (
         value &&
         typeof value === 'object' &&

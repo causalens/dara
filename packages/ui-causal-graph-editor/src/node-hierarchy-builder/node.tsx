@@ -41,16 +41,16 @@ const NodeCircle = styled.div<NodeSizeProp & { $isDragging?: boolean; $isMatch: 
     width: ${(props) => `${props.$nodeSize ?? DEFAULT_NODE_SIZE}px`};
     height: ${(props) => `${props.$nodeSize ?? DEFAULT_NODE_SIZE}px`};
     padding: 1rem;
+    border-color: ${(props) => props.theme.colors.primary};
+    border-style: solid;
+    border-width: ${(props) => (props.$isMatch ? '4px' : '1px')};
+    border-radius: 50%;
 
     color: ${(props) => props.theme.colors.text};
 
     opacity: ${(props) => (props.$isDragging ? 0.8 : 1)};
     background-color: ${(props) => props.theme.colors.blue4};
     filter: drop-shadow(0 0 2px rgb(0 0 0 / 40%));
-    border-color: ${(props) => props.theme.colors.primary};
-    border-style: solid;
-    border-width: ${(props) => (props.$isMatch ? '4px' : '1px')};
-    border-radius: 50%;
 
     &:hover {
         filter: drop-shadow(0 0 4px rgb(0 0 0 / 40%));
@@ -59,15 +59,15 @@ const NodeCircle = styled.div<NodeSizeProp & { $isDragging?: boolean; $isMatch: 
 
 const NodeText = styled.span<{ $labelSize?: number; $wrapNodeText?: boolean }>`
     ${(props) =>
-        props.$wrapNodeText ?
-            `
+        props.$wrapNodeText
+            ? `
         display: flex;
         justify-content: center;
         align-items: center;
         text-align: center;
         overflow-wrap: anywhere;
     `
-        :   `
+            : `
         text-overflow: ellipsis;
         white-space: nowrap;
     `};

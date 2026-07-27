@@ -33,7 +33,6 @@ const ButtonBarWrapper = styled.div<ButtonBarWrapperProps>`
     flex: 1 1 auto;
 
     height: 2.5rem;
-
     border: 1px solid ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors?.[props.styling])};
     border-radius: 0.25rem;
 
@@ -91,8 +90,8 @@ function getButtonStyle(
 
     ${
         !selected &&
-        (theme.themeType === 'dark' ?
-            `
+        (theme.themeType === 'dark'
+            ? `
         :hover:not(:disabled) {
             background-color: ${transparentize(0.8, buttonColor)};
         }
@@ -102,7 +101,7 @@ function getButtonStyle(
             background-color: ${transparentize(0.6, buttonColor)};
         }
     `
-        :   `
+            : `
         :hover:not(:disabled) {
             background-color: ${transparentize(0.9, buttonColor)};
         }
@@ -151,13 +150,13 @@ function ButtonBar({
     style,
     styling = 'primary',
 }: ButtonProps): JSX.Element {
-    const [selected, setSelected] = useState<Item>(value || initialValue || items[0]);
+    const [selected, setSelected] = useState<Item>(value ?? initialValue ?? items[0]);
 
     const ButtonComponent = styling === 'secondary' ? SecondaryButton : PrimaryButton;
 
     const onClick = useCallback(
         (item: Item): void => {
-            onSelect?.(item);
+            void onSelect?.(item);
             if (value === undefined) {
                 setSelected(item);
             }
@@ -167,7 +166,7 @@ function ButtonBar({
 
     // Update selection based on value prop changes
     useEffect(() => {
-        setSelected(value || initialValue || items[0]);
+        setSelected(value ?? initialValue ?? items[0]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 

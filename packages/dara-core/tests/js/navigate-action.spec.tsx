@@ -22,7 +22,11 @@ async function withMockHref(callback: (hrefSetter: Mock) => void | Promise<void>
         });
         await callback(mock);
     } finally {
-        window.location = originalLocation;
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: originalLocation,
+        });
     }
 }
 
@@ -143,8 +147,8 @@ describe('NavigateTo action', () => {
         };
 
         await withMockHref(async () => {
-            await withMockOpen((openMock) => {
-                NavigateTo(ctx as any, {
+            await withMockOpen(async (openMock) => {
+                await NavigateTo(ctx as any, {
                     __typename: 'ActionImpl',
                     name: 'NavigateTo',
                     new_tab: true,

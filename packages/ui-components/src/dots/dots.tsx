@@ -14,11 +14,11 @@ const FlashingDots = styled.div<{ $grey3?: string; $grey4?: string }>`
 
     width: 10px;
     height: 10px;
+    border-radius: 5px;
 
     color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
 
     background-color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
-    border-radius: 5px;
 
     animation: dot-flashing 1s infinite linear alternate;
     animation-delay: 0.5s;
@@ -36,11 +36,11 @@ const FlashingDots = styled.div<{ $grey3?: string; $grey4?: string }>`
 
         width: 10px;
         height: 10px;
+        border-radius: 5px;
 
         color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
 
         background-color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
-        border-radius: 5px;
 
         animation: dot-flashing 1s infinite alternate;
         animation-delay: 0s;
@@ -51,11 +51,11 @@ const FlashingDots = styled.div<{ $grey3?: string; $grey4?: string }>`
 
         width: 10px;
         height: 10px;
+        border-radius: 5px;
 
         color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
 
         background-color: ${(props) => props.$grey4 ?? props.theme.colors.grey4};
-        border-radius: 5px;
 
         animation: dot-flashing 1s infinite alternate;
         animation-delay: 1s;

@@ -20,7 +20,7 @@ import * as React from 'react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Input, { InputProps } from './input';
+import Input, { type InputProps } from './input';
 
 const keyDownFilter = (e: React.KeyboardEvent<HTMLInputElement>): boolean => {
     if (e.key !== 'e' && e.key !== 'A') {

@@ -384,7 +384,7 @@ function startStreamConnection(
     // Normalize values for the request
     const normalizedValues = normalizeRequest(params.resolvedValues, params.variables as any[]);
 
-    fetchEventSource(`/api/core/stream/${params.uid}`, {
+    void fetchEventSource(`/api/core/stream/${params.uid}`, {
         method: HTTP_METHOD.POST,
         body: JSON.stringify({ values: normalizedValues }),
         signal: controller.signal,
@@ -734,9 +734,9 @@ export function getOrRegisterStreamVariable(
                         const value = get(valueSelector);
 
                         // Unwrap nested if needed
-                        return 'nested' in variable ?
-                                resolveNested(value as Record<string, unknown>, variable.nested)
-                            :   value;
+                        return 'nested' in variable
+                            ? resolveNested(value as Record<string, unknown>, variable.nested)
+                            : value;
                     },
             }) as SelectorFamily
         );

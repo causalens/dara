@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Select, { SelectProps } from './select';
+import Select, { type SelectProps } from './select';
 
 const items = [
     {

@@ -22,7 +22,7 @@ import React from 'react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import NumericInput, { NumericInputProps } from './numeric-input';
+import NumericInput, { type NumericInputProps } from './numeric-input';
 
 function RenderNumericInput(props: NumericInputProps): JSX.Element {
     return (
@@ -33,9 +33,9 @@ function RenderNumericInput(props: NumericInputProps): JSX.Element {
 }
 
 const MockControlledNumericInput = (): JSX.Element => {
-    const [value, setValue] = React.useState();
+    const [value, setValue] = React.useState<number>();
 
-    const handleChange = (newValue): void => {
+    const handleChange = (newValue: number): void => {
         setValue(newValue);
     };
 

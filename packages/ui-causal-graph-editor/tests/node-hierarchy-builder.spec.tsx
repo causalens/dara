@@ -5,7 +5,7 @@ import { ThemeProvider, theme } from '@darajs/styled-components';
 import type { NodeHierarchyBuilderProps } from '../src/node-hierarchy-builder/node-hierarchy-builder';
 import NodeHierarchyBuilder from '../src/node-hierarchy-builder/node-hierarchy-builder';
 
-function RenderHierarchyBuilder(props: NodeHierarchyBuilderProps): JSX.Element {
+function RenderHierarchyBuilder(props: NodeHierarchyBuilderProps<string>): JSX.Element {
     return (
         <ThemeProvider theme={theme}>
             <NodeHierarchyBuilder {...props} />
@@ -34,9 +34,9 @@ describe('NodeHierarchyBuilder', () => {
         expect(draggableElements.length).toBe(9);
 
         // Verify they are laid out correctly
-        expect(draggableElements[0].parentElement.childElementCount).toBe(2);
-        expect(draggableElements[2].parentElement.childElementCount).toBe(3);
-        expect(draggableElements[5].parentElement.childElementCount).toBe(4);
+        expect(draggableElements[0].parentElement?.childElementCount).toBe(2);
+        expect(draggableElements[2].parentElement?.childElementCount).toBe(3);
+        expect(draggableElements[5].parentElement?.childElementCount).toBe(4);
     });
 
     it('should add layers correctly', () => {
@@ -86,6 +86,10 @@ describe('NodeHierarchyBuilder', () => {
         expect(nodeElements[0].children[0].innerHTML).toEqual('11');
 
         const secondLayer = nodeElements[2].parentElement;
+        expect(secondLayer).not.toBeNull();
+        if (!secondLayer) {
+            throw new Error('Expected second hierarchy layer');
+        }
 
         dragElement(nodeElements[0], secondLayer);
 
