@@ -256,7 +256,7 @@ export interface SwitchVariable<T = any, TCondition = any> {
     uid: string;
     value: Condition<TCondition> | Variable<TCondition> | TCondition;
     value_map: Variable<Record<string, T>> | Record<string, T>;
-    default?: T;
+    default?: Variable<T> | T;
 }
 
 export interface StateVariable {
