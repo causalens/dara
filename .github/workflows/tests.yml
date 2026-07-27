@@ -175,11 +175,6 @@ jobs:
         run: pnpm --dir packages/dara-core exec cypress install
       - name: Verify Cypress binary
         run: pnpm --dir packages/dara-core exec cypress verify
-      - name: Install and cache APT Cypress deps
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
-        with:
-          packages: libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
-          version: cypress-${{ runner.os }}-${{ steps.cypress-version.outputs.version }}
       - name: Run Cypress E2E tests
         run: |
           cd packages/dara-core
