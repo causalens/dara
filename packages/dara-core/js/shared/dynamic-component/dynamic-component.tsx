@@ -283,15 +283,17 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
         This does not necessarily cancel the task, on the backend we keep track of number of subscribers,
         'cancelling' the task actually decrements the number of subs; the task is only cancelled once there are 0 subscribers left
     */
+    // The ref itself is stable; its Set is intentionally read when cleanup runs.
+    // oxlint-disable react-hooks/exhaustive-deps
     useEffect(() => {
-        const subscribedVariables = variables.current;
         return () => {
             // If there are running tasks and this component is subscribed to variables
-            if (subscribedVariables.size > 0 && hasRunningTasks()) {
-                cleanupRunningTasks(...subscribedVariables.values());
+            if (variables.current.size > 0 && hasRunningTasks()) {
+                cleanupRunningTasks(...variables.current.values());
             }
         };
     }, [cleanupRunningTasks, hasRunningTasks]);
+    // oxlint-enable react-hooks/exhaustive-deps
 
     const [fallback] = useState(() =>
         getFallbackComponent(props.component?.props?.fallback, props.component?.props?.track_progress, variables)
