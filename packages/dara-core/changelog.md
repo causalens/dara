@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Internal: Upgraded Cypress, cached E2E authentication across specs, and removed the shared CI setup bottleneck.
+
 ## 1.29.4
 
 - Isolated Dara's Prometheus collectors from the process-wide default registry so applications can register their own metrics without name collisions.

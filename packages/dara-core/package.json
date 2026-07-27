@@ -55,7 +55,7 @@
     "@typescript/native": "npm:typescript@^7.0.0",
     "@vitejs/plugin-react": "6.0.4",
     "concurrently": "^8.0.1",
-    "cypress": "10.11.0",
+    "cypress": "15.19.0",
     "jsdom": "^27.4.0",
     "msw": "^2.10.5",
     "oxfmt": "^0.60.0",
