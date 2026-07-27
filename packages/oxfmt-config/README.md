@@ -2,7 +2,7 @@
 
 Shared Oxfmt configuration for Dara projects.
 
-Create an `oxfmt.config.ts` in the consuming project:
+Create an `oxfmt.config.mts` in the consuming project:
 
 ```ts
 export { default } from '@darajs/oxfmt-config';

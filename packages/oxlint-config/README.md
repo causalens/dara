@@ -2,7 +2,7 @@
 
 Shared Oxlint configuration for Dara projects.
 
-Create an `oxlint.config.ts` in the consuming project:
+Create an `oxlint.config.mts` in the consuming project:
 
 ```ts
 import daraConfig, { typeAwareOptions } from '@darajs/oxlint-config';
