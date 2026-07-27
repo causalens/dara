@@ -4,4 +4,4 @@ title: Changelog
 
 ## NEXT
 
-- Added the shared Dara Oxfmt configuration with import group ordering corresponding to the existing Prettier setup.
+- Initial package release with parity with `@darajs/prettier-config`.
