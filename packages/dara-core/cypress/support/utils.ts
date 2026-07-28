@@ -47,11 +47,25 @@ export function type(alias: string, string: string, checkLoading: () => void = (
 
 const firstPage = '/a_home';
 
+/**
+ * Restore the shared default-auth browser session, then navigate to a test route.
+ *
+ * The session is cached across specs because the E2E server and its in-memory
+ * auth session backend remain alive for the full Cypress run.
+ *
+ * @param path route to visit after restoring authentication
+ */
 export const loginBeforeRoute = (path: string) => () => {
-    cy.visit('/login');
-    cy.location('pathname').should((url) => {
-        expect(url.includes(firstPage) || url.includes(path)).eq(true);
-    });
+    cy.session(
+        'default-auth',
+        () => {
+            cy.visit('/login');
+            cy.location('pathname').should('contain', firstPage);
+        },
+        {
+            cacheAcrossSpecs: true,
+        }
+    );
     cy.visit(path);
     cy.location('pathname').should('contain', path);
 };
