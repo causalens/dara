@@ -24,6 +24,7 @@ from pydantic import (
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger
+from dara.core.telemetry import observe_backend_store
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
@@ -412,6 +413,17 @@ class BackendStore(PersistenceStore):
 
     async def write_partial(self, data: list[dict[str, Any]] | Any, notify: bool = True, in_place: bool = False):
         """
+        Apply a partial write under one backend-store telemetry lifecycle.
+
+        :param data: JSON patches or a full replacement value
+        :param notify: whether to notify connected clients
+        :param in_place: whether JSON patches may mutate the current value
+        """
+        with observe_backend_store('write_partial', type(self.backend).__name__):
+            return await self._write_partial(data, notify, in_place)
+
+    async def _write_partial(self, data: list[dict[str, Any]] | Any, notify: bool = True, in_place: bool = False):
+        """
         Apply partial updates to the store using JSON Patch operations or automatic diffing.
 
         If scope='user', the patches are applied for the current user so the method can only
@@ -472,6 +484,17 @@ class BackendStore(PersistenceStore):
 
     async def write(self, value: Any, notify=True, ignore_channel: str | None = None):
         """
+        Persist a value under one backend-store telemetry lifecycle.
+
+        :param value: value to persist
+        :param notify: whether to notify connected clients
+        :param ignore_channel: optional WebSocket channel to exclude from notification
+        """
+        with observe_backend_store('write', type(self.backend).__name__):
+            return await self._write(value, notify, ignore_channel)
+
+    async def _write(self, value: Any, notify=True, ignore_channel: str | None = None):
+        """
         Persist a value to the store.
 
         If scope='user', the value is written for the current user so the method can only
@@ -496,6 +519,11 @@ class BackendStore(PersistenceStore):
         return res
 
     async def read(self):
+        """Read the current value under one backend-store telemetry lifecycle."""
+        with observe_backend_store('read', type(self.backend).__name__):
+            return await self._read()
+
+    async def _read(self):
         """
         Read a value from the store.
 
@@ -509,6 +537,15 @@ class BackendStore(PersistenceStore):
             return await run_user_handler(self.backend.read, (key,))
 
     async def delete(self, notify=True):
+        """
+        Delete the current value under one backend-store telemetry lifecycle.
+
+        :param notify: whether to notify connected clients
+        """
+        with observe_backend_store('delete', type(self.backend).__name__):
+            return await self._delete(notify)
+
+    async def _delete(self, notify=True):
         """
         Delete the persisted value from the store
 
@@ -528,6 +565,11 @@ class BackendStore(PersistenceStore):
         return await run_user_handler(self.backend.delete, (key,))
 
     async def get_all(self) -> dict[str, Any]:
+        """Read all backend values under one backend-store telemetry lifecycle."""
+        with observe_backend_store('get_all', type(self.backend).__name__):
+            return await self._get_all()
+
+    async def _get_all(self) -> dict[str, Any]:
         """
         Get all the values from the store as a dictionary of key-value pairs.
 

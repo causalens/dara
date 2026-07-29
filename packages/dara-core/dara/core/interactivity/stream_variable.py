@@ -42,6 +42,7 @@ from dara.core.interactivity.stream_event import ReconnectException, StreamEvent
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
 from dara.core.logging import dev_logger
+from dara.core.telemetry import _OperationObservation, observe_stream
 
 VariableType = TypeVar('VariableType', default=Any)
 
@@ -321,7 +322,29 @@ async def run_stream(
     store: CacheStore,
     task_mgr: TaskManager,
 ):
-    """Run a StreamVariable."""
+    """
+    Run a StreamVariable under one lifecycle span.
+
+    Stream events are intentionally not traced individually.
+    """
+    stream_name = (
+        f'{getattr(entry.func, "__module__", "unknown")}.'
+        f'{getattr(entry.func, "__qualname__", type(entry.func).__name__)}'
+    )
+    with observe_stream(stream_name) as observation:
+        async for event in _run_stream(entry, disconnect_event, values, store, task_mgr, observation):
+            yield event
+
+
+async def _run_stream(
+    entry: StreamVariableRegistryEntry,
+    disconnect_event: asyncio.Event,
+    values: list[Any],
+    store: CacheStore,
+    task_mgr: TaskManager,
+    observation: _OperationObservation,
+):
+    """Implement a StreamVariable lifecycle and report handled terminal outcomes."""
     # dynamic import due to circular import
     from dara.core.internal.dependency_resolution import (
         resolve_dependency,
@@ -379,6 +402,7 @@ async def run_stream(
                 )
 
                 if disconnect_task in done:
+                    observation.set_outcome('cancelled')
                     next_task.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
                         await next_task
@@ -401,9 +425,11 @@ async def run_stream(
     except ReconnectException:
         yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
     except StreamVariableModeError as e:
+        observation.set_outcome('error')
         dev_logger.error('Stream mode error', error=e)
         yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
     except Exception as e:
+        observation.set_outcome('error')
         dev_logger.error('Stream error', error=e)
         yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
     finally:

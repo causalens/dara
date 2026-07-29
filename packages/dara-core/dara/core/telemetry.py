@@ -69,6 +69,86 @@ _WEBSOCKET_MESSAGE_EXECUTIONS: Counter = _METER.create_counter(
     unit='{message}',
     description='Number of completed Dara WebSocket message operations',
 )
+_DERIVED_VARIABLE_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.derived_variable.active',
+    unit='{operation}',
+    description='Number of Dara derived-variable resolutions currently executing',
+)
+_DERIVED_VARIABLE_DURATION: Histogram = _METER.create_histogram(
+    'dara.derived_variable.duration',
+    unit='s',
+    description='Duration of Dara derived-variable resolution',
+)
+_DERIVED_VARIABLE_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.derived_variable.executions',
+    unit='{operation}',
+    description='Number of completed Dara derived-variable resolutions',
+)
+_DERIVED_VARIABLE_CACHE_ACCESSES: Counter = _METER.create_counter(
+    'dara.derived_variable.cache.accesses',
+    unit='{access}',
+    description='Number of Dara derived-variable cache accesses',
+)
+_PY_COMPONENT_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.py_component.active',
+    unit='{operation}',
+    description='Number of Dara Python component renders currently executing',
+)
+_PY_COMPONENT_DURATION: Histogram = _METER.create_histogram(
+    'dara.py_component.duration',
+    unit='s',
+    description='Duration of Dara Python component rendering',
+)
+_PY_COMPONENT_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.py_component.executions',
+    unit='{operation}',
+    description='Number of completed Dara Python component renders',
+)
+_STREAM_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.stream.active',
+    unit='{stream}',
+    description='Number of Dara streams currently executing',
+)
+_STREAM_DURATION: Histogram = _METER.create_histogram(
+    'dara.stream.duration',
+    unit='s',
+    description='Duration of Dara stream lifecycles',
+)
+_STREAM_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.stream.executions',
+    unit='{stream}',
+    description='Number of completed Dara stream lifecycles',
+)
+_UPLOAD_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.upload.active',
+    unit='{upload}',
+    description='Number of Dara uploads currently resolving',
+)
+_UPLOAD_DURATION: Histogram = _METER.create_histogram(
+    'dara.upload.duration',
+    unit='s',
+    description='Duration of Dara upload resolution',
+)
+_UPLOAD_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.upload.executions',
+    unit='{upload}',
+    description='Number of completed Dara upload resolutions',
+)
+_BACKEND_STORE_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.backend_store.active',
+    unit='{operation}',
+    description='Number of Dara backend-store operations currently executing',
+)
+_BACKEND_STORE_DURATION: Histogram = _METER.create_histogram(
+    'dara.backend_store.duration',
+    unit='s',
+    description='Duration of Dara backend-store operations',
+)
+_BACKEND_STORE_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.backend_store.executions',
+    unit='{operation}',
+    description='Number of completed Dara backend-store operations',
+)
 
 
 def _safe_request_attributes(
@@ -106,6 +186,18 @@ class _OperationObservation:
 
     span: Span | None = None
     outcome: str = 'success'
+
+    def set_outcome(self, outcome: str) -> None:
+        """
+        Set a bounded terminal outcome for an operation that handles its own errors.
+
+        :param outcome: terminal outcome such as ``success``, ``error``, or ``cancelled``
+        """
+        self.outcome = outcome
+        if self.span is not None and self.span.is_recording():
+            self.span.set_attribute('dara.outcome', outcome)
+            if outcome != 'success':
+                self.span.set_status(Status(StatusCode.ERROR))
 
     def record_exception(self, error: BaseException) -> None:
         """
@@ -241,6 +333,163 @@ def observe_websocket_handler(
         active=_WEBSOCKET_MESSAGE_ACTIVE,
         duration=_WEBSOCKET_MESSAGE_DURATION,
         executions=_WEBSOCKET_MESSAGE_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_derived_variable(
+    resolver_name: str,
+    execution: str,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one complete derived-variable resolution.
+
+    :param resolver_name: stable registered resolver name
+    :param execution: bounded execution mode, ``inline`` or ``task``
+    """
+    attributes = {
+        'dara.derived_variable.resolver': resolver_name,
+        'dara.derived_variable.execution': execution,
+    }
+    with _observe_operation(
+        span_name='dara.derived_variable.resolve',
+        span_attributes=attributes,
+        metric_attributes=attributes,
+        active=_DERIVED_VARIABLE_ACTIVE,
+        duration=_DERIVED_VARIABLE_DURATION,
+        executions=_DERIVED_VARIABLE_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_derived_variable_phase(
+    phase: str,
+    resolver_name: str,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace one bounded phase within derived-variable resolution.
+
+    Phase spans deliberately have no independent metrics; the complete resolution
+    owns duration and outcome metrics.
+
+    :param phase: bounded phase name
+    :param resolver_name: stable registered resolver name
+    """
+    if not _RUNTIME.configured:
+        yield _OperationObservation()
+        return
+
+    observation = _OperationObservation()
+    with _TRACER.start_as_current_span(
+        f'dara.derived_variable.{phase}',
+        attributes={
+            'dara.derived_variable.phase': phase,
+            'dara.derived_variable.resolver': resolver_name,
+        },
+    ) as span:
+        observation.span = span
+        try:
+            yield observation
+        except BaseException as error:
+            observation.record_exception(error)
+            raise
+        finally:
+            span.set_attribute('dara.outcome', observation.outcome)
+
+
+def record_derived_variable_cache_access(result: str) -> None:
+    """
+    Count a derived-variable cache outcome without recording its cache key.
+
+    :param result: bounded result, ``hit``, ``miss``, or ``bypass``
+    """
+    if _RUNTIME.configured:
+        _DERIVED_VARIABLE_CACHE_ACCESSES.add(1, {'dara.cache.result': result})
+
+
+@contextmanager
+def observe_py_component(component_name: str) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one Python component render.
+
+    :param component_name: stable registered component callable name
+    """
+    span_attributes = {'dara.py_component.name': component_name}
+    with _observe_operation(
+        span_name='dara.py_component.render',
+        span_attributes=span_attributes,
+        metric_attributes=span_attributes,
+        active=_PY_COMPONENT_ACTIVE,
+        duration=_PY_COMPONENT_DURATION,
+        executions=_PY_COMPONENT_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_stream(stream_name: str) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one complete stream lifecycle.
+
+    :param stream_name: stable registered stream callable name
+    """
+    span_attributes = {'dara.stream.name': stream_name}
+    with _observe_operation(
+        span_name='dara.stream.run',
+        span_attributes=span_attributes,
+        metric_attributes=span_attributes,
+        active=_STREAM_ACTIVE,
+        duration=_STREAM_DURATION,
+        executions=_STREAM_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_upload(resolver_kind: str) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one upload resolution.
+
+    :param resolver_kind: bounded resolver kind, ``custom`` or ``default``
+    """
+    span_attributes = {'dara.upload.resolver.kind': resolver_kind}
+    with _observe_operation(
+        span_name='dara.upload.resolve',
+        span_attributes=span_attributes,
+        metric_attributes=span_attributes,
+        active=_UPLOAD_ACTIVE,
+        duration=_UPLOAD_DURATION,
+        executions=_UPLOAD_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_backend_store(
+    operation: str,
+    backend_name: str,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one backend-store operation.
+
+    Store identifiers and persistence keys are deliberately excluded.
+
+    :param operation: bounded operation such as ``read``, ``write``, or ``delete``
+    :param backend_name: backend implementation class name
+    """
+    attributes = {
+        'dara.backend_store.operation': operation,
+        'dara.backend_store.backend': backend_name,
+    }
+    with _observe_operation(
+        span_name=f'dara.backend_store.{operation}',
+        span_attributes=attributes,
+        metric_attributes=attributes,
+        active=_BACKEND_STORE_ACTIVE,
+        duration=_BACKEND_STORE_DURATION,
+        executions=_BACKEND_STORE_EXECUTIONS,
     ) as observation:
         yield observation
 

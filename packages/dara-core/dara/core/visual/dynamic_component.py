@@ -44,6 +44,7 @@ from dara.core.internal.normalization import NormalizedPayload, normalize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
+from dara.core.telemetry import observe_py_component
 from dara.core.visual.components import InvalidComponent, RawString
 
 CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
@@ -220,6 +221,31 @@ def py_component(
 
 
 async def render_component(
+    definition: PyComponentDef,
+    store: CacheStore,
+    task_mgr: TaskManager,
+    values: Mapping[str, Any],
+    static_kwargs: Mapping[str, Any],
+):
+    """
+    Render a Python component with one complete telemetry lifecycle.
+
+    :param definition: registered Python component definition
+    :param store: store instance used while resolving dependencies
+    :param task_mgr: task manager instance for dependent tasks
+    :param values: dynamic argument values
+    :param static_kwargs: static argument values
+    """
+    assert definition.func is not None, 'PyComponent must have a function defined'
+    component_name = (
+        f'{getattr(definition.func, "__module__", "unknown")}.'
+        f'{getattr(definition.func, "__qualname__", type(definition.func).__name__)}'
+    )
+    with observe_py_component(component_name):
+        return await _render_component(definition, store, task_mgr, values, static_kwargs)
+
+
+async def _render_component(
     definition: PyComponentDef,
     store: CacheStore,
     task_mgr: TaskManager,

@@ -72,6 +72,11 @@ from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
+from dara.core.telemetry import (
+    observe_derived_variable,
+    observe_derived_variable_phase,
+    record_derived_variable_cache_access,
+)
 
 VariableType = TypeVar('VariableType', default=Any)
 
@@ -428,6 +433,44 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         _pin_result: bool = False,
     ) -> DerivedVariableResult:
         """
+        Resolve a derived variable with one complete telemetry lifecycle.
+
+        :param var_entry: registered derived-variable definition
+        :param store: store instance to check for cached values
+        :param task_mgr: task manager instance
+        :param args: arguments to pass to the resolver
+        :param force_key: unique key for forced execution
+        :param _pin_result: whether to pin the result in the cache
+        """
+        assert var_entry.func is not None, 'DerivedVariable function is not defined'
+        resolver_name = (
+            f'{getattr(var_entry.func, "__module__", "unknown")}.'
+            f'{getattr(var_entry.func, "__qualname__", type(var_entry.func).__name__)}'
+        )
+        execution = 'task' if var_entry.run_as_task else 'inline'
+        with observe_derived_variable(resolver_name, execution):
+            return await cls._get_value(
+                var_entry,
+                store,
+                task_mgr,
+                args,
+                force_key,
+                _pin_result,
+                _resolver_name=resolver_name,
+            )
+
+    @classmethod
+    async def _get_value(
+        cls,
+        var_entry: DerivedVariableRegistryEntry,
+        store: CacheStore,
+        task_mgr: TaskManager,
+        args: list[Any],
+        force_key: str | None = None,
+        _pin_result: bool = False,
+        _resolver_name: str = 'unknown',
+    ) -> DerivedVariableResult:
+        """
         Get the value of this DerivedVariable. This method will check the main app store for an appropriate response
         first, if it does not find one then it will run the underlying function in a separate process and return the
         result. Adding it to the cache in the process.
@@ -461,8 +504,12 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         # Compute cache key first, before any other work
         cache_key = DerivedVariable._get_cache_key(*args, uid=var_entry.uid, deps=var_entry.deps)
 
-        # Lock on this specific cache key for the entire computation
-        async with DV_LOCK.acquire(cache_key):
+        # Lock on this specific cache key for the entire computation. Enter the
+        # async context manually so the wait span ends as soon as the lock is held.
+        lock = DV_LOCK.acquire(cache_key)
+        with observe_derived_variable_phase('lock_wait', _resolver_name):
+            await lock.__aenter__()
+        try:
             histogram = RUNTIME_METRICS_TRACKER.get_dv_histogram(var_entry.uid)
 
             with histogram.time():
@@ -485,9 +532,10 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                     var_value = await resolve_dependency(val, store, task_mgr)
                     values[index] = var_value
 
-                async with anyio.create_task_group() as tg:
-                    for idx, val in enumerate(args):
-                        tg.start_soon(_resolve_arg, val, idx)
+                with observe_derived_variable_phase('dependencies', _resolver_name):
+                    async with anyio.create_task_group() as tg:
+                        for idx, val in enumerate(args):
+                            tg.start_soon(_resolve_arg, val, idx)
 
                 eng_logger.debug(
                     f'DerivedVariable {_uid_short}',
@@ -508,7 +556,8 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                 # Check if there are any Tasks to be run in the args
                 has_tasks = any(isinstance(arg, BaseTask) for arg in parsed_args)
 
-                await DerivedVariable.add_latest_value(store, var_entry, cache_key)
+                with observe_derived_variable_phase('cache_write', _resolver_name):
+                    await DerivedVariable.add_latest_value(store, var_entry, cache_key)
 
                 cache_type = var_entry.cache
 
@@ -549,21 +598,30 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                     or has_forced_child
                 )
                 if not ignore_cache:
-                    try:
-                        value = await store.get(var_entry, key=cache_key, raise_for_missing=True)
-                        eng_logger.debug(
-                            f'DerivedVariable {_uid_short}',
-                            'retrieved value from cache',
-                            {'uid': var_entry.uid, 'cached_value': value},
-                        )
-                    except KeyError:
-                        eng_logger.debug(
-                            f'DerivedVariable {_uid_short}',
-                            'no value found in cache',
-                            {'uid': var_entry.uid},
-                        )
-                        # key error means no entry found;
-                        # this lets us distinguish from a None value stored and not found
+                    with observe_derived_variable_phase('cache_lookup', _resolver_name) as cache_observation:
+                        try:
+                            value = await store.get(var_entry, key=cache_key, raise_for_missing=True)
+                            if cache_observation.span is not None:
+                                cache_observation.span.set_attribute('dara.cache.result', 'hit')
+                            record_derived_variable_cache_access('hit')
+                            eng_logger.debug(
+                                f'DerivedVariable {_uid_short}',
+                                'retrieved value from cache',
+                                {'uid': var_entry.uid, 'cached_value': value},
+                            )
+                        except KeyError:
+                            if cache_observation.span is not None:
+                                cache_observation.span.set_attribute('dara.cache.result', 'miss')
+                            record_derived_variable_cache_access('miss')
+                            eng_logger.debug(
+                                f'DerivedVariable {_uid_short}',
+                                'no value found in cache',
+                                {'uid': var_entry.uid},
+                            )
+                            # key error means no entry found;
+                            # this lets us distinguish from a None value stored and not found
+                else:
+                    record_derived_variable_cache_access('bypass')
 
                 # If it's a PendingTask then return that task so it can be awaited later by a MetaTask
                 if isinstance(value, PendingTask):
@@ -611,7 +669,8 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
                         # Immediately store the pending task in the store
                         pending_task = task_mgr.register_task(meta_task)
-                        await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
+                        with observe_derived_variable_phase('cache_write', _resolver_name):
+                            await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
 
                         return {'cache_key': cache_key, 'value': meta_task}
 
@@ -632,12 +691,14 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
                     # Immediately store the pending task in the store
                     pending_task = task_mgr.register_task(task)
-                    await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
+                    with observe_derived_variable_phase('cache_write', _resolver_name):
+                        await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
 
                     return {'cache_key': cache_key, 'value': task}
 
                 try:
-                    result = await run_user_handler(var_entry.func, args=parsed_args)
+                    with observe_derived_variable_phase('resolver', _resolver_name):
+                        result = await run_user_handler(var_entry.func, args=parsed_args)
                 except Exception:
                     # Delete the store value so subsequent requests recalculate instaed
                     if var_entry.cache is not None:
@@ -660,13 +721,16 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
 
                 # only set the value if cache is not None, otherwise subsequent requests calculate the value again
                 if var_entry.cache is not None:
-                    await store.set(var_entry, key=cache_key, value=result, pin=_pin_result)
+                    with observe_derived_variable_phase('cache_write', _resolver_name):
+                        await store.set(var_entry, key=cache_key, value=result, pin=_pin_result)
 
                 eng_logger.info(
                     f'DerivedVariable {_uid_short} returning result',
                     {'uid': var_entry.uid, 'result': result},
                 )
                 return {'cache_key': cache_key, 'value': result}
+        finally:
+            await lock.__aexit__(None, None, None)
 
     @classmethod
     async def _filter_data(

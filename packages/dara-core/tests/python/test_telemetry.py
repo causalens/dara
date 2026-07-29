@@ -171,3 +171,27 @@ def test_http_spans_and_native_logs_export_with_correlation():
     )
 
     assert result.returncode == 0, f'{result.stdout}\n{result.stderr}'
+
+
+def test_internal_operation_spans_and_metrics_export():
+    environment = os.environ.copy()
+    environment.update(
+        {
+            'DARA_OTEL_ENABLED': 'TRUE',
+            'OTEL_TRACES_EXPORTER': 'none',
+            'OTEL_LOGS_EXPORTER': 'none',
+            'OTEL_METRICS_EXPORTER': 'none',
+        }
+    )
+    smoke_test = Path(__file__).with_name('_telemetry_operations_smoke.py')
+
+    result = subprocess.run(
+        [sys.executable, str(smoke_test)],
+        capture_output=True,
+        check=False,
+        env=environment,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, f'{result.stdout}\n{result.stderr}'

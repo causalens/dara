@@ -25,14 +25,14 @@
   - [x] Add action and WebSocket active-count, duration, and error metrics.
   - [x] Test parentage across background tasks and WebSocket queues.
 
-- [ ] Slice 3 — Derived variables, components, streams, and stores
-  - [ ] Trace derived-variable cache lookup, lock wait, dependency resolution, resolver execution, and cache write.
-  - [ ] Record cache-hit and cache-miss metrics without using cache keys as attributes or dimensions.
-  - [ ] Trace Python component rendering.
-  - [ ] Trace stream lifecycle and terminal outcomes without creating a span per emitted event by default.
-  - [ ] Trace upload resolvers and backend-store reads/writes.
-  - [ ] Add low-cardinality duration and error metrics for these operations.
-  - [ ] Add focused tests for successful, cached, failed, and cancelled paths.
+- [x] Slice 3 — Derived variables, components, streams, and stores
+  - [x] Trace derived-variable cache lookup, lock wait, dependency resolution, resolver execution, and cache write.
+  - [x] Record cache-hit and cache-miss metrics without using cache keys as attributes or dimensions.
+  - [x] Trace Python component rendering.
+  - [x] Trace stream lifecycle and terminal outcomes without creating a span per emitted event by default.
+  - [x] Trace upload resolvers and backend-store reads/writes.
+  - [x] Add low-cardinality duration and error metrics for these operations.
+  - [x] Add focused tests for successful, cached, failed, and cancelled paths.
 
 - [ ] Slice 4 — Tasks, workers, and scheduled jobs
   - [ ] Trace TaskManager scheduling, waiting, cancellation, and completion.
