@@ -14,6 +14,7 @@ from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
 from dara.core.http import get
 from dara.core.internal.websocket import WebsocketManager
+from dara.core.js_tooling.dev_server import UnidentifiedDevServerMismatch
 from dara.core.main import _start_application
 from dara.core.metrics import DARA_METRICS_REGISTRY
 from dara.core.router import LayoutRoute, Outlet
@@ -190,6 +191,88 @@ async def test_dara_data_properjs(monkeypatch: pytest.MonkeyPatch, config: Confi
             with patch.object(ViteLoader, '__new__', return_value=mock_vite_loader):
                 async with AsyncClient(app) as client:
                     await _check_dara_data(client)
+
+
+async def test_dev_server_handshake_renders_one_mismatch_page(
+    monkeypatch: pytest.MonkeyPatch,
+    config: Configuration,
+):
+    """HMR mode should render Dara's unified mismatch page before loading Vite assets."""
+    monkeypatch.setenv('DARA_HMR_MODE', 'TRUE')
+    monkeypatch.setenv('VITE_HOT_RELOAD', 'TRUE')
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+
+    async def report_mismatch(expected):
+        return UnidentifiedDevServerMismatch(expected=expected)
+
+    with (
+        patch('dara.core.main.rebuild_js'),
+        patch('dara.core.main.check_dev_server', new=AsyncMock(side_effect=report_mismatch)) as check,
+    ):
+        app = _start_application(config)
+
+        async with AsyncClient(app) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    assert '[dara] Development server mismatch' in response.text
+    assert 'This page retries automatically' in response.text
+    check.assert_awaited_once()
+
+
+async def test_dev_server_handshake_is_skipped_in_autojs(
+    monkeypatch: pytest.MonkeyPatch,
+    config: Configuration,
+):
+    """The UMD mode should not contact or render development server machinery."""
+    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+
+    with (
+        patch('dara.core.main.rebuild_js'),
+        patch('dara.core.main.check_dev_server', new=AsyncMock()) as check,
+    ):
+        app = _start_application(config)
+
+        async with AsyncClient(app) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    assert '[dara] Development server mismatch' not in response.text
+    check.assert_not_awaited()
+
+
+async def test_dev_server_handshake_is_skipped_in_production(
+    monkeypatch: pytest.MonkeyPatch,
+    config: Configuration,
+):
+    """A production Vite build should not contact or render development server machinery."""
+    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
+    monkeypatch.setenv('DARA_PRODUCTION_MODE', 'TRUE')
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+
+    from fastapi_vite_dara.loader import ViteLoader
+
+    mock_vite_loader = Mock()
+    mock_vite_loader.generate_vite_ws_client = Mock(return_value='')
+    mock_vite_loader.generate_vite_asset = Mock(return_value='asset')
+    mock_vite_loader.generate_vite_react_hmr = Mock(return_value='')
+
+    with (
+        patch('dara.core.main.rebuild_js'),
+        patch('dara.core.main.check_dev_server', new=AsyncMock()) as check,
+        patch.object(ViteLoader, '__new__', return_value=mock_vite_loader),
+    ):
+        app = _start_application(config)
+
+        async with AsyncClient(app) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    assert '[dara] Development server mismatch' not in response.text
+    check.assert_not_awaited()
 
 
 @patch('dara.core.definitions.uuid.uuid4', return_value='uid')

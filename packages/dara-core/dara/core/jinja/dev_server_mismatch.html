@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <meta content="2" http-equiv="refresh" />
+        <title>Dara dev server mismatch</title>
+        <style>
+            :root {
+                color-scheme: dark;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            }
+
+            body {
+                box-sizing: border-box;
+                min-height: 100vh;
+                margin: 0;
+                padding: 30px;
+                background: #5a5a5a;
+                color: #d8d8d8;
+            }
+
+            main {
+                box-sizing: border-box;
+                width: min(1080px, 80vw);
+                margin: 0 auto;
+                padding: 2.5vh 4vw;
+                overflow: hidden;
+                border-top: 8px solid #ff5555;
+                border-radius: 6px 6px 8px 8px;
+                background: #181818;
+                box-shadow:
+                    0 19px 38px rgb(0 0 0 / 30%),
+                    0 15px 12px rgb(0 0 0 / 22%);
+            }
+
+            h1 {
+                margin: 0 0 1.5rem;
+                color: #ff5555;
+                font-size: 1rem;
+                font-weight: 400;
+            }
+
+            pre {
+                margin: 0;
+                color: #ff7777;
+                font: inherit;
+                line-height: 1.5;
+                white-space: pre-wrap;
+            }
+
+            footer {
+                margin-top: 2rem;
+                padding-top: 1rem;
+                border-top: 1px dotted #999;
+                color: #999;
+                font-size: 0.8rem;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <h1>[dara] Development server mismatch</h1>
+            <pre>{{ message }}</pre>
+            <footer>Waiting for a matching server at {{ origin }}. This page retries automatically.</footer>
+        </main>
+    </body>
+</html>
