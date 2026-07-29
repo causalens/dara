@@ -14,6 +14,8 @@ title: Changelog
   port and adding numeric cache gauges and migration queries.
 - Hardened telemetry privacy by redacting raw HTTP paths, suppressing exception messages and tracebacks, restricting
   exported log fields, excluding baggage from process propagation, bounding shutdown, and adding process boot identity.
+- Added queue, serialization, WebSocket round-trip, stream first-event, server-variable, registry, and cache-wait
+  telemetry; corrected task-backed operation outcomes and cache gauges after policy-driven eviction.
 
 ## 1.29.4
 

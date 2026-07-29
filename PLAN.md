@@ -63,6 +63,9 @@
   - [x] Measure enabled and disabled request overhead.
   - [ ] Add an end-to-end collector smoke test for traces, native logs, and metrics.
   - [x] Document optional outbound HTTP, database, and browser/frontend instrumentation.
+  - [x] Retain the standard HTTP `client.address` span attribute while excluding it from logs and metric dimensions.
+  - [x] Bound application shutdown even when a third-party exporter ignores its shutdown timeout.
+  - [x] Exercise real parameterized routes and HTTP middleware logs to prove raw path values are not exported.
 
 ## Architecture
 

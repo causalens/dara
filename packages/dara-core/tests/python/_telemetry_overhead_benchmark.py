@@ -12,7 +12,6 @@ from pathlib import Path
 from time import perf_counter_ns
 from typing import Any
 
-
 SCENARIOS = {
     'disabled': {
         'DARA_OTEL_ENABLED': 'FALSE',
@@ -159,10 +158,7 @@ def _overhead(summary: dict[str, float], baseline: dict[str, float]) -> dict[str
     return {
         'p50_delta_ms': delta_ms,
         'p50_delta_percent': delta_ms / baseline['p50_ms'] * 100,
-        'throughput_delta_percent': (
-            summary['requests_per_second'] / baseline['requests_per_second'] - 1
-        )
-        * 100,
+        'throughput_delta_percent': (summary['requests_per_second'] / baseline['requests_per_second'] - 1) * 100,
     }
 
 

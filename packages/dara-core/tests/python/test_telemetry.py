@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from unittest.mock import ANY, MagicMock, call, patch
 
@@ -66,6 +67,8 @@ async def test_initializes_all_signals_and_shuts_them_down(monkeypatch: pytest.M
         patch('dara.core.telemetry.LoggingInstrumentor') as logging_instrumentor,
         patch('dara.core.telemetry.SystemMetricsInstrumentor') as system_metrics_instrumentor,
     ):
+        logging_instrumentor.return_value.is_instrumented_by_opentelemetry = False
+        system_metrics_instrumentor.return_value.is_instrumented_by_opentelemetry = False
         app = _start_test_application()
         async with AsyncClient(app):
             instrumentation.__exit__.assert_not_called()
@@ -81,6 +84,7 @@ async def test_initializes_all_signals_and_shuts_them_down(monkeypatch: pytest.M
             'dara.process.type': 'application',
             'dara.process.boot.id': ANY,
         },
+        metrics=ANY,
     )
     logging_instrumentor.return_value.instrument.assert_called_once_with(
         inject_trace_context=True,
@@ -114,9 +118,11 @@ async def test_preserves_explicit_semantic_convention_configuration(monkeypatch:
         patch('dara.core.telemetry.logfire.instrument_fastapi', return_value=MagicMock()),
         patch('dara.core.telemetry.logfire.instrument_system_metrics'),
         patch('dara.core.telemetry.logfire.shutdown'),
-        patch('dara.core.telemetry.LoggingInstrumentor'),
-        patch('dara.core.telemetry.SystemMetricsInstrumentor'),
+        patch('dara.core.telemetry.LoggingInstrumentor') as logging_instrumentor,
+        patch('dara.core.telemetry.SystemMetricsInstrumentor') as system_metrics_instrumentor,
     ):
+        logging_instrumentor.return_value.is_instrumented_by_opentelemetry = False
+        system_metrics_instrumentor.return_value.is_instrumented_by_opentelemetry = False
         app = _start_test_application()
         async with AsyncClient(app):
             pass
@@ -138,8 +144,10 @@ async def test_prometheus_endpoint_translates_otel_metrics_without_an_otlp_reade
         patch('dara.core.telemetry.logfire.shutdown'),
         patch('dara.core.telemetry.LoggingInstrumentor') as logging_instrumentor,
         patch('dara.core.telemetry.PrometheusMetricReader', return_value=prometheus_reader) as reader_class,
-        patch('dara.core.telemetry.SystemMetricsInstrumentor'),
+        patch('dara.core.telemetry.SystemMetricsInstrumentor') as system_metrics_instrumentor,
     ):
+        logging_instrumentor.return_value.is_instrumented_by_opentelemetry = False
+        system_metrics_instrumentor.return_value.is_instrumented_by_opentelemetry = False
         app = _start_test_application()
         async with AsyncClient(app):
             pass
@@ -159,7 +167,7 @@ async def test_prometheus_endpoint_translates_otel_metrics_without_an_otlp_reade
     assert configure_options['scrubbing'] is False
     metrics_options = configure_options['metrics']
     assert metrics_options.additional_readers == [prometheus_reader]
-    assert metrics_options.views == telemetry._PROMETHEUS_METRIC_VIEWS
+    assert metrics_options.views == telemetry._METRIC_VIEWS
     instrument_system_metrics.assert_called_once_with()
     logging_instrumentor.return_value.instrument.assert_called_once_with(
         inject_trace_context=True,
@@ -167,6 +175,106 @@ async def test_prometheus_endpoint_translates_otel_metrics_without_an_otlp_reade
         enable_log_auto_instrumentation=False,
     )
     assert os.environ['OTEL_METRICS_EXPORTER'] == 'none'
+
+
+async def test_prometheus_only_mode_masks_ambient_trace_and_log_exporters(monkeypatch: pytest.MonkeyPatch):
+    """An ambient OTLP endpoint cannot opt disabled Dara signals back in."""
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'FALSE')
+    monkeypatch.setenv('DARA_DISABLE_METRICS', 'FALSE')
+    monkeypatch.setenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://collector:4318')
+    monkeypatch.delenv('OTEL_TRACES_EXPORTER', raising=False)
+    monkeypatch.delenv('OTEL_LOGS_EXPORTER', raising=False)
+    observed_exporters = {}
+
+    def capture_exporters(**_kwargs):
+        observed_exporters.update(
+            {
+                'traces': os.environ.get('OTEL_TRACES_EXPORTER'),
+                'logs': os.environ.get('OTEL_LOGS_EXPORTER'),
+                'metrics': os.environ.get('OTEL_METRICS_EXPORTER'),
+            }
+        )
+
+    with (
+        patch('dara.core.telemetry.logfire.configure', side_effect=capture_exporters),
+        patch('dara.core.telemetry.logfire.instrument_fastapi', return_value=MagicMock()),
+        patch('dara.core.telemetry.logfire.instrument_system_metrics'),
+        patch('dara.core.telemetry.logfire.shutdown'),
+        patch('dara.core.telemetry.LoggingInstrumentor') as logging_instrumentor,
+        patch('dara.core.telemetry.SystemMetricsInstrumentor') as system_metrics_instrumentor,
+    ):
+        system_metrics_instrumentor.return_value.is_instrumented_by_opentelemetry = False
+        app = _start_test_application()
+        async with AsyncClient(app):
+            pass
+
+    assert observed_exporters == {'traces': 'none', 'logs': 'none', 'metrics': 'none'}
+    assert 'OTEL_TRACES_EXPORTER' not in os.environ
+    assert 'OTEL_LOGS_EXPORTER' not in os.environ
+    logging_instrumentor.return_value.instrument.assert_not_called()
+
+
+async def test_otlp_only_metrics_receive_dara_duration_views(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'TRUE')
+    monkeypatch.setenv('DARA_DISABLE_METRICS', 'TRUE')
+    monkeypatch.setenv('OTEL_METRICS_EXPORTER', 'otlp')
+
+    with (
+        patch('dara.core.telemetry.logfire.configure') as configure,
+        patch('dara.core.telemetry.logfire.instrument_fastapi', return_value=MagicMock()),
+        patch('dara.core.telemetry.logfire.instrument_system_metrics'),
+        patch('dara.core.telemetry.logfire.shutdown'),
+        patch('dara.core.telemetry.LoggingInstrumentor') as logging_instrumentor,
+        patch('dara.core.telemetry.SystemMetricsInstrumentor') as system_metrics_instrumentor,
+    ):
+        logging_instrumentor.return_value.is_instrumented_by_opentelemetry = False
+        system_metrics_instrumentor.return_value.is_instrumented_by_opentelemetry = False
+        app = _start_test_application()
+        async with AsyncClient(app):
+            pass
+
+    assert configure.call_args.kwargs['metrics'].views == telemetry._METRIC_VIEWS
+
+
+async def test_shutdown_preserves_host_owned_global_instrumentors(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'TRUE')
+    monkeypatch.setenv('DARA_DISABLE_METRICS', 'TRUE')
+    handler = logging.NullHandler()
+
+    with (
+        patch('dara.core.telemetry.logfire.configure'),
+        patch('dara.core.telemetry.logfire.instrument_fastapi', return_value=MagicMock()),
+        patch('dara.core.telemetry.logfire.instrument_system_metrics') as instrument_system_metrics,
+        patch('dara.core.telemetry.logfire.shutdown'),
+        patch('dara.core.telemetry.LoggingInstrumentor') as logging_instrumentor,
+        patch('dara.core.telemetry.SystemMetricsInstrumentor') as system_metrics_instrumentor,
+        patch('dara.core.telemetry._SanitizingLoggingHandler', return_value=handler),
+    ):
+        logging_instrumentor.return_value.is_instrumented_by_opentelemetry = True
+        system_metrics_instrumentor.return_value.is_instrumented_by_opentelemetry = True
+        app = _start_test_application()
+        async with AsyncClient(app):
+            assert handler in logging.getLogger().handlers
+
+    assert handler not in logging.getLogger().handlers
+    logging_instrumentor.return_value.instrument.assert_not_called()
+    logging_instrumentor.return_value.uninstrument.assert_not_called()
+    instrument_system_metrics.assert_not_called()
+    system_metrics_instrumentor.return_value.uninstrument.assert_not_called()
+
+
+def test_shutdown_deadline_bounds_application_latency(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv('DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS', '10')
+    get_settings.cache_clear()
+    runtime = telemetry._TelemetryRuntime(configured=True)
+
+    with patch('dara.core.telemetry.logfire.shutdown', side_effect=lambda **_kwargs: time.sleep(1)):
+        started = time.perf_counter()
+        runtime.shutdown()
+        elapsed = time.perf_counter() - started
+
+    assert elapsed < 0.2
+    assert runtime.configured is False
 
 
 async def test_failed_app_instrumentation_rolls_back_process_instrumentation(monkeypatch: pytest.MonkeyPatch):
@@ -182,6 +290,8 @@ async def test_failed_app_instrumentation_rolls_back_process_instrumentation(mon
         patch('dara.core.telemetry.SystemMetricsInstrumentor') as system_metrics_instrumentor,
         pytest.raises(RuntimeError, match='instrumentation failed'),
     ):
+        logging_instrumentor.return_value.is_instrumented_by_opentelemetry = False
+        system_metrics_instrumentor.return_value.is_instrumented_by_opentelemetry = False
         _start_test_application()
 
     system_metrics_instrumentor.return_value.uninstrument.assert_called_once_with()
@@ -202,7 +312,7 @@ def test_request_attributes_exclude_values_and_error_details():
     ) == {'fastapi.validation.error_count': 1}
 
 
-def test_server_request_hook_redacts_path_query_and_client_address():
+def test_server_request_hook_redacts_path_and_query_but_keeps_standard_client_address():
     span = MagicMock()
     span.is_recording.return_value = True
 
@@ -222,8 +332,6 @@ def test_server_request_hook_redacts_path_query_and_client_address():
         call('http.target', '[REDACTED]'),
         call('http.url', '[REDACTED]'),
         call('url.query', '[REDACTED]'),
-        call('client.address', '[REDACTED]'),
-        call('client.port', 0),
     ]
 
 
@@ -241,11 +349,12 @@ def test_otel_log_translation_drops_exception_details_and_arbitrary_extras():
     )
     record.content = {'token': 'secret-token'}
     record.status_code = 500
+    record.event_name = 'action.failed'
 
     translated = telemetry._SanitizingLoggingHandler(log_code_attributes=False)._translate(record)
 
-    assert translated.body == 'Action failed'
-    assert dict(translated.attributes or {}) == {'status_code': 500}
+    assert translated.body == 'action.failed'
+    assert dict(translated.attributes or {}) == {'event_name': 'action.failed', 'status_code': 500}
     assert 'secret' not in repr(translated)
     assert record.msg == {'title': 'Action failed', 'error': error}
     assert record.content == {'token': 'secret-token'}
@@ -331,6 +440,7 @@ def test_http_spans_and_native_logs_export_with_correlation():
             'OTEL_METRICS_EXPORTER': 'none',
         }
     )
+    environment.pop('DARA_TEST_FLAG', None)
     smoke_test = Path(__file__).with_name('_telemetry_smoke.py')
 
     result = subprocess.run(

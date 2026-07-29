@@ -45,5 +45,9 @@ class CacheStoreImpl(abc.ABC, Generic[PolicyT]):
         """
 
     @abc.abstractmethod
+    def values(self) -> list[Any]:
+        """Return a point-in-time snapshot of the values currently held."""
+
+    @abc.abstractmethod
     def __len__(self) -> int:
         """Return the number of entries currently held by this cache."""

@@ -44,7 +44,7 @@ from dara.core.internal.normalization import NormalizedPayload, normalize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.logging import dev_logger, eng_logger
-from dara.core.telemetry import observe_py_component
+from dara.core.telemetry import observe_internal_operation, observe_py_component
 from dara.core.visual.components import InvalidComponent, RawString
 
 CURRENT_COMPONENT_ID = ContextVar('current_component_id', default='')
@@ -241,8 +241,13 @@ async def render_component(
         f'{getattr(definition.func, "__module__", "unknown")}.'
         f'{getattr(definition.func, "__qualname__", type(definition.func).__name__)}'
     )
-    with observe_py_component(component_name):
-        return await _render_component(definition, store, task_mgr, values, static_kwargs)
+    with observe_py_component(component_name) as observation:
+        result = await _render_component(definition, store, task_mgr, values, static_kwargs)
+        if isinstance(result, BaseTask):
+            result.telemetry_origin_kind = 'py_component'
+            result.telemetry_origin_name = component_name
+            observation.set_outcome('scheduled')
+        return result
 
 
 async def _render_component(
@@ -279,9 +284,10 @@ async def _render_component(
             typ = annotations.get(key)
             resolved_dyn_kwargs[key] = deserialize(val, typ)
 
-        async with anyio.create_task_group() as tg:
-            for key, value in values.items():
-                tg.start_soon(_resolve_kwarg, value, key)
+        with observe_internal_operation('py_component', 'dependencies', name=definition.name):
+            async with anyio.create_task_group() as tg:
+                for key, value in values.items():
+                    tg.start_soon(_resolve_kwarg, value, key)
 
         # Merge resolved dynamic kwargs with static kwargs received
         resolved_kwargs = {**resolved_dyn_kwargs, **static_kwargs}
@@ -311,6 +317,11 @@ async def _render_component(
                 kwargs=resolved_kwargs,
                 notify_channels=notify_channels,
                 task_id=f'{definition.func.__name__}_{definition.name}_{str(uuid.uuid4())}',
+                telemetry_origin_kind='py_component',
+                telemetry_origin_name=(
+                    f'{getattr(definition.func, "__module__", "unknown")}.'
+                    f'{getattr(definition.func, "__qualname__", type(definition.func).__name__)}'
+                ),
             )
 
             eng_logger.info(
@@ -320,7 +331,8 @@ async def _render_component(
 
             return task
 
-        result = await renderer(**resolved_kwargs)
+        with observe_internal_operation('py_component', 'renderer', name=definition.name):
+            result = await renderer(**resolved_kwargs)
 
         eng_logger.info(
             f'PyComponent {definition.func.__name__} returning result', {'uid': definition.name, 'result': result}

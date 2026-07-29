@@ -42,7 +42,12 @@ from dara.core.internal.pool.utils import (
     read_from_shared_memory,
     store_in_shared_memory,
 )
-from dara.core.telemetry import initialize_process_telemetry, observe_worker_task, shutdown_telemetry
+from dara.core.telemetry import (
+    initialize_process_telemetry,
+    observe_task_phase,
+    observe_worker_task,
+    shutdown_telemetry,
+)
 
 
 class StdoutLogger:
@@ -171,24 +176,27 @@ def worker_loop(worker_params: WorkerParameters, channel: Channel):
         sys.stdout = stdout_logger  # type: ignore
 
         try:
-            payload_pointer = task['payload']
-            payload = read_from_shared_memory(payload_pointer)
+            task_name = task['task_name']
+            with observe_worker_task(task_name, task.get('telemetry_context')) as observation:
+                with observe_task_phase('input_decode', task_name):
+                    payload_pointer = task['payload']
+                    payload = read_from_shared_memory(payload_pointer)
+                    func = getattr(task_module, payload['function_name'])
+                    kwargs = payload['kwargs']
 
-            func = getattr(task_module, payload['function_name'])
-            kwargs = payload['kwargs']
+                    # If func is decorated with @track_progress, inject updater method
+                    wrapped_by = getattr(func, '__wrapped_by__', None)
+                    if wrapped_by is not None and wrapped_by.__name__ == 'track_progress':
+                        kwargs = {**kwargs, '__send_update': _create_send_update(task_uid, channel)}
 
-            # If func is decorated with @track_progress, inject updater method
-            wrapped_by = getattr(func, '__wrapped_by__', None)
-            if wrapped_by is not None and wrapped_by.__name__ == 'track_progress':
-                kwargs = {**kwargs, '__send_update': _create_send_update(task_uid, channel)}
-
-            with observe_worker_task(payload['function_name'], payload.get('telemetry_context')) as observation:
-                result = execute_function(func, payload['args'], kwargs)
+                with observe_task_phase('execute', task_name):
+                    result = execute_function(func, payload['args'], kwargs)
                 if isinstance(result, SubprocessException):
-                    observation.set_outcome('error')
+                    observation.record_exception(result.unwrap())
 
-            result_pointer = store_in_shared_memory(result)
-            worker_api.send_result(task_uid, result_pointer)
+                with observe_task_phase('result_encode', task_name):
+                    result_pointer = store_in_shared_memory(result)
+                    worker_api.send_result(task_uid, result_pointer)
         except BaseException as e:
             worker_api.send_error(task_uid=task_uid, error=e)
         finally:

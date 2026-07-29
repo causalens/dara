@@ -19,6 +19,7 @@ from dara.core.http import get
 from dara.core.interactivity.actions import ActionCtx
 from dara.core.internal.execute_action import execute_action_sync
 from dara.core.internal.registries import action_registry, static_kwargs_registry, utils_registry
+from dara.core.logging import http_logger
 from dara.core.main import _start_application
 
 
@@ -86,6 +87,7 @@ async def main() -> None:
     config = builder._to_configuration()
     config.auth_config = auth
     app = _start_application(config)
+    http_logger._logger.setLevel(logging.INFO)
 
     span_exporter = InMemorySpanExporter()
     trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(span_exporter))
@@ -179,6 +181,14 @@ async def main() -> None:
                 await error_handled.wait()
             await anyio.sleep(0)
 
+            await websocket.send_json(
+                {
+                    'type': 'custom',
+                    'message': {'kind': 'missing-handler', 'data': 'input'},
+                }
+            )
+            await anyio.sleep(0)
+
     spans = span_exporter.get_finished_spans()
 
     health_span = next(span for span in spans if span.name == 'GET /api/health')
@@ -189,7 +199,6 @@ async def main() -> None:
     assert correlated_log.log_record.span_id == health_span.context.span_id
     assert health_span.attributes is not None
     assert health_span.attributes['url.query'] == '[REDACTED]'
-    assert health_span.attributes.get('client.address') in (None, '[REDACTED]')
     assert 'secret' not in repr(health_span.attributes)
 
     item_span = next(span for span in spans if span.name == 'GET /api/items/{item_id}')
@@ -207,7 +216,8 @@ async def main() -> None:
     assert action_span.parent is not None
     assert action_span.parent.span_id == action_http_span.context.span_id
     assert action_span.attributes is not None
-    assert action_span.attributes['dara.action.execution'] == 'async'
+    assert action_span.attributes['dara.action.delivery'] == 'stream'
+    assert action_span.attributes['dara.action.handler.type'] == 'async'
     assert action_span.attributes['dara.action.name'].endswith('.traced_action')
     assert action_span.attributes['dara.outcome'] == 'success'
 
@@ -220,7 +230,8 @@ async def main() -> None:
     assert sync_action_span.parent is not None
     assert sync_action_span.parent.span_id == sync_action_http_span.context.span_id
     assert sync_action_span.attributes is not None
-    assert sync_action_span.attributes['dara.action.execution'] == 'sync'
+    assert sync_action_span.attributes['dara.action.delivery'] == 'request'
+    assert sync_action_span.attributes['dara.action.handler.type'] == 'async'
     assert sync_action_span.attributes['dara.outcome'] == 'success'
 
     failed_action_span = next(
@@ -278,20 +289,33 @@ async def main() -> None:
         assert response_span.context.is_valid
 
     inbound_message_spans = [span for span in spans if span.name == 'dara.websocket.message.inbound']
-    assert len(inbound_message_spans) == 3
+    assert len(inbound_message_spans) == 4
+    missing_handler_span = next(
+        span
+        for span in inbound_message_spans
+        if span.attributes is not None and span.attributes.get('error.type') == 'KeyError'
+    )
+    assert missing_handler_span.attributes['dara.outcome'] == 'error'
 
     action_metric_attributes = [
         call.args[1] for call in telemetry._ACTION_DURATION.record.call_args_list if len(call.args) > 1
     ]
     assert {attributes['dara.outcome'] for attributes in action_metric_attributes} == {'success', 'error'}
-    assert {attributes['dara.action.execution'] for attributes in action_metric_attributes} == {'sync', 'async'}
+    assert {attributes['dara.action.delivery'] for attributes in action_metric_attributes} == {'request', 'stream'}
+    assert {attributes['dara.action.handler.type'] for attributes in action_metric_attributes} == {'async'}
 
     websocket_metric_attributes = [
         call.args[1] for call in telemetry._WEBSOCKET_MESSAGE_DURATION.record.call_args_list if len(call.args) > 1
     ]
     assert {attributes['dara.outcome'] for attributes in websocket_metric_attributes} == {'success', 'error'}
     assert all('dara.websocket.handler.kind' not in attributes for attributes in websocket_metric_attributes)
-    assert all('secret-action-value' not in repr(item) for item in log_exporter.get_finished_logs())
+    exported_logs = log_exporter.get_finished_logs()
+    assert all('secret-action-value' not in repr(item) for item in exported_logs)
+    assert all('secret-value' not in repr(item) for item in exported_logs)
+    assert all('203.0.113.' not in repr(item) for item in exported_logs)
+    exported_log_bodies = {item.log_record.body for item in exported_logs}
+    assert 'http.response.sent' in exported_log_bodies
+    assert 'action.execution.error' in exported_log_bodies
 
 
 if __name__ == '__main__':

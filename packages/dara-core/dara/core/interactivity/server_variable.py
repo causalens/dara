@@ -11,6 +11,7 @@ from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_fil
 from dara.core.internal.pandas_utils import DataResponse, append_index, build_data_response
 from dara.core.internal.utils import call_async
 from dara.core.internal.websocket import ServerMessagePayload, WebsocketManager
+from dara.core.telemetry import observe_internal_operation
 
 from .any_variable import AnyVariable
 
@@ -169,7 +170,8 @@ class ServerVariable(AnyVariable):
         Internal method to get the value of a server variable based in its registry entry.
         """
         key = cls.get_key(entry.backend.scope)
-        return await entry.backend.read(key)
+        with observe_internal_operation('server_variable', 'read', name=type(entry.backend).__name__):
+            return await entry.backend.read(key)
 
     @classmethod
     async def write_value(cls, entry: 'ServerVariableRegistryEntry', value: Any):
@@ -177,8 +179,9 @@ class ServerVariable(AnyVariable):
         Internal method to write the value of a server variable based in its registry entry.
         """
         key = cls.get_key(entry.backend.scope)
-        await entry.backend.write(key, value)
-        await cls._notify(entry.uid, key, entry.backend)
+        with observe_internal_operation('server_variable', 'write', name=type(entry.backend).__name__):
+            await entry.backend.write(key, value)
+            await cls._notify(entry.uid, key, entry.backend)
 
     @classmethod
     async def get_sequence_number(cls, entry: 'ServerVariableRegistryEntry'):
@@ -186,7 +189,8 @@ class ServerVariable(AnyVariable):
         Internal method to get the sequence number of a server variable based in its registry entry.
         """
         key = cls.get_key(entry.backend.scope)
-        return await entry.backend.get_sequence_number(key)
+        with observe_internal_operation('server_variable', 'sequence', name=type(entry.backend).__name__):
+            return await entry.backend.get_sequence_number(key)
 
     @classmethod
     async def get_tabular_data(
@@ -199,10 +203,11 @@ class ServerVariable(AnyVariable):
         Internal method to get tabular data from the backend
         """
         key = cls.get_key(entry.backend.scope)
-        data, count = await entry.backend.read_filtered(key, filters, pagination)
-        if data is None:
-            return DataResponse(data=None, count=0, schema=None)
-        return build_data_response(data, count)
+        with observe_internal_operation('server_variable', 'read_filtered', name=type(entry.backend).__name__):
+            data, count = await entry.backend.read_filtered(key, filters, pagination)
+            if data is None:
+                return DataResponse(data=None, count=0, schema=None)
+            return build_data_response(data, count)
 
     @classmethod
     def get_key(cls, scope: Literal['global', 'user']):

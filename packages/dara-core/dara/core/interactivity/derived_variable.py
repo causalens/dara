@@ -72,6 +72,7 @@ from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.telemetry import (
+    _OperationObservation,
     observe_derived_variable,
     observe_derived_variable_phase,
     record_derived_variable_cache_access,
@@ -447,7 +448,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
             f'{getattr(var_entry.func, "__qualname__", type(var_entry.func).__name__)}'
         )
         execution = 'task' if var_entry.run_as_task else 'inline'
-        with observe_derived_variable(resolver_name, execution):
+        with observe_derived_variable(resolver_name, execution) as observation:
             return await cls._get_value(
                 var_entry,
                 store,
@@ -456,6 +457,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                 force_key,
                 _pin_result,
                 _resolver_name=resolver_name,
+                _observation=observation,
             )
 
     @classmethod
@@ -468,6 +470,7 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         force_key: str | None = None,
         _pin_result: bool = False,
         _resolver_name: str = 'unknown',
+        _observation: _OperationObservation | None = None,
     ) -> DerivedVariableResult:
         """
         Get the value of this DerivedVariable. This method will check the main app store for an appropriate response
@@ -658,7 +661,11 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                         cache_key=cache_key,
                         task_id=task_id,
                         reg_entry=var_entry,  # task results are set as the DV result
+                        telemetry_origin_kind='derived_variable',
+                        telemetry_origin_name=_resolver_name,
                     )
+                    if _observation is not None:
+                        _observation.set_outcome('scheduled')
 
                     # Immediately store the pending task in the store
                     pending_task = task_mgr.register_task(meta_task)
@@ -680,7 +687,11 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                     cache_key=cache_key,
                     task_id=task_id,
                     reg_entry=var_entry,  # task results are set as the DV result
+                    telemetry_origin_kind='derived_variable',
+                    telemetry_origin_name=_resolver_name,
                 )
+                if _observation is not None:
+                    _observation.set_outcome('scheduled')
 
                 # Immediately store the pending task in the store
                 pending_task = task_mgr.register_task(task)
@@ -707,6 +718,10 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
                 # Make sure cache settings are set on the task
                 result.cache_key = cache_key
                 result.reg_entry = var_entry
+                result.telemetry_origin_kind = 'derived_variable'
+                result.telemetry_origin_name = _resolver_name
+                if _observation is not None:
+                    _observation.set_outcome('scheduled')
 
                 task_mgr.register_task(result)
 

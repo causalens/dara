@@ -49,50 +49,80 @@ class Logger:
         """
         return self._logger.getEffectiveLevel()
 
-    def info(self, title: str, extra: dict[str, Any] | None = None):
+    def info(
+        self,
+        title: str,
+        extra: dict[str, Any] | None = None,
+        *,
+        event_name: str | None = None,
+    ):
         """
         Log a message at the INFO level
 
         :param title: short title for the log message
         :param extra: an optional field for any extra info to be passed along
+        :param event_name: optional bounded event name safe for OTEL export
         """
         payload: dict[str, JsonSerializable] = {
             'title': title,
         }
-        self._logger.info(payload, extra={'content': extra})
+        self._logger.info(payload, extra={'content': extra, 'event_name': event_name})
 
-    def warning(self, title: str, extra: dict[str, Any] | None = None):
+    def warning(
+        self,
+        title: str,
+        extra: dict[str, Any] | None = None,
+        *,
+        event_name: str | None = None,
+    ):
         """
         Log a message at the WARNING level
 
         :param title: short title for the log message
         :param extra: an optional field for any extra info to be passed along
+        :param event_name: optional bounded event name safe for OTEL export
         """
         payload: dict[str, JsonSerializable] = {
             'title': title,
         }
 
-        self._logger.warning(payload, extra={'content': extra})
+        self._logger.warning(payload, extra={'content': extra, 'event_name': event_name})
 
-    def error(self, title: str, error: BaseException, extra: dict[str, Any] | None = None):
+    def error(
+        self,
+        title: str,
+        error: BaseException,
+        extra: dict[str, Any] | None = None,
+        *,
+        event_name: str | None = None,
+    ):
         """
         Log a message at the ERROR level
 
         :param title: short title for the log message
         :param error: the actual error object to print in dev mode
         :param extra: an optional field for any extra info to be passed along
+        :param event_name: optional bounded event name safe for OTEL export
         """
         payload = {'title': title, 'error': error}
 
-        self._logger.error(payload, extra={'content': extra})
+        self._logger.error(payload, extra={'content': extra, 'event_name': event_name})
 
-    def debug(self, title: str, description: str | None = None, extra: dict[str, Any] | None = None):
+    def debug(
+        self,
+        title: str,
+        description: str | None = None,
+        extra: dict[str, Any] | None = None,
+        *,
+        event_name: str | None = None,
+    ):
         """
         Log a message at the DEBUG level
 
         :param title: short title for the log message
         :param description: an optional longer description for what this debug message is for
         :param extra: an optional field for any extra info to be passed along
+        :param event_name: optional bounded event name safe for OTEL export
         """
         # Extract the traceback so we can add the line where this debug message was from
         frame_summary = traceback.extract_stack()[-2]
@@ -106,7 +136,7 @@ class Logger:
         if description is not None:
             payload['description'] = description
 
-        self._logger.debug(payload, extra={'content': extra})
+        self._logger.debug(payload, extra={'content': extra, 'event_name': event_name})
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -141,13 +171,23 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 # sending/receiving further data
                 async def receive() -> Message:
                     content = await old_recieve()
-                    self.logger.debug(title, 'REQUEST_RECEIVED', dict(content))
+                    self.logger.debug(
+                        title,
+                        'REQUEST_RECEIVED',
+                        dict(content),
+                        event_name='http.request.received',
+                    )
                     return content
 
                 request._receive = receive
             else:
                 content = {'request_body_size': content_length}
-                self.logger.debug(title, 'REQUEST_RECEIVED', content)
+                self.logger.debug(
+                    title,
+                    'REQUEST_RECEIVED',
+                    content,
+                    event_name='http.request.received',
+                )
 
         start_time = time.time()
         try:
@@ -157,16 +197,26 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         except HTTPException as exc:
             raise exc
         except Exception as exc:
-            self.logger.error(f'{title} - Uncaught Error', exc)
+            self.logger.error(
+                f'{title} - Uncaught Error',
+                exc,
+                event_name='http.request.error',
+            )
             raise exc
 
         if self.logger.getLevel() <= logging.DEBUG:
             self.logger.debug(
-                title, 'RESPONSE_SENT', {'status': response.status_code, 'process_time': time.time() - start_time}
+                title,
+                'RESPONSE_SENT',
+                {'status': response.status_code, 'process_time': time.time() - start_time},
+                event_name='http.response.sent',
             )
         elif self.logger.getLevel() <= logging.INFO:
             # In info mode, we log in a shorter format, similar to default uvicorn default http logs
-            self.logger.info(f'{title} {response.status_code}')
+            self.logger.info(
+                f'{title} {response.status_code}',
+                event_name='http.response.sent',
+            )
 
         return response
 

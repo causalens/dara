@@ -20,6 +20,7 @@ import inspect
 import math
 import uuid
 from contextvars import ContextVar
+from time import perf_counter
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -47,6 +48,8 @@ from dara.core.telemetry import (
     capture_telemetry_context,
     observe_websocket_handler,
     observe_websocket_message,
+    observe_websocket_round_trip,
+    record_websocket_queue_wait,
     use_telemetry_context,
 )
 
@@ -135,6 +138,7 @@ class DaraServerMessage(BaseModel):
     type: Literal['message'] = 'message'
     message: ServerMessagePayload  # exact messages expected by frontend are defined in js/api/websocket.tsx
     _telemetry_context: Context | None = PrivateAttr(default=None)
+    _telemetry_enqueued_at: float | None = PrivateAttr(default=None)
 
 
 class CustomServerMessage(BaseModel):
@@ -145,6 +149,7 @@ class CustomServerMessage(BaseModel):
     type: Literal['custom'] = 'custom'
     message: CustomServerMessagePayload
     _telemetry_context: Context | None = PrivateAttr(default=None)
+    _telemetry_enqueued_at: float | None = PrivateAttr(default=None)
 
 
 ServerPayload = ServerMessagePayload | CustomServerMessagePayload
@@ -198,6 +203,7 @@ class WebSocketHandler:
         :param telemetry_context: optional context captured when the message was produced
         """
         message._telemetry_context = telemetry_context if telemetry_context is not None else capture_telemetry_context()
+        message._telemetry_enqueued_at = perf_counter()
         await self.send_stream.send(message)
 
     def process_client_message(self, message: ClientMessage):
@@ -244,13 +250,13 @@ class WebSocketHandler:
             data = message.message.data
             kind = message.message.kind
 
-            try:
-                handler = custom_ws_handlers_registry.get(kind)
+            handler = custom_ws_handlers_registry.get(kind)
 
-                # Sync handler are processed directly, async ones scheduled as a task
-                if inspect.iscoroutinefunction(handler):
+            # Sync handler are processed directly, async ones scheduled as a task
+            if inspect.iscoroutinefunction(handler):
 
-                    async def wrapper():
+                async def wrapper():
+                    try:
                         with observe_websocket_handler(kind, 'async'):
                             response = await handler(self.channel_id, data)
                             if response is not None:
@@ -263,23 +269,27 @@ class WebSocketHandler:
                                         )
                                     )
                                 )
+                    except Exception as error:
+                        eng_logger.error(
+                            'Error processing custom WebSocket handler',
+                            error,
+                            event_name='websocket.handler.error',
+                        )
 
-                    asyncio.create_task(wrapper())
-                    return None
-                else:
-                    with observe_websocket_handler(kind, 'sync'):
-                        response = handler(self.channel_id, data)
-                        if response is not None:
-                            response_message = CustomServerMessage(
-                                message=CustomServerMessagePayload(
-                                    kind=kind, data=response, __response_for=message.message.rchan
-                                )
+                asyncio.create_task(wrapper())
+                return None
+            else:
+                with observe_websocket_handler(kind, 'sync'):
+                    response = handler(self.channel_id, data)
+                    if response is not None:
+                        response_message = CustomServerMessage(
+                            message=CustomServerMessagePayload(
+                                kind=kind, data=response, __response_for=message.message.rchan
                             )
-                            response_context = capture_telemetry_context()
-                            # Return a coroutine for the caller to await
-                            return self.send_message(response_message, response_context)
-            except KeyError as e:
-                eng_logger.error(f'No handler found for custom message kind {kind}', e)
+                        )
+                        response_context = capture_telemetry_context()
+                        # Return a coroutine for the caller to await
+                        return self.send_message(response_message, response_context)
             return None
 
         # unreachable but needed for pylint to be happy
@@ -291,22 +301,22 @@ class WebSocketHandler:
 
         :param message: The message to send
         """
-        message_id = str(uuid4())
-        ev = Event()
-        self.pending_responses[message_id] = (ev, None)
-        message.message.rchan = message_id
-        await self.send_message(message)
+        with observe_websocket_round_trip(message.type):
+            message_id = str(uuid4())
+            ev = Event()
+            self.pending_responses[message_id] = (ev, None)
+            message.message.rchan = message_id
+            try:
+                await self.send_message(message)
 
-        # Wait for the response; this is done in chunks as otherwise Jupyter blocks the event loop
-        while not ev.is_set():
-            await anyio.sleep(0.01)
+                # Wait for the response; this is done in chunks as otherwise Jupyter blocks the event loop
+                while not ev.is_set():
+                    await anyio.sleep(0.01)
 
-        pending_response = self.pending_responses.pop(message_id)
-        if not pending_response:
-            return None
-
-        _, response_data = pending_response
-        return response_data
+                _, response_data = self.pending_responses[message_id]
+                return response_data
+            finally:
+                self.pending_responses.pop(message_id, None)
 
 
 def get_user_channels(user_identifier: str) -> set[str]:
@@ -572,6 +582,11 @@ async def ws_handler(websocket: WebSocket):
                     Handle messages sent to the client and pass them via the websocket
                     """
                     async for message in handler.receive_stream:
+                        if message._telemetry_enqueued_at is not None:
+                            record_websocket_queue_wait(
+                                perf_counter() - message._telemetry_enqueued_at,
+                                message.type,
+                            )
                         with (
                             use_telemetry_context(message._telemetry_context),
                             observe_websocket_message('outbound', message.type),

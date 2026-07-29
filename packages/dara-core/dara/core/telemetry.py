@@ -21,7 +21,7 @@ import os
 from collections.abc import Iterator, Mapping
 from contextlib import AbstractContextManager, contextmanager, suppress
 from dataclasses import dataclass, field
-from threading import Lock
+from threading import Lock, Thread
 from time import perf_counter
 from typing import Any
 from uuid import uuid4
@@ -48,7 +48,7 @@ from opentelemetry.sdk.metrics.view import (
     ExplicitBucketHistogramAggregation,
     View,
 )
-from opentelemetry.trace import Span, Status, StatusCode
+from opentelemetry.trace import Link, Span, SpanKind, Status, StatusCode
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from starlette.types import Scope
 
@@ -93,7 +93,7 @@ _DURATION_BUCKETS_SECONDS = (
     300,
     600,
 )
-_PROMETHEUS_METRIC_VIEWS = (
+_METRIC_VIEWS = (
     View(instrument_name='otel.sdk.*', aggregation=DropAggregation()),
     View(
         instrument_type=SDKHistogram,
@@ -194,6 +194,31 @@ _STREAM_EXECUTIONS: Counter = _METER.create_counter(
     unit='{stream}',
     description='Number of completed Dara stream lifecycles',
 )
+_STREAM_TIME_TO_FIRST_EVENT: Histogram = _METER.create_histogram(
+    'dara.stream.time_to_first_event.duration',
+    unit='s',
+    description='Duration from stream start until its first event',
+)
+_STREAM_EVENTS: Counter = _METER.create_counter(
+    'dara.stream.events',
+    unit='{event}',
+    description='Number of events emitted by Dara streams',
+)
+_STREAM_EVENT_INTERVAL: Histogram = _METER.create_histogram(
+    'dara.stream.event.interval.duration',
+    unit='s',
+    description='Duration between consecutive Dara stream events',
+)
+_WEBSOCKET_QUEUE_DURATION: Histogram = _METER.create_histogram(
+    'dara.websocket.queue.duration',
+    unit='s',
+    description='Duration an outbound WebSocket message waits before sending',
+)
+_WEBSOCKET_ROUND_TRIP_DURATION: Histogram = _METER.create_histogram(
+    'dara.websocket.round_trip.duration',
+    unit='s',
+    description='Duration from sending a WebSocket request until its response is received',
+)
 _UPLOAD_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
     'dara.upload.active',
     unit='{upload}',
@@ -284,6 +309,11 @@ _TASK_QUEUE_DEPTH: UpDownCounter = _METER.create_up_down_counter(
     unit='{task}',
     description='Number of Dara tasks dispatched but not yet acknowledged by a worker',
 )
+_TASK_QUEUE_DURATION: Histogram = _METER.create_histogram(
+    'dara.task.queue.duration',
+    unit='s',
+    description='Duration from task dispatch until worker acknowledgement',
+)
 _SCHEDULED_JOB_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
     'dara.scheduled_job.active',
     unit='{job}',
@@ -298,6 +328,21 @@ _SCHEDULED_JOB_EXECUTIONS: Counter = _METER.create_counter(
     'dara.scheduled_job.executions',
     unit='{job}',
     description='Number of completed Dara scheduled job executions',
+)
+_INTERNAL_OPERATION_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.internal.operation.active',
+    unit='{operation}',
+    description='Number of bounded Dara internal operations currently executing',
+)
+_INTERNAL_OPERATION_DURATION: Histogram = _METER.create_histogram(
+    'dara.internal.operation.duration',
+    unit='s',
+    description='Duration of bounded Dara internal operations',
+)
+_INTERNAL_OPERATIONS: Counter = _METER.create_counter(
+    'dara.internal.operations',
+    unit='{operation}',
+    description='Number of completed bounded Dara internal operations',
 )
 
 
@@ -385,7 +430,7 @@ def _safe_request_attributes(
 
 
 def _redact_server_request(span: Span, scope: Scope) -> None:
-    """Redact request metadata that can contain user-supplied or identifying data."""
+    """Redact URL values while retaining standard OTEL network identity attributes."""
     if not span.is_recording():
         return
 
@@ -394,16 +439,13 @@ def _redact_server_request(span: Span, scope: Scope) -> None:
             span.set_attribute(attribute, '[REDACTED]')
     if scope.get('query_string'):
         span.set_attribute('url.query', '[REDACTED]')
-    if scope.get('client'):
-        span.set_attribute('client.address', '[REDACTED]')
-        span.set_attribute('client.port', 0)
 
 
 def _sanitize_log_body(record: logging.LogRecord) -> str:
-    """Return a Dara log title or the rendered standard-library message."""
+    """Return a bounded Dara event name or the rendered standard-library message."""
     if isinstance(record.msg, Mapping):
-        title = record.msg.get('title')
-        body = title if isinstance(title, str) else 'Structured Dara log'
+        event_name = getattr(record, 'event_name', None)
+        body = event_name if isinstance(event_name, str) and event_name else 'dara.log'
     elif isinstance(record.msg, str):
         body = record.getMessage()
     else:
@@ -468,7 +510,7 @@ class _OperationObservation:
         self.outcome = outcome
         if self.span is not None and self.span.is_recording():
             self.span.set_attribute('dara.outcome', outcome)
-            if outcome != 'success':
+            if outcome == 'error':
                 self.span.set_status(Status(StatusCode.ERROR))
 
     def record_exception(self, error: BaseException) -> None:
@@ -481,8 +523,9 @@ class _OperationObservation:
         if self.span is None or not self.span.is_recording():
             return
 
-        self.span.set_attribute('error.type', type(error).__name__)
-        self.span.set_status(Status(StatusCode.ERROR))
+        if self.outcome == 'error':
+            self.span.set_attribute('error.type', type(error).__name__)
+            self.span.set_status(Status(StatusCode.ERROR))
         self.span.set_attribute('dara.outcome', self.outcome)
 
 
@@ -495,6 +538,9 @@ def _observe_operation(
     active: UpDownCounter,
     duration: Histogram,
     executions: Counter,
+    span_kind: SpanKind = SpanKind.INTERNAL,
+    context: Context | None = None,
+    links: list[Link] | None = None,
 ) -> Iterator[_OperationObservation]:
     if not _RUNTIME.configured:
         yield _OperationObservation()
@@ -506,7 +552,10 @@ def _observe_operation(
     try:
         with _TRACER.start_as_current_span(
             span_name,
+            context=context,
+            kind=span_kind,
             attributes=span_attributes,
+            links=links,
             record_exception=False,
             set_status_on_exception=False,
         ) as span:
@@ -526,16 +575,22 @@ def _observe_operation(
 
 
 @contextmanager
-def observe_action(action_name: str, execution: str) -> Iterator[_OperationObservation]:
+def observe_action(
+    action_name: str,
+    delivery: str,
+    handler_type: str,
+) -> Iterator[_OperationObservation]:
     """
     Trace and measure a complete Dara action execution.
 
     :param action_name: stable registered callable name
-    :param execution: bounded execution mode such as ``sync`` or ``async``
+    :param delivery: bounded result delivery mode, ``request`` or ``stream``
+    :param handler_type: bounded callable type, ``sync`` or ``async``
     """
     attributes = {
         'dara.action.name': action_name,
-        'dara.action.execution': execution,
+        'dara.action.delivery': delivery,
+        'dara.action.handler.type': handler_type,
     }
     with _observe_operation(
         span_name='dara.action.execute',
@@ -546,6 +601,38 @@ def observe_action(action_name: str, execution: str) -> Iterator[_OperationObser
         executions=_ACTION_EXECUTIONS,
     ) as observation:
         yield observation
+
+
+@contextmanager
+def observe_action_phase(phase: str, action_name: str) -> Iterator[_OperationObservation]:
+    """
+    Trace a bounded preparation phase before an action handler is scheduled.
+
+    :param phase: bounded phase such as ``dependencies``
+    :param action_name: stable registered callable name
+    """
+    if not _RUNTIME.configured:
+        yield _OperationObservation()
+        return
+
+    observation = _OperationObservation()
+    with _TRACER.start_as_current_span(
+        f'dara.action.{phase}',
+        attributes={
+            'dara.action.phase': phase,
+            'dara.action.name': action_name,
+        },
+        record_exception=False,
+        set_status_on_exception=False,
+    ) as span:
+        observation.span = span
+        try:
+            yield observation
+        except BaseException as error:
+            observation.record_exception(error)
+            raise
+        finally:
+            span.set_attribute('dara.outcome', observation.outcome)
 
 
 @contextmanager
@@ -571,6 +658,7 @@ def observe_websocket_message(
         active=_WEBSOCKET_MESSAGE_ACTIVE,
         duration=_WEBSOCKET_MESSAGE_DURATION,
         executions=_WEBSOCKET_MESSAGE_EXECUTIONS,
+        span_kind=SpanKind.CONSUMER if direction == 'inbound' else SpanKind.PRODUCER,
     ) as observation:
         yield observation
 
@@ -614,6 +702,60 @@ def observe_websocket_handler(
 
 
 @contextmanager
+def observe_websocket_round_trip(message_type: str) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure a server-request/client-response WebSocket round trip.
+
+    :param message_type: bounded protocol type, ``message`` or ``custom``
+    """
+    attributes = {
+        'dara.websocket.message.type': message_type,
+        'dara.websocket.operation': 'round_trip',
+    }
+    started = perf_counter()
+    observation = _OperationObservation()
+    if not _RUNTIME.configured:
+        yield observation
+        return
+
+    try:
+        with _TRACER.start_as_current_span(
+            'dara.websocket.round_trip',
+            kind=SpanKind.PRODUCER,
+            attributes=attributes,
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as span:
+            observation.span = span
+            try:
+                yield observation
+            except BaseException as error:
+                observation.record_exception(error)
+                raise
+            finally:
+                span.set_attribute('dara.outcome', observation.outcome)
+    finally:
+        _WEBSOCKET_ROUND_TRIP_DURATION.record(
+            perf_counter() - started,
+            {**attributes, 'dara.outcome': observation.outcome},
+        )
+
+
+def record_websocket_queue_wait(duration_seconds: float, message_type: str) -> None:
+    """
+    Record time between enqueueing and sending an outbound WebSocket message.
+
+    :param duration_seconds: elapsed queue time measured with a monotonic clock
+    :param message_type: bounded protocol type, ``message`` or ``custom``
+    """
+    if _RUNTIME.configured:
+        _WEBSOCKET_QUEUE_DURATION.record(
+            duration_seconds,
+            {'dara.websocket.message.type': message_type},
+        )
+
+
+@contextmanager
 def observe_derived_variable(
     resolver_name: str,
     execution: str,
@@ -627,9 +769,10 @@ def observe_derived_variable(
     attributes = {
         'dara.derived_variable.resolver': resolver_name,
         'dara.derived_variable.execution': execution,
+        'dara.derived_variable.stage': 'prepare' if execution == 'task' else 'resolve',
     }
     with _observe_operation(
-        span_name='dara.derived_variable.resolve',
+        span_name=f'dara.derived_variable.{"prepare" if execution == "task" else "resolve"}',
         span_attributes=attributes,
         metric_attributes=attributes,
         active=_DERIVED_VARIABLE_ACTIVE,
@@ -725,6 +868,42 @@ def observe_stream(stream_name: str) -> Iterator[_OperationObservation]:
         yield observation
 
 
+def record_stream_progress(
+    observation: _OperationObservation,
+    *,
+    event_count: int,
+    time_to_first_event: float | None,
+    max_event_interval: float | None,
+) -> None:
+    """
+    Annotate stream progress and record first-event latency once.
+
+    :param observation: active stream observation
+    :param event_count: total events emitted so far
+    :param time_to_first_event: monotonic elapsed time to the first event, if emitted
+    :param max_event_interval: longest interval between consecutive events, if observed
+    """
+    if observation.span is not None and observation.span.is_recording():
+        observation.span.set_attribute('dara.stream.event.count', event_count)
+        observation.span.set_attribute('dara.stream.first_event.emitted', time_to_first_event is not None)
+        if max_event_interval is not None:
+            observation.span.set_attribute('dara.stream.event.max_interval', max_event_interval)
+    if _RUNTIME.configured and time_to_first_event is not None:
+        _STREAM_TIME_TO_FIRST_EVENT.record(time_to_first_event)
+
+
+def record_stream_event(interval_seconds: float | None = None) -> None:
+    """
+    Count one emitted stream event and optionally measure its inter-event interval.
+
+    :param interval_seconds: elapsed time since the preceding event
+    """
+    if _RUNTIME.configured:
+        _STREAM_EVENTS.add(1)
+        if interval_seconds is not None:
+            _STREAM_EVENT_INTERVAL.record(interval_seconds)
+
+
 @contextmanager
 def observe_upload(resolver_kind: str) -> Iterator[_OperationObservation]:
     """
@@ -773,24 +952,69 @@ def observe_backend_store(
 
 
 @contextmanager
+def observe_internal_operation(
+    category: str,
+    operation: str,
+    *,
+    name: str | None = None,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure an important bounded internal operation.
+
+    The optional implementation or registry name is span-only to prevent
+    application-defined identifiers from becoming metric dimensions.
+
+    :param category: bounded subsystem such as ``server_variable`` or ``cache``
+    :param operation: bounded operation within the subsystem
+    :param name: optional stable implementation or registry name
+    """
+    metric_attributes = {
+        'dara.internal.category': category,
+        'dara.internal.operation': operation,
+    }
+    span_attributes = dict(metric_attributes)
+    if name is not None:
+        span_attributes['dara.internal.name'] = name
+    with _observe_operation(
+        span_name=f'dara.{category}.{operation}',
+        span_attributes=span_attributes,
+        metric_attributes=metric_attributes,
+        active=_INTERNAL_OPERATION_ACTIVE,
+        duration=_INTERNAL_OPERATION_DURATION,
+        executions=_INTERNAL_OPERATIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
 def observe_task(
     task_name: str,
     task_kind: str,
+    origin_kind: str | None = None,
+    origin_name: str | None = None,
 ) -> Iterator[_OperationObservation]:
     """
     Trace and measure one complete task lifecycle in the application process.
 
     :param task_name: stable registered task callable name
     :param task_kind: bounded task kind, ``process`` or ``meta``
+    :param origin_kind: optional bounded subsystem that scheduled the task
+    :param origin_name: optional stable scheduling callable, recorded on the span only
     """
-    attributes = {
+    span_attributes = {
         'dara.task.name': task_name,
         'dara.task.kind': task_kind,
     }
+    metric_attributes = dict(span_attributes)
+    if origin_kind is not None:
+        span_attributes['dara.task.origin'] = origin_kind
+        metric_attributes['dara.task.origin'] = origin_kind
+    if origin_name is not None:
+        span_attributes['dara.task.origin.name'] = origin_name
     with _observe_operation(
         span_name='dara.task.run',
-        span_attributes=attributes,
-        metric_attributes=attributes,
+        span_attributes=span_attributes,
+        metric_attributes=metric_attributes,
         active=_TASK_ACTIVE,
         duration=_TASK_DURATION,
         executions=_TASK_EXECUTIONS,
@@ -822,8 +1046,41 @@ def observe_task_operation(
         active=_TASK_OPERATION_ACTIVE,
         duration=_TASK_OPERATION_DURATION,
         executions=_TASK_OPERATIONS,
+        span_kind=SpanKind.PRODUCER if operation == 'dispatch' else SpanKind.INTERNAL,
     ) as observation:
         yield observation
+
+
+@contextmanager
+def observe_task_phase(phase: str, task_name: str) -> Iterator[_OperationObservation]:
+    """
+    Trace one bounded task transport or serialization phase.
+
+    :param phase: bounded phase such as ``input_decode`` or ``result_encode``
+    :param task_name: stable registered task callable name
+    """
+    if not _RUNTIME.configured:
+        yield _OperationObservation()
+        return
+
+    observation = _OperationObservation()
+    with _TRACER.start_as_current_span(
+        f'dara.task.{phase}',
+        attributes={
+            'dara.task.phase': phase,
+            'dara.task.name': task_name,
+        },
+        record_exception=False,
+        set_status_on_exception=False,
+    ) as span:
+        observation.span = span
+        try:
+            yield observation
+        except BaseException as error:
+            observation.record_exception(error)
+            raise
+        finally:
+            span.set_attribute('dara.outcome', observation.outcome)
 
 
 @contextmanager
@@ -846,6 +1103,7 @@ def observe_worker_task(
             active=_WORKER_TASK_ACTIVE,
             duration=_WORKER_TASK_DURATION,
             executions=_WORKER_TASK_EXECUTIONS,
+            span_kind=SpanKind.CONSUMER,
         ) as observation:
             yield observation
 
@@ -861,17 +1119,25 @@ def observe_scheduled_job(
     :param job_name: stable scheduled callable name
     :param carrier: serialized W3C propagation carrier
     """
-    with use_telemetry_carrier(carrier):
-        attributes = {'dara.scheduled_job.name': job_name}
-        with _observe_operation(
-            span_name='dara.scheduled_job.run',
-            span_attributes=attributes,
-            metric_attributes=attributes,
-            active=_SCHEDULED_JOB_ACTIVE,
-            duration=_SCHEDULED_JOB_DURATION,
-            executions=_SCHEDULED_JOB_EXECUTIONS,
-        ) as observation:
-            yield observation
+    links: list[Link] = []
+    if carrier:
+        linked_span_context = trace.get_current_span(_TRACE_CONTEXT_PROPAGATOR.extract(carrier)).get_span_context()
+        if linked_span_context.is_valid:
+            links.append(Link(linked_span_context))
+
+    attributes = {'dara.scheduled_job.name': job_name}
+    with _observe_operation(
+        span_name='dara.scheduled_job.run',
+        span_attributes=attributes,
+        metric_attributes=attributes,
+        active=_SCHEDULED_JOB_ACTIVE,
+        duration=_SCHEDULED_JOB_DURATION,
+        executions=_SCHEDULED_JOB_EXECUTIONS,
+        span_kind=SpanKind.CONSUMER,
+        context=Context(),
+        links=links,
+    ) as observation:
+        yield observation
 
 
 def record_worker_count_change(delta: int) -> None:
@@ -902,6 +1168,17 @@ def record_task_queue_depth_change(delta: int) -> None:
     """
     if _RUNTIME.configured:
         _TASK_QUEUE_DEPTH.add(delta)
+
+
+def record_task_queue_wait(duration_seconds: float, task_name: str) -> None:
+    """
+    Record dispatch-to-acknowledgement latency for a stable task callable.
+
+    :param duration_seconds: elapsed queue time measured with a monotonic clock
+    :param task_name: stable registered task callable name
+    """
+    if _RUNTIME.configured:
+        _TASK_QUEUE_DURATION.record(duration_seconds, {'dara.task.name': task_name})
 
 
 def record_cache_store_metrics(size_bytes: int, entries: int) -> None:
@@ -1013,25 +1290,38 @@ class _TelemetryRuntime:
             return True
 
         configure_options: dict[str, Any] = {}
-        if prometheus_reader_enabled:
-            configure_options['metrics'] = MetricsOptions(
-                additional_readers=[
+        if metrics_enabled:
+            additional_readers = (
+                [
                     PrometheusMetricReader(
                         registry=DARA_METRICS_REGISTRY,
                         scope_info_enabled=False,
                     )
-                ],
-                views=_PROMETHEUS_METRIC_VIEWS,
+                ]
+                if prometheus_reader_enabled
+                else []
             )
-        elif not metrics_enabled:
+            configure_options['metrics'] = MetricsOptions(
+                additional_readers=additional_readers,
+                views=_METRIC_VIEWS,
+            )
+        else:
             configure_options['metrics'] = False
 
-        # Logfire adds an OTLP reader from the standard exporter variables. In
-        # Prometheus-only mode, hide that exporter only while it constructs the
-        # provider so the same measurements cannot leave through both paths.
-        configured_metrics_exporter = os.environ.get('OTEL_METRICS_EXPORTER')
+        # Logfire discovers standard OTLP exporters during configuration. Mask
+        # signals that Dara has not enabled, then restore the process environment.
+        exporter_overrides: dict[str, str] = {}
         if prometheus_reader_enabled and not settings.otlp_metrics_enabled:
-            os.environ['OTEL_METRICS_EXPORTER'] = 'none'
+            exporter_overrides['OTEL_METRICS_EXPORTER'] = 'none'
+        if not settings.dara_otel_enabled:
+            exporter_overrides.update(
+                {
+                    'OTEL_TRACES_EXPORTER': 'none',
+                    'OTEL_LOGS_EXPORTER': 'none',
+                }
+            )
+        configured_exporters = {name: os.environ.get(name) for name in exporter_overrides}
+        os.environ.update(exporter_overrides)
 
         try:
             logfire.configure(
@@ -1048,29 +1338,33 @@ class _TelemetryRuntime:
                 **configure_options,
             )
         finally:
-            if prometheus_reader_enabled and not settings.otlp_metrics_enabled:
-                if configured_metrics_exporter is None:
-                    os.environ.pop('OTEL_METRICS_EXPORTER', None)
+            for name, previous_value in configured_exporters.items():
+                if previous_value is None:
+                    os.environ.pop(name, None)
                 else:
-                    os.environ['OTEL_METRICS_EXPORTER'] = configured_metrics_exporter
+                    os.environ[name] = previous_value
         self.configured = True
 
         if settings.dara_otel_enabled:
-            LoggingInstrumentor().instrument(
-                inject_trace_context=True,
-                log_code_attributes=True,
-                enable_log_auto_instrumentation=False,
-            )
+            logging_instrumentor = LoggingInstrumentor()
+            if not logging_instrumentor.is_instrumented_by_opentelemetry:
+                logging_instrumentor.instrument(
+                    inject_trace_context=True,
+                    log_code_attributes=True,
+                    enable_log_auto_instrumentation=False,
+                )
+                self.logging_instrumented = True
             self.logging_handler = _SanitizingLoggingHandler(
                 logger_provider=get_logger_provider(),
                 log_code_attributes=True,
             )
             logging.getLogger().addHandler(self.logging_handler)
-            self.logging_instrumented = True
 
         if metrics_enabled:
-            logfire.instrument_system_metrics()
-            self.system_metrics_instrumented = True
+            system_metrics_instrumentor = SystemMetricsInstrumentor()
+            if not system_metrics_instrumentor.is_instrumented_by_opentelemetry:
+                logfire.instrument_system_metrics()
+                self.system_metrics_instrumented = True
         return True
 
     def initialize(self, app: FastAPI) -> None:
@@ -1098,7 +1392,7 @@ class _TelemetryRuntime:
             raise
 
     def shutdown(self) -> None:
-        """Remove Dara-owned instrumentation and flush all configured OTEL signals."""
+        """Remove Dara-owned instrumentation and bound application shutdown latency."""
         if not self.configured:
             return
 
@@ -1112,18 +1406,38 @@ class _TelemetryRuntime:
                 SystemMetricsInstrumentor().uninstrument()
             self.system_metrics_instrumented = False
 
+        if self.logging_handler is not None:
+            logging.getLogger().removeHandler(self.logging_handler)
+            self.logging_handler.close()
+            self.logging_handler = None
+
         if self.logging_instrumented:
-            if self.logging_handler is not None:
-                logging.getLogger().removeHandler(self.logging_handler)
-                self.logging_handler.close()
-                self.logging_handler = None
             with suppress(Exception):
                 LoggingInstrumentor().uninstrument()
             self.logging_instrumented = False
 
-        with suppress(Exception):
-            logfire.shutdown(timeout_millis=get_settings().dara_otel_shutdown_timeout_millis)
         self.configured = False
+        timeout_millis = get_settings().dara_otel_shutdown_timeout_millis
+
+        # Logfire passes the timeout to its providers, but third-party exporters
+        # are not required to honour it. A daemon thread makes the application
+        # shutdown deadline real without pretending the exporter was stopped.
+        def shutdown_providers() -> None:
+            with suppress(Exception):
+                logfire.shutdown(timeout_millis=timeout_millis)
+
+        shutdown_thread = Thread(
+            target=shutdown_providers,
+            name='dara-otel-shutdown',
+            daemon=True,
+        )
+        shutdown_thread.start()
+        shutdown_thread.join(timeout_millis / 1000)
+        if shutdown_thread.is_alive():
+            logging.getLogger(__name__).warning(
+                'OpenTelemetry shutdown exceeded its configured deadline',
+                extra={'event_name': 'telemetry.shutdown.timeout'},
+            )
 
 
 _RUNTIME = _TelemetryRuntime()

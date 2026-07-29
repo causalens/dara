@@ -22,6 +22,7 @@ from multiprocessing import get_context
 from multiprocessing.process import BaseProcess
 from pickle import PicklingError
 from typing import Any, cast
+from weakref import WeakKeyDictionary
 
 from croniter import croniter
 from pydantic import BaseModel, field_validator
@@ -32,6 +33,8 @@ from dara.core.telemetry import (
     observe_scheduled_job,
     shutdown_telemetry,
 )
+
+_PROCESS_STOP_EVENTS: WeakKeyDictionary[BaseProcess, Any] = WeakKeyDictionary()
 
 
 def _callable_name(func: Callable) -> str:
@@ -66,17 +69,20 @@ class ScheduledJob(BaseModel):
             args = []
         try:
             ctx = get_context('spawn')
+            stop_event = ctx.Event()
             job_process = ctx.Process(
                 target=self._refresh_timer,
                 args=(
                     func,
                     args,
+                    stop_event,
                     capture_telemetry_carrier(),
                     _telemetry_name or _callable_name(func),
                 ),
                 daemon=True,
             )
             job_process.start()
+            _PROCESS_STOP_EVENTS[job_process] = stop_event
             return job_process
         except PicklingError as err:
             raise PicklingError(
@@ -87,10 +93,19 @@ class ScheduledJob(BaseModel):
             """
             ) from err
 
-    def _refresh_timer(self, func, args, telemetry_context: dict[str, str] | None, job_name: str):
+    def _refresh_timer(
+        self,
+        func,
+        args,
+        stop_event,
+        telemetry_context: dict[str, str] | None,
+        job_name: str,
+    ):
         initialize_process_telemetry('scheduled_job')
         try:
-            while self.continue_running and not (self.run_once and not self.first_execution):
+            while (
+                not stop_event.is_set() and self.continue_running and not (self.run_once and not self.first_execution)
+            ):
                 interval: int
                 # If there's more than one interval to wait, i.e. this is a weekday process
                 if isinstance(self.interval, list):
@@ -100,12 +115,30 @@ class ScheduledJob(BaseModel):
                     interval = self.interval
 
                 self.first_execution = False
-                # Wait the interval and then run the job
-                time.sleep(cast(int, interval))
+                # Event-based waiting lets the application stop the daemon
+                # process cleanly and flush its telemetry.
+                if stop_event.wait(cast(int, interval)):
+                    break
                 with observe_scheduled_job(job_name, telemetry_context):
                     func(*args)
         finally:
             shutdown_telemetry()
+
+
+def stop_scheduled_process(process: BaseProcess, timeout: float = 5) -> None:
+    """
+    Request graceful scheduled-process shutdown, then force termination on timeout.
+
+    :param process: process returned by :meth:`ScheduledJob.do`
+    :param timeout: maximum seconds to wait before terminating the process
+    """
+    stop_event = _PROCESS_STOP_EVENTS.pop(process, None)
+    if stop_event is not None:
+        stop_event.set()
+    process.join(timeout)
+    if process.is_alive():
+        process.terminate()
+        process.join(timeout)
 
 
 class CronScheduledJob(ScheduledJob):

@@ -164,3 +164,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
     def __len__(self) -> int:
         """Return the number of entries currently held by this cache."""
         return len(self.cache)
+
+    def values(self) -> list[Any]:
+        """Return a point-in-time snapshot of cached values."""
+        return [node.value for node in self.cache.values()]

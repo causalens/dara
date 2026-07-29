@@ -82,6 +82,8 @@ class Task(BaseTask):
         cache_key: str | None = None,
         task_id: str | None = None,
         on_progress: Callable[[TaskProgressUpdate], None | Awaitable[None]] | None = None,
+        telemetry_origin_kind: str | None = None,
+        telemetry_origin_name: str | None = None,
     ):
         """
         :param func: The function to execute within the process
@@ -92,6 +94,8 @@ class Task(BaseTask):
                                 completion
         :param cache_key: Optional cache key if there is a PendingTask in the store associated with this task
         :param task_id: Optional task_id to set for the task - otherwise the task generates its id automatically
+        :param telemetry_origin_kind: bounded subsystem that scheduled the task
+        :param telemetry_origin_name: stable callable name that scheduled the task
         """
         self._func_name = self._verify_function(func)
         self._args = args if args is not None else []
@@ -100,6 +104,8 @@ class Task(BaseTask):
         self.cache_key = cache_key
         self.reg_entry = reg_entry
         self.on_progress = on_progress
+        self.telemetry_origin_kind = telemetry_origin_kind
+        self.telemetry_origin_name = telemetry_origin_name
 
         super().__init__(task_id)
 
@@ -164,7 +170,8 @@ class Task(BaseTask):
                     )
 
         with pool.on_progress(self.task_id, on_progress):
-            pool_task_def = pool.submit(self.task_id, self._func_name, args=tuple(self._args), kwargs=self._kwargs)
+            with observe_task_operation('dispatch', 'process'):
+                pool_task_def = pool.submit(self.task_id, self._func_name, args=tuple(self._args), kwargs=self._kwargs)
 
             try:
                 with observe_task_operation('wait', 'process'):
@@ -206,6 +213,8 @@ class MetaTask(BaseTask):
         process_as_task: bool = False,
         cache_key: str | None = None,
         task_id: str | None = None,
+        telemetry_origin_kind: str | None = None,
+        telemetry_origin_name: str | None = None,
     ):
         """
         :param process result: A function to process the result of the other tasks
@@ -217,6 +226,8 @@ class MetaTask(BaseTask):
         :param process_as_task: Whether to run the process_result function as a task or not, defaults to False
         :param cache_key: Optional cache key if there is a registry entry to store results for the task in
         :param task_id: Optional task_id to set for the task - otherwise the task generates its id automatically
+        :param telemetry_origin_kind: bounded subsystem that scheduled the task
+        :param telemetry_origin_name: stable callable name that scheduled the task
         """
         self.args = args if args is not None else []
         self.process_result = process_result
@@ -226,6 +237,8 @@ class MetaTask(BaseTask):
         self.cancel_scope: CancelScope | None = None
         self.cache_key = cache_key
         self.reg_entry = reg_entry
+        self.telemetry_origin_kind = telemetry_origin_kind
+        self.telemetry_origin_name = telemetry_origin_name
 
         super().__init__(task_id)
 
@@ -380,6 +393,17 @@ def _task_telemetry_identity(task: BaseTask) -> tuple[str, str]:
         name = f'{getattr(handler, "__module__", "unknown")}.{getattr(handler, "__qualname__", type(handler).__name__)}'
         return name, 'meta'
     return type(task).__name__, 'unknown'
+
+
+def _task_telemetry_origin(task: BaseTask) -> tuple[str | None, str | None]:
+    """
+    Return the semantic operation that scheduled a task, if one was recorded.
+
+    :param task: task definition to describe
+    """
+    if isinstance(task, PendingTask):
+        return _task_telemetry_origin(task.task_def)
+    return task.telemetry_origin_kind, task.telemetry_origin_name
 
 
 class TaskManager:
@@ -660,7 +684,16 @@ class TaskManager:
         :param telemetry_context: OTEL context captured while scheduling
         """
         task_name, task_kind = _task_telemetry_identity(task)
-        with use_telemetry_context(telemetry_context), observe_task(task_name, task_kind) as observation:
+        origin_kind, origin_name = _task_telemetry_origin(task)
+        with (
+            use_telemetry_context(telemetry_context),
+            observe_task(
+                task_name,
+                task_kind,
+                origin_kind,
+                origin_name,
+            ) as observation,
+        ):
             self._telemetry_observations[task.task_id] = observation
             try:
                 await self._run_task_and_notify_impl(task, observation)
@@ -681,7 +714,7 @@ class TaskManager:
         pending_task.cancel_scope = cancel_scope
 
         with cancel_scope:
-            eng_logger.info(f'TaskManager running task {task.task_id}')
+            eng_logger.info(f'TaskManager running task {task.task_id}', event_name='task.started')
 
             # Create a memory object stream to capture messages from the tasks
             send_stream, receive_stream = create_memory_object_stream[TaskMessage](math.inf)
@@ -739,7 +772,7 @@ class TaskManager:
                             # Remove the task from the registered tasks - it finished running
                             self.tasks.pop(message.task_id, None)
                         elif isinstance(message, TaskError):
-                            observation.set_outcome('error')
+                            observation.record_exception(message.error)
 
                             # Fail the pending task related to the error
                             if message.task_id in self.tasks:
@@ -796,7 +829,11 @@ class TaskManager:
                                     reg_entry=task.reg_entry,
                                 )
                             )
-                            eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
+                            eng_logger.info(
+                                f'TaskManager finished task {task.task_id}',
+                                {'result': result},
+                                event_name='task.finished',
+                            )
             finally:
                 with CancelScope(shield=True):
                     # cast explicitly as otherwise pyright thinks it's always None here
@@ -820,13 +857,22 @@ class TaskManager:
                         # If this is a cancellation, ensure all tasks in the hierarchy are cancelled
                         if exception_group_contains(err_type=get_cancelled_exc_class(), group=err):
                             observation.set_outcome('cancelled')
-                            dev_logger.info('Task cancelled', {'task_id': task.task_id})
+                            dev_logger.info(
+                                'Task cancelled',
+                                {'task_id': task.task_id},
+                                event_name='task.cancelled',
+                            )
 
                             # Cancel any remaining tasks in the hierarchy that might still be running
                             await self._cancel_task_hierarchy(task, notify=True)
                         else:
-                            observation.set_outcome('error')
-                            dev_logger.error('Task failed', err, {'task_id': task.task_id})
+                            observation.record_exception(err)
+                            dev_logger.error(
+                                'Task failed',
+                                err,
+                                {'task_id': task.task_id},
+                                event_name='task.failed',
+                            )
 
                             error = get_error_for_channel(err)
                             message = {'status': 'ERROR', 'task_id': task.task_id, 'error': error['error']}

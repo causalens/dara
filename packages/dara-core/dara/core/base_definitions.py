@@ -388,6 +388,8 @@ class BaseTask(abc.ABC):
     reg_entry: CachedRegistryEntry | None
     notify_channels: list[str]
     task_id: str
+    telemetry_origin_kind: str | None = None
+    telemetry_origin_name: str | None = None
 
     @abc.abstractmethod
     def __init__(self, task_id: str | None = None) -> None:

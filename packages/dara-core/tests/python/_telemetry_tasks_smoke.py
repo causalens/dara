@@ -110,8 +110,10 @@ async def main() -> None:
         scheduled_process.close()
         scheduled_result = json.loads(scheduled_result_path.read_text(encoding='utf-8'))
 
-        assert scheduled_result['trace_id'] == format(scheduled_parent_context.trace_id, '032x')
-        assert scheduled_result['parent_span_id'] == format(scheduled_parent_context.span_id, '016x')
+        assert scheduled_result['trace_id'] != format(scheduled_parent_context.trace_id, '032x')
+        assert scheduled_result['parent_span_id'] is None
+        assert scheduled_result['linked_trace_id'] == format(scheduled_parent_context.trace_id, '032x')
+        assert scheduled_result['linked_span_id'] == format(scheduled_parent_context.span_id, '016x')
         assert scheduled_result['span_name'] == 'dara.scheduled_job.run'
         assert scheduled_result['process_pid'] != os.getpid()
         assert scheduled_result['resource_process_pid'] == scheduled_result['process_pid']
@@ -155,10 +157,18 @@ async def main() -> None:
         if span.attributes is not None and span.attributes.get('dara.task.name') == 'telemetry_context_task'
     )
     assert successful_span.context is not None
+    successful_dispatch_span = next(
+        span
+        for span in spans
+        if span.name == 'dara.task.dispatch'
+        and span.parent is not None
+        and span.parent.span_id == successful_span.context.span_id
+    )
+    assert successful_dispatch_span.context is not None
     task_result = response_data['successful']
     assert task_result['trace_id'] == format(successful_span.context.trace_id, '032x')
-    assert task_result['parent_span_id'] == format(successful_span.context.span_id, '016x')
-    assert task_result['span_name'] == 'dara.worker.task.execute'
+    assert task_result['parent_span_id']
+    assert task_result['span_name'] == 'dara.task.execute'
     assert task_result['process_pid'] != os.getpid()
     assert task_result['resource_process_pid'] == task_result['process_pid']
     assert task_result['process_type'] == 'task_worker'

@@ -15,7 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from prometheus_client import CollectorRegistry
+from prometheus_client import CollectorRegistry, GCCollector, PlatformCollector, ProcessCollector
 
 # Keep Dara's OTEL Prometheus reader isolated so importing Dara does not mutate the process-wide default registry.
 DARA_METRICS_REGISTRY = CollectorRegistry()
+
+# Preserve the runtime families historically served from Dara's compatibility
+# endpoint while OTEL-native equivalents are adopted by operators.
+GCCollector(registry=DARA_METRICS_REGISTRY)
+PlatformCollector(registry=DARA_METRICS_REGISTRY)
+ProcessCollector(registry=DARA_METRICS_REGISTRY)

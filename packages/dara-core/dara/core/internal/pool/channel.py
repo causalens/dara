@@ -51,7 +51,14 @@ class _PoolAPI:
 
         :param task: task definition to dispatch
         """
-        self._task_queue.put(WorkerTask(task_uid=task.uid, payload=store_in_shared_memory(task.payload)))
+        self._task_queue.put(
+            WorkerTask(
+                task_uid=task.uid,
+                task_name=task.payload['function_name'],
+                telemetry_context=task.payload.get('telemetry_context'),
+                payload=store_in_shared_memory(task.payload),
+            )
+        )
 
     def get_worker_message(
         self,

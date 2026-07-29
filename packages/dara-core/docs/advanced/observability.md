@@ -55,20 +55,25 @@ The initial integration provides:
 - FastAPI HTTP server spans, including route, method, status, duration, and error state.
 - A WebSocket connection span from the ASGI instrumentation.
 - Full-lifecycle spans for synchronous and background action execution.
-- Spans for non-heartbeat inbound and outbound WebSocket messages and registered custom handlers.
+- Spans for non-heartbeat inbound and outbound WebSocket messages, registered custom handlers, and server-initiated
+  request/response round trips, plus outbound queue-wait metrics.
 - Trace-context propagation from actions and custom handlers through queued WebSocket sends.
-- Full-lifecycle spans for derived-variable resolution, Python component rendering, streams, uploads, and backend-store
-  operations.
+- Full-lifecycle spans for derived-variable resolution, Python component rendering, streams, uploads, server-variable
+  access, registry lookup, cache waits, and backend-store operations.
 - Derived-variable phase spans for lock waiting, dependency resolution, cache lookup, resolver execution, and cache
   writes.
-- Task scheduling, waiting, cancellation, and complete application-process lifecycle spans.
-- Task-worker and scheduled-job execution spans linked across process boundaries with W3C trace context.
+- Task scheduling, dispatch, queue wait, waiting, cancellation, serialization, and complete application-process
+  lifecycle spans.
+- Task-worker execution spans parented through serialized W3C trace context. Each scheduled-job invocation is a new
+  consumer root linked to the context in which the recurring job was registered, rather than reusing that context as
+  a parent forever.
 - Standard-library logs as native OpenTelemetry log records with trace and span correlation.
 - Standard HTTP server metrics, including request duration, active requests, and request/response sizes.
 - Baseline process and runtime metrics from Logfire's system-metrics integration.
 - Action and WebSocket active-operation, duration, execution-count, and outcome metrics.
 - Active-operation, duration, execution-count, and outcome metrics for derived variables, Python components, streams,
-  uploads, and backend stores, plus aggregate derived-variable cache hit, miss, and bypass counts.
+  uploads, and backend stores, plus aggregate derived-variable cache hit, miss, and bypass counts. Streams also expose
+  event counts, time to first event, and inter-event intervals without creating a span per event.
 - Task lifecycle and control-operation metrics, worker execution metrics, and current worker, busy-worker, and queue
   counts.
 - Numeric cache size and entry gauges for the application cache store, individual bounded Dara registries, and their
@@ -82,24 +87,27 @@ Dara exports a deliberately narrow vocabulary:
 
 | Signal | Allowed data |
 | --- | --- |
-| HTTP spans | Route template, method, protocol, status, timing, and request/response sizes. |
+| HTTP spans | Route template, method, protocol, status, timing, request/response sizes, and the standard `client.address` network attribute. |
 | Operation spans | Fixed span name, registered callable name where applicable, bounded execution/operation kind, `dara.outcome`, and exception type. |
 | Metrics | The same bounded operation dimensions plus numeric measurements. |
-| Logs | Dara structured-log title or rendered standard-library message, trace context, code location, and the allowlisted extras `event_name`, `method`, `operation`, `outcome`, and `status_code`. |
+| Logs | A bounded `event_name` for Dara structured logs or the rendered standard-library message, trace context, code location, and the allowlisted extras `event_name`, `method`, `operation`, `outcome`, and `status_code`. |
 | Resources | Standard deployment identity plus process PID, bounded process type, and process boot ID. |
 
-Application endpoint arguments, path-parameter values, raw URL paths, query-string values, client addresses, request
-and response bodies, HTTP headers, baggage, cache keys, task IDs, uploaded content, operation arguments, and returned
-values are not exported by default. Raw paths and queries are replaced with `[REDACTED]`; route templates remain
-available for aggregation. For failed FastAPI validation Dara records only the number of validation errors, not the
-rejected values or error messages.
+Application endpoint arguments, path-parameter values, raw URL paths, query-string values, request and response bodies,
+HTTP headers, baggage, cache keys, task IDs, uploaded content, operation arguments, and returned values are not exported
+by default. Raw paths and queries are replaced with `[REDACTED]`; route templates remain available for aggregation.
+Dara retains `client.address`, which OpenTelemetry recommends on HTTP server spans for network-level diagnostics. It is
+not copied into logs or metric dimensions. Deployments with a stricter network-identifier policy can remove it in the
+Collector with an attributes processor. For failed FastAPI validation Dara records only the number of validation
+errors, not the rejected values or error messages.
 
 Exception messages and tracebacks are excluded from spans and OTEL logs. Failures retain only `error.type`, the span
 error status, and a bounded outcome. The OTEL logging handler operates on a copy of each record, drops arbitrary
-structured extras, and exports only the title from Dara's structured logger because its `content` and `error` fields
-can contain application data. Ordinary standard-library log messages retain their rendered arguments. Dara's existing
-console handlers continue to receive the original record. This is structural filtering, not pattern-based redaction:
-applications remain responsible for keeping user data and credentials out of ordinary log messages.
+structured extras, and exports only an explicit bounded `event_name` from Dara's structured logger because its title,
+`content`, and `error` fields can contain application data. Records without an explicit event name use `dara.log`.
+Ordinary standard-library log messages retain their rendered arguments. Dara's existing console handlers continue to
+receive the original record. This is structural filtering, not pattern-based redaction: applications remain responsible
+for keeping user data and credentials out of ordinary log messages.
 
 Action metrics use the `dara.action.*` namespace. WebSocket message and custom-handler metrics use
 `dara.websocket.message.*`. Metric dimensions contain only bounded operation types, directions, execution modes,
@@ -121,9 +129,10 @@ serialized W3C `traceparent` and `tracestate` fields in addition to its existing
 deliberately excluded. Task IDs and arguments are not span attributes or metric dimensions. Scheduled-job metrics use
 `dara.scheduled_job.*`. Spawned processes initialize their own OTLP exporters from inherited `OTEL_*` variables and
 identify themselves with `process.pid`, a bounded `dara.process.type`, and `dara.process.boot.id` resource attributes.
-Worker and scheduled-job telemetry is flushed on graceful process exit. The Prometheus reader runs only in the
-application process because the Python exporter does not support multiprocessing; parent-owned worker count,
-busy-worker, and queue-depth metrics remain available on port `10000`.
+Worker and scheduled-job telemetry is flushed on graceful process exit. Dara keeps scheduled-process handles and asks
+them to stop before forcing termination on timeout. The Prometheus reader runs only in the application process because
+the Python exporter does not support multiprocessing; parent-owned worker count, busy-worker, queue-depth, and queue
+duration metrics remain available on port `10000`.
 
 ## HTTP latency percentiles
 
@@ -253,9 +262,11 @@ be retained preferentially.
 
 ## Shutdown and exporter health
 
-`DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS` bounds the complete Logfire/OTEL shutdown and defaults to five seconds. Dara calls
-Logfire's deadline-aware shutdown directly; it does not wrap shutdown in a background thread that can outlive the
-deadline. Signal-specific `OTEL_EXPORTER_OTLP_*_TIMEOUT` variables independently bound each export attempt.
+`DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS` bounds how long application shutdown waits for Logfire/OTEL and defaults to five
+seconds. Dara asks Logfire to flush with that budget in a daemon thread and stops waiting at the deadline because
+third-party exporters are not required to honour provider timeouts. A timed-out exporter can therefore continue briefly
+in that daemon thread, but it cannot hold application shutdown open. Signal-specific
+`OTEL_EXPORTER_OTLP_*_TIMEOUT` variables independently bound each export attempt.
 
 Monitor the Collector rather than inferring exporter health from missing application data. Alert on sustained increases
 in `otelcol_exporter_enqueue_failed_spans`, `otelcol_exporter_enqueue_failed_log_records`,

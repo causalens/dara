@@ -68,6 +68,7 @@ from dara.core.internal.registries import (
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import core_api_router, create_loader_route, error_decorator
 from dara.core.internal.runtime_env import is_backend_reload_enabled, is_docker_mode, is_hmr_enabled
+from dara.core.internal.scheduler import stop_scheduled_process
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
@@ -141,6 +142,7 @@ def _start_application(config: Configuration):
     sessions_registry.replace({}, deepcopy=False)
     session_auth_token_registry.replace({}, deepcopy=False)
     config_registry.replace({}, deepcopy=False)
+    scheduled_processes = []
 
     @asynccontextmanager
     async def application_lifespan(app: FastAPI):
@@ -220,6 +222,16 @@ def _start_application(config: Configuration):
                 if callable(res):
                     cleanup_functions.append(res)
 
+            eng_logger.info(f'Starting {len(config.scheduled_jobs)} local scheduled jobs')
+            try:
+                for job, func, args in config.scheduled_jobs:
+                    scheduled_processes.append(job.do(func, args))
+            except BaseException:
+                for scheduled_process in scheduled_processes:
+                    await asyncio.to_thread(stop_scheduled_process, scheduled_process, 5)
+                scheduled_processes.clear()
+                raise
+
             try:
                 # Yield back to the app
                 yield
@@ -242,6 +254,10 @@ def _start_application(config: Configuration):
                     eng_logger.debug('Shutting down task pool...')
                     await task_pool.join(5)
                     eng_logger.debug('Task pool shut down')
+
+                for scheduled_process in scheduled_processes:
+                    await asyncio.to_thread(stop_scheduled_process, scheduled_process, 5)
+                scheduled_processes.clear()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -291,11 +307,6 @@ def _start_application(config: Configuration):
     # Add custom middlewares
     for middleware in config.middlewares:
         app.user_middleware.insert(0, middleware)
-
-    # Loop over scheduled jobs and start them
-    eng_logger.info(f'Starting {len(config.scheduled_jobs)} local scheduled jobs')
-    for job, func, args in config.scheduled_jobs:
-        job.do(func, args)
 
     route_urls = [f'"/api/{route.url}"' for route in config.routes]
     eng_logger.info(f'Registering local routes [{", ".join(route_urls)}]')

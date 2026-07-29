@@ -20,6 +20,7 @@ from collections.abc import Callable, Coroutine
 from contextlib import contextmanager
 from datetime import datetime
 from multiprocessing import active_children
+from time import perf_counter
 from typing import Any, cast
 
 import anyio
@@ -51,9 +52,13 @@ from dara.core.internal.pool.worker import WorkerProcess
 from dara.core.logging import dev_logger
 from dara.core.telemetry import (
     capture_telemetry_carrier,
+    capture_telemetry_context,
+    observe_task_phase,
     record_task_queue_depth_change,
+    record_task_queue_wait,
     record_worker_busy_change,
     record_worker_count_change,
+    use_telemetry_context,
 )
 
 
@@ -155,6 +160,7 @@ class TaskPool:
                 kwargs=kwargs,
                 telemetry_context=capture_telemetry_carrier(),
             ),
+            telemetry_context=capture_telemetry_context(),
         )
         self.tasks[task_uid] = new_task
 
@@ -331,6 +337,20 @@ class TaskPool:
             record_worker_busy_change(-1)
         record_worker_count_change(-1)
 
+    def _record_task_finished(self, task: TaskDefinition) -> None:
+        """
+        Mark the worker assigned to a terminal task idle and balance occupancy metrics.
+
+        :param task: terminal task whose worker acknowledged execution
+        """
+        if task.worker_id is None:
+            return
+        worker = self.workers.get(task.worker_id)
+        if worker is None or worker.status != WorkerStatus.WORKING:
+            return
+        worker.update_status(WorkerStatus.IDLE, task_uid=None)
+        record_worker_busy_change(-1)
+
     def _cleanup_worker(self, worker: WorkerProcess):
         """
         Cleanup a worker.
@@ -460,6 +480,7 @@ class TaskPool:
 
             if task:
                 record_task_queue_depth_change(-1)
+                record_task_queue_wait(perf_counter() - task.queued_at, task.payload['function_name'])
                 task.worker_id = worker_msg['worker_pid']
                 task.started_at = datetime.now()
                 record_worker_busy_change(1)
@@ -474,21 +495,25 @@ class TaskPool:
                 return
 
             task = self.tasks.pop(task_uid)
-
-            if task.event.is_set():
-                return
-
-            result = worker_msg['result']
-
             try:
-                result = read_from_shared_memory(result)
+                if task.event.is_set():
+                    return
+
+                result = worker_msg['result']
+                with (
+                    use_telemetry_context(task.telemetry_context),
+                    observe_task_phase(
+                        'result_decode',
+                        task.payload['function_name'],
+                    ),
+                ):
+                    result = read_from_shared_memory(result)
             except BaseException as e:
                 self._update_task(task, e)
             else:
                 self._update_task(task, result)
-                assert task.worker_id is not None
-                self.workers[task.worker_id].update_status(WorkerStatus.IDLE, task_uid=None)
-                record_worker_busy_change(-1)
+            finally:
+                self._record_task_finished(task)
         elif is_problem(worker_msg):
             # If the problem is to do with the task
             if worker_msg['task_uid']:
@@ -499,16 +524,20 @@ class TaskPool:
 
                 task = self.tasks.pop(worker_msg['task_uid'])
 
-                if task.event.is_set():
-                    return
-
-                self._update_task(task, worker_msg['error'])
+                try:
+                    if task.event.is_set():
+                        return
+                    self._update_task(task, worker_msg['error'])
+                finally:
+                    self._record_task_finished(task)
             else:
                 # Otherwise something went wrong with the worker itself
                 # just log the error, the worker will be cleaned up in the next loop iteration
                 # Logger does not accept BaseException so we have to cast it
                 dev_logger.error(
-                    'Something went wrong with a worker process', cast(Exception, worker_msg['error'].unwrap())
+                    'Something went wrong with a worker process',
+                    cast(Exception, worker_msg['error'].unwrap()),
+                    event_name='worker.process.error',
                 )
         elif is_log(worker_msg):
             dev_logger.info(f'Task: {worker_msg["task_uid"]}', {'logs': worker_msg['log']})

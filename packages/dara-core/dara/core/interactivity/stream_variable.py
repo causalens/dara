@@ -21,6 +21,7 @@ import asyncio
 import contextlib
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, Generic, Literal
 
 from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, field_validator, model_serializer
@@ -42,7 +43,12 @@ from dara.core.interactivity.stream_event import ReconnectException, StreamEvent
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
 from dara.core.logging import dev_logger
-from dara.core.telemetry import _OperationObservation, observe_stream
+from dara.core.telemetry import (
+    _OperationObservation,
+    observe_stream,
+    record_stream_event,
+    record_stream_progress,
+)
 
 VariableType = TypeVar('VariableType', default=Any)
 
@@ -357,6 +363,11 @@ async def _run_stream(
         raise NotImplementedError('StreamVariable does not support tasks')
 
     generator = None
+    started = perf_counter()
+    event_count = 0
+    time_to_first_event: float | None = None
+    last_event_at: float | None = None
+    max_event_interval: float | None = None
     try:
         generator = entry.func(*resolved_values)
 
@@ -414,6 +425,15 @@ async def _run_stream(
                     break
 
                 _validate_event_mode(event, entry.key_accessor)
+                emitted_at = perf_counter()
+                event_interval = emitted_at - last_event_at if last_event_at is not None else None
+                last_event_at = emitted_at
+                event_count += 1
+                record_stream_event(event_interval)
+                if event_interval is not None:
+                    max_event_interval = max(max_event_interval or 0, event_interval)
+                if time_to_first_event is None:
+                    time_to_first_event = emitted_at - started
                 yield f'data: {event.model_dump_json()}\n\n'
         except StopAsyncIteration:
             pass
@@ -423,16 +443,31 @@ async def _run_stream(
                 await disconnect_task
 
     except ReconnectException:
+        event_count += 1
+        record_stream_event()
+        time_to_first_event = time_to_first_event or perf_counter() - started
         yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
     except StreamVariableModeError as e:
-        observation.set_outcome('error')
-        dev_logger.error('Stream mode error', error=e)
+        observation.record_exception(e)
+        event_count += 1
+        record_stream_event()
+        time_to_first_event = time_to_first_event or perf_counter() - started
+        dev_logger.error('Stream mode error', error=e, event_name='stream.mode.error')
         yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
     except Exception as e:
-        observation.set_outcome('error')
-        dev_logger.error('Stream error', error=e)
+        observation.record_exception(e)
+        event_count += 1
+        record_stream_event()
+        time_to_first_event = time_to_first_event or perf_counter() - started
+        dev_logger.error('Stream error', error=e, event_name='stream.execution.error')
         yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
     finally:
+        record_stream_progress(
+            observation,
+            event_count=event_count,
+            time_to_first_event=time_to_first_event,
+            max_event_interval=max_event_interval,
+        )
         # Cleanup: close generator if it's still open
         if generator is not None:
             with contextlib.suppress(Exception):

@@ -82,7 +82,7 @@ class Registry(Generic[T]):
             raise ValueError(f'Invalid uid value: {key}, is already taken')
 
         self._registry[key] = value
-        self._size += total_size(value)
+        self._size = total_size(self._registry)
         self._update_metrics()
 
     def get(self, key: str) -> T:
@@ -95,9 +95,8 @@ class Registry(Generic[T]):
 
     def set(self, key: str, value: T):
         """Set an entity for the registry, if already present overwrites it"""
-        previous_value_size = total_size(self._registry.get(key))
         self._registry[key] = value
-        self._size = self._size - previous_value_size + total_size(value)
+        self._size = total_size(self._registry)
         self._update_metrics()
 
     def get_all(self) -> MutableMapping[str, T]:
@@ -115,9 +114,8 @@ class Registry(Generic[T]):
         """
         Remove the key from registry, will raise if it's not found
         """
-        previous_value_size = total_size(self._registry.get(key))
         self._registry.pop(key)
-        self._size = self._size - previous_value_size
+        self._size = total_size(self._registry)
         self._update_metrics()
 
     def replace(self, new_registry: MutableMapping[str, T], deepcopy=True):
