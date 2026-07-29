@@ -7,62 +7,146 @@
         <title>Dara dev server mismatch</title>
         <style>
             :root {
-                color-scheme: dark;
-                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+                color-scheme: light;
+                font-family: Manrope, Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            }
+
+            * {
+                box-sizing: border-box;
             }
 
             body {
-                box-sizing: border-box;
+                display: grid;
+                place-items: center;
                 min-height: 100vh;
                 margin: 0;
-                padding: 30px;
-                background: #5a5a5a;
-                color: #d8d8d8;
+                padding: clamp(1.5rem, 5vw, 4rem);
+                background:
+                    radial-gradient(circle at top left, rgb(55 150 246 / 14%), transparent 35rem),
+                    #f8f9ff;
+                color: #1e244d;
             }
 
             main {
-                box-sizing: border-box;
-                width: min(1080px, 80vw);
-                margin: 0 auto;
-                padding: 2.5vh 4vw;
+                width: min(48rem, 100%);
                 overflow: hidden;
-                border-top: 8px solid #ff5555;
-                border-radius: 6px 6px 8px 8px;
-                background: #181818;
-                box-shadow:
-                    0 19px 38px rgb(0 0 0 / 30%),
-                    0 15px 12px rgb(0 0 0 / 22%);
+                border: 1px solid #dfe2eb;
+                border-radius: 1rem;
+                background: #fff;
+                box-shadow: 0 2px 10px rgb(30 36 77 / 10%);
+            }
+
+            header {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+                padding: clamp(1.5rem, 4vw, 2rem);
+                border-bottom: 1px solid #dfe2eb;
+                background: linear-gradient(135deg, #fbfcff 0%, #ecf2fd 100%);
+            }
+
+            .status-icon {
+                display: grid;
+                flex: 0 0 auto;
+                place-items: center;
+                width: 3rem;
+                height: 3rem;
+                border: 1px solid rgb(218 96 135 / 28%);
+                border-radius: 50%;
+                background: rgb(218 96 135 / 12%);
+                color: #da6087;
+                font-size: 1.5rem;
+                font-weight: 700;
+            }
+
+            .brand {
+                margin: 0 0 0.25rem;
+                color: #434b87;
+                font-size: 0.75rem;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
             }
 
             h1 {
-                margin: 0 0 1.5rem;
-                color: #ff5555;
-                font-size: 1rem;
-                font-weight: 400;
+                margin: 0;
+                color: #1e244d;
+                font-size: clamp(1.25rem, 4vw, 1.5rem);
+                line-height: 1.25;
+            }
+
+            .content {
+                padding: clamp(1.5rem, 4vw, 2rem);
+            }
+
+            .message-label {
+                margin: 0 0 0.75rem;
+                color: #5b5e66;
+                font-size: 0.75rem;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
             }
 
             pre {
                 margin: 0;
-                color: #ff7777;
-                font: inherit;
-                line-height: 1.5;
+                padding: 1.25rem;
+                overflow-wrap: anywhere;
+                border: 1px solid #dfe2eb;
+                border-radius: 0.625rem;
+                background: #f8f9ff;
+                color: #1e244d;
+                font: 0.875rem/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
                 white-space: pre-wrap;
             }
 
             footer {
-                margin-top: 2rem;
-                padding-top: 1rem;
-                border-top: 1px dotted #999;
-                color: #999;
-                font-size: 0.8rem;
+                display: flex;
+                gap: 0.625rem;
+                align-items: center;
+                padding: 1rem clamp(1.5rem, 4vw, 2rem);
+                border-top: 1px solid #eef1fa;
+                background: #fbfcff;
+                color: #5b5e66;
+                font-size: 0.8125rem;
+            }
+
+            .status-dot {
+                flex: 0 0 auto;
+                width: 0.5rem;
+                height: 0.5rem;
+                border-radius: 50%;
+                background: #3796f6;
+            }
+
+            @media (max-width: 32rem) {
+                header {
+                    align-items: flex-start;
+                }
+
+                footer {
+                    align-items: flex-start;
+                }
             }
         </style>
     </head>
     <body>
         <main>
-            <h1>[dara] Development server mismatch</h1>
-            <pre>{{ message }}</pre>
-            <footer>Waiting for a matching server at {{ origin }}. This page retries automatically.</footer>
+            <header>
+                <div aria-hidden="true" class="status-icon">!</div>
+                <div>
+                    <p class="brand">Dara development</p>
+                    <h1>Development server mismatch</h1>
+                </div>
+            </header>
+            <div class="content">
+                <p class="message-label">How to fix this</p>
+                <pre>{{ message }}</pre>
+            </div>
+            <footer>
+                <span aria-hidden="true" class="status-dot"></span>
+                <span>Waiting for a matching server at {{ origin }}. This page retries automatically.</span>
+            </footer>
         </main>
     </body>
 </html>

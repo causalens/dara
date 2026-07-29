@@ -216,7 +216,7 @@ async def test_dev_server_handshake_renders_one_mismatch_page(
             response = await client.get('/')
 
     assert response.status_code == 200
-    assert '[dara] Development server mismatch' in response.text
+    assert 'Development server mismatch' in response.text
     assert 'This page retries automatically' in response.text
     check.assert_awaited_once()
 
@@ -240,7 +240,7 @@ async def test_dev_server_handshake_is_skipped_in_autojs(
             response = await client.get('/')
 
     assert response.status_code == 200
-    assert '[dara] Development server mismatch' not in response.text
+    assert 'Development server mismatch' not in response.text
     check.assert_not_awaited()
 
 
@@ -271,7 +271,7 @@ async def test_dev_server_handshake_is_skipped_in_production(
             response = await client.get('/')
 
     assert response.status_code == 200
-    assert '[dara] Development server mismatch' not in response.text
+    assert 'Development server mismatch' not in response.text
     check.assert_not_awaited()
 
 
