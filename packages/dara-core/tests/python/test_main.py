@@ -217,6 +217,7 @@ async def test_dev_server_handshake_renders_one_mismatch_page(
 
     assert response.status_code == 200
     assert 'Development server mismatch' in response.text
+    assert '<code>dara dev</code>' in response.text
     assert 'This page retries automatically' in response.text
     check.assert_awaited_once()
 

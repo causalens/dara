@@ -503,7 +503,7 @@ def _start_application(config: Configuration):
                         request,
                         'dev_server_mismatch.html',
                         context={
-                            'message': mismatch.format_message(),
+                            'mismatch': mismatch,
                             'origin': expected_dev_server.origin,
                         },
                     )
