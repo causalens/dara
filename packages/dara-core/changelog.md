@@ -6,16 +6,9 @@ title: Changelog
 
 - Added a development-only server handshake that reports mismatched projects and supports overriding Vite's port with `dara start --dev-port` and `dara dev --port`.
 - Fixed `dara dev` to use the application's configured static files directory instead of always assuming `dist`.
-- Added opt-in OpenTelemetry export for HTTP traces and metrics, native logs, and process metrics through Pydantic Logfire and standard `OTEL_*` exporter configuration.
-- Added OpenTelemetry spans and bounded metrics for synchronous and background actions, individual WebSocket messages, custom WebSocket handlers, and context-aware queued WebSocket sends.
-- Added OpenTelemetry spans and bounded metrics for derived-variable phases and cache outcomes, Python components, stream lifecycles, upload resolution, and backend-store operations.
-- Added cross-process OpenTelemetry propagation and bounded lifecycle metrics for tasks, task workers, and scheduled jobs.
-- Unified Prometheus and OTLP metrics on one OTEL instrumentation pipeline while preserving the existing Prometheus
-  port and adding numeric cache gauges and migration queries.
-- Hardened telemetry privacy by redacting raw HTTP paths, suppressing exception messages and tracebacks, restricting
-  exported log fields, excluding baggage from process propagation, bounding shutdown, and adding process boot identity.
-- Added queue, serialization, WebSocket round-trip, stream first-event, server-variable, registry, and cache-wait
-  telemetry; corrected task-backed operation outcomes and cache gauges after policy-driven eviction.
+- Added opt-in, vendor-neutral OpenTelemetry traces, logs, and metrics through Pydantic Logfire, covering HTTP,
+  actions, WebSockets, internal operations, tasks, workers, scheduled jobs, cross-process W3C propagation, bounded
+  privacy-aware attributes, and process identity while preserving the existing Prometheus endpoint.
 
 ## 1.29.4
 

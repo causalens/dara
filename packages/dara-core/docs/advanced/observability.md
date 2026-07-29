@@ -2,12 +2,13 @@
 title: OpenTelemetry observability
 ---
 
-Dara can export traces, logs, and metrics to any OpenTelemetry-compatible collector or backend. The integration uses
-[Pydantic Logfire](https://logfire.pydantic.dev/) for instrumentation, but does not send data to Pydantic's hosted
-service. Export is configured with standard OpenTelemetry environment variables.
+Dara can export traces, logs, and metrics to any OpenTelemetry-compatible Collector or backend. The integration uses
+[Pydantic Logfire](https://logfire.pydantic.dev/) to configure OpenTelemetry, but never sends data to Pydantic's hosted
+service.
 
-OTLP traces, logs, and metrics are opt-in. Dara's existing Prometheus endpoint remains enabled by default and now
-serves the same OTEL metric instruments in Prometheus format. A minimal OTLP/HTTP configuration is:
+## Enabling OpenTelemetry
+
+Export is opt-in and configured with standard OpenTelemetry environment variables. A minimal OTLP/HTTP setup is:
 
 ```dotenv
 DARA_OTEL_ENABLED=TRUE
@@ -17,181 +18,38 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 OTEL_TRACES_EXPORTER=otlp
 OTEL_LOGS_EXPORTER=otlp
 OTEL_METRICS_EXPORTER=otlp
-DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS=5000
 ```
 
-Metrics transports are governed by the existing Dara settings and the standard OTEL exporter setting:
+Use the standard signal-specific variables when traces, logs, and metrics have different destinations:
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, and
+`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`. Authentication headers, certificates, compression, and exporter timeouts are
+also configured through their standard `OTEL_*` variables.
 
-| `DARA_DISABLE_METRICS` | `DARA_OTEL_ENABLED` | Behavior |
-| --- | --- | --- |
-| `FALSE` | `FALSE` | Serve metrics from the existing Prometheus endpoint. |
-| `FALSE` | `TRUE` | Keep the Prometheus endpoint and also use the exporter selected by `OTEL_METRICS_EXPORTER`. |
-| `TRUE` | `TRUE` | Disable the Prometheus endpoint and use the exporter selected by `OTEL_METRICS_EXPORTER`. |
-| `TRUE` | `FALSE` | Disable metrics. |
+Set deployment identity through `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES`:
 
-`DARA_METRICS_PORT` selects the Prometheus port and defaults to `10000`; `DARA_DISABLE_METRICS=TRUE` disables that
-endpoint. When telemetry is enabled, `OTEL_METRICS_EXPORTER=otlp` exports metrics through OTLP, while
-`OTEL_METRICS_EXPORTER=none` enables traces and logs without an OTLP metrics exporter. Selecting `prometheus` avoids
-an OTLP metrics exporter while retaining the existing endpoint unless it is explicitly disabled.
-
-If both the Prometheus endpoint and OTLP metrics are enabled, do not send both transports to the same metrics backend:
-they contain observations from the same instruments.
-
-Signal-specific endpoints, authentication headers, TLS certificates, compression, timeouts, resource attributes, and
-export intervals can all be set with their standard `OTEL_*` variables. For example, use
-`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, or
-`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` when signals have different destinations.
-
-Set `OTEL_RESOURCE_ATTRIBUTES` to attach deployment metadata such as `service.namespace`, `service.version`,
-`deployment.environment.name`, `service.instance.id`, and `vcs.ref.head.revision`. `service.instance.id` should be
-unique per running application instance. Dara adds `process.pid`, `dara.process.type`, and a process-local
-`dara.process.boot.id`; deployment identity remains under operator control through `OTEL_SERVICE_NAME` and
-`OTEL_RESOURCE_ATTRIBUTES`. Keep resource values stable and do not copy them onto metric data-point attributes.
-
-## Exported signals
-
-The initial integration provides:
-
-- FastAPI HTTP server spans, including route, method, status, duration, and error state.
-- A WebSocket connection span from the ASGI instrumentation.
-- Full-lifecycle spans for synchronous and background action execution.
-- Spans for non-heartbeat inbound and outbound WebSocket messages, registered custom handlers, and server-initiated
-  request/response round trips, plus outbound queue-wait metrics.
-- Trace-context propagation from actions and custom handlers through queued WebSocket sends.
-- Full-lifecycle spans for derived-variable resolution, Python component rendering, streams, uploads, server-variable
-  access, registry lookup, cache waits, and backend-store operations.
-- Derived-variable phase spans for lock waiting, dependency resolution, cache lookup, resolver execution, and cache
-  writes.
-- Task scheduling, dispatch, queue wait, waiting, cancellation, serialization, and complete application-process
-  lifecycle spans.
-- Task-worker execution spans parented through serialized W3C trace context. Each scheduled-job invocation is a new
-  consumer root linked to the context in which the recurring job was registered, rather than reusing that context as
-  a parent forever.
-- Standard-library logs as native OpenTelemetry log records with trace and span correlation.
-- Standard HTTP server metrics, including request duration, active requests, and request/response sizes.
-- Baseline process and runtime metrics from Logfire's system-metrics integration.
-- Action and WebSocket active-operation, duration, execution-count, and outcome metrics.
-- Active-operation, duration, execution-count, and outcome metrics for derived variables, Python components, streams,
-  uploads, and backend stores, plus aggregate derived-variable cache hit, miss, and bypass counts. Streams also expose
-  event counts, time to first event, and inter-event intervals without creating a span per event.
-- Task lifecycle and control-operation metrics, worker execution metrics, and current worker, busy-worker, and queue
-  counts.
-- Numeric cache size and entry gauges for the application cache store, individual bounded Dara registries, and their
-  total.
-
-Dara's existing console logs remain enabled. The OpenTelemetry log handler is additive.
-
-## Privacy and attribute vocabulary
-
-Dara exports a deliberately narrow vocabulary:
-
-| Signal | Allowed data |
-| --- | --- |
-| HTTP spans | Route template, method, protocol, status, timing, request/response sizes, and the standard `client.address` network attribute. |
-| Operation spans | Fixed span name, registered callable name where applicable, bounded execution/operation kind, `dara.outcome`, and exception type. |
-| Metrics | The same bounded operation dimensions plus numeric measurements. |
-| Logs | A bounded `event_name` for Dara structured logs or the rendered standard-library message, trace context, code location, and the allowlisted extras `event_name`, `method`, `operation`, `outcome`, and `status_code`. |
-| Resources | Standard deployment identity plus process PID, bounded process type, and process boot ID. |
-
-Application endpoint arguments, path-parameter values, raw URL paths, query-string values, request and response bodies,
-HTTP headers, baggage, cache keys, task IDs, uploaded content, operation arguments, and returned values are not exported
-by default. Raw paths and queries are replaced with `[REDACTED]`; route templates remain available for aggregation.
-Dara retains `client.address`, which OpenTelemetry recommends on HTTP server spans for network-level diagnostics. It is
-not copied into logs or metric dimensions. Deployments with a stricter network-identifier policy can remove it in the
-Collector with an attributes processor. For failed FastAPI validation Dara records only the number of validation
-errors, not the rejected values or error messages.
-
-Exception messages and tracebacks are excluded from spans and OTEL logs. Failures retain only `error.type`, the span
-error status, and a bounded outcome. The OTEL logging handler operates on a copy of each record, drops arbitrary
-structured extras, and exports only an explicit bounded `event_name` from Dara's structured logger because its title,
-`content`, and `error` fields can contain application data. Records without an explicit event name use `dara.log`.
-Ordinary standard-library log messages retain their rendered arguments. Dara's existing console handlers continue to
-receive the original record. This is structural filtering, not pattern-based redaction: applications remain responsible
-for keeping user data and credentials out of ordinary log messages.
-
-Action metrics use the `dara.action.*` namespace. WebSocket message and custom-handler metrics use
-`dara.websocket.message.*`. Metric dimensions contain only bounded operation types, directions, execution modes,
-outcomes, and registered action names. Custom WebSocket handler kinds are span attributes but are deliberately excluded
-from metric dimensions so arbitrary client input cannot create unbounded time series.
-
-Derived-variable metrics use `dara.derived_variable.*`; cache-access metrics include only `hit`, `miss`, or `bypass`
-and never a cache key. Python component, stream, upload, and backend-store metrics use the `dara.py_component.*`,
-`dara.stream.*`, `dara.upload.*`, and `dara.backend_store.*` namespaces. Upload content and filenames, stream events,
-store identifiers and keys, operation arguments, and returned values are not telemetry attributes. Each stream has one
-lifecycle span; individual emitted events do not create spans.
-
-Cache capacity metrics use `dara.cache.size` in bytes and `dara.cache.entries`. Their `dara.cache.kind` dimension is
-one of `store`, `registry`, or `total`; registry observations also have a bounded `dara.registry.name`. Cache keys and
-stored values are never dimensions.
-
-Task metrics use `dara.task.*`; worker execution and occupancy use `dara.worker.*`. The task payload carries only the
-serialized W3C `traceparent` and `tracestate` fields in addition to its existing function and argument data; baggage is
-deliberately excluded. Task IDs and arguments are not span attributes or metric dimensions. Scheduled-job metrics use
-`dara.scheduled_job.*`. Spawned processes initialize their own OTLP exporters from inherited `OTEL_*` variables and
-identify themselves with `process.pid`, a bounded `dara.process.type`, and `dara.process.boot.id` resource attributes.
-Worker and scheduled-job telemetry is flushed on graceful process exit. Dara keeps scheduled-process handles and asks
-them to stop before forcing termination on timeout. The Prometheus reader runs only in the application process because
-the Python exporter does not support multiprocessing; parent-owned worker count, busy-worker, queue-depth, and queue
-duration metrics remain available on port `10000`.
-
-## HTTP latency percentiles
-
-OpenTelemetry exports HTTP request duration as a histogram. Percentiles such as p50, p95, and p99 are calculated by the
-metrics backend rather than inside the application.
-
-For Dara's Prometheus endpoint or an OpenTelemetry Collector exporting classic histograms to Prometheus,
-representative percentile queries are:
-
-```promql
-histogram_quantile(
-  0.50,
-  sum by (le, http_route, http_request_method) (
-    rate(http_server_request_duration_seconds_bucket[5m])
-  )
-)
-
-histogram_quantile(
-  0.95,
-  sum by (le, http_route, http_request_method) (
-    rate(http_server_request_duration_seconds_bucket[5m])
-  )
-)
-
-histogram_quantile(
-  0.99,
-  sum by (le, http_route, http_request_method) (
-    rate(http_server_request_duration_seconds_bucket[5m])
-  )
-)
+```dotenv
+OTEL_RESOURCE_ATTRIBUTES=service.namespace=analytics,service.version=1.4.0,deployment.environment.name=production
 ```
 
-Exact metric and label names can differ with Collector translation settings, so confirm them in the target Prometheus
-deployment. Aggregate by route templates, never raw request paths. Request throughput can be derived from the
-histogram count:
+Dara adds process identity, process type, and a process-local boot ID. Attributes such as `service.instance.id` or a
+build revision remain deployment-specific and should be supplied by the runtime.
 
-```promql
-sum by (http_route, http_request_method) (
-  rate(http_server_request_duration_seconds_count[5m])
-)
-```
+## Prometheus compatibility
 
-The downloadable [Prometheus recording rules](../assets/advanced/otel-prometheus-recording-rules.yml) precompute
-throughput, error ratio, p50, p95, and p99. A useful Grafana service dashboard should include:
+Dara's Prometheus endpoint remains available on port `10000` and serves the same OpenTelemetry metric instruments in
+Prometheus format.
 
-| Panel | PromQL |
-| --- | --- |
-| Request throughput | `sum(dara:http_requests:rate5m)` |
-| HTTP error ratio | `sum(dara:http_errors:rate5m) / clamp_min(sum(dara:http_requests:rate5m), 1)` |
-| Request latency | `dara:http_request_duration_seconds:p50`, `:p95`, and `:p99` |
-| Active requests | `sum(http_server_active_requests)` |
-| Worker saturation | `sum(dara_worker_busy) / clamp_min(sum(dara_worker_count), 1)` |
-| Queue saturation | `sum(dara_task_queue_depth)` |
-| Cache capacity | `sum by (dara_cache_kind) (dara_cache_size_bytes)` and `dara_cache_entries` |
+- `DARA_METRICS_PORT` changes the endpoint port.
+- `DARA_DISABLE_METRICS=TRUE` disables the endpoint.
+- `OTEL_METRICS_EXPORTER=none` keeps Prometheus metrics while exporting only traces and logs through OTLP.
+- `DARA_DISABLE_METRICS=TRUE` with `OTEL_METRICS_EXPORTER=otlp` exports metrics only through OTLP.
+
+If both Prometheus and OTLP metrics are enabled, do not send both copies to the same metrics backend.
 
 ## Collector example
 
-This example accepts OTLP/HTTP and OTLP/gRPC, batches all signals, forwards traces and logs to a generic OTLP backend,
-and exposes OTLP metrics for Prometheus scraping on port `9464`:
+The following Collector configuration receives Dara telemetry over OTLP, forwards traces and logs to an OTLP backend,
+and exposes metrics for Prometheus to scrape on port `9464`:
 
 ```yaml
 receivers:
@@ -207,22 +65,13 @@ processors:
 
 exporters:
   otlp/backend:
-    endpoint: ${env:OTEL_BACKEND_ENDPOINT}
+    endpoint: telemetry-backend:4317
     tls:
       insecure: false
-    sending_queue:
-      enabled: true
-    retry_on_failure:
-      enabled: true
   prometheus:
     endpoint: 0.0.0.0:9464
 
-extensions:
-  health_check:
-    endpoint: 0.0.0.0:13133
-
 service:
-  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
@@ -236,97 +85,180 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
-  telemetry:
-    metrics:
-      readers:
-        - pull:
-            exporter:
-              prometheus:
-                host: 0.0.0.0
-                port: 8888
 ```
 
-The Collector's health endpoint is exposed on `13133` and its internal metrics on `8888`. Set
-`OTEL_BACKEND_ENDPOINT`, configure TLS and authentication for the chosen backend, and do not use the example's
-unauthenticated public listeners without appropriate network controls.
+Replace the backend address and configure its authentication and TLS requirements. The Collector `debug` exporter is
+useful for checking a local connection before configuring a production sink.
 
-For a local connectivity check, replace the backend exporter with the Collector `debug` exporter. Production
-deployments should use a sending queue, retries, TLS, and a persistent queue where loss during Collector restarts is
-unacceptable.
+## What Dara records
 
-## Sampling
+Dara provides:
 
-`LOGFIRE_TRACE_SAMPLE_RATE` controls head sampling. For example, `0.1` samples approximately ten percent of traces.
-Head sampling applies before errors or slow requests are known; use collector-side tail sampling when those traces must
-be retained preferentially.
+- HTTP server traces and standard request duration, size, and active-request metrics.
+- Traces and bounded metrics for actions, WebSocket messages, derived variables, Python components, streams, uploads,
+  server variables, persistence operations, and cache access.
+- Trace propagation through queued WebSocket messages, background tasks, worker processes, and scheduled jobs.
+- Task queue, worker occupancy, stream progress, cache capacity, process, and runtime metrics.
+- Standard-library logs as native OpenTelemetry logs with trace and span correlation.
 
-## Shutdown and exporter health
+Durations are histograms. Percentiles such as p50, p95, and p99 are calculated by the metrics backend. For Prometheus,
+change the first argument to `histogram_quantile` for the desired percentile:
 
-`DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS` bounds how long application shutdown waits for Logfire/OTEL and defaults to five
-seconds. Dara asks Logfire to flush with that budget in a daemon thread and stops waiting at the deadline because
-third-party exporters are not required to honour provider timeouts. A timed-out exporter can therefore continue briefly
-in that daemon thread, but it cannot hold application shutdown open. Signal-specific
-`OTEL_EXPORTER_OTLP_*_TIMEOUT` variables independently bound each export attempt.
-
-Monitor the Collector rather than inferring exporter health from missing application data. Alert on sustained increases
-in `otelcol_exporter_enqueue_failed_spans`, `otelcol_exporter_enqueue_failed_log_records`,
-`otelcol_exporter_enqueue_failed_metric_points`, and the corresponding `otelcol_exporter_send_failed_*` counters.
-Compare `otelcol_exporter_queue_size` with `otelcol_exporter_queue_capacity`, and compare receiver accepted counts with
-exporter sent counts for each signal. Prometheus translation may append `_total` to counter names.
-
-## Request overhead
-
-A local request-path benchmark uses a real Dara application, authentication middleware, a path-parameter endpoint, and
-the complete ASGI request lifecycle. Application startup, login, and warmup are excluded. Each result is the median of
-seven isolated processes with 300 warmup and 3,000 measured sequential requests per process.
-
-Measured on Apple silicon with macOS 26.2 and Python 3.11.14:
-
-| Configuration | p50 | p95 | p99 | Median throughput | p50 overhead |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Strict disabled | 0.504 ms | 0.595 ms | 0.666 ms | 1,903 req/s | — |
-| Prometheus compatibility | 0.654 ms | 0.759 ms | 0.827 ms | 1,492 req/s | +0.150 ms (+29.7%) |
-| Traces and logs | 0.631 ms | 0.737 ms | 0.801 ms | 1,525 req/s | +0.127 ms (+25.1%) |
-| Combined | 0.650 ms | 0.763 ms | 0.848 ms | 1,496 req/s | +0.146 ms (+28.9%) |
-
-This measures framework instrumentation and SDK recording with OTLP exporters set to `none`; it deliberately excludes
-Collector, network, and backend behavior. The percentage is amplified by the sub-millisecond endpoint. The more useful
-capacity-planning figure is the approximately 0.13–0.15 ms absolute p50 cost observed here. Exporters batch off the
-request path, but deployments should repeat the benchmark with their sampling, exporter, Collector, and workload
-configuration.
-
-Run the repeatable benchmark from `packages/dara-core`:
-
-```shell
-DARA_TEST_FLAG=True poetry run python tests/python/_telemetry_overhead_benchmark.py
+```promql
+histogram_quantile(
+  0.95,
+  sum by (le, http_route, http_request_method) (
+    rate(http_server_request_duration_seconds_bucket[5m])
+  )
+)
 ```
 
-## Optional instrumentation
+Exact translated metric and label names can vary with Collector settings. Aggregate HTTP data by route template rather
+than raw path.
 
-Dara does not automatically instrument arbitrary application HTTP clients or database libraries. Applications may add
-the appropriate OpenTelemetry instrumentation after Dara initializes the providers, but must apply the same attribute
-and cardinality policy. Browser telemetry is a separate trust boundary: configure frontend sampling, origins,
-authentication, and attribute filtering independently rather than reusing backend exporter credentials.
+## Adding application telemetry
 
-## Prometheus migration
+Dara configures the process-wide OpenTelemetry providers, so application code can use the standard OpenTelemetry APIs.
+Custom telemetry will use the same exporter and will also appear on Dara's Prometheus endpoint where applicable.
 
-Existing installations retain the Prometheus endpoint on port `10000`. For a staged migration:
+### Spans and events
 
-1. Enable `DARA_OTEL_ENABLED=TRUE` and select `OTEL_METRICS_EXPORTER=otlp`, keeping scraped and OTLP metrics in
-   separate backends or tenants while comparing them.
-2. Update alerts and dashboards using the mapping below.
-3. Set `DARA_DISABLE_METRICS=TRUE` after removing the Prometheus scrape target. Alternatively, set
-   `OTEL_METRICS_EXPORTER=none` to keep Prometheus metrics alongside OTEL traces and logs.
+Create a tracer once at module level. Use fixed span and event names, with bounded attributes:
 
-| Deprecated Prometheus metric | OTEL metric | Notes |
-| --- | --- | --- |
-| `http_requests_total` | `http.server.request.duration` | Use the translated histogram `_count` for throughput. |
-| `http_request_duration_seconds` | `http.server.request.duration` | Standard HTTP semantic-convention histogram. |
-| `task_runtimes` | `dara.task.duration` | Use bounded task kind, name, and outcome dimensions. |
-| `dv_runtimes` | `dara.derived_variable.duration` | Use bounded resolver, execution, and outcome dimensions. |
-| `cache_size_info` | `dara.cache.size` | Numeric bytes; the old human-readable string metric is removed. |
-| — | `dara.cache.entries` | Numeric current entry count. |
+```python
+from opentelemetry import trace
 
-The endpoint now exposes the translated numeric `dara_cache_size_bytes` and `dara_cache_entries` gauges in place of
-`cache_size_info`. All transports use one OTEL instrumentation schema. Metric names shown in PromQL use the default
-OTEL-to-Prometheus translation of dotted names and units.
+tracer = trace.get_tracer(__name__)
+
+
+def refresh_model():
+    with tracer.start_as_current_span('my_app.model.refresh') as span:
+        span.set_attribute('my_app.model.kind', 'forecast')
+
+        model = load_model()
+
+        span.add_event(
+            'my_app.model.loaded',
+            {'my_app.model.source': 'object_store'},
+        )
+        return model
+```
+
+Spans created within an endpoint, action, derived variable, task, or worker automatically join the current trace.
+Record identifiers or values only when they are safe and genuinely useful.
+
+### Calls to other services
+
+When an outbound call is made inside a Dara endpoint, action, derived variable, task, or worker, Dara has already made
+that operation's span current. An outbound client span created there automatically becomes its child. Propagating that
+client span's context lets the receiving service continue the same trace:
+
+`Dara action or derived-variable span → HTTP client span → receiving service span`
+
+Assume an HTTP client is uninstrumented unless the application explicitly installs and enables its matching
+OpenTelemetry integration. For example, using HTTPX alone is not enough; enabling
+`opentelemetry-instrumentation-httpx` with `HTTPXClientInstrumentor().instrument()` makes ordinary HTTPX requests create
+client spans and inject the standard W3C `traceparent` header automatically. Dara does not enable instrumentation for
+application HTTP clients because it does not know which client library an application uses.
+
+If no client integration is enabled, create the client span and inject its context explicitly:
+
+```python
+import httpx
+from opentelemetry import trace
+from opentelemetry.propagate import inject
+from opentelemetry.trace import SpanKind
+
+tracer = trace.get_tracer(__name__)
+
+
+async def fetch_catalog():
+    headers = {}
+    with tracer.start_as_current_span(
+        'my_app.catalog.request',
+        kind=SpanKind.CLIENT,
+    ):
+        # Serializes the current client span, including its trace ID and parent span ID.
+        inject(headers)
+        async with httpx.AsyncClient() as client:
+            return await client.get(
+                'https://catalog.internal/api/items',
+                headers=headers,
+            )
+```
+
+The receiving service must extract the W3C context; its OpenTelemetry server instrumentation normally handles this.
+Its spans will then share the trace ID and appear beneath the client span in the same distributed trace. Use either
+client-library instrumentation or the manual client span above, not both, to avoid duplicate spans.
+Do not put credentials, user data, or other sensitive values in propagated baggage.
+
+### Metrics
+
+Instruments should also be created once at module level and reused:
+
+```python
+from time import perf_counter
+
+from opentelemetry import metrics
+
+meter = metrics.get_meter(__name__)
+refreshes = meter.create_counter(
+    'my_app.model.refreshes',
+    unit='{refresh}',
+)
+refresh_duration = meter.create_histogram(
+    'my_app.model.refresh.duration',
+    unit='s',
+)
+
+
+def refresh_model():
+    started = perf_counter()
+    try:
+        return load_model()
+    finally:
+        refreshes.add(1, {'my_app.model.kind': 'forecast'})
+        refresh_duration.record(
+            perf_counter() - started,
+            {'my_app.model.kind': 'forecast'},
+        )
+```
+
+Metric attributes create time series. Keep their values bounded: use categories such as operation type, result, or
+backend kind; never use user IDs, request IDs, cache keys, URLs, or arbitrary exception messages.
+
+### Logs
+
+Python standard-library logs are exported automatically while existing console logging remains unchanged:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.info(
+    'my_app.model.refreshed',
+    extra={
+        'operation': 'model.refresh',
+        'outcome': 'success',
+    },
+)
+```
+
+Keep exported log messages stable and put only safe, bounded values in structured fields. Dara does not pattern-match
+or regex-redact ordinary application log messages, so do not include credentials, request bodies, user data, or
+exception text in them. Report detailed sensitive diagnostics through an appropriately secured application logging
+path instead.
+
+## Privacy and operations
+
+Dara exports route templates, methods, status, timing, sizes, and the standard `client.address` HTTP span attribute.
+Raw URL paths, query strings, endpoint arguments, headers, bodies, cache keys, task IDs, results, exception messages,
+and tracebacks are excluded by default. A deployment with a stricter network-identifier policy can remove
+`client.address` in the Collector.
+
+`LOGFIRE_TRACE_SAMPLE_RATE` controls head sampling. Use Collector-side tail sampling when errors or slow traces must be
+retained preferentially.
+
+`DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS` controls how long application shutdown waits for telemetry flushing and defaults to
+five seconds. Monitor Collector receiver, queue, and exporter failure metrics to detect dropped or delayed telemetry.
