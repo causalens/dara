@@ -1417,6 +1417,30 @@ def capture_telemetry_carrier() -> dict[str, str] | None:
     return carrier or None
 
 
+def link_current_span_to_carrier(
+    carrier: Mapping[str, str] | None,
+    *,
+    attributes: Mapping[str, str | bool | int | float] | None = None,
+) -> None:
+    """
+    Link the current recording span to a previously serialized W3C context.
+
+    :param carrier: server-side W3C propagation fields captured by Dara
+    :param attributes: bounded attributes describing the relationship
+    """
+    if not carrier:
+        return
+
+    current_span = trace.get_current_span()
+    if not current_span.is_recording():
+        return
+
+    linked_context = _TRACE_CONTEXT_PROPAGATOR.extract(carrier)
+    linked_span_context = trace.get_current_span(linked_context).get_span_context()
+    if linked_span_context.is_valid:
+        current_span.add_link(linked_span_context, attributes)
+
+
 @contextmanager
 def use_telemetry_carrier(carrier: Mapping[str, str] | None) -> Iterator[None]:
     """

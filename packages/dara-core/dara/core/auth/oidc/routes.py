@@ -36,7 +36,7 @@ from dara.core.auth.session import create_auth_session, get_auth_session_cookie_
 from dara.core.auth.utils import sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
-from dara.core.telemetry import annotate_auth_observation, observe_auth
+from dara.core.telemetry import annotate_auth_observation, link_current_span_to_carrier, observe_auth
 
 from .definitions import OIDC_LOGIN_SESSION_COOKIE_NAME, AuthCodeRequestBody
 from .transaction_store import oidc_transaction_store
@@ -173,6 +173,13 @@ async def sso_callback(
                 failure_reason='invalid_state',
             )
             _raise_invalid_state_parameter(request)
+
+    # The browser redirect cannot carry trace headers through the identity provider.
+    # Link this callback to the server-side context captured when login began.
+    link_current_span_to_carrier(
+        transaction.telemetry_carrier,
+        attributes={'dara.link.kind': 'oidc_handoff'},
+    )
 
     try:
         # Exchange authorization code for tokens per RFC 6749 Section 4.1.3

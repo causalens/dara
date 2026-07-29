@@ -15,7 +15,12 @@ from pydantic.config import ConfigDict
 from dara.core.definitions import ApiRoute
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
-from dara.core.telemetry import annotate_auth_observation, instrument_httpx_client, observe_auth
+from dara.core.telemetry import (
+    annotate_auth_observation,
+    capture_telemetry_carrier,
+    instrument_httpx_client,
+    observe_auth,
+)
 
 from ..base import AuthComponent, AuthComponentConfig, BaseAuthConfig
 from ..definitions import (
@@ -406,6 +411,7 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param body: Request body, may contain redirect_to for post-auth navigation
         """
         oidc_settings = get_oidc_settings()
+        telemetry_carrier = capture_telemetry_carrier()
         with observe_auth(
             'oidc.login.initiate',
             system='oidc',
@@ -422,6 +428,7 @@ class OIDCAuthConfig(BaseAuthConfig):
                 nonce=self.generate_nonce(),
                 code_verifier=code_verifier,
                 redirect_to=redirect_to,
+                telemetry_carrier=telemetry_carrier,
             )
             oidc_transaction_store.set(transaction)
             return RedirectResponse(

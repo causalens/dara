@@ -141,6 +141,8 @@ Dara provides:
 Route-loader HTTP spans include the resolved Dara route ID, name, and declared path. Action, derived-variable, and
 Python-component spans include their registered definition or instance IDs, short function name, and module-qualified
 callable identity where available. These identifiers are span attributes only; they are not metric dimensions.
+Successful OIDC callback spans link back to the login-initiation span using context kept in Dara's server-side
+transaction store; trace context is not placed in the browser redirect URL.
 
 Durations are histograms. Percentiles such as p50, p95, and p99 are calculated by the metrics backend. For Prometheus,
 change the first argument to `histogram_quantile` for the desired percentile:

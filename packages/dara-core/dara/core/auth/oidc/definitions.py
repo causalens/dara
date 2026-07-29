@@ -303,6 +303,10 @@ class OIDCLoginTransaction(BaseModel):
     nonce: str = Field(..., description='Nonce value sent in the authorization request')
     code_verifier: str | None = Field(default=None, description='PKCE code verifier for public client auth')
     redirect_to: str | None = Field(default=None, description='Optional redirect target after successful auth')
+    telemetry_carrier: dict[str, str] | None = Field(
+        default=None,
+        description='Server-side W3C context linking login initiation to the callback',
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=timezone.utc),
         description='Creation time for the transaction',

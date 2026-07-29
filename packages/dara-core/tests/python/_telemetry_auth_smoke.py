@@ -89,6 +89,14 @@ async def main() -> None:
             state = await start_oidc_login(client, redirect_to='/after-login')
             transaction = oidc_transaction_store.get(state)
             assert transaction is not None
+            assert transaction.telemetry_carrier is not None
+            assert 'traceparent' in transaction.telemetry_carrier
+            authorization_url = auth_config.get_authorization_url(
+                transaction.state,
+                nonce=transaction.nonce,
+                code_verifier=transaction.code_verifier,
+            )
+            assert all(value not in authorization_url for value in transaction.telemetry_carrier.values())
 
             private_identity = 'private-identity-value'
             private_email = 'private-email@example.com'
@@ -200,6 +208,13 @@ async def main() -> None:
         and span.attributes is not None
         and span.attributes.get('dara.outcome') == 'success'
     )
+    assert login_span.context is not None
+    assert len(callback_span.links) == 1
+    callback_link = callback_span.links[0]
+    assert callback_link.context.trace_id == login_span.context.trace_id
+    assert callback_link.context.span_id == login_span.context.span_id
+    assert callback_link.attributes is not None
+    assert callback_link.attributes['dara.link.kind'] == 'oidc_handoff'
     token_exchange = _child_span(spans, 'dara.auth.oidc.token_exchange', callback_span)
     id_token_verify = _child_span(spans, 'dara.auth.oidc.id_token.verify', callback_span)
     userinfo = _child_span(spans, 'dara.auth.oidc.userinfo', callback_span)
@@ -281,6 +296,7 @@ async def main() -> None:
         and span.attributes.get('dara.outcome') == 'denied'
     )
     rejected_state_span = _child_span(spans, 'dara.auth.oidc.state.validate', rejected_callback)
+    assert not rejected_callback.links
     assert rejected_state_span.attributes is not None
     assert rejected_state_span.attributes['dara.auth.failure.reason'] == 'invalid_state'
     assert not rejected_state_span.events
@@ -300,6 +316,7 @@ async def main() -> None:
         private_identity,
         private_email,
         'Private User Name',
+        *transaction.telemetry_carrier.values(),
     )
     exported = repr(spans)
     assert all(value not in exported for value in private_values)
