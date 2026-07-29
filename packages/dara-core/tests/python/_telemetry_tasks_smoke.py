@@ -131,6 +131,21 @@ async def main() -> None:
         assert response_data['cancelled'] is True
 
     spans = span_exporter.get_finished_spans()
+    startup_span = next(span for span in spans if span.name == 'dara.application.startup')
+    shutdown_span = next(span for span in spans if span.name == 'dara.application.shutdown')
+    assert startup_span.context is not None
+    assert shutdown_span.context is not None
+    task_pool_start = next(span for span in spans if span.name == 'dara.application.task_pool.start')
+    task_pool_stop = next(span for span in spans if span.name == 'dara.application.task_pool.stop')
+    assert task_pool_start.parent is not None
+    assert task_pool_start.parent.span_id == startup_span.context.span_id
+    assert task_pool_stop.parent is not None
+    assert task_pool_stop.parent.span_id == shutdown_span.context.span_id
+    assert task_pool_start.attributes is not None
+    assert task_pool_stop.attributes is not None
+    assert task_pool_start.attributes['dara.internal.name'] == 'tests.python.tasks'
+    assert task_pool_stop.attributes['dara.internal.name'] == 'tests.python.tasks'
+
     task_http_span = next(span for span in spans if span.name == 'GET /api/telemetry-tasks')
     assert task_http_span.context is not None
 

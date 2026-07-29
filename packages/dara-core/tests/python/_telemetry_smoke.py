@@ -1,6 +1,7 @@
 """Isolated end-to-end telemetry smoke test used by test_telemetry."""
 
 import logging
+from typing import Any, cast
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -22,6 +23,25 @@ from dara.core.internal.registries import action_registry, static_kwargs_registr
 from dara.core.logging import http_logger
 from dara.core.main import _start_application
 from dara.core.visual.components import RawString
+
+
+class _FakeScheduledProcess:
+    """Minimal process handle used to exercise application-owned scheduler cleanup."""
+
+    def join(self, _timeout: float) -> None:
+        """Simulate an already-stopped process."""
+
+    def is_alive(self) -> bool:
+        """Report that no process termination is required."""
+        return False
+
+
+class _FakeScheduledJob:
+    """Scheduled job factory that avoids spawning a subprocess in this smoke test."""
+
+    def do(self, _func, _args):
+        """Return a process-compatible handle."""
+        return _FakeScheduledProcess()
 
 
 async def main() -> None:
@@ -90,9 +110,21 @@ async def main() -> None:
     action_instance = traced_action()
     failed_action_instance = failed_action()
 
+    def lifecycle_cleanup():
+        raise RuntimeError('private-lifecycle-error')
+
+    async def lifecycle_startup():
+        await anyio.sleep(0)
+        return lifecycle_cleanup
+
+    def scheduled_target():
+        return None
+
     auth = BasicAuthConfig(username='test', password='test')
     config = builder._to_configuration()
     config.auth_config = auth
+    config.startup_functions.append(lifecycle_startup)
+    config.scheduled_jobs.append((cast(Any, _FakeScheduledJob()), scheduled_target, []))
     app = _start_application(config)
     http_logger._logger.setLevel(logging.INFO)
 
@@ -213,6 +245,69 @@ async def main() -> None:
             await anyio.sleep(0)
 
     spans = span_exporter.get_finished_spans()
+
+    startup_span = next(span for span in spans if span.name == 'dara.application.startup')
+    shutdown_span = next(span for span in spans if span.name == 'dara.application.shutdown')
+    assert startup_span.parent is None
+    assert shutdown_span.parent is None
+    assert startup_span.context is not None
+    assert shutdown_span.context is not None
+
+    startup_children = [
+        span for span in spans if span.parent is not None and span.parent.span_id == startup_span.context.span_id
+    ]
+    assert {
+        'dara.application.auth_session_backend.initialize',
+        'dara.application.runtime.initialize',
+        'dara.application.signal_handlers.setup',
+        'dara.application.startup_hook',
+    }.issubset({span.name for span in startup_children})
+    auth_backend_span = next(
+        span for span in startup_children if span.name == 'dara.application.auth_session_backend.initialize'
+    )
+    assert auth_backend_span.attributes is not None
+    assert auth_backend_span.attributes['dara.internal.name'] == 'InMemoryAuthSessionBackend'
+    custom_startup_span = next(
+        span
+        for span in startup_children
+        if span.name == 'dara.application.startup_hook'
+        and span.attributes is not None
+        and str(span.attributes.get('dara.internal.name', '')).endswith('.lifecycle_startup')
+    )
+    assert custom_startup_span.attributes['dara.outcome'] == 'success'
+    scheduled_start_span = next(
+        span
+        for span in startup_children
+        if span.name == 'dara.application.scheduled_job.start'
+        and span.attributes is not None
+        and str(span.attributes.get('dara.internal.name', '')).endswith('.scheduled_target')
+    )
+    assert scheduled_start_span.attributes['dara.outcome'] == 'success'
+
+    shutdown_children = [
+        span for span in spans if span.parent is not None and span.parent.span_id == shutdown_span.context.span_id
+    ]
+    assert 'dara.application.tasks.cancel' in {span.name for span in shutdown_children}
+    cleanup_span = next(
+        span
+        for span in shutdown_children
+        if span.name == 'dara.application.cleanup_hook'
+        and span.attributes is not None
+        and str(span.attributes.get('dara.internal.name', '')).endswith('.lifecycle_cleanup')
+    )
+    assert cleanup_span.attributes['dara.outcome'] == 'error'
+    assert cleanup_span.attributes['error.type'] == 'RuntimeError'
+    assert cleanup_span.status.description is None
+    assert not cleanup_span.events
+    assert 'private-lifecycle-error' not in repr(cleanup_span)
+    scheduled_stop_span = next(
+        span
+        for span in shutdown_children
+        if span.name == 'dara.application.scheduled_job.stop'
+        and span.attributes is not None
+        and str(span.attributes.get('dara.internal.name', '')).endswith('.scheduled_target')
+    )
+    assert scheduled_stop_span.attributes['dara.outcome'] == 'success'
 
     health_span = next(span for span in spans if span.name == 'GET /api/health')
     correlated_log = next(
@@ -379,6 +474,7 @@ async def main() -> None:
     assert all('dara.websocket.message.payload.type' not in attributes for attributes in websocket_metric_attributes)
     exported_logs = log_exporter.get_finished_logs()
     assert all('secret-action-value' not in repr(item) for item in exported_logs)
+    assert all('private-lifecycle-error' not in repr(item) for item in exported_logs)
     assert all('secret-value' not in repr(item) for item in exported_logs)
     assert all('203.0.113.' not in repr(item) for item in exported_logs)
     exported_log_bodies = {item.log_record.body for item in exported_logs}

@@ -134,6 +134,8 @@ Dara provides:
 - Authentication traces for session handling and OIDC discovery, callbacks, token exchange, token verification,
   provider userinfo, JWKS resolution, refresh, and access checks. These use bounded outcomes and do not attach tokens,
   authorization codes, identity claims, or provider response bodies.
+- Application startup and shutdown traces, including auth-session backend setup, runtime managers, task-pool lifecycle,
+  user startup and cleanup hooks, and scheduled-job process lifecycle.
 - Trace propagation through queued WebSocket messages, background tasks, worker processes, and scheduled jobs.
 - Task queue, worker occupancy, stream progress, cache capacity, process, and runtime metrics.
 - Standard-library logs as native OpenTelemetry logs with trace and span correlation.
