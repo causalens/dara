@@ -1,7 +1,7 @@
 import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 
-import { type BackendStoreMessage, type BackendStorePatchMessage } from '@/api/websocket';
+import { type BackendStoreMessage, type BackendStorePatchMessage, ServerMessageTypename } from '@/api/websocket';
 import { setSessionIdentifier } from '@/auth/session-state';
 import { RequestExtrasProvider } from '@/shared';
 import { getSessionKey } from '@/shared/interactivity/persistence';
@@ -387,6 +387,7 @@ describe('Variable Persistence', () => {
         // First receive a message for other store uid
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE,
                 message: {
                     store_uid: 'other_uid',
                     value: {
@@ -403,6 +404,7 @@ describe('Variable Persistence', () => {
         // Then receive a message for the store uid
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE,
                 message: {
                     store_uid: 'store-uid',
                     value: {
@@ -465,6 +467,7 @@ describe('Variable Persistence', () => {
         // Apply JSON patch to update user age and add item
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'store-uid',
                     patches: [
@@ -492,6 +495,7 @@ describe('Variable Persistence', () => {
         // Apply another patch to remove an item
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'store-uid',
                     patches: [{ op: 'remove', path: '/items/0' }],
@@ -515,6 +519,7 @@ describe('Variable Persistence', () => {
         // Test patch for different store uid should not affect our variable
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'other-store-uid',
                     patches: [{ op: 'replace', path: '/user/name', value: 'Jane' }],
@@ -726,6 +731,7 @@ describe('Variable Persistence', () => {
         // Send a patch with correct sequence number 1
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'sequence-validation-store',
                     patches: [{ op: 'replace', path: '/count', value: 1 }],
@@ -742,6 +748,7 @@ describe('Variable Persistence', () => {
         // Send patch with wrong sequence number - should trigger recovery fetch
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'sequence-validation-store',
                     patches: [{ op: 'replace', path: '/count', value: 999 }],
@@ -803,6 +810,7 @@ describe('Variable Persistence', () => {
         // Send multiple mismatched patches rapidly — should only trigger one recovery fetch
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'dedup-store',
                     patches: [{ op: 'replace', path: '/count', value: 5 }],
@@ -811,6 +819,7 @@ describe('Variable Persistence', () => {
                 type: 'message',
             } as BackendStorePatchMessage);
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'dedup-store',
                     patches: [{ op: 'replace', path: '/count', value: 6 }],
@@ -819,6 +828,7 @@ describe('Variable Persistence', () => {
                 type: 'message',
             } as BackendStorePatchMessage);
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'dedup-store',
                     patches: [{ op: 'replace', path: '/count', value: 7 }],
@@ -876,6 +886,7 @@ describe('Variable Persistence', () => {
         // Receive a WS full-value message with the same content (different object reference)
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE,
                 message: {
                     store_uid: 'echo-store',
                     value: { foo: 'bar' },
@@ -929,6 +940,7 @@ describe('Variable Persistence', () => {
         // Send a patch with sequence number 1
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'sequence-reset-store',
                     patches: [{ op: 'replace', path: '/count', value: 1 }],
@@ -945,6 +957,7 @@ describe('Variable Persistence', () => {
         // Send a full value update (resets sequence to 0)
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE,
                 message: {
                     store_uid: 'sequence-reset-store',
                     value: { count: 10 },
@@ -961,6 +974,7 @@ describe('Variable Persistence', () => {
         // Now send a patch with sequence number 6 (should be accepted since sequence was reset to 5)
         act(() => {
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
                 message: {
                     store_uid: 'sequence-reset-store',
                     patches: [{ op: 'replace', path: '/count', value: 11 }],

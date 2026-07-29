@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import WS from 'vitest-websocket-mock';
 
 import { WebSocketClient } from '@/api';
+import { firstPartyServerMessageSchema, ServerMessageTypename, TaskStatus } from '@/api/websocket';
 
 /**
  * Helper function to convert a json message to a string for the server to send
@@ -41,6 +42,55 @@ describe('WebsocketClient', () => {
     afterEach(() => {
         WS.clean();
         vi.restoreAllMocks();
+    });
+
+    it.each([
+        {
+            __typename: ServerMessageTypename.ACTION,
+            message: { action: null, uid: 'action-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.BACKEND_STORE,
+            message: { sequence_number: 1, store_uid: 'store-id', value: 'value' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
+            message: { patches: [], sequence_number: 1, store_uid: 'store-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.SERVER_ERROR,
+            message: { error: 'error', time: 'timestamp' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.SERVER_VARIABLE,
+            message: { __type: 'ServerVariable', sequence_number: 1, uid: 'variable-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.TASK_NOTIFICATION,
+            message: { status: TaskStatus.COMPLETE, task_id: 'task-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.VARIABLE_REQUEST,
+            message: { __rchan: 'return-channel', variable: { __typename: 'Variable', uid: 'variable-id' } },
+            type: 'message',
+        },
+    ])('parses the $__typename protocol message', (message) => {
+        expect(firstPartyServerMessageSchema.safeParse(message).success).toBe(true);
+    });
+
+    it('rejects an untagged first-party message', () => {
+        expect(
+            firstPartyServerMessageSchema.safeParse({
+                message: { action: null, uid: 'action-id' },
+                type: 'message',
+            }).success
+        ).toBe(false);
     });
 
     it('should initialize the websocket connection when the client is instantiated', async () => {

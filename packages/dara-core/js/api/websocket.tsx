@@ -2,6 +2,7 @@
 import { nanoid } from 'nanoid';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
+import { z } from 'zod/v4';
 
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
@@ -33,18 +34,6 @@ export class TaskError extends Error {
     }
 }
 
-interface InitMessage {
-    message: {
-        channel: string;
-    };
-    type: 'init';
-}
-
-interface PingPongMessage {
-    message: null;
-    type: 'ping' | 'pong';
-}
-
 export enum TaskStatus {
     CANCELED = 'CANCELED',
     COMPLETE = 'COMPLETE',
@@ -52,140 +41,198 @@ export enum TaskStatus {
     PROGRESS = 'PROGRESS',
 }
 
-type TaskNotificationMessageContent =
-    | { status: TaskStatus.COMPLETE; task_id: string }
-    | { status: TaskStatus.ERROR; task_id: string; error: string }
-    | { status: TaskStatus.PROGRESS; task_id: string; progress: number; message: string }
-    | { status: TaskStatus.CANCELED; task_id: string };
-
-export interface TaskNotificationMessage {
-    message: TaskNotificationMessageContent;
-    type: 'message';
+export enum ServerMessageTypename {
+    ACTION = 'ActionMessage',
+    BACKEND_STORE = 'BackendStoreMessage',
+    BACKEND_STORE_PATCH = 'BackendStorePatchMessage',
+    SERVER_ERROR = 'ServerErrorMessage',
+    SERVER_VARIABLE = 'ServerVariableMessage',
+    TASK_NOTIFICATION = 'TaskNotificationMessage',
+    VARIABLE_REQUEST = 'VariableRequestMessage',
 }
 
-export interface ProgressNotificationMessage {
-    type: 'message';
-    message: Extract<TaskNotificationMessageContent, { status: TaskStatus.PROGRESS }>;
-}
+const initMessageSchema = z.object({
+    message: z.object({ channel: z.string() }),
+    type: z.literal('init'),
+});
+type InitMessage = z.infer<typeof initMessageSchema>;
 
-export interface ServerErrorMessage {
-    message: {
-        error: string;
-        time: string;
-    };
-    type: 'message';
-}
+const pingPongMessageSchema = z.object({
+    message: z.null(),
+    type: z.union([z.literal('ping'), z.literal('pong')]),
+});
+type PingPongMessage = z.infer<typeof pingPongMessageSchema>;
 
-export interface VariableRequestMessage {
-    message: {
+const taskNotificationContentSchema = z.discriminatedUnion('status', [
+    z.object({ status: z.literal(TaskStatus.COMPLETE), task_id: z.string() }).passthrough(),
+    z.object({ status: z.literal(TaskStatus.ERROR), task_id: z.string(), error: z.string() }).passthrough(),
+    z
+        .object({
+            status: z.literal(TaskStatus.PROGRESS),
+            task_id: z.string(),
+            progress: z.number(),
+            message: z.string(),
+        })
+        .passthrough(),
+    z.object({ status: z.literal(TaskStatus.CANCELED), task_id: z.string() }).passthrough(),
+]);
+
+export const taskNotificationMessageSchema = z.object({
+    __typename: z.literal(ServerMessageTypename.TASK_NOTIFICATION),
+    message: taskNotificationContentSchema,
+    type: z.literal('message'),
+});
+export type TaskNotificationMessage = z.infer<typeof taskNotificationMessageSchema>;
+
+export type ProgressNotificationMessage = TaskNotificationMessage & {
+    message: Extract<TaskNotificationMessage['message'], { status: TaskStatus.PROGRESS }>;
+};
+
+export const serverErrorMessageSchema = z.object({
+    __typename: z.literal(ServerMessageTypename.SERVER_ERROR),
+    message: z.object({
+        error: z.string(),
+        time: z.string(),
+    }),
+    type: z.literal('message'),
+});
+export type ServerErrorMessage = z.infer<typeof serverErrorMessageSchema>;
+
+export const variableRequestMessageSchema = z.object({
+    __typename: z.literal(ServerMessageTypename.VARIABLE_REQUEST),
+    message: z.object({
         /** Channel to send in the response */
-        __rchan: string;
-        variable: AnyVariable<any>;
-    };
-    type: 'message';
-}
+        __rchan: z.string(),
+        variable: z.custom<AnyVariable<any>>(),
+    }),
+    type: z.literal('message'),
+});
+export type VariableRequestMessage = z.infer<typeof variableRequestMessageSchema>;
 
-export interface ActionMessage {
-    message: {
+export const actionMessageSchema = z.object({
+    __typename: z.literal(ServerMessageTypename.ACTION),
+    message: z.object({
         /**
          * Action implementation instance
          */
-        action: ActionImpl | null;
+        action: z.custom<ActionImpl>().nullable(),
         /**
          * Execution uid
          */
-        uid: string;
-    };
-    type: 'message';
-}
+        uid: z.string(),
+    }),
+    type: z.literal('message'),
+});
+export type ActionMessage = z.infer<typeof actionMessageSchema>;
 
-export interface BackendStoreMessage {
-    message: {
-        store_uid: string;
-        value: any;
-        sequence_number: number;
-    };
-    type: 'message';
-}
+export const backendStoreMessageSchema = z.object({
+    __typename: z.literal(ServerMessageTypename.BACKEND_STORE),
+    message: z.object({
+        store_uid: z.string(),
+        value: z.any(),
+        sequence_number: z.number(),
+    }),
+    type: z.literal('message'),
+});
+export type BackendStoreMessage = z.infer<typeof backendStoreMessageSchema>;
 
-export interface BackendStorePatchMessage {
-    message: {
-        store_uid: string;
-        patches: Array<{
-            op: 'add' | 'remove' | 'replace' | 'move' | 'copy' | 'test';
-            path: string;
-            value?: any;
-            from?: string;
-        }>;
-        sequence_number: number;
-    };
-    type: 'message';
-}
+export const backendStorePatchMessageSchema = z.object({
+    __typename: z.literal(ServerMessageTypename.BACKEND_STORE_PATCH),
+    message: z.object({
+        store_uid: z.string(),
+        patches: z.array(
+            z.object({
+                op: z.union([
+                    z.literal('add'),
+                    z.literal('remove'),
+                    z.literal('replace'),
+                    z.literal('move'),
+                    z.literal('copy'),
+                    z.literal('test'),
+                ]),
+                path: z.string(),
+                value: z.any().optional(),
+                from: z.string().optional(),
+            })
+        ),
+        sequence_number: z.number(),
+    }),
+    type: z.literal('message'),
+});
+export type BackendStorePatchMessage = z.infer<typeof backendStorePatchMessageSchema>;
 
-export interface ServerVariableMessage {
-    message: {
-        __type: 'ServerVariable';
-        uid: string;
-        sequence_number: number;
-    };
-    type: 'message';
-}
+export const serverVariableMessageSchema = z.object({
+    __typename: z.literal(ServerMessageTypename.SERVER_VARIABLE),
+    message: z.object({
+        __type: z.literal('ServerVariable'),
+        uid: z.string(),
+        sequence_number: z.number(),
+    }),
+    type: z.literal('message'),
+});
+export type ServerVariableMessage = z.infer<typeof serverVariableMessageSchema>;
 
-export interface CustomMessage {
-    message: {
-        data: any;
-        kind: string;
+export const customMessageSchema = z.object({
+    message: z.object({
+        data: z.any(),
+        kind: z.string(),
         /** Optional ID, returned from server custom messages coming as a response for a custom client message */
-        __response_for?: string;
+        __response_for: z.string().optional(),
         /** Optional ID, should be included as `__response_for` when the server responds to this message */
-        __rchan?: string;
-    };
-    type: 'custom';
-}
+        __rchan: z.string().optional(),
+    }),
+    type: z.literal('custom'),
+});
+export type CustomMessage = z.infer<typeof customMessageSchema>;
 
-export type WebSocketMessage =
-    | InitMessage
-    | PingPongMessage
-    | TaskNotificationMessage
-    | ProgressNotificationMessage
-    | ServerErrorMessage
-    | ServerVariableMessage
-    | VariableRequestMessage
-    | ActionMessage
-    | BackendStoreMessage
-    | BackendStorePatchMessage
-    | CustomMessage;
+export const firstPartyServerMessageSchema = z.discriminatedUnion('__typename', [
+    taskNotificationMessageSchema,
+    serverErrorMessageSchema,
+    variableRequestMessageSchema,
+    actionMessageSchema,
+    backendStoreMessageSchema,
+    backendStorePatchMessageSchema,
+    serverVariableMessageSchema,
+]);
+
+export const webSocketMessageSchema = z.union([
+    initMessageSchema,
+    pingPongMessageSchema,
+    firstPartyServerMessageSchema,
+    customMessageSchema,
+]);
+export type WebSocketMessage = z.infer<typeof webSocketMessageSchema>;
 
 export function isInitMessage(message: WebSocketMessage): message is InitMessage {
     return message.type === 'init';
 }
 
 export function isTaskNotification(message: WebSocketMessage): message is TaskNotificationMessage {
-    return message.type === 'message' && 'status' in message.message && 'task_id' in message.message;
+    return message.type === 'message' && message.__typename === ServerMessageTypename.TASK_NOTIFICATION;
 }
 
 export function isServerVariableMessage(message: WebSocketMessage): message is ServerVariableMessage {
-    return message.type === 'message' && '__type' in message.message && message.message.__type === 'ServerVariable';
+    return message.type === 'message' && message.__typename === ServerMessageTypename.SERVER_VARIABLE;
 }
 
 export function isServerErrorMessage(message: WebSocketMessage): message is ServerErrorMessage {
-    return message.type === 'message' && 'error' in message.message;
+    return message.type === 'message' && message.__typename === ServerMessageTypename.SERVER_ERROR;
 }
 
 export function isVariableRequestMessage(message: WebSocketMessage): message is VariableRequestMessage {
-    return message.type === 'message' && 'variable' in message.message;
+    return message.type === 'message' && message.__typename === ServerMessageTypename.VARIABLE_REQUEST;
 }
 
 export function isActionMessage(message: WebSocketMessage): message is ActionMessage {
-    return message.type === 'message' && 'action' in message.message;
+    return message.type === 'message' && message.__typename === ServerMessageTypename.ACTION;
 }
 
 export function isBackendStoreMessage(message: WebSocketMessage): message is BackendStoreMessage {
-    return message.type === 'message' && 'store_uid' in message.message && 'value' in message.message;
+    return message.type === 'message' && message.__typename === ServerMessageTypename.BACKEND_STORE;
 }
 
 export function isBackendStorePatchMessage(message: WebSocketMessage): message is BackendStorePatchMessage {
-    return message.type === 'message' && 'store_uid' in message.message && 'patches' in message.message;
+    return message.type === 'message' && message.__typename === ServerMessageTypename.BACKEND_STORE_PATCH;
 }
 
 export function isCustomMessage(message: WebSocketMessage): message is CustomMessage {

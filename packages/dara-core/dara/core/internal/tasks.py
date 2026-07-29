@@ -51,7 +51,7 @@ from dara.core.internal.devtools import get_error_for_channel
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.utils import exception_group_contains, run_user_handler
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import DaraServerMessage, TaskNotificationMessagePayload, WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.telemetry import (
     _OperationObservation,
@@ -60,6 +60,16 @@ from dara.core.telemetry import (
     observe_task_operation,
     use_telemetry_context,
 )
+
+
+def _task_notification_message(payload: dict[str, Any]) -> DaraServerMessage:
+    """Create a self-discriminating task notification message."""
+    return DaraServerMessage.create('TaskNotificationMessage', payload)
+
+
+def _server_error_message(payload: dict[str, Any]) -> DaraServerMessage:
+    """Create a self-discriminating server error message."""
+    return DaraServerMessage.create('ServerErrorMessage', payload)
 
 
 class Task(BaseTask):
@@ -499,7 +509,11 @@ class TaskManager:
                     if notify:
                         await self._send_notification_for_task(
                             task=pending_task,
-                            messages=[{'status': 'CANCELED', 'task_id': task_id_to_cancel}],
+                            messages=[
+                                _task_notification_message(
+                                    {'status': 'CANCELED', 'task_id': task_id_to_cancel},
+                                )
+                            ],
                         )
 
                     if not pending_task.event.is_set():
@@ -616,7 +630,12 @@ class TaskManager:
 
         return task_ids
 
-    async def _multicast_notification(self, task_id: str, messages: list[dict], variable_task_id: bool = True):
+    async def _multicast_notification(
+        self,
+        task_id: str,
+        messages: list[DaraServerMessage],
+        variable_task_id: bool = True,
+    ):
         """
         Send notifications to all task IDs that are related to a given task
 
@@ -645,7 +664,12 @@ class TaskManager:
                         pending_task = self.tasks[pending_task_id]
                         task_tg.start_soon(self._send_notification_for_task, pending_task, messages, variable_task_id)
 
-    async def _send_notification_for_task(self, task: BaseTask, messages: list[dict], variable_task_id: bool = True):
+    async def _send_notification_for_task(
+        self,
+        task: BaseTask,
+        messages: list[DaraServerMessage],
+        variable_task_id: bool = True,
+    ):
         """
         Send notifications for a specific PendingTask
 
@@ -665,9 +689,10 @@ class TaskManager:
         async def _send_to_channel(channel: str):
             async with create_task_group() as channel_tg:
                 for message in messages:
-                    if variable_task_id:
-                        # Create message with this Task's task_id (if message has task_id)
-                        message_for_task = {**message, 'task_id': task.task_id} if 'task_id' in message else message
+                    if variable_task_id and isinstance(message.message, TaskNotificationMessagePayload):
+                        payload = message.message.model_dump()
+                        payload['task_id'] = task.task_id
+                        message_for_task = _task_notification_message(payload)
                     else:
                         message_for_task = message
                     channel_tg.start_soon(self.ws_manager.send_message, channel, message_for_task)
@@ -727,13 +752,15 @@ class TaskManager:
                             await self._multicast_notification(
                                 task_id=message.task_id,
                                 messages=[
-                                    {
-                                        # Will be updated per task ID in multicast
-                                        'task_id': message.task_id,
-                                        'status': 'PROGRESS',
-                                        'progress': message.progress,
-                                        'message': message.message,
-                                    }
+                                    _task_notification_message(
+                                        {
+                                            # Will be updated per task ID in multicast
+                                            'task_id': message.task_id,
+                                            'status': 'PROGRESS',
+                                            'progress': message.progress,
+                                            'message': message.message,
+                                        }
+                                    )
                                 ],
                             )
                             if isinstance(task, Task) and task.on_progress:
@@ -758,7 +785,13 @@ class TaskManager:
                             await self._multicast_notification(
                                 task_id=message.task_id,
                                 messages=[
-                                    {'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id},
+                                    _task_notification_message(
+                                        {
+                                            'result': message.result,
+                                            'status': 'COMPLETE',
+                                            'task_id': message.task_id,
+                                        }
+                                    ),
                                 ],
                                 variable_task_id=False,
                             )
@@ -792,8 +825,14 @@ class TaskManager:
                             await self._multicast_notification(
                                 task_id=message.task_id,
                                 messages=[
-                                    {'status': 'ERROR', 'task_id': message.task_id, 'error': error['error']},
-                                    error,
+                                    _task_notification_message(
+                                        {
+                                            'status': 'ERROR',
+                                            'task_id': message.task_id,
+                                            'error': error['error'],
+                                        }
+                                    ),
+                                    _server_error_message(error),
                                 ],
                             )
 
@@ -879,12 +918,15 @@ class TaskManager:
                             # Notify about this task failing, and a server broadcast error
                             await self._send_notification_for_task(
                                 task=pending_task,
-                                messages=[message, error],
+                                messages=[
+                                    _task_notification_message(message),
+                                    _server_error_message(error),
+                                ],
                             )
                             # notify related tasks
                             await self._multicast_notification(
                                 task_id=task.task_id,
-                                messages=[message],
+                                messages=[_task_notification_message(message)],
                             )
 
                     # Remove the task from the running tasks

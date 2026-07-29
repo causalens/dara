@@ -40,7 +40,7 @@ from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import DaraServerMessage, WebsocketManager
 from dara.core.logging import dev_logger
 from dara.core.telemetry import _OperationObservation, observe_action, observe_action_phase
 
@@ -273,7 +273,13 @@ async def execute_action(
 
     # Construct a context which handles action messages by sending them to the frontend
     async def handle_action(act_impl: ActionImpl | None):
-        await ws_mgr.send_message(ws_channel, {'action': act_impl, 'uid': execution_id})
+        await ws_mgr.send_message(
+            ws_channel,
+            DaraServerMessage.create(
+                'ActionMessage',
+                {'action': act_impl, 'uid': execution_id},
+            ),
+        )
 
     ctx = ActionCtx(inp, handle_action)
     ACTION_CONTEXT.set(ctx)

@@ -24,7 +24,6 @@ from dara.core.internal.websocket import (
     ServerMessagePayload,
     WebSocketHandler,
     WebsocketManager,
-    _get_server_message_payload_type,
 )
 from dara.core.main import _start_application
 
@@ -67,70 +66,88 @@ async def cleanup_registry():
 
 
 @pytest.mark.parametrize(
-    ('payload', 'custom', 'expected_type'),
+    ('typename', 'payload', 'expected_type'),
     [
         (
-            {'kind': 'custom-handler', 'data': None},
-            True,
-            'custom-handler',
-        ),
-        (
+            'VariableRequestMessage',
             {'variable': {'uid': 'variable-id'}},
-            False,
-            'VariableRequest',
+            'VariableRequestMessage',
         ),
         (
+            'ServerVariableMessage',
             ServerVariableMessage(uid='server-variable-id', sequence_number=1),
-            False,
-            'ServerVariable',
+            'ServerVariableMessage',
         ),
         (
+            'TaskNotificationMessage',
             {'task_id': 'task-id', 'status': 'PROGRESS', 'progress': 50, 'message': 'halfway'},
-            False,
             'TaskProgress',
         ),
         (
+            'TaskNotificationMessage',
             {'task_id': 'task-id', 'status': 'COMPLETE', 'result': 'value'},
-            False,
             'TaskComplete',
         ),
         (
+            'TaskNotificationMessage',
             {'task_id': 'task-id', 'status': 'ERROR', 'error': 'detail'},
-            False,
             'TaskError',
         ),
         (
+            'TaskNotificationMessage',
             {'task_id': 'task-id', 'status': 'CANCELED'},
-            False,
             'TaskCanceled',
         ),
         (
+            'BackendStoreMessage',
             {'store_uid': 'store-id', 'sequence_number': 1, 'value': 'value'},
-            False,
-            'BackendStoreValue',
+            'BackendStoreMessage',
         ),
         (
+            'BackendStorePatchMessage',
             {'store_uid': 'store-id', 'sequence_number': 1, 'patches': []},
-            False,
-            'BackendStorePatch',
+            'BackendStorePatchMessage',
         ),
         (
+            'ServerErrorMessage',
             {'error': 'detail', 'time': 'timestamp'},
-            False,
-            'ServerError',
+            'ServerErrorMessage',
         ),
         (
-            {'application': 'payload'},
-            False,
-            None,
+            'ActionMessage',
+            {'action': None, 'uid': 'action-id'},
+            'ActionComplete',
         ),
     ],
 )
-async def test_get_server_message_payload_type(payload, custom, expected_type):
-    """Known protocol payloads are classified without labelling application messages."""
-    message = WebsocketManager()._construct_message(payload, custom)
+async def test_server_message_protocol_type(typename, payload, expected_type):
+    """First-party messages serialize and report their explicit protocol type."""
+    message = DaraServerMessage.create(typename, payload)
+    encoded = jsonable_encoder(message)
 
-    assert _get_server_message_payload_type(message) == expected_type
+    assert encoded['__typename'] == typename
+    assert message.telemetry_payload_type() == expected_type
+
+
+async def test_application_message_has_no_protocol_type():
+    """Application messages retain their existing untyped wire representation."""
+    message = WebsocketManager()._construct_message({'application': 'payload'}, custom=False)
+
+    assert jsonable_encoder(message) == {'type': 'message', 'message': {'application': 'payload'}}
+    assert message.telemetry_payload_type() is None
+
+
+async def test_typed_message_envelopes_are_copied_per_delivery():
+    """Delivery metadata is isolated when one protocol message is sent to multiple handlers."""
+    manager = WebsocketManager()
+    message = DaraServerMessage.create('ActionMessage', {'action': None, 'uid': 'action-id'})
+
+    first_delivery = manager._construct_message(message, custom=False)
+    second_delivery = manager._construct_message(message, custom=False)
+
+    assert first_delivery == second_delivery == message
+    assert first_delivery is not second_delivery
+    assert first_delivery is not message
 
 
 async def _send_task(handler: WebSocketHandler, messages: list):

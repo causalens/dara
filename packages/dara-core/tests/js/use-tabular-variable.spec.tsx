@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http, type HttpResponseResolver } from 'msw';
 
-import type { ServerVariableMessage } from '@/api/websocket';
+import { ServerMessageTypename, type ServerVariableMessage } from '@/api/websocket';
 import {
     type DerivedVariable,
     type FilterQuery,
@@ -182,6 +182,7 @@ describe('useTabularVariable', () => {
             const before = result.current;
             act(() => {
                 client.receiveMessage({
+                    __typename: ServerMessageTypename.SERVER_VARIABLE,
                     message: {
                         uid: 'dep2',
                         sequence_number: 2,
@@ -277,6 +278,7 @@ describe('useTabularVariable', () => {
             await act(async () => {
                 const dataResponsePromise = result.current(null, null);
                 client.receiveMessage({
+                    __typename: ServerMessageTypename.SERVER_VARIABLE,
                     message: {
                         uid: 'dep2',
                         __type: 'ServerVariable',

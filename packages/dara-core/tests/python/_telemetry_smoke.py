@@ -158,8 +158,10 @@ async def main() -> None:
             while True:
                 action_message = await websocket.receive_json()
                 payload = action_message.get('message', {})
-                if payload.get('uid') == execution_id and payload.get('action', 'missing') is None:
-                    break
+                if payload.get('uid') == execution_id:
+                    assert action_message['__typename'] == 'ActionMessage'
+                    if payload.get('action', 'missing') is None:
+                        break
 
             failed_execution_id = str(uuid4())
             failed_action_response = await client.post(
@@ -177,8 +179,10 @@ async def main() -> None:
             while True:
                 action_message = await websocket.receive_json()
                 payload = action_message.get('message', {})
-                if payload.get('uid') == failed_execution_id and payload.get('action', 'missing') is None:
-                    break
+                if payload.get('uid') == failed_execution_id:
+                    assert action_message['__typename'] == 'ActionMessage'
+                    if payload.get('action', 'missing') is None:
+                        break
 
             for handler_kind in ('sync', 'async'):
                 await websocket.send_json(

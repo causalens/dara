@@ -10,16 +10,14 @@ from dara.core.base_definitions import CachedRegistryEntry, NonTabularDataError
 from dara.core.interactivity.filtering import FilterQuery, Pagination, apply_filters, coerce_to_filter_query
 from dara.core.internal.pandas_utils import DataResponse, append_index, build_data_response
 from dara.core.internal.utils import call_async
-from dara.core.internal.websocket import ServerMessagePayload, WebsocketManager
+from dara.core.internal.websocket import DaraServerMessage, ServerVariableMessagePayload, WebsocketManager
 from dara.core.telemetry import observe_internal_operation
 
 from .any_variable import AnyVariable
 
 
-class ServerVariableMessage(ServerMessagePayload):
-    typ: Literal['ServerVariable'] = Field(alias='__type', default='ServerVariable')
-    uid: str
-    sequence_number: int
+class ServerVariableMessage(ServerVariableMessagePayload):
+    """Backward-compatible public name for a server-variable WebSocket payload."""
 
 
 class ServerBackend(BaseModel, abc.ABC):
@@ -246,7 +244,10 @@ class ServerVariable(AnyVariable):
 
         ws_mgr: WebsocketManager = utils_registry.get('WebsocketManager')
 
-        message = ServerVariableMessage(uid=uid, sequence_number=await backend.get_sequence_number(key))
+        message = DaraServerMessage.create(
+            'ServerVariableMessage',
+            ServerVariableMessage(uid=uid, sequence_number=await backend.get_sequence_number(key)),
+        )
 
         if backend.scope == 'global':
             return await ws_mgr.broadcast(message)

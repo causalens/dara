@@ -23,6 +23,7 @@ from pydantic import (
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
+from dara.core.internal.websocket import DaraServerMessage, ServerMessageTypename
 from dara.core.logging import dev_logger
 from dara.core.telemetry import observe_backend_store
 
@@ -329,27 +330,40 @@ class BackendStore(PersistenceStore):
         self.sequence_number[key] = current + 1
         return self.sequence_number[key]
 
-    async def _notify_user(self, user_identifier: str, ignore_channel: str | None = None, **payload):
+    async def _notify_user(
+        self,
+        user_identifier: str,
+        typename: ServerMessageTypename,
+        ignore_channel: str | None = None,
+        **payload,
+    ):
         """
         Notify a given user about updates to this store.
         :param user_identifier: user to notify
+        :param typename: first-party WebSocket message discriminator
         :param ignore_channel: if specified, ignore the specified channel
         :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.send_message_to_user(
             user_identifier,
-            self._create_msg(user_identifier, **payload),
+            DaraServerMessage.create(typename, self._create_msg(user_identifier, **payload)),
             ignore_channel=ignore_channel,
         )
 
-    async def _notify_global(self, ignore_channel: str | None = None, **payload):
+    async def _notify_global(
+        self,
+        typename: ServerMessageTypename,
+        ignore_channel: str | None = None,
+        **payload,
+    ):
         """
         Notify all users about updates to this store.
+        :param typename: first-party WebSocket message discriminator
         :param ignore_channel: if specified, ignore the specified channel
         :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.broadcast(
-            self._create_msg('global', **payload),
+            DaraServerMessage.create(typename, self._create_msg('global', **payload)),
             ignore_channel=ignore_channel,
         )
 
@@ -362,7 +376,11 @@ class BackendStore(PersistenceStore):
         :param ignore_channel: if passed, ignore the specified channel when broadcasting
         """
         if self.scope == 'global':
-            return await self._notify_global(value=value, ignore_channel=ignore_channel)
+            return await self._notify_global(
+                'BackendStoreMessage',
+                value=value,
+                ignore_channel=ignore_channel,
+            )
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -371,7 +389,12 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id
-        return await self._notify_user(user_identifier, value=value, ignore_channel=ignore_channel)
+        return await self._notify_user(
+            user_identifier,
+            'BackendStoreMessage',
+            value=value,
+            ignore_channel=ignore_channel,
+        )
 
     async def _notify_patches(self, patches: list[dict[str, Any]]):
         """
@@ -381,7 +404,7 @@ class BackendStore(PersistenceStore):
         :param patches: list of JSON patch operations
         """
         if self.scope == 'global':
-            return await self._notify_global(patches=patches)
+            return await self._notify_global('BackendStorePatchMessage', patches=patches)
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -390,7 +413,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id
-        return await self._notify_user(user_identifier, patches=patches)
+        return await self._notify_user(user_identifier, 'BackendStorePatchMessage', patches=patches)
 
     async def init(self, variable: 'Variable'):
         """
@@ -406,8 +429,8 @@ class BackendStore(PersistenceStore):
             async def _on_value(key: str, value: Any):
                 # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
                 if user := self._get_user(key):
-                    return await self._notify_user(user, value=value)
-                return await self._notify_global(value=value)
+                    return await self._notify_user(user, 'BackendStoreMessage', value=value)
+                return await self._notify_global('BackendStoreMessage', value=value)
 
             await self.backend.subscribe(_on_value)
 

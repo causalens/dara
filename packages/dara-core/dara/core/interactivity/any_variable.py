@@ -35,7 +35,7 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
-from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
+from dara.core.internal.websocket import WS_CHANNEL, DaraServerMessage, WebsocketManager
 from dara.core.logging import dev_logger
 
 NOT_REGISTERED = '__NOT_REGISTERED__'
@@ -155,7 +155,10 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
                 # Try once
                 with anyio.move_on_after(timeout):
-                    raw_result = await ws_mgr.send_and_wait(channel, {'variable': variable})
+                    raw_result = await ws_mgr.send_and_wait(
+                        channel,
+                        DaraServerMessage.create('VariableRequestMessage', {'variable': variable}),
+                    )
 
                     if is_valid(raw_result):
                         registered_value_found = True
@@ -169,7 +172,10 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
                     # Attempt to retrieve the value
                     with anyio.move_on_after(timeout):
-                        raw_result = await ws_mgr.send_and_wait(channel, {'variable': variable})
+                        raw_result = await ws_mgr.send_and_wait(
+                            channel,
+                            DaraServerMessage.create('VariableRequestMessage', {'variable': variable}),
+                        )
 
                         if is_valid(raw_result):
                             registered_value_found = True
