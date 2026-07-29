@@ -74,6 +74,7 @@ from dara.core.logging import dev_logger, eng_logger
 from dara.core.telemetry import (
     _OperationObservation,
     observe_derived_variable,
+    observe_derived_variable_filter,
     observe_derived_variable_phase,
     record_derived_variable_cache_access,
 )
@@ -763,7 +764,15 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
             data = append_index(data)
 
         # Filtering part
-        data, count = await filter_resolver(data, filters, pagination)
+        filter_name = (
+            f'{getattr(filter_resolver, "__module__", "unknown")}.'
+            f'{getattr(filter_resolver, "__qualname__", type(filter_resolver).__name__)}'
+        )
+        with observe_derived_variable_filter(
+            filter_name,
+            custom=filter_resolver is not default_filter_resolver,
+        ):
+            data, count = await filter_resolver(data, filters, pagination)
         return build_data_response(data, count)
 
     @classmethod

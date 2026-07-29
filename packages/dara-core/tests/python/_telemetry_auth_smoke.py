@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 
 import anyio
 import httpx
+import jwt
 import respx
 from async_asgi_testclient import TestClient
 from opentelemetry import trace
@@ -36,6 +37,7 @@ from dara.core.auth.oidc.config import OIDCAuthConfig  # noqa: E402
 from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME  # noqa: E402
 from dara.core.auth.oidc.settings import get_oidc_settings  # noqa: E402
 from dara.core.auth.oidc.transaction_store import oidc_transaction_store  # noqa: E402
+from dara.core.auth.oidc.utils import decode_id_token_async  # noqa: E402
 from dara.core.auth.session_store import InMemoryAuthSessionBackend  # noqa: E402
 from dara.core.configuration import ConfigurationBuilder  # noqa: E402
 from dara.core.main import _start_application  # noqa: E402
@@ -178,6 +180,19 @@ async def main() -> None:
             assert rejected.status_code == 400, rejected.text
             assert OIDC_LOGIN_SESSION_COOKIE_NAME in client.cookie_jar
 
+            denied_verify = await client.post(
+                '/api/auth/verify-session',
+                headers={'Authorization': 'Bearer malformed-session-token'},
+            )
+            assert denied_verify.status_code == 401, denied_verify.text
+
+            try:
+                await decode_id_token_async('malformed-id-token')
+            except jwt.DecodeError:
+                pass
+            else:
+                raise AssertionError('Malformed ID token was accepted')
+
     spans = span_exporter.get_finished_spans()
 
     startup_span = next(span for span in spans if span.name == 'dara.auth.oidc.startup')
@@ -285,7 +300,7 @@ async def main() -> None:
     assert {
         span.attributes.get('dara.auth.oidc.jwks.cache.result')
         for span in id_token_verify_spans
-        if span.attributes is not None
+        if span.attributes is not None and 'dara.auth.oidc.jwks.cache.result' in span.attributes
     } == {'hit', 'miss'}
 
     rejected_callback = next(
@@ -301,6 +316,31 @@ async def main() -> None:
     assert rejected_state_span.attributes['dara.auth.failure.reason'] == 'invalid_state'
     assert not rejected_state_span.events
     assert rejected_state_span.status.description is None
+
+    denied_verify_span = next(
+        span
+        for span in spans
+        if span.name == 'dara.auth.session.verify'
+        and span.attributes is not None
+        and span.attributes.get('dara.outcome') == 'denied'
+    )
+    denied_token_verify = _child_span(spans, 'dara.auth.token.verify', denied_verify_span)
+    denied_oidc_verify = _child_span(spans, 'dara.auth.oidc.token.verify', denied_token_verify)
+    for span in (denied_verify_span, denied_token_verify, denied_oidc_verify):
+        assert span.attributes is not None
+        assert span.attributes['dara.outcome'] == 'denied'
+        assert 'error.type' not in span.attributes
+
+    malformed_id_token_span = next(
+        span
+        for span in spans
+        if span.name == 'dara.auth.oidc.id_token.verify'
+        and span.attributes is not None
+        and span.attributes.get('dara.auth.failure.reason') == 'malformed_token'
+    )
+    assert malformed_id_token_span.attributes is not None
+    assert malformed_id_token_span.attributes['dara.outcome'] == 'denied'
+    assert 'error.type' not in malformed_id_token_span.attributes
 
     private_values = (
         state,

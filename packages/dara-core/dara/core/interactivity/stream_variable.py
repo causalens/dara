@@ -351,6 +351,8 @@ async def _run_stream(
     observation: _OperationObservation,
 ):
     """Implement a StreamVariable lifecycle and report handled terminal outcomes."""
+    started = perf_counter()
+
     # dynamic import due to circular import
     from dara.core.internal.dependency_resolution import (
         resolve_dependency,
@@ -363,7 +365,6 @@ async def _run_stream(
         raise NotImplementedError('StreamVariable does not support tasks')
 
     generator = None
-    started = perf_counter()
     event_count = 0
     time_to_first_event: float | None = None
     last_event_at: float | None = None

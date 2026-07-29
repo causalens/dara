@@ -97,14 +97,26 @@ class _WorkerAPI:
         """
         self._out_queue.put(Acknowledgement(task_uid=task_uid, worker_pid=os.getpid()))
 
-    def send_result(self, task_uid: str, result: SharedMemoryPointer):
+    def send_result(
+        self,
+        task_uid: str,
+        result: SharedMemoryPointer,
+        telemetry_context: dict[str, str] | None = None,
+    ):
         """
         Send a result of a given task
 
         :param task_uid: uid of the task to send result for
         :param result: pointer to shared memory storing the result
+        :param telemetry_context: W3C context captured while encoding the result
         """
-        self._out_queue.put(Result(task_uid=task_uid, result=result))
+        self._out_queue.put(
+            Result(
+                task_uid=task_uid,
+                result=result,
+                telemetry_context=telemetry_context,
+            )
+        )
 
     def send_error(self, task_uid: str | None, error: BaseException):
         """

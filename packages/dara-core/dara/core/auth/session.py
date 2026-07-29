@@ -18,6 +18,7 @@ limitations under the License.
 from dataclasses import dataclass
 from inspect import isawaitable
 
+import jwt
 from fastapi import HTTPException
 
 from dara.core.auth.base import BaseAuthConfig
@@ -76,11 +77,19 @@ async def verify_raw_auth_token(auth_config: BaseAuthConfig, token: str) -> Toke
     """
     Verify a token for auth configs with sync or async verifier implementations.
     """
-    with observe_auth('token.verify', system=auth_config.telemetry_system):
-        verified_token = auth_config.verify_token(token)
-        if isawaitable(verified_token):
-            return await verified_token
-        return verified_token
+    with observe_auth('token.verify', system=auth_config.telemetry_system) as observation:
+        try:
+            verified_token = auth_config.verify_token(token)
+            if isawaitable(verified_token):
+                return await verified_token
+            return verified_token
+        except jwt.PyJWTError as error:
+            annotate_auth_observation(
+                observation,
+                outcome='denied',
+                failure_reason='token_expired' if isinstance(error, jwt.ExpiredSignatureError) else 'invalid_token',
+            )
+            raise
 
 
 async def verify_auth_token(auth_config: BaseAuthConfig, token: str) -> TokenData:

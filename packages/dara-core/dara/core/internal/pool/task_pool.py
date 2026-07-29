@@ -505,6 +505,7 @@ class TaskPool:
                     observe_task_phase(
                         'result_decode',
                         task.payload['function_name'],
+                        linked_carrier=worker_msg.get('telemetry_context'),
                     ),
                 ):
                     result = read_from_shared_memory(result)

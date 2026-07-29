@@ -77,6 +77,7 @@ def log_auth_request_rejection(
             detail=detail,
             extra=extra,
         ),
+        event_name='auth.request.rejected',
     )
 
 
@@ -98,4 +99,5 @@ def log_auth_exception(
             detail=detail,
             extra=extra,
         ),
+        event_name='auth.request.failed',
     )

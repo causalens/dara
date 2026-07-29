@@ -140,6 +140,8 @@ class Result(TypedDict):
     task_uid: str
     result: SharedMemoryPointer
     """Pointer to shared memory storing result"""
+    telemetry_context: NotRequired[dict[str, str] | None]
+    """W3C context captured while the worker encoded the result"""
 
 
 class Problem(TypedDict):

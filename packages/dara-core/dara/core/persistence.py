@@ -427,12 +427,14 @@ class BackendStore(PersistenceStore):
         if self._register():
 
             async def _on_value(key: str, value: Any):
-                # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
-                if user := self._get_user(key):
-                    return await self._notify_user(user, 'BackendStoreMessage', value=value)
-                return await self._notify_global('BackendStoreMessage', value=value)
+                with observe_backend_store('subscription_callback', type(self.backend).__name__):
+                    # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
+                    if user := self._get_user(key):
+                        return await self._notify_user(user, 'BackendStoreMessage', value=value)
+                    return await self._notify_global('BackendStoreMessage', value=value)
 
-            await self.backend.subscribe(_on_value)
+            with observe_backend_store('subscribe', type(self.backend).__name__):
+                await self.backend.subscribe(_on_value)
 
     async def write_partial(self, data: list[dict[str, Any]] | Any, notify: bool = True, in_place: bool = False):
         """

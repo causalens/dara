@@ -404,6 +404,82 @@ def test_span_exception_callback_keeps_only_error_type():
     assert status.description is None
 
 
+def test_structured_dara_logs_use_bounded_fallback_event_names():
+    """Unnamed Dara logger records remain distinguishable without exporting their titles."""
+    record = logging.LogRecord(
+        name='dara.dev',
+        level=logging.WARNING,
+        pathname=__file__,
+        lineno=1,
+        msg={'title': 'Private application-specific warning'},
+        args=(),
+        exc_info=None,
+    )
+    unknown_record = logging.LogRecord(
+        name='application.private',
+        level=logging.WARNING,
+        pathname=__file__,
+        lineno=1,
+        msg={'title': 'Private application-specific warning'},
+        args=(),
+        exc_info=None,
+    )
+
+    assert telemetry._sanitize_log_body(record) == 'dara.dev.warning'
+    assert telemetry._sanitize_log_body(unknown_record) == 'dara.log'
+
+
+def test_auth_observation_treats_known_client_rejection_as_denied():
+    """Handled 4xx authentication failures are not reported as internal errors."""
+
+    class AuthenticationDenied(Exception):
+        status_code = 401
+
+    provider = TracerProvider()
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+
+    with (
+        patch.object(telemetry, '_TRACER', provider.get_tracer('test')),
+        patch.object(telemetry._RUNTIME, 'configured', True),
+        pytest.raises(AuthenticationDenied),
+        telemetry.observe_auth('token.verify', system='oidc'),
+    ):
+        raise AuthenticationDenied
+
+    span = next(span for span in exporter.get_finished_spans() if span.name == 'dara.auth.token.verify')
+    assert span.attributes is not None
+    assert span.attributes['dara.outcome'] == 'denied'
+    assert 'error.type' not in span.attributes
+    assert span.status.status_code.name == 'UNSET'
+
+
+def test_operation_observation_preserves_the_root_error_type():
+    """Exception translation cannot overwrite the first recorded failure classification."""
+    provider = TracerProvider()
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+
+    with (
+        patch.object(telemetry, '_TRACER', provider.get_tracer('test')),
+        patch.object(telemetry._RUNTIME, 'configured', True),
+        pytest.raises(RuntimeError),
+        telemetry.observe_task_phase('result_decode', 'example_task') as observation,
+    ):
+        try:
+            raise KeyError('private root failure')
+        except KeyError as root_error:
+            observation.record_exception(root_error)
+            raise RuntimeError('translated failure') from root_error
+
+    span = next(span for span in exporter.get_finished_spans() if span.name == 'dara.task.result_decode')
+    assert span.attributes is not None
+    assert span.attributes['dara.outcome'] == 'error'
+    assert span.attributes['error.type'] == 'KeyError'
+    assert 'private root failure' not in repr(span)
+    assert 'translated failure' not in repr(span)
+
+
 def test_serialized_context_carrier_contains_only_w3c_trace_context():
     """Process carriers exclude baggage that may contain application data."""
     span_context = SpanContext(

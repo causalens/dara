@@ -190,6 +190,19 @@ async def main() -> None:
     assert task_result['process_boot_id']
     assert task_result['process_boot_id'] != scheduled_result['process_boot_id']
 
+    result_decode_span = next(
+        span
+        for span in spans
+        if span.name == 'dara.task.result_decode'
+        and span.attributes is not None
+        and span.attributes.get('dara.task.name') == 'telemetry_context_task'
+    )
+    assert len(result_decode_span.links) == 1
+    result_link = result_decode_span.links[0]
+    assert result_link.context.trace_id == successful_span.context.trace_id
+    assert result_link.attributes is not None
+    assert result_link.attributes['dara.task.relationship'] == 'result_delivery'
+
     cancel_span = next(span for span in spans if span.name == 'dara.task.cancel')
     assert cancel_span.attributes is not None
     assert cancel_span.attributes['dara.outcome'] == 'success'

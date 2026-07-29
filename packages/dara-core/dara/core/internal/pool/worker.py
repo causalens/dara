@@ -43,6 +43,7 @@ from dara.core.internal.pool.utils import (
     store_in_shared_memory,
 )
 from dara.core.telemetry import (
+    capture_telemetry_carrier,
     initialize_process_telemetry,
     observe_task_phase,
     observe_worker_task,
@@ -196,7 +197,11 @@ def worker_loop(worker_params: WorkerParameters, channel: Channel):
 
                 with observe_task_phase('result_encode', task_name):
                     result_pointer = store_in_shared_memory(result)
-                    worker_api.send_result(task_uid, result_pointer)
+                    worker_api.send_result(
+                        task_uid,
+                        result_pointer,
+                        capture_telemetry_carrier(),
+                    )
         except BaseException as e:
             worker_api.send_error(task_uid=task_uid, error=e)
         finally:

@@ -13,6 +13,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from pandas import DataFrame
 
 from dara.core import DerivedVariable, StreamEvent, Variable, telemetry
 from dara.core.auth import BasicAuthConfig
@@ -80,6 +81,9 @@ async def main() -> None:
         await anyio.sleep_forever()
         yield StreamEvent.json_snapshot({'unreachable': True})
 
+    async def custom_filter_resolver(data, _filters=None, _pagination=None):
+        return data, len(data)
+
     successful_stream_entry = StreamVariableRegistryEntry(
         uid='telemetry-success-stream',
         func=successful_stream,
@@ -106,6 +110,12 @@ async def main() -> None:
 
         with contextlib.suppress(RuntimeError):
             await failed_entry.get_value(failed_entry, store, task_mgr, [1])
+
+        filtered = await DerivedVariable._filter_data(
+            DataFrame({'value': [1, 2]}),
+            custom_filter_resolver,
+        )
+        assert filtered['count'] == 2
 
         CURRENT_COMPONENT_ID.set('telemetry-component-instance')
         await render_component(component_definition, store, task_mgr, {'value': 'rendered'}, {})
@@ -212,6 +222,12 @@ async def main() -> None:
         'hit',
         'miss',
     }
+
+    filter_span = next(span for span in spans if span.name == 'dara.derived_variable.filter')
+    assert filter_span.attributes is not None
+    assert filter_span.attributes['dara.derived_variable.filter.custom'] is True
+    assert str(filter_span.attributes['dara.derived_variable.filter.name']).endswith('.custom_filter_resolver')
+    assert filter_span.attributes['dara.outcome'] == 'success'
 
     component_span = next(span for span in spans if span.name == 'dara.py_component.render')
     assert component_span.attributes is not None

@@ -190,6 +190,17 @@ def _decode_with_signing_key(
     return IdTokenClaims.model_validate(decoded)
 
 
+def _id_token_failure_reason(error: BaseException) -> str:
+    """Return a bounded classification for a rejected ID token."""
+    if isinstance(error, jwt.ExpiredSignatureError):
+        return 'token_expired'
+    if isinstance(error, jwt.InvalidAlgorithmError):
+        return 'algorithm_rejected'
+    if isinstance(error, jwt.DecodeError):
+        return 'malformed_token'
+    return 'invalid_token'
+
+
 def decode_id_token(id_token: str) -> IdTokenClaims:
     """
     Decode and verify a JWT ID token received from an OIDC provider.
@@ -203,10 +214,26 @@ def decode_id_token(id_token: str) -> IdTokenClaims:
     from dara.core.internal.registries import utils_registry
 
     jwks_client: InstrumentedPyJWKClient = utils_registry.get(JWK_CLIENT_REGISTRY_KEY)
-    token_alg, _, audience = _get_id_token_verification_options(id_token)
-
-    signing_key = jwks_client.get_signing_key_from_jwt(id_token)
-    return _decode_with_signing_key(id_token, signing_key, token_alg, audience)
+    with observe_auth('oidc.id_token.verify', system='oidc') as observation:
+        try:
+            token_alg, _, audience = _get_id_token_verification_options(id_token)
+            annotate_auth_observation(
+                observation,
+                attributes={'dara.auth.oidc.id_token.algorithm': token_alg},
+            )
+            signing_key, cache_result = jwks_client.get_signing_key_with_cache_result(id_token)
+            annotate_auth_observation(
+                observation,
+                attributes={'dara.auth.oidc.jwks.cache.result': cache_result},
+            )
+            return _decode_with_signing_key(id_token, signing_key, token_alg, audience)
+        except (jwt.PyJWTError, ValueError) as error:
+            annotate_auth_observation(
+                observation,
+                outcome='denied',
+                failure_reason=_id_token_failure_reason(error),
+            )
+            raise
 
 
 async def decode_id_token_async(id_token: str) -> IdTokenClaims:
@@ -217,22 +244,30 @@ async def decode_id_token_async(id_token: str) -> IdTokenClaims:
     """
     from dara.core.internal.registries import utils_registry
 
-    token_alg, _, audience = _get_id_token_verification_options(id_token)
     jwks_client: InstrumentedPyJWKClient = utils_registry.get(JWK_CLIENT_REGISTRY_KEY)
-    with observe_auth(
-        'oidc.id_token.verify',
-        system='oidc',
-        attributes={'dara.auth.oidc.id_token.algorithm': token_alg},
-    ) as observation:
-        signing_key, cache_result = await to_thread.run_sync(
-            jwks_client.get_signing_key_with_cache_result,
-            id_token,
-        )
-        annotate_auth_observation(
-            observation,
-            attributes={'dara.auth.oidc.jwks.cache.result': cache_result},
-        )
-        return _decode_with_signing_key(id_token, signing_key, token_alg, audience)
+    with observe_auth('oidc.id_token.verify', system='oidc') as observation:
+        try:
+            token_alg, _, audience = _get_id_token_verification_options(id_token)
+            annotate_auth_observation(
+                observation,
+                attributes={'dara.auth.oidc.id_token.algorithm': token_alg},
+            )
+            signing_key, cache_result = await to_thread.run_sync(
+                jwks_client.get_signing_key_with_cache_result,
+                id_token,
+            )
+            annotate_auth_observation(
+                observation,
+                attributes={'dara.auth.oidc.jwks.cache.result': cache_result},
+            )
+            return _decode_with_signing_key(id_token, signing_key, token_alg, audience)
+        except (jwt.PyJWTError, ValueError) as error:
+            annotate_auth_observation(
+                observation,
+                outcome='denied',
+                failure_reason=_id_token_failure_reason(error),
+            )
+            raise
 
 
 def handle_idp_error(response: httpx.Response) -> HTTPException:
@@ -331,6 +366,7 @@ async def get_token_from_idp(
         try:
             return OIDCTokenResponse.model_validate(response.json())
         except (ValueError, TypeError) as error:
+            observation.record_exception(error)
             annotate_auth_observation(
                 observation,
                 outcome='error',

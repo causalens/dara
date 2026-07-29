@@ -71,6 +71,29 @@ _ALLOWED_LOG_EXTRA_ATTRIBUTES = frozenset(
         'status_code',
     }
 )
+_DEFAULT_DARA_LOG_EVENT_NAMES = {
+    'dara.dev': {
+        logging.DEBUG: 'dara.dev.debug',
+        logging.INFO: 'dara.dev.info',
+        logging.WARNING: 'dara.dev.warning',
+        logging.ERROR: 'dara.dev.error',
+        logging.CRITICAL: 'dara.dev.critical',
+    },
+    'dara.eng': {
+        logging.DEBUG: 'dara.engineering.debug',
+        logging.INFO: 'dara.engineering.info',
+        logging.WARNING: 'dara.engineering.warning',
+        logging.ERROR: 'dara.engineering.error',
+        logging.CRITICAL: 'dara.engineering.critical',
+    },
+    'dara.http': {
+        logging.DEBUG: 'dara.http.debug',
+        logging.INFO: 'dara.http.info',
+        logging.WARNING: 'dara.http.warning',
+        logging.ERROR: 'dara.http.error',
+        logging.CRITICAL: 'dara.http.critical',
+    },
+}
 
 _DURATION_BUCKETS_SECONDS = (
     0.005,
@@ -481,7 +504,10 @@ def _sanitize_log_body(record: logging.LogRecord) -> str:
     """Return a bounded Dara event name or the rendered standard-library message."""
     if isinstance(record.msg, Mapping):
         event_name = getattr(record, 'event_name', None)
-        body = event_name if isinstance(event_name, str) and event_name else 'dara.log'
+        if isinstance(event_name, str) and event_name:
+            body = event_name
+        else:
+            body = _DEFAULT_DARA_LOG_EVENT_NAMES.get(record.name, {}).get(record.levelno, 'dara.log')
     elif isinstance(record.msg, str):
         body = record.getMessage()
     else:
@@ -536,6 +562,7 @@ class _OperationObservation:
 
     span: Span | None = None
     outcome: str = 'success'
+    error_type: str | None = None
 
     def set_outcome(self, outcome: str) -> None:
         """
@@ -561,7 +588,9 @@ class _OperationObservation:
             return
 
         if self.outcome == 'error':
-            self.span.set_attribute('error.type', type(error).__name__)
+            if self.error_type is None:
+                self.error_type = type(error).__name__
+                self.span.set_attribute('error.type', self.error_type)
             self.span.set_status(Status(StatusCode.ERROR))
         self.span.set_attribute('dara.outcome', self.outcome)
 
@@ -932,6 +961,43 @@ def observe_derived_variable_phase(
             span.set_attribute('dara.outcome', observation.outcome)
 
 
+@contextmanager
+def observe_derived_variable_filter(
+    filter_name: str,
+    *,
+    custom: bool,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace one derived-variable tabular filtering callback.
+
+    :param filter_name: stable callable identity for the selected filter resolver
+    :param custom: whether the application supplied the filter resolver
+    """
+    if not _RUNTIME.configured:
+        yield _OperationObservation()
+        return
+
+    observation = _OperationObservation()
+    with _TRACER.start_as_current_span(
+        'dara.derived_variable.filter',
+        attributes={
+            'dara.derived_variable.phase': 'filter',
+            'dara.derived_variable.filter.name': filter_name,
+            'dara.derived_variable.filter.custom': custom,
+        },
+        record_exception=False,
+        set_status_on_exception=False,
+    ) as span:
+        observation.span = span
+        try:
+            yield observation
+        except BaseException as error:
+            observation.record_exception(error)
+            raise
+        finally:
+            span.set_attribute('dara.outcome', observation.outcome)
+
+
 def record_derived_variable_cache_access(result: str) -> None:
     """
     Count a derived-variable cache outcome without recording its cache key.
@@ -1118,7 +1184,15 @@ def observe_auth(
         executions=_AUTH_EXECUTIONS,
         span_kind=span_kind,
     ) as observation:
-        yield observation
+        try:
+            yield observation
+        except BaseException as error:
+            status_code = getattr(error, 'status_code', None)
+            if not isinstance(status_code, int):
+                status_code = getattr(error, 'code', None)
+            if observation.outcome == 'success' and isinstance(status_code, int) and 400 <= status_code < 500:
+                observation.set_outcome('denied')
+            raise
 
 
 def annotate_auth_observation(
@@ -1247,16 +1321,35 @@ def observe_task_operation(
 
 
 @contextmanager
-def observe_task_phase(phase: str, task_name: str) -> Iterator[_OperationObservation]:
+def observe_task_phase(
+    phase: str,
+    task_name: str,
+    *,
+    linked_carrier: Mapping[str, str] | None = None,
+) -> Iterator[_OperationObservation]:
     """
     Trace one bounded task transport or serialization phase.
 
     :param phase: bounded phase such as ``input_decode`` or ``result_encode``
     :param task_name: stable registered task callable name
+    :param linked_carrier: optional worker context to link to this transport phase
     """
     if not _RUNTIME.configured:
         yield _OperationObservation()
         return
+
+    links: list[Link] = []
+    if linked_carrier:
+        linked_span_context = trace.get_current_span(
+            _TRACE_CONTEXT_PROPAGATOR.extract(linked_carrier)
+        ).get_span_context()
+        if linked_span_context.is_valid:
+            links.append(
+                Link(
+                    linked_span_context,
+                    {'dara.task.relationship': 'result_delivery'},
+                )
+            )
 
     observation = _OperationObservation()
     with _TRACER.start_as_current_span(
@@ -1265,6 +1358,7 @@ def observe_task_phase(phase: str, task_name: str) -> Iterator[_OperationObserva
             'dara.task.phase': phase,
             'dara.task.name': task_name,
         },
+        links=links,
         record_exception=False,
         set_status_on_exception=False,
     ) as span:

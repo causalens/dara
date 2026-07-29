@@ -3,13 +3,17 @@ import json
 import tempfile
 from collections.abc import Awaitable, Callable
 from typing import Any
-from unittest.mock import AsyncMock, call
+from unittest.mock import AsyncMock, call, patch
 
 import pytest
 from anyio import sleep
 from fastapi.encoders import jsonable_encoder
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from pydantic import Field, ValidationError
 
+from dara.core import telemetry
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
 from dara.core.internal.websocket import DaraServerMessage, ServerMessageTypename
@@ -455,6 +459,45 @@ async def test_backend_subscribe_global(custom_backend, mock_ws_mgr):
     # Verify the notification was sent
     mock_ws_mgr.broadcast.assert_called_with(
         backend_store_message({'store_uid': store.uid, 'value': 'external_value', 'sequence_number': 0}),
+        ignore_channel=None,
+    )
+
+
+async def test_backend_subscription_callback_is_traced(custom_backend, mock_ws_mgr):
+    """External backend notifications retain a visible callback lifecycle."""
+    provider = TracerProvider()
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+
+    with (
+        patch.object(telemetry, '_TRACER', provider.get_tracer('test')),
+        patch.object(telemetry._RUNTIME, 'configured', True),
+    ):
+        store = BackendStore(backend=custom_backend, uid='subscription-telemetry-store')
+        Variable(default='default_value', store=store)
+        await wait_for(store.read)
+        await custom_backend.trigger_external_change('global', 'external_value')
+
+    spans = exporter.get_finished_spans()
+    subscribe_span = next(span for span in spans if span.name == 'dara.backend_store.subscribe')
+    callback_span = next(span for span in spans if span.name == 'dara.backend_store.subscription_callback')
+    for span, operation in (
+        (subscribe_span, 'subscribe'),
+        (callback_span, 'subscription_callback'),
+    ):
+        assert span.attributes is not None
+        assert span.attributes['dara.backend_store.operation'] == operation
+        assert span.attributes['dara.backend_store.backend'] == 'CustomBackend'
+        assert span.attributes['dara.outcome'] == 'success'
+
+    mock_ws_mgr.broadcast.assert_called_with(
+        backend_store_message(
+            {
+                'store_uid': store.uid,
+                'value': 'external_value',
+                'sequence_number': 0,
+            }
+        ),
         ignore_channel=None,
     )
 

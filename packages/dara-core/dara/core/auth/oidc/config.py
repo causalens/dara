@@ -497,6 +497,7 @@ class OIDCAuthConfig(BaseAuthConfig):
                 )
                 raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
             except httpx.RequestError as e:
+                observation.record_exception(e)
                 annotate_auth_observation(observation, outcome='error', failure_reason='provider_request_error')
                 dev_logger.error(
                     'OIDC userinfo fetch failed',
@@ -505,6 +506,7 @@ class OIDCAuthConfig(BaseAuthConfig):
                 )
                 raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
             except ValueError as e:
+                observation.record_exception(e)
                 annotate_auth_observation(observation, outcome='error', failure_reason='invalid_provider_response')
                 dev_logger.error(
                     'OIDC userinfo fetch failed',
@@ -514,10 +516,12 @@ class OIDCAuthConfig(BaseAuthConfig):
                 raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
 
             if not isinstance(userinfo, dict):
+                response_error = TypeError('invalid userinfo response')
+                observation.record_exception(response_error)
                 annotate_auth_observation(observation, outcome='error', failure_reason='invalid_provider_response')
                 dev_logger.error(
                     'OIDC userinfo fetch failed',
-                    error=Exception('invalid userinfo response'),
+                    error=response_error,
                     extra={
                         'reason': 'invalid_response_shape',
                         'userinfo_endpoint': userinfo_endpoint,
@@ -664,22 +668,35 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param token: encoded JWT token (either Dara session token or raw IDP token)
         :return: TokenData for the verified token
         """
-        # First, decode without verification to check the issuer
-        try:
-            unverified = jwt.decode(token, options={'verify_signature': False})
-        except jwt.DecodeError as e:
-            raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from e
+        with observe_auth('oidc.token.verify', system='oidc') as observation:
+            # Decode without verification only to select the appropriate trusted verifier.
+            try:
+                unverified = jwt.decode(token, options={'verify_signature': False})
+            except jwt.DecodeError as error:
+                annotate_auth_observation(
+                    observation,
+                    outcome='denied',
+                    failure_reason='malformed_token',
+                )
+                raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from error
 
-        # Check if this is a raw IDP token (issuer matches the configured SSO issuer)
-        token_kind = 'idp' if unverified.get('iss') == get_oidc_settings().issuer_url else 'dara'
-        with observe_auth(
-            'oidc.token.verify',
-            system='oidc',
-            attributes={'dara.auth.token.kind': token_kind},
-        ):
-            if token_kind == 'idp':
-                return await self._verify_idp_token(token)
-            return await self._verify_dara_token(token)
+            # Check if this is a raw IDP token (issuer matches the configured SSO issuer)
+            token_kind = 'idp' if unverified.get('iss') == get_oidc_settings().issuer_url else 'dara'
+            annotate_auth_observation(
+                observation,
+                attributes={'dara.auth.token.kind': token_kind},
+            )
+            try:
+                if token_kind == 'idp':
+                    return await self._verify_idp_token(token)
+                return await self._verify_dara_token(token)
+            except jwt.PyJWTError as error:
+                annotate_auth_observation(
+                    observation,
+                    outcome='denied',
+                    failure_reason='token_expired' if isinstance(error, jwt.ExpiredSignatureError) else 'invalid_token',
+                )
+                raise
 
     async def _verify_idp_token(self, token: str) -> TokenData:
         """
