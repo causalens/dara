@@ -263,6 +263,33 @@ in `otelcol_exporter_enqueue_failed_spans`, `otelcol_exporter_enqueue_failed_log
 Compare `otelcol_exporter_queue_size` with `otelcol_exporter_queue_capacity`, and compare receiver accepted counts with
 exporter sent counts for each signal. Prometheus translation may append `_total` to counter names.
 
+## Request overhead
+
+A local request-path benchmark uses a real Dara application, authentication middleware, a path-parameter endpoint, and
+the complete ASGI request lifecycle. Application startup, login, and warmup are excluded. Each result is the median of
+seven isolated processes with 300 warmup and 3,000 measured sequential requests per process.
+
+Measured on Apple silicon with macOS 26.2 and Python 3.11.14:
+
+| Configuration | p50 | p95 | p99 | Median throughput | p50 overhead |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Strict disabled | 0.504 ms | 0.595 ms | 0.666 ms | 1,903 req/s | — |
+| Prometheus compatibility | 0.654 ms | 0.759 ms | 0.827 ms | 1,492 req/s | +0.150 ms (+29.7%) |
+| Traces and logs | 0.631 ms | 0.737 ms | 0.801 ms | 1,525 req/s | +0.127 ms (+25.1%) |
+| Combined | 0.650 ms | 0.763 ms | 0.848 ms | 1,496 req/s | +0.146 ms (+28.9%) |
+
+This measures framework instrumentation and SDK recording with OTLP exporters set to `none`; it deliberately excludes
+Collector, network, and backend behavior. The percentage is amplified by the sub-millisecond endpoint. The more useful
+capacity-planning figure is the approximately 0.13–0.15 ms absolute p50 cost observed here. Exporters batch off the
+request path, but deployments should repeat the benchmark with their sampling, exporter, Collector, and workload
+configuration.
+
+Run the repeatable benchmark from `packages/dara-core`:
+
+```shell
+DARA_TEST_FLAG=True poetry run python tests/python/_telemetry_overhead_benchmark.py
+```
+
 ## Optional instrumentation
 
 Dara does not automatically instrument arbitrary application HTTP clients or database libraries. Applications may add

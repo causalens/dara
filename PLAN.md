@@ -60,7 +60,7 @@
   - [x] Document head sampling and recommend collector-side tail sampling for distributed traces.
   - [x] Add collector examples for OTLP-to-Prometheus and a trace/log backend.
   - [x] Add telemetry exporter health/drop monitoring guidance.
-  - [ ] Measure enabled and disabled request overhead.
+  - [x] Measure enabled and disabled request overhead.
   - [ ] Add an end-to-end collector smoke test for traces, native logs, and metrics.
   - [x] Document optional outbound HTTP, database, and browser/frontend instrumentation.
 
