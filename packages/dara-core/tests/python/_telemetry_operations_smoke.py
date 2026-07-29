@@ -24,7 +24,7 @@ from dara.core.interactivity.tabular_variable import upload
 from dara.core.internal.registries import derived_variable_registry, utils_registry
 from dara.core.main import _start_application
 from dara.core.persistence import BackendStore, InMemoryBackend
-from dara.core.visual.dynamic_component import render_component
+from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID, render_component
 
 
 def _mock_operation_metrics() -> None:
@@ -107,6 +107,7 @@ async def main() -> None:
         with contextlib.suppress(RuntimeError):
             await failed_entry.get_value(failed_entry, store, task_mgr, [1])
 
+        CURRENT_COMPONENT_ID.set('telemetry-component-instance')
         await render_component(component_definition, store, task_mgr, {'value': 'rendered'}, {})
 
         disconnect_event = asyncio.Event()
@@ -166,6 +167,29 @@ async def main() -> None:
         'success',
         'error',
     }
+    successful_derived_spans = [
+        span
+        for span in derived_spans
+        if span.attributes is not None
+        and span.attributes.get('dara.derived_variable.function.name') == 'successful_resolver'
+    ]
+    assert len(successful_derived_spans) == 2
+    for span in successful_derived_spans:
+        assert span.attributes is not None
+        assert span.attributes['dara.derived_variable.id'] == str(successful_derived.uid)
+        assert span.attributes['dara.derived_variable.name'] == 'successful_resolver'
+        assert span.attributes['dara.derived_variable.function.identity'].endswith('.successful_resolver')
+
+    failed_derived_span = next(
+        span
+        for span in derived_spans
+        if span.attributes is not None
+        and span.attributes.get('dara.derived_variable.function.name') == 'failed_resolver'
+    )
+    assert failed_derived_span.attributes is not None
+    assert failed_derived_span.attributes['dara.derived_variable.id'] == str(failed_derived.uid)
+    assert failed_derived_span.attributes['dara.derived_variable.function.identity'].endswith('.failed_resolver')
+
     for span in derived_spans:
         assert span.parent is not None
         assert span.parent.span_id == operation_http_span.context.span_id
@@ -191,6 +215,10 @@ async def main() -> None:
 
     component_span = next(span for span in spans if span.name == 'dara.py_component.render')
     assert component_span.attributes is not None
+    assert component_span.attributes['dara.py_component.definition.id'] == 'telemetry-component'
+    assert component_span.attributes['dara.py_component.instance.id'] == 'telemetry-component-instance'
+    assert component_span.attributes['dara.py_component.function.name'] == 'component_renderer'
+    assert component_span.attributes['dara.py_component.function.identity'].endswith('.component_renderer')
     assert component_span.attributes['dara.outcome'] == 'success'
 
     stream_spans = [span for span in spans if span.name == 'dara.stream.run']
@@ -224,6 +252,31 @@ async def main() -> None:
         'bypass',
     }
     assert all(set(attributes) == {'dara.cache.result'} for attributes in cache_metric_attributes)
+
+    derived_metric_attributes = [
+        call.args[1]
+        for call in cast(MagicMock, telemetry._DERIVED_VARIABLE_DURATION).record.call_args_list
+        if len(call.args) > 1
+    ]
+    assert all(
+        set(attributes)
+        == {
+            'dara.derived_variable.resolver',
+            'dara.derived_variable.execution',
+            'dara.derived_variable.stage',
+            'dara.outcome',
+        }
+        for attributes in derived_metric_attributes
+    )
+
+    component_metric_attributes = [
+        call.args[1]
+        for call in cast(MagicMock, telemetry._PY_COMPONENT_DURATION).record.call_args_list
+        if len(call.args) > 1
+    ]
+    assert all(
+        set(attributes) == {'dara.py_component.name', 'dara.outcome'} for attributes in component_metric_attributes
+    )
 
     stream_metric_attributes = [
         call.args[1] for call in cast(MagicMock, telemetry._STREAM_DURATION).record.call_args_list if len(call.args) > 1

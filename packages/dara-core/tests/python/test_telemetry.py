@@ -312,7 +312,7 @@ def test_request_attributes_exclude_values_and_error_details():
     ) == {'fastapi.validation.error_count': 1}
 
 
-def test_server_request_hook_redacts_path_and_query_but_keeps_standard_client_address():
+def test_server_request_hook_keeps_path_and_redacts_query_bearing_url_attributes():
     span = MagicMock()
     span.is_recording.return_value = True
 
@@ -327,12 +327,24 @@ def test_server_request_hook_redacts_path_and_query_but_keeps_standard_client_ad
     )
 
     assert span.set_attribute.call_args_list == [
-        call('url.path', '[REDACTED]'),
         call('url.full', '[REDACTED]'),
         call('http.target', '[REDACTED]'),
         call('http.url', '[REDACTED]'),
         call('url.query', '[REDACTED]'),
     ]
+
+    path_only_span = MagicMock()
+    path_only_span.is_recording.return_value = True
+    telemetry._redact_server_request(
+        path_only_span,
+        {
+            'type': 'http',
+            'path': '/items/visible-value',
+            'query_string': b'',
+            'client': ('203.0.113.1', 1234),
+        },
+    )
+    path_only_span.set_attribute.assert_not_called()
 
 
 def test_otel_log_translation_drops_exception_details_and_arbitrary_extras():

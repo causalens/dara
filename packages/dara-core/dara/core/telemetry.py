@@ -430,15 +430,36 @@ def _safe_request_attributes(
 
 
 def _redact_server_request(span: Span, scope: Scope) -> None:
-    """Redact URL values while retaining standard OTEL network identity attributes."""
+    """Redact query-bearing URL values while retaining the standard URL path."""
     if not span.is_recording():
         return
 
-    if scope.get('path'):
-        for attribute in ('url.path', 'url.full', 'http.target', 'http.url'):
-            span.set_attribute(attribute, '[REDACTED]')
     if scope.get('query_string'):
+        for attribute in ('url.full', 'http.target', 'http.url'):
+            span.set_attribute(attribute, '[REDACTED]')
         span.set_attribute('url.query', '[REDACTED]')
+
+
+def annotate_route(route_path: str, route_name: str, route_id: str | None) -> None:
+    """
+    Annotate the current HTTP span with the resolved Dara route definition.
+
+    The route path is the developer-declared template, not the request's route
+    parameter values. The optional ID is included only when the application
+    explicitly configured one rather than using Dara's generated identifier.
+
+    :param route_path: resolved route template, such as ``/customers/:customer_id``
+    :param route_name: resolved human-readable route name
+    :param route_id: optional explicit route identifier
+    """
+    span = trace.get_current_span()
+    if not span.is_recording():
+        return
+
+    span.set_attribute('dara.route.path', route_path)
+    span.set_attribute('dara.route.name', route_name)
+    if route_id is not None:
+        span.set_attribute('dara.route.id', route_id)
 
 
 def _sanitize_log_body(record: logging.LogRecord) -> str:
@@ -579,6 +600,10 @@ def observe_action(
     action_name: str,
     delivery: str,
     handler_type: str,
+    *,
+    definition_id: str | None,
+    instance_id: str | None,
+    function_name: str,
 ) -> Iterator[_OperationObservation]:
     """
     Trace and measure a complete Dara action execution.
@@ -586,16 +611,29 @@ def observe_action(
     :param action_name: stable registered callable name
     :param delivery: bounded result delivery mode, ``request`` or ``stream``
     :param handler_type: bounded callable type, ``sync`` or ``async``
+    :param definition_id: registered action definition identifier
+    :param instance_id: action instance identifier, when available
+    :param function_name: unqualified action handler name
     """
-    attributes = {
+    metric_attributes = {
         'dara.action.name': action_name,
         'dara.action.delivery': delivery,
         'dara.action.handler.type': handler_type,
     }
+    span_attributes = {
+        **metric_attributes,
+        'dara.action.function.name': function_name,
+        'dara.action.function.identity': action_name,
+    }
+    if definition_id is not None:
+        span_attributes['dara.action.definition.id'] = definition_id
+    if instance_id is not None:
+        span_attributes['dara.action.instance.id'] = instance_id
+
     with _observe_operation(
         span_name='dara.action.execute',
-        span_attributes=attributes,
-        metric_attributes=attributes,
+        span_attributes=span_attributes,
+        metric_attributes=metric_attributes,
         active=_ACTION_ACTIVE,
         duration=_ACTION_DURATION,
         executions=_ACTION_EXECUTIONS,
@@ -604,24 +642,42 @@ def observe_action(
 
 
 @contextmanager
-def observe_action_phase(phase: str, action_name: str) -> Iterator[_OperationObservation]:
+def observe_action_phase(
+    phase: str,
+    action_name: str,
+    *,
+    definition_id: str | None,
+    instance_id: str | None,
+    function_name: str,
+) -> Iterator[_OperationObservation]:
     """
     Trace a bounded preparation phase before an action handler is scheduled.
 
     :param phase: bounded phase such as ``dependencies``
     :param action_name: stable registered callable name
+    :param definition_id: registered action definition identifier
+    :param instance_id: action instance identifier, when available
+    :param function_name: unqualified action handler name
     """
     if not _RUNTIME.configured:
         yield _OperationObservation()
         return
 
     observation = _OperationObservation()
+    attributes = {
+        'dara.action.phase': phase,
+        'dara.action.name': action_name,
+        'dara.action.function.name': function_name,
+        'dara.action.function.identity': action_name,
+    }
+    if definition_id is not None:
+        attributes['dara.action.definition.id'] = definition_id
+    if instance_id is not None:
+        attributes['dara.action.instance.id'] = instance_id
+
     with _TRACER.start_as_current_span(
         f'dara.action.{phase}',
-        attributes={
-            'dara.action.phase': phase,
-            'dara.action.name': action_name,
-        },
+        attributes=attributes,
         record_exception=False,
         set_status_on_exception=False,
     ) as span:
@@ -759,22 +815,34 @@ def record_websocket_queue_wait(duration_seconds: float, message_type: str) -> N
 def observe_derived_variable(
     resolver_name: str,
     execution: str,
+    *,
+    variable_id: str,
+    function_name: str,
 ) -> Iterator[_OperationObservation]:
     """
     Trace and measure one complete derived-variable resolution.
 
     :param resolver_name: stable registered resolver name
     :param execution: bounded execution mode, ``inline`` or ``task``
+    :param variable_id: registered derived-variable identifier
+    :param function_name: unqualified resolver function name
     """
-    attributes = {
+    metric_attributes = {
         'dara.derived_variable.resolver': resolver_name,
         'dara.derived_variable.execution': execution,
         'dara.derived_variable.stage': 'prepare' if execution == 'task' else 'resolve',
     }
+    span_attributes = {
+        **metric_attributes,
+        'dara.derived_variable.id': variable_id,
+        'dara.derived_variable.name': function_name,
+        'dara.derived_variable.function.name': function_name,
+        'dara.derived_variable.function.identity': resolver_name,
+    }
     with _observe_operation(
         span_name=f'dara.derived_variable.{"prepare" if execution == "task" else "resolve"}',
-        span_attributes=attributes,
-        metric_attributes=attributes,
+        span_attributes=span_attributes,
+        metric_attributes=metric_attributes,
         active=_DERIVED_VARIABLE_ACTIVE,
         duration=_DERIVED_VARIABLE_DURATION,
         executions=_DERIVED_VARIABLE_EXECUTIONS,
@@ -831,17 +899,35 @@ def record_derived_variable_cache_access(result: str) -> None:
 
 
 @contextmanager
-def observe_py_component(component_name: str) -> Iterator[_OperationObservation]:
+def observe_py_component(
+    component_name: str,
+    *,
+    definition_id: str,
+    instance_id: str | None,
+    function_name: str,
+) -> Iterator[_OperationObservation]:
     """
     Trace and measure one Python component render.
 
     :param component_name: stable registered component callable name
+    :param definition_id: registered Python component definition identifier
+    :param instance_id: rendered component instance identifier, when available
+    :param function_name: unqualified renderer function name
     """
-    span_attributes = {'dara.py_component.name': component_name}
+    metric_attributes = {'dara.py_component.name': component_name}
+    span_attributes = {
+        **metric_attributes,
+        'dara.py_component.definition.id': definition_id,
+        'dara.py_component.function.name': function_name,
+        'dara.py_component.function.identity': component_name,
+    }
+    if instance_id is not None:
+        span_attributes['dara.py_component.instance.id'] = instance_id
+
     with _observe_operation(
         span_name='dara.py_component.render',
         span_attributes=span_attributes,
-        metric_attributes=span_attributes,
+        metric_attributes=metric_attributes,
         active=_PY_COMPONENT_ACTIVE,
         duration=_PY_COMPONENT_DURATION,
         executions=_PY_COMPONENT_EXECUTIONS,

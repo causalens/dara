@@ -86,6 +86,7 @@ from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import WS_CHANNEL, ws_handler
 from dara.core.logging import dev_logger
 from dara.core.persistence import BackendStoreEntry
+from dara.core.telemetry import annotate_route
 from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID, PyComponentDef
 
 
@@ -645,6 +646,14 @@ def create_loader_route(config: Configuration, app: FastAPI):
 
         if route_data is None:
             raise HTTPException(status_code=404, detail=f'Route {route_id} not found')
+
+        route_definition = route_data.definition
+        if route_definition is not None and route_definition.full_path is not None:
+            annotate_route(
+                route_path=route_definition.full_path,
+                route_name=route_definition.get_name(),
+                route_id=route_definition.id,
+            )
 
         action_results: dict[str, Any] = {}
 

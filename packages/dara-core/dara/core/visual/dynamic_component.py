@@ -241,7 +241,13 @@ async def render_component(
         f'{getattr(definition.func, "__module__", "unknown")}.'
         f'{getattr(definition.func, "__qualname__", type(definition.func).__name__)}'
     )
-    with observe_py_component(component_name) as observation:
+    function_name = getattr(definition.func, '__name__', type(definition.func).__name__)
+    with observe_py_component(
+        component_name,
+        definition_id=definition.name,
+        instance_id=CURRENT_COMPONENT_ID.get() or None,
+        function_name=function_name,
+    ) as observation:
         result = await _render_component(definition, store, task_mgr, values, static_kwargs)
         if isinstance(result, BaseTask):
             result.telemetry_origin_kind = 'py_component'

@@ -45,6 +45,7 @@ from dara.core.logging import dev_logger
 from dara.core.telemetry import _OperationObservation, observe_action, observe_action_phase
 
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
+CURRENT_ACTION_DEFINITION_ID = ContextVar('current_action_definition_id', default='')
 
 
 def _callable_name(handler: Callable) -> str:
@@ -132,10 +133,18 @@ async def _stream_action(
     :param values: the resolved values to pass to the handler
     """
     action_name = _callable_name(handler)
+    function_name = getattr(handler, '__name__', type(handler).__name__)
     delivery = 'stream' if batch else 'request'
     handler_type = 'async' if inspect.iscoroutinefunction(handler) else 'sync'
 
-    with observe_action(action_name, delivery, handler_type) as observation:
+    with observe_action(
+        action_name,
+        delivery,
+        handler_type,
+        definition_id=CURRENT_ACTION_DEFINITION_ID.get() or None,
+        instance_id=CURRENT_ACTION_ID.get() or None,
+        function_name=function_name,
+    ) as observation:
         try:
             if batch:
                 await ctx._on_action(BatchStart())
@@ -177,6 +186,8 @@ async def execute_action_sync(
     action = action_def.resolver
     assert action is not None, 'Action resolver must be defined'
     action_name = _callable_name(action)
+    function_name = getattr(action, '__name__', type(action).__name__)
+    CURRENT_ACTION_DEFINITION_ID.set(action_def.uid)
 
     results = []
 
@@ -190,7 +201,13 @@ async def execute_action_sync(
 
     resolved_kwargs = {}
 
-    with observe_action_phase('dependencies', action_name):
+    with observe_action_phase(
+        'dependencies',
+        action_name,
+        definition_id=action_def.uid,
+        instance_id=CURRENT_ACTION_ID.get() or None,
+        function_name=function_name,
+    ):
         if values is not None:
             annotations = action.__annotations__
 
@@ -251,6 +268,8 @@ async def execute_action(
     action = action_def.resolver
     assert action is not None, 'Action resolver must be defined'
     action_name = _callable_name(action)
+    function_name = getattr(action, '__name__', type(action).__name__)
+    CURRENT_ACTION_DEFINITION_ID.set(action_def.uid)
 
     # Construct a context which handles action messages by sending them to the frontend
     async def handle_action(act_impl: ActionImpl | None):
@@ -261,7 +280,13 @@ async def execute_action(
 
     resolved_kwargs = {}
 
-    with observe_action_phase('dependencies', action_name):
+    with observe_action_phase(
+        'dependencies',
+        action_name,
+        definition_id=action_def.uid,
+        instance_id=CURRENT_ACTION_ID.get() or None,
+        function_name=function_name,
+    ):
         if values is not None:
             annotations = action.__annotations__
 

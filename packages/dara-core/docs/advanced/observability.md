@@ -135,6 +135,10 @@ Dara provides:
 - Task queue, worker occupancy, stream progress, cache capacity, process, and runtime metrics.
 - Standard-library logs as native OpenTelemetry logs with trace and span correlation.
 
+Route-loader HTTP spans include the resolved Dara route ID, name, and declared path. Action, derived-variable, and
+Python-component spans include their registered definition or instance IDs, short function name, and module-qualified
+callable identity where available. These identifiers are span attributes only; they are not metric dimensions.
+
 Durations are histograms. Percentiles such as p50, p95, and p99 are calculated by the metrics backend. For Prometheus,
 change the first argument to `histogram_quantile` for the desired percentile:
 
@@ -286,10 +290,11 @@ path instead.
 
 ## Privacy and operations
 
-Dara exports route templates, methods, status, timing, sizes, and the standard `client.address` HTTP span attribute.
-Raw URL paths, query strings, endpoint arguments, headers, bodies, cache keys, task IDs, results, exception messages,
-and tracebacks are excluded by default. A deployment with a stricter network-identifier policy can remove
-`client.address` in the Collector.
+Dara exports route templates, raw URL paths, methods, status, timing, sizes, and the standard `client.address` HTTP
+span attribute. Query strings and query-bearing full URL attributes are redacted. Because path parameter values appear
+in `url.path`, applications should never place credentials or secrets in URL paths. Other endpoint arguments, headers,
+bodies, cache keys, task IDs, results, exception messages, and tracebacks are excluded by default. A deployment with a
+stricter network-identifier policy can remove `client.address` or `url.path` in the Collector.
 
 `LOGFIRE_TRACE_SAMPLE_RATE` controls head sampling. Use Collector-side tail sampling when errors or slow traces must be
 retained preferentially.

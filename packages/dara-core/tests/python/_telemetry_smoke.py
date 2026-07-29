@@ -21,6 +21,7 @@ from dara.core.internal.execute_action import execute_action_sync
 from dara.core.internal.registries import action_registry, static_kwargs_registry, utils_registry
 from dara.core.logging import http_logger
 from dara.core.main import _start_application
+from dara.core.visual.components import RawString
 
 
 async def main() -> None:
@@ -80,6 +81,12 @@ async def main() -> None:
     builder.add_ws_handler('sync', sync_handler)
     builder.add_ws_handler('async', async_handler)
     builder.add_ws_handler('error', error_handler)
+    builder.router.add_page(
+        path='telemetry-page',
+        content=RawString(content='Telemetry page'),
+        id='telemetry-page',
+        name='Telemetry Page',
+    )
     action_instance = traced_action()
     failed_action_instance = failed_action()
 
@@ -111,6 +118,18 @@ async def main() -> None:
 
         path_response = await client.get('/api/items/secret-value')
         assert path_response.status_code == 200, path_response.text
+
+        route_response = await client.post(
+            '/api/core/route/telemetry-page',
+            json={
+                'action_payloads': [],
+                'derived_variable_payloads': [],
+                'py_component_payloads': [],
+                'ws_channel': 'telemetry-route-channel',
+                'params': {'customer_id': 'not-exported'},
+            },
+        )
+        assert route_response.status_code == 200, route_response.text
 
         sync_action_response = await client.get('/api/sync-action')
         assert sync_action_response.status_code == 200, sync_action_response.text
@@ -203,8 +222,14 @@ async def main() -> None:
 
     item_span = next(span for span in spans if span.name == 'GET /api/items/{item_id}')
     assert item_span.attributes is not None
-    assert item_span.attributes['url.path'] == '[REDACTED]'
-    assert all('secret-value' not in repr(span.attributes) for span in spans)
+    assert item_span.attributes['url.path'] == '/api/items/secret-value'
+
+    route_span = next(span for span in spans if span.name == 'POST /api/core/route/{route_id}')
+    assert route_span.attributes is not None
+    assert route_span.attributes['dara.route.id'] == 'telemetry-page'
+    assert route_span.attributes['dara.route.name'] == 'Telemetry Page'
+    assert route_span.attributes['dara.route.path'] == '/telemetry-page'
+    assert 'not-exported' not in repr(route_span.attributes)
 
     action_spans = [span for span in spans if span.name == 'dara.action.execute']
     action_span = next(
@@ -219,6 +244,10 @@ async def main() -> None:
     assert action_span.attributes['dara.action.delivery'] == 'stream'
     assert action_span.attributes['dara.action.handler.type'] == 'async'
     assert action_span.attributes['dara.action.name'].endswith('.traced_action')
+    assert action_span.attributes['dara.action.function.name'] == 'traced_action'
+    assert action_span.attributes['dara.action.function.identity'].endswith('.traced_action')
+    assert action_span.attributes['dara.action.definition.id'] == action_instance.definition_uid
+    assert action_span.attributes['dara.action.instance.id'] == action_instance.uid
     assert action_span.attributes['dara.outcome'] == 'success'
 
     sync_action_span = next(
@@ -232,6 +261,8 @@ async def main() -> None:
     assert sync_action_span.attributes is not None
     assert sync_action_span.attributes['dara.action.delivery'] == 'request'
     assert sync_action_span.attributes['dara.action.handler.type'] == 'async'
+    assert sync_action_span.attributes['dara.action.function.name'] == 'sync_action'
+    assert sync_action_span.attributes['dara.action.definition.id'] == sync_action_instance.definition_uid
     assert sync_action_span.attributes['dara.outcome'] == 'success'
 
     failed_action_span = next(
@@ -240,6 +271,9 @@ async def main() -> None:
         if span.attributes is not None and span.attributes['dara.action.name'].endswith('.failed_action')
     )
     assert failed_action_span.attributes is not None
+    assert failed_action_span.attributes['dara.action.function.name'] == 'failed_action'
+    assert failed_action_span.attributes['dara.action.definition.id'] == failed_action_instance.definition_uid
+    assert failed_action_span.attributes['dara.action.instance.id'] == failed_action_instance.uid
     assert failed_action_span.attributes['dara.outcome'] == 'error'
     assert failed_action_span.attributes['error.type'] == 'RuntimeError'
     assert failed_action_span.status.description is None
@@ -303,6 +337,16 @@ async def main() -> None:
     assert {attributes['dara.outcome'] for attributes in action_metric_attributes} == {'success', 'error'}
     assert {attributes['dara.action.delivery'] for attributes in action_metric_attributes} == {'request', 'stream'}
     assert {attributes['dara.action.handler.type'] for attributes in action_metric_attributes} == {'async'}
+    assert all(
+        set(attributes)
+        == {
+            'dara.action.name',
+            'dara.action.delivery',
+            'dara.action.handler.type',
+            'dara.outcome',
+        }
+        for attributes in action_metric_attributes
+    )
 
     websocket_metric_attributes = [
         call.args[1] for call in telemetry._WEBSOCKET_MESSAGE_DURATION.record.call_args_list if len(call.args) > 1

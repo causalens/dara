@@ -1,9 +1,8 @@
 ## Repo Basics
 
 - This is a Python 3.11 monorepo managed by Poetry + Anthology.
-    - If dependencies change, run `poetry antho install` from repo root.
-    - `poetry antho install` collects all dependencies into top-level `pyproject.toml`, installs them and symlinks each package's `.venv` to the top-level `.venv`
-- First-party packages live in `packages/*`.
+- Dependencies should be added to the respective package's `pyproject.toml`, do not ever edit top-level `pyproject.toml` manually.
+- If dependencies change, run `poetry antho install` from repo root which will install collect all dependencies into top-level `pyproject.toml`, installs them and symlinks each package's `.venv` to the top-level `.venv`
 
 ## Changelog
 
@@ -25,8 +24,10 @@ For `dara-core` backend tests, run from the package directory so test env secret
 
 ```bash
 cd packages/dara-core
-DARA_TEST_FLAG=True poetry run pytest <args>
+DARA_TEST_FLAG=True poetry run pytest <args> -n auto
 ```
+
+Prefer running with parallelism with `-n` to save time.
 
 Running from repo root can miss `packages/dara-core/.env.test` and cause auth token mismatch failures.
 

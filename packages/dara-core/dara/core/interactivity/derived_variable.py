@@ -447,8 +447,14 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
             f'{getattr(var_entry.func, "__module__", "unknown")}.'
             f'{getattr(var_entry.func, "__qualname__", type(var_entry.func).__name__)}'
         )
+        function_name = getattr(var_entry.func, '__name__', type(var_entry.func).__name__)
         execution = 'task' if var_entry.run_as_task else 'inline'
-        with observe_derived_variable(resolver_name, execution) as observation:
+        with observe_derived_variable(
+            resolver_name,
+            execution,
+            variable_id=var_entry.uid,
+            function_name=function_name,
+        ) as observation:
             return await cls._get_value(
                 var_entry,
                 store,

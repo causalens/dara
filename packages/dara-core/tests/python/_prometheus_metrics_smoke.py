@@ -18,7 +18,14 @@ async def main() -> None:
         response = await client.get('/status')
         assert response.status_code == 200
 
-        with telemetry.observe_action('tests.prometheus_action', 'request', 'sync'):
+        with telemetry.observe_action(
+            'tests.prometheus_action',
+            'request',
+            'sync',
+            definition_id='prometheus-action',
+            instance_id='prometheus-action-instance',
+            function_name='prometheus_action',
+        ):
             pass
 
         exposition = generate_latest(DARA_METRICS_REGISTRY).decode()
