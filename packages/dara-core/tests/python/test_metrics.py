@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from prometheus_client import REGISTRY
+from prometheus_client import REGISTRY, Gauge
 
 from dara.core.metrics import DARA_METRICS_REGISTRY
 
@@ -11,7 +11,13 @@ from dara.core.metrics import DARA_METRICS_REGISTRY
 def test_dara_prometheus_reader_uses_isolated_registry():
     """Dara can serve OTEL metrics without mutating Prometheus's default registry."""
     assert DARA_METRICS_REGISTRY is not REGISTRY
-    assert list(DARA_METRICS_REGISTRY.collect()) == []
+
+    collector = Gauge('dara_registry_isolation_test', 'Registry isolation test', registry=DARA_METRICS_REGISTRY)
+    try:
+        assert DARA_METRICS_REGISTRY.get_sample_value('dara_registry_isolation_test') == 0
+        assert REGISTRY.get_sample_value('dara_registry_isolation_test') is None
+    finally:
+        DARA_METRICS_REGISTRY.unregister(collector)
 
 
 def test_prometheus_endpoint_exports_otel_metrics_from_a_dara_app():
