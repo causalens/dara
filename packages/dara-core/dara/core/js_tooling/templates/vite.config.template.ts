@@ -29,6 +29,7 @@ export default defineConfig(({ command }) => {
     const devServerOrigin = `${devServerProtocol}://${devServerHost}:${devServerPort}`;
 
     return {
+        // Dev assets must stay under /static/ even though production asset URLs are resolved at runtime.
         base: command === 'serve' ? `${devServerOrigin}/static/` : '',
         plugins: [
             daraDevServerPlugin(),
