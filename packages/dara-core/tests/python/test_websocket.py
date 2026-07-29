@@ -150,6 +150,18 @@ async def test_typed_message_envelopes_are_copied_per_delivery():
     assert first_delivery is not message
 
 
+async def test_serialized_typed_message_envelope_is_not_wrapped_again():
+    """Transport adapters can forward a serialized protocol envelope without changing its shape."""
+    manager = WebsocketManager()
+    message = DaraServerMessage.create('ActionMessage', {'action': None, 'uid': 'action-id'})
+    serialized_message = jsonable_encoder(message)
+
+    delivery = manager._construct_message(serialized_message, custom=False)
+
+    assert jsonable_encoder(delivery) == serialized_message
+    assert delivery.telemetry_payload_type() == 'ActionComplete'
+
+
 async def _send_task(handler: WebSocketHandler, messages: list):
     """
     Helper function to send messages to a websocket handler in an async thread

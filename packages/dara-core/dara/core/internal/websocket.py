@@ -208,6 +208,17 @@ class CustomServerMessagePayload(ServerMessagePayload):
     data: Any
 
 
+_SERVER_MESSAGE_PAYLOAD_TYPES: dict[ServerMessageTypename, type[ServerMessagePayload]] = {
+    'ActionMessage': ActionMessagePayload,
+    'BackendStoreMessage': BackendStoreMessagePayload,
+    'BackendStorePatchMessage': BackendStorePatchMessagePayload,
+    'ServerErrorMessage': ServerErrorMessagePayload,
+    'ServerVariableMessage': ServerVariableMessagePayload,
+    'TaskNotificationMessage': TaskNotificationMessagePayload,
+    'VariableRequestMessage': VariableRequestMessagePayload,
+}
+
+
 class DaraServerMessage(BaseModel):
     """
     Represents a message sent by Dara internals from the backend to the frontend.
@@ -222,15 +233,22 @@ class DaraServerMessage(BaseModel):
     @classmethod
     def create(cls, typename: ServerMessageTypename, payload: ServerMessagePayload | dict) -> 'DaraServerMessage':
         """Parse a first-party payload and attach its shared wire discriminator."""
-        payload_type: type[ServerMessagePayload] = {
-            'ActionMessage': ActionMessagePayload,
-            'BackendStoreMessage': BackendStoreMessagePayload,
-            'BackendStorePatchMessage': BackendStorePatchMessagePayload,
-            'ServerErrorMessage': ServerErrorMessagePayload,
-            'ServerVariableMessage': ServerVariableMessagePayload,
-            'TaskNotificationMessage': TaskNotificationMessagePayload,
-            'VariableRequestMessage': VariableRequestMessagePayload,
-        }[typename]
+        payload_type = _SERVER_MESSAGE_PAYLOAD_TYPES[typename]
+        return cls(__typename=typename, message=payload_type.model_validate(payload))
+
+    @classmethod
+    def from_serialized(cls, serialized: dict[str, Any]) -> 'DaraServerMessage':
+        """Deserialize one explicitly discriminated first-party server message."""
+        if serialized.get('type') != 'message':
+            raise ValueError('A typed server message must have type="message"')
+
+        try:
+            typename = serialized['__typename']
+            payload_type = _SERVER_MESSAGE_PAYLOAD_TYPES[typename]
+            payload = serialized['message']
+        except (KeyError, TypeError) as error:
+            raise ValueError('Invalid typed server message') from error
+
         return cls(__typename=typename, message=payload_type.model_validate(payload))
 
     def telemetry_payload_type(self) -> str | None:
@@ -466,6 +484,12 @@ class WebsocketManager:
         :param payload: The payload to send
         :param custom: Whether the message is a custom message
         """
+        # Transport adapters can serialize an explicitly typed first-party envelope
+        # before forwarding it to another WebsocketManager. Parse the protocol
+        # discriminators at this boundary so the envelope is not wrapped as a payload.
+        if isinstance(payload, dict) and payload.get('type') == 'message' and '__typename' in payload:
+            payload = DaraServerMessage.from_serialized(payload)
+
         if isinstance(payload, (DaraServerMessage, CustomServerMessage)):
             if custom != isinstance(payload, CustomServerMessage):
                 raise ValueError('The custom flag must match the supplied server message type')
