@@ -148,7 +148,7 @@ def _start_application(config: Configuration):
         try:
             setup_signal_handlers()
         except Exception as e:
-            dev_logger.warning(f'Failed to set up signal handlers: {e}')
+            dev_logger.warning('Failed to set up signal handlers', {'error_type': type(e).__name__})
 
         set_auth_session_backend(resolve_auth_session_backend(config.auth_session_backend, config))
 

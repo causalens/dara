@@ -54,15 +54,15 @@
   - [x] Document the legacy metric-name migration while preserving the existing Prometheus port configuration.
 
 - [ ] Slice 6 — Hardening and rollout
-  - [ ] Define and document the allowed span/log attribute vocabulary.
-  - [ ] Scrub secrets, auth data, request bodies, user data, cache keys, and uploaded content by default.
-  - [ ] Audit all metric dimensions for bounded cardinality.
-  - [ ] Document head sampling and recommend collector-side tail sampling for distributed traces.
-  - [ ] Add collector examples for OTLP-to-Prometheus and a trace/log backend.
-  - [ ] Add telemetry exporter health/drop monitoring guidance.
+  - [x] Define and document the allowed span/log attribute vocabulary.
+  - [x] Exclude secrets, auth data, request bodies, user data, cache keys, and uploaded content by default.
+  - [x] Audit all metric dimensions for bounded cardinality.
+  - [x] Document head sampling and recommend collector-side tail sampling for distributed traces.
+  - [x] Add collector examples for OTLP-to-Prometheus and a trace/log backend.
+  - [x] Add telemetry exporter health/drop monitoring guidance.
   - [ ] Measure enabled and disabled request overhead.
   - [ ] Add an end-to-end collector smoke test for traces, native logs, and metrics.
-  - [ ] Document optional outbound HTTP, database, and browser/frontend instrumentation.
+  - [x] Document optional outbound HTTP, database, and browser/frontend instrumentation.
 
 ## Architecture
 

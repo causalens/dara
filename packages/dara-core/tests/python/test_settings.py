@@ -23,6 +23,7 @@ def _clear_runtime_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     monkeypatch.delenv('DARA_CONFIG_PATH', raising=False)
     monkeypatch.delenv('DARA_OTEL_ENABLED', raising=False)
+    monkeypatch.delenv('DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS', raising=False)
     monkeypatch.delenv('DARA_METRICS_PORT', raising=False)
     monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
     monkeypatch.delenv('OTEL_METRICS_EXPORTER', raising=False)
@@ -70,6 +71,16 @@ def test_disable_metrics_only_overrides_prometheus_compatibility_endpoint():
 
     assert settings.otlp_metrics_enabled is True
     assert settings.prometheus_metrics_enabled is False
+
+
+def test_otel_shutdown_timeout_uses_dara_settings(monkeypatch: pytest.MonkeyPatch):
+    """The telemetry shutdown deadline is configurable and must remain positive."""
+    monkeypatch.setenv('DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS', '1250')
+
+    assert Settings(_env_file=None).dara_otel_shutdown_timeout_millis == 1250
+
+    with pytest.raises(ValueError):
+        Settings(_env_file=None, dara_otel_shutdown_timeout_millis=0)
 
 
 def _use_cache_dir(monkeypatch: pytest.MonkeyPatch, cache_dir: Path):

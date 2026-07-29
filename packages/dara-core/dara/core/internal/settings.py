@@ -20,6 +20,7 @@ from functools import lru_cache
 from secrets import token_hex
 
 from dotenv import dotenv_values
+from pydantic import PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from dara.core.internal.signing_key import PROCESS_JWT_SECRET, resolve_jwt_secret
@@ -41,6 +42,7 @@ class Settings(BaseSettings):
     # standard OTEL configuration and is consumed directly by Logfire.
     otel_semconv_stability_opt_in: str = 'http'
     otel_metrics_exporter: str = 'otlp'
+    dara_otel_shutdown_timeout_millis: PositiveInt = 5000
 
     dara_metrics_port: int = 10000
     dara_disable_metrics: bool = False

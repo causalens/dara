@@ -63,6 +63,7 @@ def telemetry_context_task():
         'process_pid': os.getpid(),
         'resource_process_pid': resource_attributes.get('process.pid'),
         'process_type': resource_attributes.get('dara.process.type'),
+        'process_boot_id': resource_attributes.get('dara.process.boot.id'),
     }
 
 

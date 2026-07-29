@@ -33,13 +33,17 @@ async def main() -> None:
         logging.getLogger('dara.telemetry-smoke').warning('correlated smoke log')
         return {'ok': True}
 
+    @get(url='/items/{item_id}')
+    def item(item_id: str):
+        return {'item': item_id}
+
     @action
     async def traced_action(ctx: ActionCtx):
         await ctx.update(result, 'complete')
 
     @action
     async def failed_action(_ctx: ActionCtx):
-        raise RuntimeError('expected action failure')
+        raise RuntimeError('secret-action-value')
 
     @action
     async def sync_action(ctx: ActionCtx):
@@ -70,6 +74,7 @@ async def main() -> None:
         raise RuntimeError('expected handler failure')
 
     builder.add_endpoint(health)
+    builder.add_endpoint(item)
     builder.add_endpoint(run_sync_action)
     builder.add_ws_handler('sync', sync_handler)
     builder.add_ws_handler('async', async_handler)
@@ -101,6 +106,9 @@ async def main() -> None:
 
         response = await client.get('/api/health?token=secret')
         assert response.status_code == 200, response.text
+
+        path_response = await client.get('/api/items/secret-value')
+        assert path_response.status_code == 200, path_response.text
 
         sync_action_response = await client.get('/api/sync-action')
         assert sync_action_response.status_code == 200, sync_action_response.text
@@ -184,6 +192,11 @@ async def main() -> None:
     assert health_span.attributes.get('client.address') in (None, '[REDACTED]')
     assert 'secret' not in repr(health_span.attributes)
 
+    item_span = next(span for span in spans if span.name == 'GET /api/items/{item_id}')
+    assert item_span.attributes is not None
+    assert item_span.attributes['url.path'] == '[REDACTED]'
+    assert all('secret-value' not in repr(span.attributes) for span in spans)
+
     action_spans = [span for span in spans if span.name == 'dara.action.execute']
     action_span = next(
         span
@@ -217,6 +230,10 @@ async def main() -> None:
     )
     assert failed_action_span.attributes is not None
     assert failed_action_span.attributes['dara.outcome'] == 'error'
+    assert failed_action_span.attributes['error.type'] == 'RuntimeError'
+    assert failed_action_span.status.description is None
+    assert not failed_action_span.events
+    assert 'secret-action-value' not in repr(failed_action_span)
 
     action_sends = [
         span
@@ -274,6 +291,7 @@ async def main() -> None:
     ]
     assert {attributes['dara.outcome'] for attributes in websocket_metric_attributes} == {'success', 'error'}
     assert all('dara.websocket.handler.kind' not in attributes for attributes in websocket_metric_attributes)
+    assert all('secret-action-value' not in repr(item) for item in log_exporter.get_finished_logs())
 
 
 if __name__ == '__main__':

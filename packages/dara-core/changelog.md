@@ -12,6 +12,8 @@ title: Changelog
 - Added cross-process OpenTelemetry propagation and bounded lifecycle metrics for tasks, task workers, and scheduled jobs.
 - Unified Prometheus and OTLP metrics on one OTEL instrumentation pipeline while preserving the existing Prometheus
   port and adding numeric cache gauges and migration queries.
+- Hardened telemetry privacy by redacting raw HTTP paths, suppressing exception messages and tracebacks, restricting
+  exported log fields, excluding baggage from process propagation, bounding shutdown, and adding process boot identity.
 
 ## 1.29.4
 

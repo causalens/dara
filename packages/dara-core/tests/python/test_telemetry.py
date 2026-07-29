@@ -1,11 +1,14 @@
+import logging
 import os
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
+from opentelemetry import baggage
+from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags, TraceState, set_span_in_context
 
 from dara.core import telemetry
 from dara.core.configuration import ConfigurationBuilder
@@ -70,14 +73,19 @@ async def test_initializes_all_signals_and_shuts_them_down(monkeypatch: pytest.M
     configure.assert_called_once_with(
         send_to_logfire=False,
         console=False,
+        scrubbing=False,
+        add_baggage_to_attributes=False,
+        advanced=ANY,
         resource_attributes={
             'process.pid': os.getpid(),
             'dara.process.type': 'application',
+            'dara.process.boot.id': ANY,
         },
     )
     logging_instrumentor.return_value.instrument.assert_called_once_with(
         inject_trace_context=True,
         log_code_attributes=True,
+        enable_log_auto_instrumentation=False,
     )
     instrument_system_metrics.assert_called_once_with()
     instrument_fastapi.assert_called_once_with(
@@ -92,7 +100,7 @@ async def test_initializes_all_signals_and_shuts_them_down(monkeypatch: pytest.M
     instrumentation.__exit__.assert_called_once_with(None, None, None)
     system_metrics_instrumentor.return_value.uninstrument.assert_called_once_with()
     logging_instrumentor.return_value.uninstrument.assert_called_once_with()
-    shutdown.assert_called_once_with()
+    shutdown.assert_called_once_with(timeout_millis=5000)
     assert os.environ['OTEL_SEMCONV_STABILITY_OPT_IN'] == 'http'
 
 
@@ -146,7 +154,9 @@ async def test_prometheus_endpoint_translates_otel_metrics_without_an_otlp_reade
     assert configure_options['resource_attributes'] == {
         'process.pid': os.getpid(),
         'dara.process.type': 'application',
+        'dara.process.boot.id': ANY,
     }
+    assert configure_options['scrubbing'] is False
     metrics_options = configure_options['metrics']
     assert metrics_options.additional_readers == [prometheus_reader]
     assert metrics_options.views == telemetry._PROMETHEUS_METRIC_VIEWS
@@ -154,6 +164,7 @@ async def test_prometheus_endpoint_translates_otel_metrics_without_an_otlp_reade
     logging_instrumentor.return_value.instrument.assert_called_once_with(
         inject_trace_context=True,
         log_code_attributes=True,
+        enable_log_auto_instrumentation=False,
     )
     assert os.environ['OTEL_METRICS_EXPORTER'] == 'none'
 
@@ -175,7 +186,7 @@ async def test_failed_app_instrumentation_rolls_back_process_instrumentation(mon
 
     system_metrics_instrumentor.return_value.uninstrument.assert_called_once_with()
     logging_instrumentor.return_value.uninstrument.assert_called_once_with()
-    shutdown.assert_called_once_with()
+    shutdown.assert_called_once_with(timeout_millis=5000)
 
 
 def test_request_attributes_exclude_values_and_error_details():
@@ -191,7 +202,7 @@ def test_request_attributes_exclude_values_and_error_details():
     ) == {'fastapi.validation.error_count': 1}
 
 
-def test_server_request_hook_redacts_query_and_client_address():
+def test_server_request_hook_redacts_path_query_and_client_address():
     span = MagicMock()
     span.is_recording.return_value = True
 
@@ -199,16 +210,94 @@ def test_server_request_hook_redacts_query_and_client_address():
         span,
         {
             'type': 'http',
+            'path': '/items/secret-value',
             'query_string': b'token=secret',
             'client': ('203.0.113.1', 1234),
         },
     )
 
     assert span.set_attribute.call_args_list == [
+        call('url.path', '[REDACTED]'),
+        call('url.full', '[REDACTED]'),
+        call('http.target', '[REDACTED]'),
+        call('http.url', '[REDACTED]'),
         call('url.query', '[REDACTED]'),
         call('client.address', '[REDACTED]'),
         call('client.port', 0),
     ]
+
+
+def test_otel_log_translation_drops_exception_details_and_arbitrary_extras():
+    """The OTEL handler sanitizes a copy while leaving console records unchanged."""
+    error = RuntimeError('secret exception value')
+    record = logging.LogRecord(
+        name='dara.test',
+        level=logging.ERROR,
+        pathname=__file__,
+        lineno=1,
+        msg={'title': 'Action failed', 'error': error},
+        args=(),
+        exc_info=(RuntimeError, error, None),
+    )
+    record.content = {'token': 'secret-token'}
+    record.status_code = 500
+
+    translated = telemetry._SanitizingLoggingHandler(log_code_attributes=False)._translate(record)
+
+    assert translated.body == 'Action failed'
+    assert dict(translated.attributes or {}) == {'status_code': 500}
+    assert 'secret' not in repr(translated)
+    assert record.msg == {'title': 'Action failed', 'error': error}
+    assert record.content == {'token': 'secret-token'}
+
+    template_record = logging.LogRecord(
+        name='application',
+        level=logging.WARNING,
+        pathname=__file__,
+        lineno=1,
+        msg='Worker %s started',
+        args=('worker-3',),
+        exc_info=None,
+    )
+    template_log = telemetry._SanitizingLoggingHandler(log_code_attributes=False)._translate(template_record)
+    assert template_log.body == 'Worker worker-3 started'
+
+
+def test_span_exception_callback_keeps_only_error_type():
+    """Framework span exceptions retain classification without messages or tracebacks."""
+    helper = MagicMock()
+    helper.exception = RuntimeError('private failure value')
+
+    telemetry._sanitize_span_exception(helper)
+
+    helper.no_record_exception.assert_called_once_with()
+    helper.span.set_attribute.assert_called_once_with('error.type', 'RuntimeError')
+    status = helper.span.set_status.call_args.args[0]
+    assert status.status_code.name == 'ERROR'
+    assert status.description is None
+
+
+def test_serialized_context_carrier_contains_only_w3c_trace_context():
+    """Process carriers exclude baggage that may contain application data."""
+    span_context = SpanContext(
+        trace_id=1,
+        span_id=2,
+        is_remote=False,
+        trace_flags=TraceFlags.SAMPLED,
+        trace_state=TraceState(),
+    )
+    context = set_span_in_context(NonRecordingSpan(span_context))
+    context = baggage.set_baggage('secret', 'private-value', context=context)
+
+    with (
+        patch.object(telemetry._RUNTIME, 'configured', True),
+        telemetry.use_telemetry_context(context),
+    ):
+        carrier = telemetry.capture_telemetry_carrier()
+
+    assert carrier is not None
+    assert set(carrier) <= {'traceparent', 'tracestate'}
+    assert 'private-value' not in repr(carrier)
 
 
 def test_cache_measurements_are_numeric_and_have_bounded_dimensions():

@@ -116,6 +116,7 @@ async def main() -> None:
         assert scheduled_result['process_pid'] != os.getpid()
         assert scheduled_result['resource_process_pid'] == scheduled_result['process_pid']
         assert scheduled_result['process_type'] == 'scheduled_job'
+        assert scheduled_result['process_boot_id']
 
     async with TestClient(app) as client:
         login = await client.post('/api/auth/session', json={'username': 'test', 'password': 'test'})
@@ -161,6 +162,8 @@ async def main() -> None:
     assert task_result['process_pid'] != os.getpid()
     assert task_result['resource_process_pid'] == task_result['process_pid']
     assert task_result['process_type'] == 'task_worker'
+    assert task_result['process_boot_id']
+    assert task_result['process_boot_id'] != scheduled_result['process_boot_id']
 
     cancel_span = next(span for span in spans if span.name == 'dara.task.cancel')
     assert cancel_span.attributes is not None

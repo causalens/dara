@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import asyncio
+import logging
 import os
 from collections.abc import Iterator, Mapping
 from contextlib import AbstractContextManager, contextmanager, suppress
@@ -23,18 +24,22 @@ from dataclasses import dataclass, field
 from threading import Lock
 from time import perf_counter
 from typing import Any
+from uuid import uuid4
 
 import logfire
 from fastapi import FastAPI, Request, WebSocket
-from logfire import MetricsOptions
+from logfire import AdvancedOptions, MetricsOptions
+from logfire.types import ExceptionCallbackHelper
 from opentelemetry import context as otel_context
 from opentelemetry import metrics, trace
+from opentelemetry._logs import LogRecord as OTelLogRecord
+from opentelemetry._logs import get_logger_provider
 from opentelemetry.context import Context
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.logging.handler import LoggingHandler
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from opentelemetry.metrics import CallbackOptions, Counter, Histogram, Observation, UpDownCounter
-from opentelemetry.propagate import extract, inject
 from opentelemetry.sdk.metrics import Histogram as SDKHistogram
 from opentelemetry.sdk.metrics import UpDownCounter as SDKUpDownCounter
 from opentelemetry.sdk.metrics.view import (
@@ -44,6 +49,7 @@ from opentelemetry.sdk.metrics.view import (
     View,
 )
 from opentelemetry.trace import Span, Status, StatusCode
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from starlette.types import Scope
 
 from dara.core.internal.settings import get_settings
@@ -51,6 +57,20 @@ from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 
 _TRACER = trace.get_tracer('dara.core')
 _METER = metrics.get_meter('dara.core')
+_TRACE_CONTEXT_PROPAGATOR = TraceContextTextMapPropagator()
+
+_PROCESS_BOOT_ID_PID = os.getpid()
+_PROCESS_BOOT_ID = str(uuid4())
+
+_ALLOWED_LOG_EXTRA_ATTRIBUTES = frozenset(
+    {
+        'event_name',
+        'method',
+        'operation',
+        'outcome',
+        'status_code',
+    }
+)
 
 _DURATION_BUCKETS_SECONDS = (
     0.005,
@@ -369,11 +389,67 @@ def _redact_server_request(span: Span, scope: Scope) -> None:
     if not span.is_recording():
         return
 
+    if scope.get('path'):
+        for attribute in ('url.path', 'url.full', 'http.target', 'http.url'):
+            span.set_attribute(attribute, '[REDACTED]')
     if scope.get('query_string'):
         span.set_attribute('url.query', '[REDACTED]')
     if scope.get('client'):
         span.set_attribute('client.address', '[REDACTED]')
         span.set_attribute('client.port', 0)
+
+
+def _sanitize_log_body(record: logging.LogRecord) -> str:
+    """Return a Dara log title or the rendered standard-library message."""
+    if isinstance(record.msg, Mapping):
+        title = record.msg.get('title')
+        body = title if isinstance(title, str) else 'Structured Dara log'
+    elif isinstance(record.msg, str):
+        body = record.getMessage()
+    else:
+        body = f'Log record of type {type(record.msg).__name__}'
+    return body
+
+
+class _SanitizingLoggingHandler(LoggingHandler):
+    """Translate standard-library logs without exporting arbitrary extras or exception details."""
+
+    def _get_attributes(self, record: logging.LogRecord) -> Mapping[str, Any]:
+        attributes = super()._get_attributes(record)
+        return {
+            key: value
+            for key, value in attributes.items()
+            if key in _ALLOWED_LOG_EXTRA_ATTRIBUTES or key.startswith('code.')
+        }
+
+    def _translate(self, record: logging.LogRecord) -> OTelLogRecord:
+        safe_record = logging.makeLogRecord(record.__dict__.copy())
+        safe_record.msg = _sanitize_log_body(record)
+        safe_record.args = ()
+        safe_record.exc_info = None
+        safe_record.exc_text = None
+        safe_record.stack_info = None
+        return super()._translate(safe_record)
+
+
+def _get_process_boot_id() -> str:
+    """Return a process-local boot identifier that changes after a fork."""
+    global _PROCESS_BOOT_ID, _PROCESS_BOOT_ID_PID
+
+    process_pid = os.getpid()
+    if process_pid != _PROCESS_BOOT_ID_PID:
+        _PROCESS_BOOT_ID_PID = process_pid
+        _PROCESS_BOOT_ID = str(uuid4())
+    return _PROCESS_BOOT_ID
+
+
+def _sanitize_span_exception(helper: ExceptionCallbackHelper) -> None:
+    """Keep failure classification while suppressing exception messages and tracebacks."""
+    helper.no_record_exception()
+    helper.span.set_attribute('error.type', type(helper.exception).__name__)
+    # Setting a status without a description first prevents OpenTelemetry's
+    # context manager from replacing it with ``<type>: <message>``.
+    helper.span.set_status(Status(StatusCode.ERROR))
 
 
 @dataclass
@@ -405,9 +481,8 @@ class _OperationObservation:
         if self.span is None or not self.span.is_recording():
             return
 
-        if isinstance(error, Exception):
-            self.span.record_exception(error)
-        self.span.set_status(Status(StatusCode.ERROR, str(error)))
+        self.span.set_attribute('error.type', type(error).__name__)
+        self.span.set_status(Status(StatusCode.ERROR))
         self.span.set_attribute('dara.outcome', self.outcome)
 
 
@@ -429,7 +504,12 @@ def _observe_operation(
     active.add(1, metric_attributes)
     observation = _OperationObservation()
     try:
-        with _TRACER.start_as_current_span(span_name, attributes=span_attributes) as span:
+        with _TRACER.start_as_current_span(
+            span_name,
+            attributes=span_attributes,
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as span:
             observation.span = span
             try:
                 yield observation
@@ -584,6 +664,8 @@ def observe_derived_variable_phase(
             'dara.derived_variable.phase': phase,
             'dara.derived_variable.resolver': resolver_name,
         },
+        record_exception=False,
+        set_status_on_exception=False,
     ) as span:
         observation.span = span
         try:
@@ -881,7 +963,7 @@ def capture_telemetry_carrier() -> dict[str, str] | None:
         return None
 
     carrier: dict[str, str] = {}
-    inject(carrier)
+    _TRACE_CONTEXT_PROPAGATOR.inject(carrier)
     return carrier or None
 
 
@@ -896,7 +978,7 @@ def use_telemetry_carrier(carrier: Mapping[str, str] | None) -> Iterator[None]:
         yield
         return
 
-    token = otel_context.attach(extract(carrier))
+    token = otel_context.attach(_TRACE_CONTEXT_PROPAGATOR.extract(carrier))
     try:
         yield
     finally:
@@ -907,6 +989,7 @@ def use_telemetry_carrier(carrier: Mapping[str, str] | None) -> Iterator[None]:
 class _TelemetryRuntime:
     configured: bool = False
     logging_instrumented: bool = False
+    logging_handler: LoggingHandler | None = None
     system_metrics_instrumented: bool = False
     fastapi_instrumentation: dict[int, AbstractContextManager[None]] = field(default_factory=dict)
 
@@ -954,9 +1037,13 @@ class _TelemetryRuntime:
             logfire.configure(
                 send_to_logfire=False,
                 console=False,
+                scrubbing=False,
+                add_baggage_to_attributes=False,
+                advanced=AdvancedOptions(exception_callback=_sanitize_span_exception),
                 resource_attributes={
                     'process.pid': os.getpid(),
                     'dara.process.type': process_type,
+                    'dara.process.boot.id': _get_process_boot_id(),
                 },
                 **configure_options,
             )
@@ -969,7 +1056,16 @@ class _TelemetryRuntime:
         self.configured = True
 
         if settings.dara_otel_enabled:
-            LoggingInstrumentor().instrument(inject_trace_context=True, log_code_attributes=True)
+            LoggingInstrumentor().instrument(
+                inject_trace_context=True,
+                log_code_attributes=True,
+                enable_log_auto_instrumentation=False,
+            )
+            self.logging_handler = _SanitizingLoggingHandler(
+                logger_provider=get_logger_provider(),
+                log_code_attributes=True,
+            )
+            logging.getLogger().addHandler(self.logging_handler)
             self.logging_instrumented = True
 
         if metrics_enabled:
@@ -1017,12 +1113,16 @@ class _TelemetryRuntime:
             self.system_metrics_instrumented = False
 
         if self.logging_instrumented:
+            if self.logging_handler is not None:
+                logging.getLogger().removeHandler(self.logging_handler)
+                self.logging_handler.close()
+                self.logging_handler = None
             with suppress(Exception):
                 LoggingInstrumentor().uninstrument()
             self.logging_instrumented = False
 
         with suppress(Exception):
-            logfire.shutdown()
+            logfire.shutdown(timeout_millis=get_settings().dara_otel_shutdown_timeout_millis)
         self.configured = False
 
 
