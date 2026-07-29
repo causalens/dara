@@ -40,8 +40,22 @@ class Settings(BaseSettings):
     # OpenTelemetry defaults owned by Dara. Exporter configuration remains
     # standard OTEL configuration and is consumed directly by Logfire.
     otel_semconv_stability_opt_in: str = 'http'
+    otel_metrics_exporter: str = 'otlp'
+
+    dara_metrics_port: int = 10000
+    dara_disable_metrics: bool = False
 
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
+
+    @property
+    def otlp_metrics_enabled(self) -> bool:
+        """Return whether Dara should export metrics over OTLP."""
+        return self.dara_otel_enabled and self.otel_metrics_exporter.lower() not in {'none', 'prometheus'}
+
+    @property
+    def prometheus_metrics_enabled(self) -> bool:
+        """Return whether Dara should expose its Prometheus endpoint."""
+        return not self.dara_disable_metrics
 
 
 def generate_env_content():

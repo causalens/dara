@@ -20,7 +20,8 @@ from collections.abc import MutableMapping
 from enum import Enum
 from typing import Generic, TypeVar
 
-from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
+from dara.core.metrics import total_size
+from dara.core.telemetry import record_registry_cache_metrics
 
 T = TypeVar('T')
 
@@ -57,7 +58,7 @@ class Registry(Generic[T]):
 
     def __init__(
         self,
-        name: RegistryType,
+        name: RegistryType | str,
         initial_registry: MutableMapping[str, T] | None = None,
         allow_duplicates: bool | None = True,
     ):
@@ -107,7 +108,8 @@ class Registry(Generic[T]):
         """
         Notify the cache metrics tracker.
         """
-        CACHE_METRICS_TRACKER.update_registry(self.name, self._size)
+        name = self.name.value if isinstance(self.name, RegistryType) else self.name
+        record_registry_cache_metrics(name, self._size, len(self._registry))
 
     def remove(self, key: str):
         """
@@ -116,6 +118,7 @@ class Registry(Generic[T]):
         previous_value_size = total_size(self._registry.get(key))
         self._registry.pop(key)
         self._size = self._size - previous_value_size
+        self._update_metrics()
 
     def replace(self, new_registry: MutableMapping[str, T], deepcopy=True):
         """

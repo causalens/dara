@@ -43,3 +43,7 @@ class CacheStoreImpl(abc.ABC, Generic[PolicyT]):
         """
         Empty the store.
         """
+
+    @abc.abstractmethod
+    def __len__(self) -> int:
+        """Return the number of entries currently held by this cache."""

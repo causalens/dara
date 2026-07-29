@@ -286,11 +286,7 @@ def _start_application(config: Configuration):
     if os.environ.get('DARA_TEST_FLAG', None) is None:
         app.add_middleware(LoggingMiddleware, logger=http_logger)
 
-    # Setup Prometheus HTTP request metrics middleware
-    if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
-        from dara.core.metrics.http import PrometheusMiddleware
-
-        app.add_middleware(PrometheusMiddleware)
+    settings = get_settings()
 
     # Add custom middlewares
     for middleware in config.middlewares:
@@ -411,10 +407,9 @@ def _start_application(config: Configuration):
         """
         return {'status': 'ok'}
 
-    # Start metrics server in a daemon thread
-    if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
-        port = int(os.environ.get('DARA_METRICS_PORT', '10000'))
-        start_http_server(port, registry=DARA_METRICS_REGISTRY)
+    # Start the compatibility metrics server in a daemon thread
+    if settings.prometheus_metrics_enabled and os.environ.get('DARA_TEST_FLAG', None) is None:
+        start_http_server(settings.dara_metrics_port, registry=DARA_METRICS_REGISTRY)
 
     # Start profiling server in a daemon thread if explicitly enabled (only works on linux)
     if os.environ.get('DARA_PYPPROF_PORT', None) is not None:

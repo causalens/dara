@@ -127,3 +127,7 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
             self.pinned_cache = {}
             self.unpinned_cache = {}
             self.expiration_heap = []
+
+    def __len__(self) -> int:
+        """Return the number of entries currently held by this cache."""
+        return len(self.pinned_cache) + len(self.unpinned_cache)

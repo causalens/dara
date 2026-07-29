@@ -71,7 +71,6 @@ from dara.core.internal.pandas_utils import DataResponse, append_index, build_da
 from dara.core.internal.tasks import MetaTask, Task, TaskManager
 from dara.core.internal.utils import get_cache_scope, run_user_handler
 from dara.core.logging import dev_logger, eng_logger
-from dara.core.metrics import RUNTIME_METRICS_TRACKER
 from dara.core.telemetry import (
     observe_derived_variable,
     observe_derived_variable_phase,
@@ -510,225 +509,219 @@ class DerivedVariable(ClientVariable, Generic[VariableType]):
         with observe_derived_variable_phase('lock_wait', _resolver_name):
             await lock.__aenter__()
         try:
-            histogram = RUNTIME_METRICS_TRACKER.get_dv_histogram(var_entry.uid)
+            # Extract and process nested derived variables
+            values: list[Any] = [None] * len(args)
 
-            with histogram.time():
-                # Extract and process nested derived variables
-                values: list[Any] = [None] * len(args)
+            eng_logger.info(
+                f'Derived Variable {_uid_short} get_value',
+                {'uid': var_entry.uid, 'args': args},
+            )
 
-                eng_logger.info(
-                    f'Derived Variable {_uid_short} get_value',
-                    {'uid': var_entry.uid, 'args': args},
-                )
+            # Whether one of the (grand?)children have been forced - is so, the parent should skip the cache as well
+            has_forced_child = False
 
-                # Whether one of the (grand?)children have been forced - is so, the parent should skip the cache as well
-                has_forced_child = False
+            async def _resolve_arg(val: Any, index: int):
+                nonlocal has_forced_child
 
-                async def _resolve_arg(val: Any, index: int):
-                    nonlocal has_forced_child
+                if is_forced(val):
+                    has_forced_child = True
+                var_value = await resolve_dependency(val, store, task_mgr)
+                values[index] = var_value
 
-                    if is_forced(val):
-                        has_forced_child = True
-                    var_value = await resolve_dependency(val, store, task_mgr)
-                    values[index] = var_value
+            with observe_derived_variable_phase('dependencies', _resolver_name):
+                async with anyio.create_task_group() as tg:
+                    for idx, val in enumerate(args):
+                        tg.start_soon(_resolve_arg, val, idx)
 
-                with observe_derived_variable_phase('dependencies', _resolver_name):
-                    async with anyio.create_task_group() as tg:
-                        for idx, val in enumerate(args):
-                            tg.start_soon(_resolve_arg, val, idx)
+            eng_logger.debug(
+                f'DerivedVariable {_uid_short}',
+                'resolved arguments',
+                {'values': values, 'uid': var_entry.uid},
+            )
 
-                eng_logger.debug(
-                    f'DerivedVariable {_uid_short}',
-                    'resolved arguments',
-                    {'values': values, 'uid': var_entry.uid},
-                )
+            # Loop over the passed arguments and if the expected type is a BaseModel and arg is a dict then convert the dict
+            # to an instance of the BaseModel class.
+            parsed_args = DerivedVariable._restore_pydantic_models(var_entry.func, *values)
 
-                # Loop over the passed arguments and if the expected type is a BaseModel and arg is a dict then convert the dict
-                # to an instance of the BaseModel class.
-                parsed_args = DerivedVariable._restore_pydantic_models(var_entry.func, *values)
+            dev_logger.debug(
+                f'DerivedVariable {_uid_short}',
+                'executing',
+                {'args': parsed_args, 'uid': var_entry.uid},
+            )
 
-                dev_logger.debug(
-                    f'DerivedVariable {_uid_short}',
-                    'executing',
-                    {'args': parsed_args, 'uid': var_entry.uid},
-                )
+            # Check if there are any Tasks to be run in the args
+            has_tasks = any(isinstance(arg, BaseTask) for arg in parsed_args)
 
-                # Check if there are any Tasks to be run in the args
-                has_tasks = any(isinstance(arg, BaseTask) for arg in parsed_args)
+            with observe_derived_variable_phase('cache_write', _resolver_name):
+                await DerivedVariable.add_latest_value(store, var_entry, cache_key)
 
-                with observe_derived_variable_phase('cache_write', _resolver_name):
-                    await DerivedVariable.add_latest_value(store, var_entry, cache_key)
+            cache_type = var_entry.cache
 
-                cache_type = var_entry.cache
-
-                # Handle force key tracking to prevent double execution
-                effective_force = force_key is not None
-                if force_key is not None:
-                    if force_key in _force_keys_seen:
-                        # This force key has been seen before, don't force again
-                        effective_force = False
-                        eng_logger.debug(
-                            f'DerivedVariable {_uid_short} force key already seen, using cached value',
-                            extra={'uid': var_entry.uid, 'force_key': force_key},
-                        )
-                    else:
-                        # First time seeing this force key, add it to the set
-                        _force_keys_seen[force_key] = True
-                        eng_logger.debug(
-                            f'DerivedVariable {_uid_short} new force key, will force recalculation',
-                            extra={'uid': var_entry.uid, 'force_key': force_key},
-                        )
-
-                eng_logger.debug(
-                    f'DerivedVariable {_uid_short}',
-                    f'using cache: {cache_type}',
-                    {'uid': var_entry.uid},
-                )
-
-                # Start with a sentinel value to indicate that the value is missing
-                # from cache, this lets us distinguish between a cache miss and a
-                # value that is None
-                value = VALUE_MISSING
-
-                ignore_cache = (
-                    var_entry.cache is None
-                    or var_entry.polling_interval
-                    or DerivedVariable.check_polling(var_entry.variables)
-                    or effective_force
-                    or has_forced_child
-                )
-                if not ignore_cache:
-                    with observe_derived_variable_phase('cache_lookup', _resolver_name) as cache_observation:
-                        try:
-                            value = await store.get(var_entry, key=cache_key, raise_for_missing=True)
-                            if cache_observation.span is not None:
-                                cache_observation.span.set_attribute('dara.cache.result', 'hit')
-                            record_derived_variable_cache_access('hit')
-                            eng_logger.debug(
-                                f'DerivedVariable {_uid_short}',
-                                'retrieved value from cache',
-                                {'uid': var_entry.uid, 'cached_value': value},
-                            )
-                        except KeyError:
-                            if cache_observation.span is not None:
-                                cache_observation.span.set_attribute('dara.cache.result', 'miss')
-                            record_derived_variable_cache_access('miss')
-                            eng_logger.debug(
-                                f'DerivedVariable {_uid_short}',
-                                'no value found in cache',
-                                {'uid': var_entry.uid},
-                            )
-                            # key error means no entry found;
-                            # this lets us distinguish from a None value stored and not found
+            # Handle force key tracking to prevent double execution
+            effective_force = force_key is not None
+            if force_key is not None:
+                if force_key in _force_keys_seen:
+                    # This force key has been seen before, don't force again
+                    effective_force = False
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short} force key already seen, using cached value',
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
+                    )
                 else:
-                    record_derived_variable_cache_access('bypass')
-
-                # If it's a PendingTask then return that task so it can be awaited later by a MetaTask
-                if isinstance(value, PendingTask):
-                    eng_logger.info(
-                        f'DerivedVariable {_uid_short} waiting for pending task',
-                        {'uid': var_entry.uid, 'pending_task': value.task_id},
+                    # First time seeing this force key, add it to the set
+                    _force_keys_seen[force_key] = True
+                    eng_logger.debug(
+                        f'DerivedVariable {_uid_short} new force key, will force recalculation',
+                        extra={'uid': var_entry.uid, 'force_key': force_key},
                     )
-                    return {'cache_key': cache_key, 'value': value}
 
-                # We retrieved an actual value from the cache, return it
-                if not ignore_cache and value is not VALUE_MISSING:
-                    eng_logger.info(
-                        f'DerivedVariable {_uid_short} returning cached value directly',
-                        {'uid': var_entry.uid, 'cached_value': value},
-                    )
-                    return {'cache_key': cache_key, 'value': value}
+            eng_logger.debug(
+                f'DerivedVariable {_uid_short}',
+                f'using cache: {cache_type}',
+                {'uid': var_entry.uid},
+            )
 
-                # Setup pending task if it needs it and then return the task
-                if var_entry.run_as_task or has_tasks:
-                    var_uid = var_entry.uid or str(uuid.uuid4())
+            # Start with a sentinel value to indicate that the value is missing
+            # from cache, this lets us distinguish between a cache miss and a
+            # value that is None
+            value = VALUE_MISSING
 
-                    if has_tasks:
-                        task_id = f'{var_uid}_MetaTask_{str(uuid.uuid4())}'
-
-                        extra_notify_channels = [
-                            channel
-                            for arg in parsed_args
-                            if isinstance(arg, BaseTask)
-                            for channel in arg.notify_channels
-                        ]
+            ignore_cache = (
+                var_entry.cache is None
+                or var_entry.polling_interval
+                or DerivedVariable.check_polling(var_entry.variables)
+                or effective_force
+                or has_forced_child
+            )
+            if not ignore_cache:
+                with observe_derived_variable_phase('cache_lookup', _resolver_name) as cache_observation:
+                    try:
+                        value = await store.get(var_entry, key=cache_key, raise_for_missing=True)
+                        if cache_observation.span is not None:
+                            cache_observation.span.set_attribute('dara.cache.result', 'hit')
+                        record_derived_variable_cache_access('hit')
                         eng_logger.debug(
                             f'DerivedVariable {_uid_short}',
-                            'running has tasks',
-                            {'uid': var_entry.uid, 'task_id': task_id},
+                            'retrieved value from cache',
+                            {'uid': var_entry.uid, 'cached_value': value},
                         )
-                        meta_task = MetaTask(
-                            var_entry.func,
-                            parsed_args,
-                            notify_channels=list(set(extra_notify_channels)),
-                            process_as_task=var_entry.run_as_task,
-                            cache_key=cache_key,
-                            task_id=task_id,
-                            reg_entry=var_entry,  # task results are set as the DV result
+                    except KeyError:
+                        if cache_observation.span is not None:
+                            cache_observation.span.set_attribute('dara.cache.result', 'miss')
+                        record_derived_variable_cache_access('miss')
+                        eng_logger.debug(
+                            f'DerivedVariable {_uid_short}',
+                            'no value found in cache',
+                            {'uid': var_entry.uid},
                         )
+                        # key error means no entry found;
+                        # this lets us distinguish from a None value stored and not found
+            else:
+                record_derived_variable_cache_access('bypass')
 
-                        # Immediately store the pending task in the store
-                        pending_task = task_mgr.register_task(meta_task)
-                        with observe_derived_variable_phase('cache_write', _resolver_name):
-                            await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
+            # If it's a PendingTask then return that task so it can be awaited later by a MetaTask
+            if isinstance(value, PendingTask):
+                eng_logger.info(
+                    f'DerivedVariable {_uid_short} waiting for pending task',
+                    {'uid': var_entry.uid, 'pending_task': value.task_id},
+                )
+                return {'cache_key': cache_key, 'value': value}
 
-                        return {'cache_key': cache_key, 'value': meta_task}
+            # We retrieved an actual value from the cache, return it
+            if not ignore_cache and value is not VALUE_MISSING:
+                eng_logger.info(
+                    f'DerivedVariable {_uid_short} returning cached value directly',
+                    {'uid': var_entry.uid, 'cached_value': value},
+                )
+                return {'cache_key': cache_key, 'value': value}
 
-                    task_id = f'{var_uid}_Task_{str(uuid.uuid4())}'
+            # Setup pending task if it needs it and then return the task
+            if var_entry.run_as_task or has_tasks:
+                var_uid = var_entry.uid or str(uuid.uuid4())
 
+                if has_tasks:
+                    task_id = f'{var_uid}_MetaTask_{str(uuid.uuid4())}'
+
+                    extra_notify_channels = [
+                        channel for arg in parsed_args if isinstance(arg, BaseTask) for channel in arg.notify_channels
+                    ]
                     eng_logger.debug(
                         f'DerivedVariable {_uid_short}',
-                        'running as a task',
+                        'running has tasks',
                         {'uid': var_entry.uid, 'task_id': task_id},
                     )
-                    task = Task(
+                    meta_task = MetaTask(
                         var_entry.func,
                         parsed_args,
+                        notify_channels=list(set(extra_notify_channels)),
+                        process_as_task=var_entry.run_as_task,
                         cache_key=cache_key,
                         task_id=task_id,
                         reg_entry=var_entry,  # task results are set as the DV result
                     )
 
                     # Immediately store the pending task in the store
-                    pending_task = task_mgr.register_task(task)
+                    pending_task = task_mgr.register_task(meta_task)
                     with observe_derived_variable_phase('cache_write', _resolver_name):
                         await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
 
-                    return {'cache_key': cache_key, 'value': task}
+                    return {'cache_key': cache_key, 'value': meta_task}
 
-                try:
-                    with observe_derived_variable_phase('resolver', _resolver_name):
-                        result = await run_user_handler(var_entry.func, args=parsed_args)
-                except Exception:
-                    # Delete the store value so subsequent requests recalculate instaed
-                    if var_entry.cache is not None:
-                        await store.delete(var_entry, key=cache_key)
-                    raise
+                task_id = f'{var_uid}_Task_{str(uuid.uuid4())}'
 
-                # If a task is returned then ensure we register it
-                if isinstance(result, BaseTask):
-                    eng_logger.info(
-                        f'DerivedVariable {_uid_short} returning task as a result',
-                        {'uid': var_entry.uid, 'task_id': result.task_id},
-                    )
-                    # Make sure cache settings are set on the task
-                    result.cache_key = cache_key
-                    result.reg_entry = var_entry
-
-                    task_mgr.register_task(result)
-
-                    return {'cache_key': cache_key, 'value': result}
-
-                # only set the value if cache is not None, otherwise subsequent requests calculate the value again
-                if var_entry.cache is not None:
-                    with observe_derived_variable_phase('cache_write', _resolver_name):
-                        await store.set(var_entry, key=cache_key, value=result, pin=_pin_result)
-
-                eng_logger.info(
-                    f'DerivedVariable {_uid_short} returning result',
-                    {'uid': var_entry.uid, 'result': result},
+                eng_logger.debug(
+                    f'DerivedVariable {_uid_short}',
+                    'running as a task',
+                    {'uid': var_entry.uid, 'task_id': task_id},
                 )
+                task = Task(
+                    var_entry.func,
+                    parsed_args,
+                    cache_key=cache_key,
+                    task_id=task_id,
+                    reg_entry=var_entry,  # task results are set as the DV result
+                )
+
+                # Immediately store the pending task in the store
+                pending_task = task_mgr.register_task(task)
+                with observe_derived_variable_phase('cache_write', _resolver_name):
+                    await store.set(var_entry, key=cache_key, value=pending_task, pin=_pin_result)
+
+                return {'cache_key': cache_key, 'value': task}
+
+            try:
+                with observe_derived_variable_phase('resolver', _resolver_name):
+                    result = await run_user_handler(var_entry.func, args=parsed_args)
+            except Exception:
+                # Delete the store value so subsequent requests recalculate instaed
+                if var_entry.cache is not None:
+                    await store.delete(var_entry, key=cache_key)
+                raise
+
+            # If a task is returned then ensure we register it
+            if isinstance(result, BaseTask):
+                eng_logger.info(
+                    f'DerivedVariable {_uid_short} returning task as a result',
+                    {'uid': var_entry.uid, 'task_id': result.task_id},
+                )
+                # Make sure cache settings are set on the task
+                result.cache_key = cache_key
+                result.reg_entry = var_entry
+
+                task_mgr.register_task(result)
+
                 return {'cache_key': cache_key, 'value': result}
+
+            # only set the value if cache is not None, otherwise subsequent requests calculate the value again
+            if var_entry.cache is not None:
+                with observe_derived_variable_phase('cache_write', _resolver_name):
+                    await store.set(var_entry, key=cache_key, value=result, pin=_pin_result)
+
+            eng_logger.info(
+                f'DerivedVariable {_uid_short} returning result',
+                {'uid': var_entry.uid, 'result': result},
+            )
+            return {'cache_key': cache_key, 'value': result}
         finally:
             await lock.__aexit__(None, None, None)
 

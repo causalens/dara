@@ -1,0 +1,56 @@
+groups:
+  - name: dara-http
+    interval: 30s
+    rules:
+      - record: dara:http_requests:rate5m
+        expr: |
+          sum by (http_route, http_request_method) (
+            rate(http_server_request_duration_seconds_count[5m])
+          )
+      - record: dara:http_errors:rate5m
+        expr: |
+          sum by (http_route, http_request_method) (
+            rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m])
+          )
+      - record: dara:http_errors:ratio5m
+        expr: |
+          dara:http_errors:rate5m
+          /
+          clamp_min(dara:http_requests:rate5m, 1)
+      - record: dara:http_request_duration_seconds:p50
+        expr: |
+          histogram_quantile(
+            0.50,
+            sum by (http_route, http_request_method, le) (
+              rate(http_server_request_duration_seconds_bucket[5m])
+            )
+          )
+      - record: dara:http_request_duration_seconds:p95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (http_route, http_request_method, le) (
+              rate(http_server_request_duration_seconds_bucket[5m])
+            )
+          )
+      - record: dara:http_request_duration_seconds:p99
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (http_route, http_request_method, le) (
+              rate(http_server_request_duration_seconds_bucket[5m])
+            )
+          )
+
+  - name: dara-saturation
+    interval: 30s
+    rules:
+      - record: dara:worker_utilization:ratio
+        expr: |
+          sum(dara_worker_busy)
+          /
+          clamp_min(sum(dara_worker_count), 1)
+      - record: dara:task_queue_depth:sum
+        expr: sum(dara_task_queue_depth)
+      - record: dara:http_active_requests:sum
+        expr: sum(http_server_active_requests)

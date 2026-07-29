@@ -20,25 +20,79 @@ import os
 from collections.abc import Iterator, Mapping
 from contextlib import AbstractContextManager, contextmanager, suppress
 from dataclasses import dataclass, field
+from threading import Lock
 from time import perf_counter
 from typing import Any
 
 import logfire
 from fastapi import FastAPI, Request, WebSocket
+from logfire import MetricsOptions
 from opentelemetry import context as otel_context
 from opentelemetry import metrics, trace
 from opentelemetry.context import Context
+from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
-from opentelemetry.metrics import Counter, Histogram, UpDownCounter
+from opentelemetry.metrics import CallbackOptions, Counter, Histogram, Observation, UpDownCounter
 from opentelemetry.propagate import extract, inject
+from opentelemetry.sdk.metrics import Histogram as SDKHistogram
+from opentelemetry.sdk.metrics import UpDownCounter as SDKUpDownCounter
+from opentelemetry.sdk.metrics.view import (
+    DefaultAggregation,
+    DropAggregation,
+    ExplicitBucketHistogramAggregation,
+    View,
+)
 from opentelemetry.trace import Span, Status, StatusCode
 from starlette.types import Scope
 
 from dara.core.internal.settings import get_settings
+from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 
 _TRACER = trace.get_tracer('dara.core')
 _METER = metrics.get_meter('dara.core')
+
+_DURATION_BUCKETS_SECONDS = (
+    0.005,
+    0.01,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1,
+    2.5,
+    5,
+    7.5,
+    10,
+    30,
+    60,
+    120,
+    300,
+    600,
+)
+_PROMETHEUS_METRIC_VIEWS = (
+    View(instrument_name='otel.sdk.*', aggregation=DropAggregation()),
+    View(
+        instrument_type=SDKHistogram,
+        instrument_name='*.duration',
+        aggregation=ExplicitBucketHistogramAggregation(boundaries=_DURATION_BUCKETS_SECONDS),
+    ),
+    View(
+        instrument_type=SDKUpDownCounter,
+        instrument_name='http.server.active_requests',
+        attribute_keys={
+            'http.flavor',
+            'http.method',
+            'http.request.method',
+            'http.scheme',
+            'url.scheme',
+        },
+        aggregation=DefaultAggregation(),
+    ),
+)
 
 _ACTION_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
     'dara.action.active',
@@ -224,6 +278,72 @@ _SCHEDULED_JOB_EXECUTIONS: Counter = _METER.create_counter(
     'dara.scheduled_job.executions',
     unit='{job}',
     description='Number of completed Dara scheduled job executions',
+)
+
+
+@dataclass
+class _CacheMetricValues:
+    """Latest numeric cache values used by asynchronous OTEL instruments."""
+
+    store_size_bytes: int = 0
+    store_entries: int = 0
+    registry_size_bytes: dict[str, int] = field(default_factory=dict)
+    registry_entries: dict[str, int] = field(default_factory=dict)
+    lock: Lock = field(default_factory=Lock)
+
+    def size_observations(self, _options: CallbackOptions) -> Iterator[Observation]:
+        """Observe cache sizes by bounded cache kind and registered registry name."""
+        with self.lock:
+            store_size_bytes = self.store_size_bytes
+            registry_size_bytes = dict(self.registry_size_bytes)
+
+        yield Observation(store_size_bytes, {'dara.cache.kind': 'store'})
+        for name, size_bytes in registry_size_bytes.items():
+            yield Observation(
+                size_bytes,
+                {
+                    'dara.cache.kind': 'registry',
+                    'dara.registry.name': name,
+                },
+            )
+        yield Observation(
+            store_size_bytes + sum(registry_size_bytes.values()),
+            {'dara.cache.kind': 'total'},
+        )
+
+    def entry_observations(self, _options: CallbackOptions) -> Iterator[Observation]:
+        """Observe cache entry counts by bounded cache kind and registered registry name."""
+        with self.lock:
+            store_entries = self.store_entries
+            registry_entries = dict(self.registry_entries)
+
+        yield Observation(store_entries, {'dara.cache.kind': 'store'})
+        for name, entries in registry_entries.items():
+            yield Observation(
+                entries,
+                {
+                    'dara.cache.kind': 'registry',
+                    'dara.registry.name': name,
+                },
+            )
+        yield Observation(
+            store_entries + sum(registry_entries.values()),
+            {'dara.cache.kind': 'total'},
+        )
+
+
+_CACHE_METRIC_VALUES = _CacheMetricValues()
+_METER.create_observable_gauge(
+    'dara.cache.size',
+    callbacks=[_CACHE_METRIC_VALUES.size_observations],
+    unit='By',
+    description='Approximate current size of Dara cache stores and registries',
+)
+_METER.create_observable_gauge(
+    'dara.cache.entries',
+    callbacks=[_CACHE_METRIC_VALUES.entry_observations],
+    unit='{entry}',
+    description='Current number of entries in Dara cache stores and registries',
 )
 
 
@@ -702,6 +822,34 @@ def record_task_queue_depth_change(delta: int) -> None:
         _TASK_QUEUE_DEPTH.add(delta)
 
 
+def record_cache_store_metrics(size_bytes: int, entries: int) -> None:
+    """
+    Set the current application cache-store measurements.
+
+    Values are retained before telemetry starts so the first collection reports
+    the complete state created during application setup.
+
+    :param size_bytes: approximate size of stored values in bytes
+    :param entries: current number of stored cache entries
+    """
+    with _CACHE_METRIC_VALUES.lock:
+        _CACHE_METRIC_VALUES.store_size_bytes = size_bytes
+        _CACHE_METRIC_VALUES.store_entries = entries
+
+
+def record_registry_cache_metrics(name: str, size_bytes: int, entries: int) -> None:
+    """
+    Set current measurements for one bounded Dara registry.
+
+    :param name: registered Dara registry type
+    :param size_bytes: approximate registry size in bytes
+    :param entries: current number of registry entries
+    """
+    with _CACHE_METRIC_VALUES.lock:
+        _CACHE_METRIC_VALUES.registry_size_bytes[name] = size_bytes
+        _CACHE_METRIC_VALUES.registry_entries[name] = entries
+
+
 def capture_telemetry_context() -> Context | None:
     """Capture the current OTEL context when Dara telemetry is enabled."""
     if not _RUNTIME.configured:
@@ -769,7 +917,9 @@ class _TelemetryRuntime:
         :param process_type: bounded Dara process role used as a resource attribute
         """
         settings = get_settings()
-        if not settings.dara_otel_enabled:
+        prometheus_reader_enabled = process_type == 'application' and settings.prometheus_metrics_enabled
+        metrics_enabled = settings.otlp_metrics_enabled or prometheus_reader_enabled
+        if not settings.dara_otel_enabled and not metrics_enabled:
             return False
 
         # The stable HTTP duration histogram uses seconds and is the instrument
@@ -779,21 +929,52 @@ class _TelemetryRuntime:
         if self.configured:
             return True
 
-        logfire.configure(
-            send_to_logfire=False,
-            console=False,
-            resource_attributes={
-                'process.pid': os.getpid(),
-                'dara.process.type': process_type,
-            },
-        )
+        configure_options: dict[str, Any] = {}
+        if prometheus_reader_enabled:
+            configure_options['metrics'] = MetricsOptions(
+                additional_readers=[
+                    PrometheusMetricReader(
+                        registry=DARA_METRICS_REGISTRY,
+                        scope_info_enabled=False,
+                    )
+                ],
+                views=_PROMETHEUS_METRIC_VIEWS,
+            )
+        elif not metrics_enabled:
+            configure_options['metrics'] = False
+
+        # Logfire adds an OTLP reader from the standard exporter variables. In
+        # Prometheus-only mode, hide that exporter only while it constructs the
+        # provider so the same measurements cannot leave through both paths.
+        configured_metrics_exporter = os.environ.get('OTEL_METRICS_EXPORTER')
+        if prometheus_reader_enabled and not settings.otlp_metrics_enabled:
+            os.environ['OTEL_METRICS_EXPORTER'] = 'none'
+
+        try:
+            logfire.configure(
+                send_to_logfire=False,
+                console=False,
+                resource_attributes={
+                    'process.pid': os.getpid(),
+                    'dara.process.type': process_type,
+                },
+                **configure_options,
+            )
+        finally:
+            if prometheus_reader_enabled and not settings.otlp_metrics_enabled:
+                if configured_metrics_exporter is None:
+                    os.environ.pop('OTEL_METRICS_EXPORTER', None)
+                else:
+                    os.environ['OTEL_METRICS_EXPORTER'] = configured_metrics_exporter
         self.configured = True
 
-        LoggingInstrumentor().instrument(inject_trace_context=True, log_code_attributes=True)
-        self.logging_instrumented = True
+        if settings.dara_otel_enabled:
+            LoggingInstrumentor().instrument(inject_trace_context=True, log_code_attributes=True)
+            self.logging_instrumented = True
 
-        logfire.instrument_system_metrics()
-        self.system_metrics_instrumented = True
+        if metrics_enabled:
+            logfire.instrument_system_metrics()
+            self.system_metrics_instrumented = True
         return True
 
     def initialize(self, app: FastAPI) -> None:

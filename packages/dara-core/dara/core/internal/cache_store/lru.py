@@ -160,3 +160,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
             self.cache = {}
             self.head = None
             self.tail = None
+
+    def __len__(self) -> int:
+        """Return the number of entries currently held by this cache."""
+        return len(self.cache)

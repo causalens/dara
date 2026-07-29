@@ -53,7 +53,6 @@ from dara.core.internal.pool import TaskPool
 from dara.core.internal.utils import exception_group_contains, run_user_handler
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
-from dara.core.metrics import RUNTIME_METRICS_TRACKER
 from dara.core.telemetry import (
     _OperationObservation,
     capture_telemetry_context,
@@ -136,58 +135,49 @@ class Task(BaseTask):
 
         :param send_stream: The stream to send messages to the task manager on
         """
-        # Get a histogram for given task to track its runtime
-        # If task_id has underscores, strip the last part of it as it's in the format of {var_name}_TaskType_{uid}
-        clean_task_name = '_'.join(self.task_id.split('_')[:-1]) if '_' in self.task_id else self.task_id
-        histogram = RUNTIME_METRICS_TRACKER.get_task_histogram(clean_task_name)
-
         from dara.core.internal.registries import utils_registry
 
         pool: TaskPool = utils_registry.get('TaskPool')
 
-        with histogram.time():
+        async def on_progress(progress: float, msg: str):
+            if send_stream is not None:
+                with contextlib.suppress(ClosedResourceError):
+                    await send_stream.send(TaskProgressUpdate(task_id=self.task_id, progress=progress, message=msg))
 
-            async def on_progress(progress: float, msg: str):
-                if send_stream is not None:
-                    with contextlib.suppress(ClosedResourceError):
-                        await send_stream.send(TaskProgressUpdate(task_id=self.task_id, progress=progress, message=msg))
-
-            async def on_result(result: Any):
-                if send_stream is not None:
-                    with contextlib.suppress(ClosedResourceError):
-                        await send_stream.send(
-                            TaskResult(
-                                task_id=self.task_id,
-                                result=result,
-                                cache_key=self.cache_key,
-                                reg_entry=self.reg_entry,
-                            )
+        async def on_result(result: Any):
+            if send_stream is not None:
+                with contextlib.suppress(ClosedResourceError):
+                    await send_stream.send(
+                        TaskResult(
+                            task_id=self.task_id,
+                            result=result,
+                            cache_key=self.cache_key,
+                            reg_entry=self.reg_entry,
                         )
+                    )
 
-            async def on_error(exc: BaseException):
-                if send_stream is not None:
-                    with contextlib.suppress(ClosedResourceError):
-                        await send_stream.send(
-                            TaskError(
-                                task_id=self.task_id, error=exc, cache_key=self.cache_key, reg_entry=self.reg_entry
-                            )
-                        )
+        async def on_error(exc: BaseException):
+            if send_stream is not None:
+                with contextlib.suppress(ClosedResourceError):
+                    await send_stream.send(
+                        TaskError(task_id=self.task_id, error=exc, cache_key=self.cache_key, reg_entry=self.reg_entry)
+                    )
 
-            with pool.on_progress(self.task_id, on_progress):
-                pool_task_def = pool.submit(self.task_id, self._func_name, args=tuple(self._args), kwargs=self._kwargs)
+        with pool.on_progress(self.task_id, on_progress):
+            pool_task_def = pool.submit(self.task_id, self._func_name, args=tuple(self._args), kwargs=self._kwargs)
 
-                try:
-                    with observe_task_operation('wait', 'process'):
-                        result = await pool_task_def
-                except BaseException as e:
-                    # Task returned an exception
-                    await on_error(e)
-                    raise
+            try:
+                with observe_task_operation('wait', 'process'):
+                    result = await pool_task_def
+            except BaseException as e:
+                # Task returned an exception
+                await on_error(e)
+                raise
 
-                # Send result up
-                await on_result(result)
+            # Send result up
+            await on_result(result)
 
-                return result
+            return result
 
     async def cancel(self):
         """

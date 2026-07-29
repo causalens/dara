@@ -43,15 +43,15 @@
   - [x] Flush worker telemetry on graceful process exit.
   - [x] Test propagation and resource identity across spawned processes.
 
-- [ ] Slice 5 — Metric migration and Prometheus compatibility
-  - [ ] Replace direct `prometheus_client` operation instrumentation with OTEL instruments.
-  - [ ] Preserve standard `http.server.request.duration`, active-request, and request/response-size metrics from FastAPI instrumentation.
-  - [ ] Replace string-valued cache `Info` metrics with numeric byte and entry gauges.
-  - [ ] Decide and implement a transition mode for Dara's existing Prometheus port.
-  - [ ] Prevent duplicate observations when legacy Prometheus and OTLP feed the same backend.
-  - [ ] Add Prometheus/Grafana examples for p50, p95, and p99 using histogram queries.
-  - [ ] Add dashboards/recording-rule examples for throughput, errors, saturation, and latency.
-  - [ ] Deprecate legacy metric names and configuration only with a documented migration period.
+- [x] Slice 5 — Metric migration and Prometheus compatibility
+  - [x] Replace direct `prometheus_client` operation instrumentation with OTEL instruments.
+  - [x] Preserve standard `http.server.request.duration`, active-request, and request/response-size metrics from FastAPI instrumentation.
+  - [x] Replace string-valued cache `Info` metrics with numeric byte and entry gauges.
+  - [x] Preserve Dara's existing Prometheus port while governing Prometheus and OTLP through existing settings.
+  - [x] Document how to avoid duplicate ingestion when Prometheus and OTLP feed the same backend.
+  - [x] Add Prometheus/Grafana examples for p50, p95, and p99 using histogram queries.
+  - [x] Add dashboards/recording-rule examples for throughput, errors, saturation, and latency.
+  - [x] Document the legacy metric-name migration while preserving the existing Prometheus port configuration.
 
 - [ ] Slice 6 — Hardening and rollout
   - [ ] Define and document the allowed span/log attribute vocabulary.

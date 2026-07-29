@@ -13,6 +13,7 @@ from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
 from dara.core.http import get
+from dara.core.internal.settings import get_settings
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.js_tooling.dev_server import UnidentifiedDevServerMismatch
 from dara.core.main import _start_application
@@ -29,6 +30,14 @@ from tests.python.utils import (
 )
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_cache():
+    """Reload environment-backed settings for each application test."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class LocalJsComponent(ComponentInstance):
@@ -92,15 +101,56 @@ async def test_metrics_server_uses_dara_registry(monkeypatch: pytest.MonkeyPatch
     """The built-in metrics server only exposes collectors owned by Dara."""
     monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
     monkeypatch.delenv('DARA_TEST_FLAG', raising=False)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'FALSE')
     monkeypatch.setenv('DARA_METRICS_PORT', '12345')
 
     builder = ConfigurationBuilder()
     config = create_app(builder)
 
-    with patch('dara.core.main.start_http_server') as start_http_server:
+    with (
+        patch('dara.core.main.initialize_telemetry'),
+        patch('dara.core.main.start_http_server') as start_http_server,
+    ):
         _start_application(config)
 
     start_http_server.assert_called_once_with(12345, registry=DARA_METRICS_REGISTRY)
+
+
+async def test_prometheus_endpoint_keeps_port_10000_by_default(monkeypatch: pytest.MonkeyPatch):
+    """Prometheus migrations do not require changing the existing scrape target."""
+    monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('DARA_METRICS_PORT', raising=False)
+    monkeypatch.delenv('DARA_TEST_FLAG', raising=False)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'FALSE')
+
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    with (
+        patch('dara.core.main.initialize_telemetry'),
+        patch('dara.core.main.start_http_server') as start_http_server,
+    ):
+        _start_application(config)
+
+    start_http_server.assert_called_once_with(10000, registry=DARA_METRICS_REGISTRY)
+
+
+async def test_otel_enabled_keeps_prometheus_server(monkeypatch: pytest.MonkeyPatch):
+    """Enabling OTEL does not silently remove the existing Prometheus endpoint."""
+    monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('DARA_TEST_FLAG', raising=False)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'TRUE')
+
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    with (
+        patch('dara.core.main.initialize_telemetry'),
+        patch('dara.core.main.start_http_server') as start_http_server,
+    ):
+        _start_application(config)
+
+    start_http_server.assert_called_once_with(10000, registry=DARA_METRICS_REGISTRY)
 
 
 def assert_dict_subset(haystack: dict, needle: dict):

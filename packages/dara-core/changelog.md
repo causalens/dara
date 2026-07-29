@@ -10,6 +10,8 @@ title: Changelog
 - Added OpenTelemetry spans and bounded metrics for synchronous and background actions, individual WebSocket messages, custom WebSocket handlers, and context-aware queued WebSocket sends.
 - Added OpenTelemetry spans and bounded metrics for derived-variable phases and cache outcomes, Python components, stream lifecycles, upload resolution, and backend-store operations.
 - Added cross-process OpenTelemetry propagation and bounded lifecycle metrics for tasks, task workers, and scheduled jobs.
+- Unified Prometheus and OTLP metrics on one OTEL instrumentation pipeline while preserving the existing Prometheus
+  port and adding numeric cache gauges and migration queries.
 
 ## 1.29.4
 

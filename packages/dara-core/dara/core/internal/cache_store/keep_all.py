@@ -81,3 +81,7 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         """
         async with self.lock:
             self.cache = {}
+
+    def __len__(self) -> int:
+        """Return the number of entries currently held by this cache."""
+        return len(self.cache)
