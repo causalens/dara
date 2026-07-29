@@ -289,7 +289,16 @@ async def main() -> None:
         and span.parent is not None
         and span.parent.span_id == action_span.context.span_id
     ]
-    assert action_sends
+    assert {
+        span.attributes.get('dara.websocket.message.payload.type')
+        for span in action_sends
+        if span.attributes is not None
+    } == {
+        'ActionComplete',
+        'BatchEnd',
+        'BatchStart',
+        'UpdateVariable',
+    }
 
     handler_spans = [span for span in spans if span.name == 'dara.websocket.handler.execute']
     assert {span.attributes.get('dara.websocket.handler.execution') for span in handler_spans if span.attributes} == {
@@ -321,6 +330,7 @@ async def main() -> None:
             and span.parent.span_id == handler_span.context.span_id
         )
         assert response_span.context.is_valid
+        assert response_span.attributes['dara.websocket.message.payload.type'] == handler_kind
 
     inbound_message_spans = [span for span in spans if span.name == 'dara.websocket.message.inbound']
     assert len(inbound_message_spans) == 4
@@ -353,6 +363,7 @@ async def main() -> None:
     ]
     assert {attributes['dara.outcome'] for attributes in websocket_metric_attributes} == {'success', 'error'}
     assert all('dara.websocket.handler.kind' not in attributes for attributes in websocket_metric_attributes)
+    assert all('dara.websocket.message.payload.type' not in attributes for attributes in websocket_metric_attributes)
     exported_logs = log_exporter.get_finished_logs()
     assert all('secret-action-value' not in repr(item) for item in exported_logs)
     assert all('secret-value' not in repr(item) for item in exported_logs)

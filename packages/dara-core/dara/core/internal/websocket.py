@@ -159,6 +159,22 @@ ServerMessage = DaraServerMessage | CustomServerMessage
 WS_CHANNEL: ContextVar[str | None] = ContextVar('ws_channel', default=None)
 
 
+def _get_server_message_payload_type(message: ServerMessage) -> str | None:
+    """Return a safe payload type for outbound message telemetry."""
+    if isinstance(message, CustomServerMessage):
+        return message.message.kind
+
+    extra = message.message.model_extra or {}
+    if 'action' not in extra:
+        return None
+
+    action = extra['action']
+    if action is None:
+        return 'ActionComplete'
+
+    return getattr(type(action), 'py_name', None) or type(action).__name__
+
+
 class WebSocketHandler:
     """
     Represents a WebSocket connection to a given client.
@@ -589,7 +605,11 @@ async def ws_handler(websocket: WebSocket):
                             )
                         with (
                             use_telemetry_context(message._telemetry_context),
-                            observe_websocket_message('outbound', message.type),
+                            observe_websocket_message(
+                                'outbound',
+                                message.type,
+                                _get_server_message_payload_type(message),
+                            ),
                         ):
                             # TODO: This is hacky, should probably be a model_serializer
                             # on a proper payload type

@@ -695,22 +695,28 @@ def observe_action_phase(
 def observe_websocket_message(
     direction: str,
     message_type: str,
+    payload_type: str | None = None,
 ) -> Iterator[_OperationObservation]:
     """
     Trace and measure one inbound or outbound WebSocket message operation.
 
     :param direction: bounded direction, ``inbound`` or ``outbound``
     :param message_type: bounded protocol type, ``message``, ``custom``, or ``invalid``
+    :param payload_type: safe protocol payload type to add to the span only
     """
-    attributes = {
+    metric_attributes = {
         'dara.websocket.direction': direction,
         'dara.websocket.message.type': message_type,
         'dara.websocket.operation': 'message',
     }
+    span_attributes = dict(metric_attributes)
+    if payload_type is not None:
+        span_attributes['dara.websocket.message.payload.type'] = payload_type
+
     with _observe_operation(
         span_name=f'dara.websocket.message.{direction}',
-        span_attributes=attributes,
-        metric_attributes=attributes,
+        span_attributes=span_attributes,
+        metric_attributes=metric_attributes,
         active=_WEBSOCKET_MESSAGE_ACTIVE,
         duration=_WEBSOCKET_MESSAGE_DURATION,
         executions=_WEBSOCKET_MESSAGE_EXECUTIONS,
