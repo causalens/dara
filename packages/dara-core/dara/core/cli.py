@@ -24,9 +24,10 @@ import uvicorn
 
 import click
 from click.exceptions import UsageError
+from dara.core.configuration import ConfigurationBuilder
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
-from dara.core.internal.utils import find_module_path
+from dara.core.internal.utils import find_module_path, import_config
 from dara.core.js_tooling.js_utils import JsConfig, setup_js_scaffolding
 
 LOG_CONFIG_PATH = os.path.join(pathlib.Path(__file__).parent, 'log_configs')
@@ -36,6 +37,15 @@ DEFAULT_METRICS_PORT = 10000
 PORT_RANGE = 100
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_config_path(config: str | None) -> str:
+    """Resolve an explicit config path or infer the conventional path from the current directory."""
+    if config is not None:
+        return config
+
+    folder_name = os.path.basename(os.getcwd()).replace('-', '_')
+    return f'{folder_name}.main:config'
 
 
 @click.group()
@@ -82,9 +92,7 @@ def start(
     skip_jsbuild: bool,
     base_url: str | None,
 ):
-    if config is None:
-        folder_name = os.path.basename(os.getcwd()).replace('-', '_')
-        config = f'{folder_name}.main:config'
+    config = _resolve_config_path(config)
 
     # Set the config path env var so main can pick it up
     os.environ['DARA_CONFIG_PATH'] = config
@@ -197,16 +205,22 @@ def setup_custom_js():
 
 
 @cli.command()
-def dev():
+@click.option('--config', help='The path to the config for the application')
+def dev(config: str | None):
     # Run vite dev command, printing output live
     js_config = JsConfig.from_file()
+    config_path = _resolve_config_path(config)
+    _, app_config = import_config(config_path)
+
+    if not isinstance(app_config, ConfigurationBuilder):
+        raise UsageError(f'"config" object in {config_path} is not an instance of ConfigurationBuilder')
 
     package_manager = 'npm'
 
     if js_config and js_config.package_manager:
         package_manager = js_config.package_manager
 
-    os.chdir(os.path.join(os.getcwd(), 'dist'))
+    os.chdir(app_config.static_files_dir)
     with subprocess.Popen(  # nosec B602 # package manager is validated
         f'{package_manager} run dev',
         stdout=subprocess.PIPE,
