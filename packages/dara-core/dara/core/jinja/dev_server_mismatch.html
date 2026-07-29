@@ -35,28 +35,15 @@
 
             header {
                 display: flex;
-                gap: 0.75rem;
+                gap: 0.875rem;
                 align-items: center;
             }
 
             .status-icon {
-                display: grid;
                 flex: 0 0 auto;
-                place-items: center;
-                width: 2rem;
-                height: 2rem;
-                color: #da6087;
-                font-size: 1.25rem;
-                font-weight: 700;
-            }
-
-            .brand {
-                margin: 0 0 0.25rem;
-                color: #434b87;
-                font-size: 0.75rem;
-                font-weight: 700;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
+                width: 1.5rem;
+                height: 1.5rem;
+                color: #da4167;
             }
 
             h1 {
@@ -70,23 +57,12 @@
                 margin-top: 1.5rem;
             }
 
-            .message-label {
-                margin: 0 0 0.75rem;
-                color: #5b5e66;
-                font-size: 0.75rem;
-                font-weight: 700;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
-            }
-
-            pre {
+            .message {
                 margin: 0;
-                padding: 1.25rem;
                 overflow-wrap: anywhere;
-                border-radius: 0.25rem;
-                background: #eef1fa;
                 color: #1e244d;
-                font: 0.875rem/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+                font-size: 0.9375rem;
+                line-height: 1.65;
                 white-space: pre-wrap;
             }
 
@@ -106,15 +82,16 @@
     <body>
         <main>
             <header>
-                <div aria-hidden="true" class="status-icon">!</div>
-                <div>
-                    <p class="brand">Dara development</p>
-                    <h1>Development server mismatch</h1>
-                </div>
+                <svg aria-hidden="true" class="status-icon" viewBox="0 0 512 512">
+                    <path
+                        d="M256 32c14.2 0 27.3 7.5 34.5 19.8l216 368c14.3 24.4-3.3 55.2-31.5 55.2H37c-28.2 0-45.8-30.8-31.5-55.2l216-368C228.7 39.5 241.8 32 256 32zm0 128c-13.3 0-24 10.7-24 24v112c0 13.3 10.7 24 24 24s24-10.7 24-24V184c0-13.3-10.7-24-24-24zm32 224a32 32 0 1 0-64 0 32 32 0 1 0 64 0z"
+                        fill="currentColor"
+                    />
+                </svg>
+                <h1>Development server mismatch</h1>
             </header>
             <div class="content">
-                <p class="message-label">How to fix this</p>
-                <pre>{{ message }}</pre>
+                <div class="message">{{ message }}</div>
             </div>
             <footer>
                 <span>Waiting for a matching server at {{ origin }}. This page retries automatically.</span>
