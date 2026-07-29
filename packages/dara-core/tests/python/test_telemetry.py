@@ -447,6 +447,7 @@ def test_http_spans_and_native_logs_export_with_correlation():
     environment.update(
         {
             'DARA_OTEL_ENABLED': 'TRUE',
+            'DARA_DISABLE_METRICS': 'TRUE',
             'OTEL_TRACES_EXPORTER': 'none',
             'OTEL_LOGS_EXPORTER': 'none',
             'OTEL_METRICS_EXPORTER': 'none',
@@ -472,6 +473,7 @@ def test_internal_operation_spans_and_metrics_export():
     environment.update(
         {
             'DARA_OTEL_ENABLED': 'TRUE',
+            'DARA_DISABLE_METRICS': 'TRUE',
             'OTEL_TRACES_EXPORTER': 'none',
             'OTEL_LOGS_EXPORTER': 'none',
             'OTEL_METRICS_EXPORTER': 'none',
@@ -491,11 +493,38 @@ def test_internal_operation_spans_and_metrics_export():
     assert result.returncode == 0, f'{result.stdout}\n{result.stderr}'
 
 
+def test_authentication_and_oidc_spans_export_without_sensitive_values():
+    environment = os.environ.copy()
+    environment.update(
+        {
+            'DARA_OTEL_ENABLED': 'TRUE',
+            'DARA_DISABLE_METRICS': 'TRUE',
+            'OTEL_TRACES_EXPORTER': 'none',
+            'OTEL_LOGS_EXPORTER': 'none',
+            'OTEL_METRICS_EXPORTER': 'none',
+        }
+    )
+    environment.pop('DARA_TEST_FLAG', None)
+    smoke_test = Path(__file__).with_name('_telemetry_auth_smoke.py')
+
+    result = subprocess.run(
+        [sys.executable, str(smoke_test)],
+        capture_output=True,
+        check=False,
+        env=environment,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, f'{result.stdout}\n{result.stderr}'
+
+
 def test_task_and_subprocess_context_propagation():
     environment = os.environ.copy()
     environment.update(
         {
             'DARA_OTEL_ENABLED': 'TRUE',
+            'DARA_DISABLE_METRICS': 'TRUE',
             'DARA_POOL_MAX_WORKERS': '1',
             'OTEL_TRACES_EXPORTER': 'none',
             'OTEL_LOGS_EXPORTER': 'none',

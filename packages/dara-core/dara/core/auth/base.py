@@ -68,6 +68,9 @@ class AuthComponentConfig(BaseModel):
 
 
 class BaseAuthConfig(BaseModel, abc.ABC):
+    telemetry_system: ClassVar[str] = 'custom'
+    """Bounded authentication-system name used by Dara telemetry."""
+
     component_config: ClassVar[AuthComponentConfig]
     """
     Defines components to use for auth routes

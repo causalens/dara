@@ -249,6 +249,21 @@ _BACKEND_STORE_EXECUTIONS: Counter = _METER.create_counter(
     unit='{operation}',
     description='Number of completed Dara backend-store operations',
 )
+_AUTH_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.auth.active',
+    unit='{operation}',
+    description='Number of Dara authentication operations currently executing',
+)
+_AUTH_DURATION: Histogram = _METER.create_histogram(
+    'dara.auth.duration',
+    unit='s',
+    description='Duration of Dara authentication operations',
+)
+_AUTH_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.auth.executions',
+    unit='{operation}',
+    description='Number of completed Dara authentication operations',
+)
 _TASK_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
     'dara.task.active',
     unit='{task}',
@@ -540,7 +555,8 @@ class _OperationObservation:
 
         :param error: exception raised by the observed operation
         """
-        self.outcome = 'cancelled' if isinstance(error, asyncio.CancelledError) else 'error'
+        if self.outcome == 'success':
+            self.outcome = 'cancelled' if isinstance(error, asyncio.CancelledError) else 'error'
         if self.span is None or not self.span.is_recording():
             return
 
@@ -554,8 +570,8 @@ class _OperationObservation:
 def _observe_operation(
     *,
     span_name: str,
-    span_attributes: dict[str, str],
-    metric_attributes: dict[str, str],
+    span_attributes: Mapping[str, str | bool | int | float],
+    metric_attributes: Mapping[str, str],
     active: UpDownCounter,
     duration: Histogram,
     executions: Counter,
@@ -1044,6 +1060,71 @@ def observe_backend_store(
 
 
 @contextmanager
+def observe_auth(
+    operation: str,
+    *,
+    system: str | None = None,
+    attributes: Mapping[str, str | bool | int | float] | None = None,
+    span_kind: SpanKind = SpanKind.INTERNAL,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one bounded authentication operation.
+
+    Authentication values are deliberately caller-supplied and bounded. Tokens,
+    claims, credentials, session identifiers, and user identifiers must never be
+    passed through ``attributes``.
+
+    :param operation: stable operation name such as ``session.verify`` or ``oidc.callback``
+    :param system: bounded authentication system such as ``oidc`` or ``basic``
+    :param attributes: additional safe span-only diagnostic attributes
+    :param span_kind: OpenTelemetry span kind for the operation
+    """
+    metric_attributes = {'dara.auth.operation': operation}
+    span_attributes: dict[str, str | bool | int | float] = dict(metric_attributes)
+    if system is not None:
+        metric_attributes['dara.auth.system'] = system
+        span_attributes['dara.auth.system'] = system
+    if attributes is not None:
+        span_attributes.update(attributes)
+
+    with _observe_operation(
+        span_name=f'dara.auth.{operation}',
+        span_attributes=span_attributes,
+        metric_attributes=metric_attributes,
+        active=_AUTH_ACTIVE,
+        duration=_AUTH_DURATION,
+        executions=_AUTH_EXECUTIONS,
+        span_kind=span_kind,
+    ) as observation:
+        yield observation
+
+
+def annotate_auth_observation(
+    observation: _OperationObservation,
+    *,
+    outcome: str | None = None,
+    failure_reason: str | None = None,
+    attributes: Mapping[str, str | bool | int | float] | None = None,
+) -> None:
+    """
+    Add bounded diagnostics to an authentication observation.
+
+    :param observation: active authentication observation
+    :param outcome: terminal outcome such as ``success``, ``denied``, or ``error``
+    :param failure_reason: stable failure classification without user-supplied detail
+    :param attributes: additional safe span attributes
+    """
+    if outcome is not None:
+        observation.set_outcome(outcome)
+    if observation.span is None or not observation.span.is_recording():
+        return
+    if failure_reason is not None:
+        observation.span.set_attribute('dara.auth.failure.reason', failure_reason)
+    for key, value in (attributes or {}).items():
+        observation.span.set_attribute(key, value)
+
+
+@contextmanager
 def observe_internal_operation(
     category: str,
     operation: str,
@@ -1483,6 +1564,22 @@ class _TelemetryRuntime:
             self.shutdown()
             raise
 
+    def instrument_httpx_client(self, client: Any) -> None:
+        """
+        Instrument a Dara-owned HTTPX client without capturing headers or bodies.
+
+        :param client: HTTPX client instance owned by Dara
+        """
+        if not self.configured or not get_settings().dara_otel_enabled:
+            return
+        logfire.instrument_httpx(
+            client,
+            capture_all=False,
+            capture_headers=False,
+            capture_request_body=False,
+            capture_response_body=False,
+        )
+
     def shutdown(self) -> None:
         """Remove Dara-owned instrumentation and bound application shutdown latency."""
         if not self.configured:
@@ -1546,6 +1643,15 @@ def initialize_telemetry(app: FastAPI) -> None:
     :param app: FastAPI application to instrument
     """
     _RUNTIME.initialize(app)
+
+
+def instrument_httpx_client(client: Any) -> None:
+    """
+    Instrument a Dara-owned HTTPX client when tracing is enabled.
+
+    :param client: HTTPX client instance owned by Dara
+    """
+    _RUNTIME.instrument_httpx_client(client)
 
 
 def initialize_process_telemetry(process_type: str = 'worker') -> None:

@@ -46,6 +46,7 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.telemetry import (
     capture_telemetry_context,
+    observe_auth,
     observe_websocket_handler,
     observe_websocket_message,
     observe_websocket_round_trip,
@@ -589,7 +590,8 @@ async def ws_handler(websocket: WebSocket):
 
         from dara.core.auth.session import verify_auth_token
 
-        token_content = await verify_auth_token(auth_config, session_token)
+        with observe_auth('websocket.verify', system=auth_config.telemetry_system):
+            token_content = await verify_auth_token(auth_config, session_token)
 
     except DecodeError as err:
         raise WebSocketException(code=403, reason='Invalid or expired token') from err

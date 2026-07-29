@@ -131,6 +131,9 @@ Dara provides:
 - HTTP server traces and standard request duration, size, and active-request metrics.
 - Traces and bounded metrics for actions, WebSocket messages, derived variables, Python components, streams, uploads,
   server variables, persistence operations, and cache access.
+- Authentication traces for session handling and OIDC discovery, callbacks, token exchange, token verification,
+  provider userinfo, JWKS resolution, refresh, and access checks. These use bounded outcomes and do not attach tokens,
+  authorization codes, identity claims, or provider response bodies.
 - Trace propagation through queued WebSocket messages, background tasks, worker processes, and scheduled jobs.
 - Task queue, worker occupancy, stream progress, cache capacity, process, and runtime metrics.
 - Standard-library logs as native OpenTelemetry logs with trace and span correlation.

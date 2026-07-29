@@ -9,13 +9,13 @@ from urllib.parse import urlencode, urlparse
 import httpx
 import jwt
 from fastapi import HTTPException, Response
-from jwt import PyJWKClient
 from pydantic import Field
 from pydantic.config import ConfigDict
 
 from dara.core.definitions import ApiRoute
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
+from dara.core.telemetry import annotate_auth_observation, instrument_httpx_client, observe_auth
 
 from ..base import AuthComponent, AuthComponentConfig, BaseAuthConfig
 from ..definitions import (
@@ -46,7 +46,7 @@ from .definitions import (
 from .routes import sso_callback
 from .settings import DEFAULT_ID_TOKEN_SIGNING_ALG, OIDCSettings, get_oidc_settings
 from .transaction_store import oidc_transaction_store
-from .utils import decode_id_token, get_token_from_idp
+from .utils import InstrumentedPyJWKClient, decode_id_token_async, get_token_from_idp
 
 OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogin')
 
@@ -96,6 +96,8 @@ class OIDCAuthConfig(BaseAuthConfig):
     - SSO_JWT_ALGO - deprecated alias for `SSO_ID_TOKEN_SIGNED_RESPONSE_ALG`
     - SSO_USE_USERINFO - if set to `true`, require the userinfo endpoint during login and refresh
     """
+
+    telemetry_system: ClassVar[str] = 'oidc'
 
     # NOTE: the config follows OIDC specification, but makes a few concessions
     # to be more lenient with the internal IDP. These are marked with CONCESSION comments.
@@ -210,16 +212,28 @@ class OIDCAuthConfig(BaseAuthConfig):
 
         for attempt in range(1, oidc_settings.discovery_max_attempts + 1):
             try:
-                response = await self.client.get(
-                    discovery_url,
-                    timeout=oidc_settings.discovery_request_timeout_seconds,
-                )
+                with observe_auth(
+                    'oidc.discovery.attempt',
+                    system='oidc',
+                    attributes={
+                        'dara.auth.oidc.retry.attempt': attempt,
+                        'dara.auth.oidc.retry.max_attempts': oidc_settings.discovery_max_attempts,
+                    },
+                ) as observation:
+                    response = await self.client.get(
+                        discovery_url,
+                        timeout=oidc_settings.discovery_request_timeout_seconds,
+                    )
+                    annotate_auth_observation(
+                        observation,
+                        attributes={'http.response.status_code': response.status_code},
+                    )
 
-                if response.status_code == 429 or 500 <= response.status_code < 600:
-                    raise _RetryableDiscoveryError(f'HTTP {response.status_code}')
+                    if response.status_code == 429 or 500 <= response.status_code < 600:
+                        raise _RetryableDiscoveryError(f'HTTP {response.status_code}')
 
-                response.raise_for_status()
-                return response
+                    response.raise_for_status()
+                    return response
             except _RetryableDiscoveryError as e:
                 if attempt == oidc_settings.discovery_max_attempts:
                     raise RuntimeError(f'Failed to fetch OIDC discovery document from {discovery_url}: {e}') from e
@@ -242,37 +256,48 @@ class OIDCAuthConfig(BaseAuthConfig):
 
     async def startup_hook(self):
         await self.client.__aenter__()
-
-        # 1. Enforce SSO env vars are set - this will run validation and raise if not set
-        get_settings.cache_clear()
-        get_settings()
-        get_oidc_settings.cache_clear()
-        oidc_settings = get_oidc_settings()
-
-        # 2. Fetch OIDC discovery document
-        discovery_url = self.get_discovery_url()
-        dev_logger.info(f'Fetching OIDC discovery document from {discovery_url}...')
-        response = await self.fetch_discovery_document(discovery_url, oidc_settings)
+        instrument_httpx_client(self.client)
 
         try:
-            self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())
-        except Exception as e:
-            raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
+            with observe_auth('oidc.startup', system='oidc'):
+                # 1. Enforce SSO env vars are set - this will run validation and raise if not set
+                get_settings.cache_clear()
+                get_settings()
+                get_oidc_settings.cache_clear()
+                oidc_settings = get_oidc_settings()
 
-        if self._discovery.issuer != oidc_settings.issuer_url:
-            raise RuntimeError(
-                f'OIDC discovery issuer mismatch: expected {oidc_settings.issuer_url}, got {self._discovery.issuer}'
-            )
-        id_token_signing_algs = self.resolve_id_token_signing_algs(self._discovery, oidc_settings)
+                # 2. Fetch and validate the OIDC discovery document
+                discovery_url = self.get_discovery_url()
+                dev_logger.info(f'Fetching OIDC discovery document from {discovery_url}...')
+                response = await self.fetch_discovery_document(discovery_url, oidc_settings)
 
-        dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
+                try:
+                    self._discovery = OIDCDiscoveryMetadata.model_validate(response.json())
+                except Exception as e:
+                    raise RuntimeError(f'Failed to parse OIDC discovery document from {discovery_url}: {e}') from e
 
-        # 3. Store runtime OIDC verifier configuration from discovery
-        from dara.core.internal.registries import utils_registry
+                if self._discovery.issuer != oidc_settings.issuer_url:
+                    raise RuntimeError(
+                        f'OIDC discovery issuer mismatch: expected {oidc_settings.issuer_url}, '
+                        f'got {self._discovery.issuer}'
+                    )
+                id_token_signing_algs = self.resolve_id_token_signing_algs(self._discovery, oidc_settings)
 
-        py_jwk_client = PyJWKClient(self.discovery.jwks_uri, lifespan=oidc_settings.jwks_lifespan)
-        utils_registry.set(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY, id_token_signing_algs)
-        utils_registry.set(JWK_CLIENT_REGISTRY_KEY, py_jwk_client)
+                dev_logger.info(f'Successfully fetched OIDC discovery document from {discovery_url}')
+
+                # 3. Store runtime OIDC verifier configuration from discovery
+                from dara.core.internal.registries import utils_registry
+
+                py_jwk_client = InstrumentedPyJWKClient(
+                    self.discovery.jwks_uri,
+                    lifespan=oidc_settings.jwks_lifespan,
+                    timeout=oidc_settings.jwks_request_timeout_seconds,
+                )
+                utils_registry.set(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY, id_token_signing_algs)
+                utils_registry.set(JWK_CLIENT_REGISTRY_KEY, py_jwk_client)
+        except BaseException:
+            await self.client.aclose()
+            raise
 
         # Return cleanup to close the HTTP client
         async def _cleanup():
@@ -381,22 +406,31 @@ class OIDCAuthConfig(BaseAuthConfig):
         :param body: Request body, may contain redirect_to for post-auth navigation
         """
         oidc_settings = get_oidc_settings()
-        redirect_to = self.validate_redirect_to(body.redirect_to)
-        code_verifier = self.generate_code_verifier() if oidc_settings.client_auth_mode == 'pkce_public' else None
-        transaction = OIDCLoginTransaction(
-            state=self.generate_state(),
-            nonce=self.generate_nonce(),
-            code_verifier=code_verifier,
-            redirect_to=redirect_to,
-        )
-        oidc_transaction_store.set(transaction)
-        return RedirectResponse(
-            redirect_uri=self.get_authorization_url(
-                transaction.state,
-                nonce=transaction.nonce,
-                code_verifier=transaction.code_verifier,
+        with observe_auth(
+            'oidc.login.initiate',
+            system='oidc',
+            attributes={
+                'dara.auth.oidc.client.mode': oidc_settings.client_auth_mode,
+                'dara.auth.oidc.pkce.enabled': oidc_settings.client_auth_mode == 'pkce_public',
+                'dara.auth.oidc.userinfo.enabled': oidc_settings.use_userinfo,
+            },
+        ):
+            redirect_to = self.validate_redirect_to(body.redirect_to)
+            code_verifier = self.generate_code_verifier() if oidc_settings.client_auth_mode == 'pkce_public' else None
+            transaction = OIDCLoginTransaction(
+                state=self.generate_state(),
+                nonce=self.generate_nonce(),
+                code_verifier=code_verifier,
+                redirect_to=redirect_to,
             )
-        )
+            oidc_transaction_store.set(transaction)
+            return RedirectResponse(
+                redirect_uri=self.get_authorization_url(
+                    transaction.state,
+                    nonce=transaction.nonce,
+                    code_verifier=transaction.code_verifier,
+                )
+            )
 
     async def fetch_userinfo(self, access_token: str | None) -> dict[str, Any]:
         """
@@ -410,70 +444,82 @@ class OIDCAuthConfig(BaseAuthConfig):
         :return: Dictionary of userinfo claims.
         :raises HTTPException: If userinfo is required but cannot be fetched or parsed.
         """
-        if not access_token:
-            dev_logger.error(
-                'OIDC userinfo fetch failed',
-                error=Exception('missing access token'),
-                extra={'reason': 'missing_access_token'},
-            )
-            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
+        with observe_auth('oidc.userinfo', system='oidc') as observation:
+            if not access_token:
+                annotate_auth_observation(observation, outcome='denied', failure_reason='missing_access_token')
+                dev_logger.error(
+                    'OIDC userinfo fetch failed',
+                    error=Exception('missing access token'),
+                    extra={'reason': 'missing_access_token'},
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR)
 
-        userinfo_endpoint = self.discovery.userinfo_endpoint
-        if not userinfo_endpoint:
-            dev_logger.error(
-                'OIDC userinfo fetch failed',
-                error=Exception('missing userinfo endpoint'),
-                extra={'reason': 'missing_userinfo_endpoint'},
-            )
-            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
+            userinfo_endpoint = self.discovery.userinfo_endpoint
+            if not userinfo_endpoint:
+                annotate_auth_observation(observation, outcome='denied', failure_reason='missing_userinfo_endpoint')
+                dev_logger.error(
+                    'OIDC userinfo fetch failed',
+                    error=Exception('missing userinfo endpoint'),
+                    extra={'reason': 'missing_userinfo_endpoint'},
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR)
 
-        try:
-            response = await self.client.get(
-                userinfo_endpoint,
-                headers={'Authorization': f'Bearer {access_token}'},
-                timeout=10,
-            )
-            response.raise_for_status()
-            userinfo = response.json()
-        except httpx.HTTPStatusError as e:
-            dev_logger.error(
-                'OIDC userinfo fetch failed',
-                error=e,
-                extra={
-                    'reason': 'http_error',
-                    'userinfo_endpoint': userinfo_endpoint,
-                    'userinfo_response_status': e.response.status_code,
-                },
-            )
-            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
-        except httpx.RequestError as e:
-            dev_logger.error(
-                'OIDC userinfo fetch failed',
-                error=e,
-                extra={'reason': 'request_error', 'userinfo_endpoint': userinfo_endpoint},
-            )
-            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
-        except ValueError as e:
-            dev_logger.error(
-                'OIDC userinfo fetch failed',
-                error=e,
-                extra={'reason': 'invalid_json', 'userinfo_endpoint': userinfo_endpoint},
-            )
-            raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
+            try:
+                response = await self.client.get(
+                    userinfo_endpoint,
+                    headers={'Authorization': f'Bearer {access_token}'},
+                    timeout=10,
+                )
+                response.raise_for_status()
+                userinfo = response.json()
+            except httpx.HTTPStatusError as e:
+                annotate_auth_observation(
+                    observation,
+                    outcome='denied',
+                    failure_reason='provider_http_error',
+                    attributes={'http.response.status_code': e.response.status_code},
+                )
+                dev_logger.error(
+                    'OIDC userinfo fetch failed',
+                    error=e,
+                    extra={
+                        'reason': 'http_error',
+                        'userinfo_endpoint': userinfo_endpoint,
+                        'userinfo_response_status': e.response.status_code,
+                    },
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
+            except httpx.RequestError as e:
+                annotate_auth_observation(observation, outcome='error', failure_reason='provider_request_error')
+                dev_logger.error(
+                    'OIDC userinfo fetch failed',
+                    error=e,
+                    extra={'reason': 'request_error', 'userinfo_endpoint': userinfo_endpoint},
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
+            except ValueError as e:
+                annotate_auth_observation(observation, outcome='error', failure_reason='invalid_provider_response')
+                dev_logger.error(
+                    'OIDC userinfo fetch failed',
+                    error=e,
+                    extra={'reason': 'invalid_json', 'userinfo_endpoint': userinfo_endpoint},
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR) from e
 
-        if not isinstance(userinfo, dict):
-            dev_logger.error(
-                'OIDC userinfo fetch failed',
-                error=Exception('invalid userinfo response'),
-                extra={
-                    'reason': 'invalid_response_shape',
-                    'userinfo_endpoint': userinfo_endpoint,
-                    'userinfo_response_type': type(userinfo).__name__,
-                },
-            )
-            raise HTTPException(status_code=401, detail=USERINFO_ERROR)
+            if not isinstance(userinfo, dict):
+                annotate_auth_observation(observation, outcome='error', failure_reason='invalid_provider_response')
+                dev_logger.error(
+                    'OIDC userinfo fetch failed',
+                    error=Exception('invalid userinfo response'),
+                    extra={
+                        'reason': 'invalid_response_shape',
+                        'userinfo_endpoint': userinfo_endpoint,
+                        'userinfo_response_type': type(userinfo).__name__,
+                    },
+                )
+                raise HTTPException(status_code=401, detail=USERINFO_ERROR)
 
-        return userinfo
+            return userinfo
 
     def _normalize_group_claim(self, groups: list[str] | str, group_claim_name: str) -> list[str]:
         if isinstance(groups, list) and all(isinstance(group, str) for group in groups):
@@ -618,11 +664,17 @@ class OIDCAuthConfig(BaseAuthConfig):
             raise AuthError(code=401, detail=INVALID_TOKEN_ERROR) from e
 
         # Check if this is a raw IDP token (issuer matches the configured SSO issuer)
-        if unverified.get('iss') == get_oidc_settings().issuer_url:
-            return self._verify_idp_token(token)
-        return await self._verify_dara_token(token)
+        token_kind = 'idp' if unverified.get('iss') == get_oidc_settings().issuer_url else 'dara'
+        with observe_auth(
+            'oidc.token.verify',
+            system='oidc',
+            attributes={'dara.auth.token.kind': token_kind},
+        ):
+            if token_kind == 'idp':
+                return await self._verify_idp_token(token)
+            return await self._verify_dara_token(token)
 
-    def _verify_idp_token(self, token: str) -> TokenData:
+    async def _verify_idp_token(self, token: str) -> TokenData:
         """
         Verify a raw ID token from the IDP.
 
@@ -630,13 +682,14 @@ class OIDCAuthConfig(BaseAuthConfig):
         :return: TokenData extracted from the ID token
         """
         # Decode and verify the ID token signature using JWKS
-        claims = decode_id_token(token)
+        claims = await decode_id_token_async(token)
 
         # Extract user data (can be overridden for provider-specific claim structures)
         user_data = self.extract_user_data(claims)
 
         # Verify user has access based on groups
-        self.verify_user_access(user_data)
+        with observe_auth('access.verify', system='oidc'):
+            self.verify_user_access(user_data)
 
         # Set context variables
         SESSION_ID.set(user_data.identity_id)
@@ -670,7 +723,8 @@ class OIDCAuthConfig(BaseAuthConfig):
         user_data = UserData.from_token_data(token_data)
 
         # Verify user has access based on groups
-        self.verify_user_access(user_data)
+        with observe_auth('access.verify', system='oidc'):
+            self.verify_user_access(user_data)
 
         # Set context variables
         SESSION_ID.set(token_data.session_id)
@@ -734,49 +788,58 @@ class OIDCAuthConfig(BaseAuthConfig):
         """
         oidc_settings = get_oidc_settings()
 
-        # Request new tokens from the IDP
-        oidc_tokens = await get_token_from_idp(
-            self,
-            {
-                'grant_type': 'refresh_token',
-                'refresh_token': refresh_token,
+        with observe_auth(
+            'oidc.refresh',
+            system='oidc',
+            attributes={
+                'dara.auth.oidc.grant.type': 'refresh_token',
+                'dara.auth.oidc.userinfo.enabled': oidc_settings.use_userinfo,
             },
-        )
+        ):
+            # Request new tokens from the IDP
+            oidc_tokens = await get_token_from_idp(
+                self,
+                {
+                    'grant_type': 'refresh_token',
+                    'refresh_token': refresh_token,
+                },
+            )
 
-        # Ensure we got an id_token back
-        if not oidc_tokens.id_token:
-            raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+            # Ensure we got an id_token back
+            if not oidc_tokens.id_token:
+                raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 
-        # Decode and verify the new ID token
-        claims = decode_id_token(oidc_tokens.id_token)
+            # Decode and verify the new ID token
+            claims = await decode_id_token_async(oidc_tokens.id_token)
 
-        # Fetch userinfo if enabled. Once enabled, userinfo is part of the auth contract.
-        userinfo = None
-        if oidc_settings.use_userinfo:
-            userinfo = await self.fetch_userinfo(oidc_tokens.access_token)
+            # Fetch userinfo if enabled. Once enabled, userinfo is part of the auth contract.
+            userinfo = None
+            if oidc_settings.use_userinfo:
+                userinfo = await self.fetch_userinfo(oidc_tokens.access_token)
 
-        # Extract user data from claims
-        user_data = self.extract_user_data(claims, userinfo=userinfo)
+            # Extract user data from claims
+            user_data = self.extract_user_data(claims, userinfo=userinfo)
 
-        # Verify user still has access
-        self.verify_user_access(user_data)
+            # Verify user still has access
+            with observe_auth('access.verify', system='oidc'):
+                self.verify_user_access(user_data)
 
-        # Create a Dara session token, preserving the original session_id. This token stays server-side behind the
-        # generic opaque browser auth session handle.
-        new_session_token = sign_jwt(
-            identity_id=user_data.identity_id,
-            identity_name=user_data.identity_name,
-            identity_email=user_data.identity_email,
-            groups=user_data.groups or [],
-            id_token=oidc_tokens.id_token,
-            exp=int(claims.exp),
-            session_id=session_id,
-        )
+            # Create a Dara session token, preserving the original session_id. This token stays server-side behind the
+            # generic opaque browser auth session handle.
+            new_session_token = sign_jwt(
+                identity_id=user_data.identity_id,
+                identity_name=user_data.identity_name,
+                identity_email=user_data.identity_email,
+                groups=user_data.groups or [],
+                id_token=oidc_tokens.id_token,
+                exp=int(claims.exp),
+                session_id=session_id,
+            )
 
-        # Return new session token and refresh token (or the old one if not rotated)
-        new_refresh_token = oidc_tokens.refresh_token or refresh_token
+            # Return new session token and refresh token (or the old one if not rotated)
+            new_refresh_token = oidc_tokens.refresh_token or refresh_token
 
-        return new_session_token, new_refresh_token
+            return new_session_token, new_refresh_token
 
     async def refresh_token(self, old_token: TokenData, refresh_token: str) -> tuple[str, str]:
         """

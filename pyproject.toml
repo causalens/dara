@@ -65,7 +65,7 @@ optional = true
 version = "1.29.4"
 
 [tool.poetry.dependencies.logfire]
-extras = ["fastapi", "system-metrics"]
+extras = ["fastapi", "httpx", "system-metrics"]
 version = ">=4.39.0,<5.0.0"
 
 [tool.poetry.dependencies.uvicorn]
