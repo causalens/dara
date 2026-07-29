@@ -35,6 +35,11 @@ class Settings(BaseSettings):
 
     # Feature flags
     cgroup_memory_limit_enabled: bool = False
+    dara_otel_enabled: bool = False
+
+    # OpenTelemetry defaults owned by Dara. Exporter configuration remains
+    # standard OTEL configuration and is consumed directly by Logfire.
+    otel_semconv_stability_opt_in: str = 'http'
 
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
 

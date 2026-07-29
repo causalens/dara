@@ -22,6 +22,8 @@ def _clear_runtime_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     monkeypatch.delenv('DARA_CONFIG_PATH', raising=False)
+    monkeypatch.delenv('DARA_OTEL_ENABLED', raising=False)
+    monkeypatch.delenv('OTEL_SEMCONV_STABILITY_OPT_IN', raising=False)
 
 
 def _use_cache_dir(monkeypatch: pytest.MonkeyPatch, cache_dir: Path):
@@ -207,3 +209,27 @@ def test_settings_test_flag_keeps_dotenv_test_precedence(monkeypatch):
     settings = get_settings()
 
     assert settings.jwt_secret == 'd6446c35450e31c4d0b48351c0423bf9'
+
+
+def test_settings_loads_telemetry_configuration(monkeypatch, tmp_path):
+    _clear_runtime_env(monkeypatch)
+    _use_cache_dir(monkeypatch, tmp_path / 'cache')
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'TRUE')
+    monkeypatch.setenv('OTEL_SEMCONV_STABILITY_OPT_IN', 'http/dup')
+
+    settings = get_settings()
+
+    assert settings.dara_otel_enabled is True
+    assert settings.otel_semconv_stability_opt_in == 'http/dup'
+
+
+def test_settings_telemetry_defaults_to_disabled(monkeypatch, tmp_path):
+    _clear_runtime_env(monkeypatch)
+    _use_cache_dir(monkeypatch, tmp_path / 'cache')
+    monkeypatch.chdir(tmp_path)
+
+    settings = get_settings()
+
+    assert settings.dara_otel_enabled is False
+    assert settings.otel_semconv_stability_opt_in == 'http'

@@ -65,6 +65,8 @@ h11 = ">=0.16.0"
 jsonpatch = ">=1.33"
 backoff = "^2.2.1"
 platformdirs = ">=4.0.0,<5.0.0"
+logfire = { version = ">=4.39.0,<5.0.0", extras = ["fastapi", "system-metrics"] }
+opentelemetry-instrumentation-logging = ">=0.65b0,<0.66"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true

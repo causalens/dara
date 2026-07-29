@@ -83,6 +83,7 @@ from dara.core.js_tooling.js_utils import (
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 from dara.core.router import convert_template_to_router
+from dara.core.telemetry import initialize_telemetry, shutdown_telemetry
 
 
 class CacheStaticFiles(StaticFiles):
@@ -142,7 +143,7 @@ def _start_application(config: Configuration):
     config_registry.replace({}, deepcopy=False)
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def application_lifespan(app: FastAPI):
         # STARTUP
         try:
             setup_signal_handlers()
@@ -219,27 +220,38 @@ def _start_application(config: Configuration):
                 if callable(res):
                     cleanup_functions.append(res)
 
-            # Yield back to the app
-            yield
+            try:
+                # Yield back to the app
+                yield
+            finally:
+                # SHUTDOWN
+                # Run user-defined cleanup functions in reverse order (LIFO)
+                eng_logger.debug(f'Running {len(cleanup_functions)} cleanup functions')
+                for cleanup_fn in reversed(cleanup_functions):
+                    try:
+                        cleanup_res = cleanup_fn()
+                        if iscoroutine(cleanup_res):
+                            await cleanup_res
+                    except Exception as e:
+                        eng_logger.error('Error running cleanup function', e)
 
-            # SHUTDOWN
-            # Run user-defined cleanup functions in reverse order (LIFO)
-            eng_logger.debug(f'Running {len(cleanup_functions)} cleanup functions')
-            for cleanup_fn in reversed(cleanup_functions):
-                try:
-                    cleanup_res = cleanup_fn()
-                    if iscoroutine(cleanup_res):
-                        await cleanup_res
-                except Exception as e:
-                    eng_logger.error('Error running cleanup function', e)
+                eng_logger.debug('App shutting down, attempting to cancel all tasks and shut down the task pool')
+                await task_manager.cancel_all_tasks()
 
-            eng_logger.debug('App shutting down, attempting to cancel all tasks and shut down the task pool')
-            await task_manager.cancel_all_tasks()
+                if task_pool is not None:
+                    eng_logger.debug('Shutting down task pool...')
+                    await task_pool.join(5)
+                    eng_logger.debug('Task pool shut down')
 
-            if task_pool is not None:
-                eng_logger.debug('Shutting down task pool...')
-                await task_pool.join(5)
-                eng_logger.debug('Task pool shut down')
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        try:
+            async with application_lifespan(app):
+                yield
+        finally:
+            # Telemetry is initialized before the ASGI lifespan begins, so it
+            # must also be shut down when application startup itself fails.
+            shutdown_telemetry()
 
     app = FastAPI(
         lifespan=lifespan,
@@ -247,6 +259,7 @@ def _start_application(config: Configuration):
         redoc_url=None if is_production else '/redoc',
         default_response_class=CustomResponse,
     )
+    initialize_telemetry(app)
 
     # Ensure session-cookie auth is reflected in Authorization header for
     # downstream handlers still expecting bearer token transport.
