@@ -20,7 +20,7 @@ from enum import Enum
 from typing import Any, TypeGuard
 
 from anyio import Event
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from dara.core.internal.pool.utils import SharedMemoryPointer, SubprocessException
 
@@ -64,6 +64,7 @@ class TaskPayload(TypedDict):
     function_name: str
     args: tuple
     kwargs: dict
+    telemetry_context: NotRequired[dict[str, str] | None]
 
 
 class TaskDefinition:

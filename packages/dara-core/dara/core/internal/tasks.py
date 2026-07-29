@@ -33,6 +33,7 @@ from anyio import (
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectSendStream
 from exceptiongroup import ExceptionGroup, catch
+from opentelemetry.context import Context
 from pydantic import ConfigDict
 
 from dara.core.base_definitions import (
@@ -53,6 +54,13 @@ from dara.core.internal.utils import exception_group_contains, run_user_handler
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
 from dara.core.metrics import RUNTIME_METRICS_TRACKER
+from dara.core.telemetry import (
+    _OperationObservation,
+    capture_telemetry_context,
+    observe_task,
+    observe_task_operation,
+    use_telemetry_context,
+)
 
 
 class Task(BaseTask):
@@ -169,7 +177,8 @@ class Task(BaseTask):
                 pool_task_def = pool.submit(self.task_id, self._func_name, args=tuple(self._args), kwargs=self._kwargs)
 
                 try:
-                    result = await pool_task_def
+                    with observe_task_operation('wait', 'process'):
+                        result = await pool_task_def
                 except BaseException as e:
                     # Task returned an exception
                     await on_error(e)
@@ -366,6 +375,23 @@ class TaskManagerError(ValueError):
     pass
 
 
+def _task_telemetry_identity(task: BaseTask) -> tuple[str, str]:
+    """
+    Return a stable callable name and bounded kind for task telemetry.
+
+    :param task: task definition to describe
+    """
+    if isinstance(task, PendingTask):
+        return _task_telemetry_identity(task.task_def)
+    if isinstance(task, Task):
+        return task._func_name, 'process'
+    if isinstance(task, MetaTask):
+        handler = task.process_result
+        name = f'{getattr(handler, "__module__", "unknown")}.{getattr(handler, "__qualname__", type(handler).__name__)}'
+        return name, 'meta'
+    return type(task).__name__, 'unknown'
+
+
 class TaskManager:
     """
     TaskManager is responsible for running tasks and managing their pending state. It is also responsible for
@@ -386,6 +412,7 @@ class TaskManager:
         self.task_group = task_group
         self.ws_manager = ws_manager
         self.store = store
+        self._telemetry_observations: dict[str, _OperationObservation] = {}
 
     def register_task(self, task: BaseTask) -> PendingTask:
         """
@@ -433,8 +460,11 @@ class TaskManager:
         if ws_channel is not None:
             pending_task.notify_channels.append(ws_channel)
 
-        # Run the task in the background
-        self.task_group.start_soon(self._run_task_and_notify, task)
+        # Run the task in the background under the context that scheduled it.
+        _task_name, task_kind = _task_telemetry_identity(task)
+        with observe_task_operation('schedule', task_kind):
+            telemetry_context = capture_telemetry_context()
+            self.task_group.start_soon(self._run_task_and_notify, task, telemetry_context)
 
         return pending_task
 
@@ -459,6 +489,9 @@ class TaskManager:
                         )
 
                     if not pending_task.event.is_set():
+                        if observation := self._telemetry_observations.get(task_id_to_cancel):
+                            observation.set_outcome('cancelled')
+
                         # Cancel the actual task
                         await pending_task.cancel()
 
@@ -484,6 +517,18 @@ class TaskManager:
         await self._cancel_tasks(list(all_task_ids), notify)
 
     async def cancel_task(self, task_id: str, notify: bool = True):
+        """
+        Trace and cancel a running task by its identifier.
+
+        :param task_id: identifier of the task to cancel
+        :param notify: whether to notify subscribed clients
+        """
+        task = self.tasks.get(task_id)
+        task_kind = _task_telemetry_identity(task)[1] if task is not None else 'unknown'
+        with observe_task_operation('cancel', task_kind):
+            return await self._cancel_task(task_id, notify)
+
+    async def _cancel_task(self, task_id: str, notify: bool = True):
         """
         Cancel a running task by its id. If the task has child tasks (MetaTask),
         all child tasks will also be cancelled.
@@ -524,9 +569,10 @@ class TaskManager:
 
         :param task_id: the id of the task to fetch
         """
-        # the result is not deleted, the results are kept in an LRU cache
-        # which will clean up older entries
-        return await self.store.get(TaskResultEntry, key=task_id, raise_for_missing=True)
+        with observe_task_operation('wait', 'result'):
+            # the result is not deleted, the results are kept in an LRU cache
+            # which will clean up older entries
+            return await self.store.get(TaskResultEntry, key=task_id, raise_for_missing=True)
 
     async def set_result(self, task_id: str, value: Any):
         """
@@ -616,7 +662,22 @@ class TaskManager:
             for channel in channels_to_notify:
                 channel_tg.start_soon(_send_to_channel, channel)
 
-    async def _run_task_and_notify(self, task: BaseTask):
+    async def _run_task_and_notify(self, task: BaseTask, telemetry_context: Context | None = None):
+        """
+        Restore scheduling context and trace a task through notification completion.
+
+        :param task: task to run
+        :param telemetry_context: OTEL context captured while scheduling
+        """
+        task_name, task_kind = _task_telemetry_identity(task)
+        with use_telemetry_context(telemetry_context), observe_task(task_name, task_kind) as observation:
+            self._telemetry_observations[task.task_id] = observation
+            try:
+                await self._run_task_and_notify_impl(task, observation)
+            finally:
+                self._telemetry_observations.pop(task.task_id, None)
+
+    async def _run_task_and_notify_impl(self, task: BaseTask, observation: _OperationObservation):
         """
         Run the task to completion and notify the client of progress and completion
 
@@ -688,6 +749,8 @@ class TaskManager:
                             # Remove the task from the registered tasks - it finished running
                             self.tasks.pop(message.task_id, None)
                         elif isinstance(message, TaskError):
+                            observation.set_outcome('error')
+
                             # Fail the pending task related to the error
                             if message.task_id in self.tasks:
                                 self.tasks[message.task_id].fail(message.error)
@@ -766,11 +829,13 @@ class TaskManager:
 
                         # If this is a cancellation, ensure all tasks in the hierarchy are cancelled
                         if exception_group_contains(err_type=get_cancelled_exc_class(), group=err):
+                            observation.set_outcome('cancelled')
                             dev_logger.info('Task cancelled', {'task_id': task.task_id})
 
                             # Cancel any remaining tasks in the hierarchy that might still be running
                             await self._cancel_task_hierarchy(task, notify=True)
                         else:
+                            observation.set_outcome('error')
                             dev_logger.error('Task failed', err, {'task_id': task.task_id})
 
                             error = get_error_for_channel(err)

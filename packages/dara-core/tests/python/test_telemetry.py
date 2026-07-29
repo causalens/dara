@@ -56,7 +56,14 @@ async def test_initializes_all_signals_and_shuts_them_down(monkeypatch: pytest.M
         async with AsyncClient(app):
             instrumentation.__exit__.assert_not_called()
 
-    configure.assert_called_once_with(send_to_logfire=False, console=False)
+    configure.assert_called_once_with(
+        send_to_logfire=False,
+        console=False,
+        resource_attributes={
+            'process.pid': os.getpid(),
+            'dara.process.type': 'application',
+        },
+    )
     logging_instrumentor.return_value.instrument.assert_called_once_with(
         inject_trace_context=True,
         log_code_attributes=True,
@@ -192,6 +199,33 @@ def test_internal_operation_spans_and_metrics_export():
         env=environment,
         text=True,
         timeout=30,
+    )
+
+    assert result.returncode == 0, f'{result.stdout}\n{result.stderr}'
+
+
+def test_task_and_subprocess_context_propagation():
+    environment = os.environ.copy()
+    environment.update(
+        {
+            'DARA_OTEL_ENABLED': 'TRUE',
+            'DARA_POOL_MAX_WORKERS': '1',
+            'OTEL_TRACES_EXPORTER': 'none',
+            'OTEL_LOGS_EXPORTER': 'none',
+            'OTEL_METRICS_EXPORTER': 'none',
+        }
+    )
+    package_root = str(Path(__file__).parents[2])
+    environment['PYTHONPATH'] = os.pathsep.join(filter(None, (package_root, environment.get('PYTHONPATH'))))
+    smoke_test = Path(__file__).with_name('_telemetry_tasks_smoke.py')
+
+    result = subprocess.run(
+        [sys.executable, str(smoke_test)],
+        capture_output=True,
+        check=False,
+        env=environment,
+        text=True,
+        timeout=45,
     )
 
     assert result.returncode == 0, f'{result.stdout}\n{result.stderr}'

@@ -17,7 +17,7 @@ limitations under the License.
 
 import asyncio
 import os
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import AbstractContextManager, contextmanager, suppress
 from dataclasses import dataclass, field
 from time import perf_counter
@@ -31,6 +31,7 @@ from opentelemetry.context import Context
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from opentelemetry.metrics import Counter, Histogram, UpDownCounter
+from opentelemetry.propagate import extract, inject
 from opentelemetry.trace import Span, Status, StatusCode
 from starlette.types import Scope
 
@@ -148,6 +149,81 @@ _BACKEND_STORE_EXECUTIONS: Counter = _METER.create_counter(
     'dara.backend_store.executions',
     unit='{operation}',
     description='Number of completed Dara backend-store operations',
+)
+_TASK_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.task.active',
+    unit='{task}',
+    description='Number of Dara task lifecycles currently executing',
+)
+_TASK_DURATION: Histogram = _METER.create_histogram(
+    'dara.task.duration',
+    unit='s',
+    description='Duration of Dara task lifecycles',
+)
+_TASK_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.task.executions',
+    unit='{task}',
+    description='Number of completed Dara task lifecycles',
+)
+_TASK_OPERATION_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.task.operation.active',
+    unit='{operation}',
+    description='Number of Dara task control operations currently executing',
+)
+_TASK_OPERATION_DURATION: Histogram = _METER.create_histogram(
+    'dara.task.operation.duration',
+    unit='s',
+    description='Duration of Dara task control operations',
+)
+_TASK_OPERATIONS: Counter = _METER.create_counter(
+    'dara.task.operations',
+    unit='{operation}',
+    description='Number of completed Dara task control operations',
+)
+_WORKER_TASK_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.worker.task.active',
+    unit='{task}',
+    description='Number of task subprocess executions currently active',
+)
+_WORKER_TASK_DURATION: Histogram = _METER.create_histogram(
+    'dara.worker.task.duration',
+    unit='s',
+    description='Duration of task subprocess execution',
+)
+_WORKER_TASK_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.worker.task.executions',
+    unit='{task}',
+    description='Number of completed task subprocess executions',
+)
+_WORKER_COUNT: UpDownCounter = _METER.create_up_down_counter(
+    'dara.worker.count',
+    unit='{worker}',
+    description='Number of Dara task worker processes',
+)
+_WORKER_BUSY: UpDownCounter = _METER.create_up_down_counter(
+    'dara.worker.busy',
+    unit='{worker}',
+    description='Number of Dara task worker processes executing a task',
+)
+_TASK_QUEUE_DEPTH: UpDownCounter = _METER.create_up_down_counter(
+    'dara.task.queue.depth',
+    unit='{task}',
+    description='Number of Dara tasks dispatched but not yet acknowledged by a worker',
+)
+_SCHEDULED_JOB_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.scheduled_job.active',
+    unit='{job}',
+    description='Number of Dara scheduled jobs currently executing',
+)
+_SCHEDULED_JOB_DURATION: Histogram = _METER.create_histogram(
+    'dara.scheduled_job.duration',
+    unit='s',
+    description='Duration of Dara scheduled job execution',
+)
+_SCHEDULED_JOB_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.scheduled_job.executions',
+    unit='{job}',
+    description='Number of completed Dara scheduled job executions',
 )
 
 
@@ -494,6 +570,138 @@ def observe_backend_store(
         yield observation
 
 
+@contextmanager
+def observe_task(
+    task_name: str,
+    task_kind: str,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one complete task lifecycle in the application process.
+
+    :param task_name: stable registered task callable name
+    :param task_kind: bounded task kind, ``process`` or ``meta``
+    """
+    attributes = {
+        'dara.task.name': task_name,
+        'dara.task.kind': task_kind,
+    }
+    with _observe_operation(
+        span_name='dara.task.run',
+        span_attributes=attributes,
+        metric_attributes=attributes,
+        active=_TASK_ACTIVE,
+        duration=_TASK_DURATION,
+        executions=_TASK_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_task_operation(
+    operation: str,
+    task_kind: str,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure a bounded task control operation.
+
+    Task IDs are deliberately excluded because they are unique per execution.
+
+    :param operation: bounded operation such as ``schedule``, ``wait``, or ``cancel``
+    :param task_kind: bounded task kind, ``process``, ``meta``, or ``pending``
+    """
+    attributes = {
+        'dara.task.operation': operation,
+        'dara.task.kind': task_kind,
+    }
+    with _observe_operation(
+        span_name=f'dara.task.{operation}',
+        span_attributes=attributes,
+        metric_attributes=attributes,
+        active=_TASK_OPERATION_ACTIVE,
+        duration=_TASK_OPERATION_DURATION,
+        executions=_TASK_OPERATIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_worker_task(
+    task_name: str,
+    carrier: Mapping[str, str] | None,
+) -> Iterator[_OperationObservation]:
+    """
+    Attach an incoming W3C context and trace one subprocess task execution.
+
+    :param task_name: stable function name from the configured task module
+    :param carrier: serialized W3C propagation carrier
+    """
+    with use_telemetry_carrier(carrier):
+        attributes = {'dara.task.name': task_name}
+        with _observe_operation(
+            span_name='dara.worker.task.execute',
+            span_attributes=attributes,
+            metric_attributes=attributes,
+            active=_WORKER_TASK_ACTIVE,
+            duration=_WORKER_TASK_DURATION,
+            executions=_WORKER_TASK_EXECUTIONS,
+        ) as observation:
+            yield observation
+
+
+@contextmanager
+def observe_scheduled_job(
+    job_name: str,
+    carrier: Mapping[str, str] | None,
+) -> Iterator[_OperationObservation]:
+    """
+    Attach an incoming W3C context and trace one scheduled-job invocation.
+
+    :param job_name: stable scheduled callable name
+    :param carrier: serialized W3C propagation carrier
+    """
+    with use_telemetry_carrier(carrier):
+        attributes = {'dara.scheduled_job.name': job_name}
+        with _observe_operation(
+            span_name='dara.scheduled_job.run',
+            span_attributes=attributes,
+            metric_attributes=attributes,
+            active=_SCHEDULED_JOB_ACTIVE,
+            duration=_SCHEDULED_JOB_DURATION,
+            executions=_SCHEDULED_JOB_EXECUTIONS,
+        ) as observation:
+            yield observation
+
+
+def record_worker_count_change(delta: int) -> None:
+    """
+    Record a change in the number of task worker processes.
+
+    :param delta: positive for creation and negative for removal
+    """
+    if _RUNTIME.configured:
+        _WORKER_COUNT.add(delta)
+
+
+def record_worker_busy_change(delta: int) -> None:
+    """
+    Record a change in the number of workers executing tasks.
+
+    :param delta: positive when work starts and negative when it ends
+    """
+    if _RUNTIME.configured:
+        _WORKER_BUSY.add(delta)
+
+
+def record_task_queue_depth_change(delta: int) -> None:
+    """
+    Record a change in the number of dispatched, unacknowledged tasks.
+
+    :param delta: positive on dispatch and negative on acknowledgement or cancellation
+    """
+    if _RUNTIME.configured:
+        _TASK_QUEUE_DEPTH.add(delta)
+
+
 def capture_telemetry_context() -> Context | None:
     """Capture the current OTEL context when Dara telemetry is enabled."""
     if not _RUNTIME.configured:
@@ -519,6 +727,34 @@ def use_telemetry_context(context: Context | None) -> Iterator[None]:
         otel_context.detach(token)
 
 
+def capture_telemetry_carrier() -> dict[str, str] | None:
+    """Serialize the current OTEL context into a W3C propagation carrier."""
+    if not _RUNTIME.configured:
+        return None
+
+    carrier: dict[str, str] = {}
+    inject(carrier)
+    return carrier or None
+
+
+@contextmanager
+def use_telemetry_carrier(carrier: Mapping[str, str] | None) -> Iterator[None]:
+    """
+    Extract and attach a serialized W3C context for the duration of an operation.
+
+    :param carrier: W3C propagation fields transported across a process boundary
+    """
+    if not carrier:
+        yield
+        return
+
+    token = otel_context.attach(extract(carrier))
+    try:
+        yield
+    finally:
+        otel_context.detach(token)
+
+
 @dataclass
 class _TelemetryRuntime:
     configured: bool = False
@@ -526,26 +762,45 @@ class _TelemetryRuntime:
     system_metrics_instrumented: bool = False
     fastapi_instrumentation: dict[int, AbstractContextManager[None]] = field(default_factory=dict)
 
-    def initialize(self, app: FastAPI) -> None:
-        """Configure process telemetry once and instrument a FastAPI application once."""
+    def initialize_process(self, process_type: str = 'application') -> bool:
+        """
+        Configure process-wide telemetry once and return whether it is enabled.
+
+        :param process_type: bounded Dara process role used as a resource attribute
+        """
         settings = get_settings()
         if not settings.dara_otel_enabled:
-            return
+            return False
 
         # The stable HTTP duration histogram uses seconds and is the instrument
         # operators should query for latency percentiles.
         os.environ.setdefault('OTEL_SEMCONV_STABILITY_OPT_IN', settings.otel_semconv_stability_opt_in)
 
+        if self.configured:
+            return True
+
+        logfire.configure(
+            send_to_logfire=False,
+            console=False,
+            resource_attributes={
+                'process.pid': os.getpid(),
+                'dara.process.type': process_type,
+            },
+        )
+        self.configured = True
+
+        LoggingInstrumentor().instrument(inject_trace_context=True, log_code_attributes=True)
+        self.logging_instrumented = True
+
+        logfire.instrument_system_metrics()
+        self.system_metrics_instrumented = True
+        return True
+
+    def initialize(self, app: FastAPI) -> None:
+        """Configure process telemetry once and instrument a FastAPI application once."""
         try:
-            if not self.configured:
-                logfire.configure(send_to_logfire=False, console=False)
-                self.configured = True
-
-                LoggingInstrumentor().instrument(inject_trace_context=True, log_code_attributes=True)
-                self.logging_instrumented = True
-
-                logfire.instrument_system_metrics()
-                self.system_metrics_instrumented = True
+            if not self.initialize_process():
+                return
 
             app_id = id(app)
             if app_id in self.fastapi_instrumentation:
@@ -604,6 +859,22 @@ def initialize_telemetry(app: FastAPI) -> None:
     :param app: FastAPI application to instrument
     """
     _RUNTIME.initialize(app)
+
+
+def initialize_process_telemetry(process_type: str = 'worker') -> None:
+    """
+    Initialize Dara telemetry in a worker or scheduled-job process.
+
+    Export destinations and signal settings are inherited through standard
+    OpenTelemetry environment variables.
+
+    :param process_type: bounded Dara process role
+    """
+    try:
+        _RUNTIME.initialize_process(process_type)
+    except Exception:
+        _RUNTIME.shutdown()
+        raise
 
 
 def shutdown_telemetry() -> None:

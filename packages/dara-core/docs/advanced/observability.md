@@ -39,20 +39,22 @@ The initial integration provides:
   operations.
 - Derived-variable phase spans for lock waiting, dependency resolution, cache lookup, resolver execution, and cache
   writes.
+- Task scheduling, waiting, cancellation, and complete application-process lifecycle spans.
+- Task-worker and scheduled-job execution spans linked across process boundaries with W3C trace context.
 - Standard-library logs as native OpenTelemetry log records with trace and span correlation.
 - Standard HTTP server metrics, including request duration, active requests, and request/response sizes.
 - Baseline process and runtime metrics from Logfire's system-metrics integration.
 - Action and WebSocket active-operation, duration, execution-count, and outcome metrics.
 - Active-operation, duration, execution-count, and outcome metrics for derived variables, Python components, streams,
   uploads, and backend stores, plus aggregate derived-variable cache hit, miss, and bypass counts.
+- Task lifecycle and control-operation metrics, worker execution metrics, and current worker, busy-worker, and queue
+  counts.
 
 Dara's existing console logs remain enabled. The OpenTelemetry log handler is additive.
 
 Application endpoint arguments, query-string values, client addresses, request and response bodies, and HTTP headers
 are not captured by default. For failed FastAPI validation Dara records only the number of validation errors, not the
 rejected values or error messages.
-
-Framework-level spans for task workers and scheduled jobs will be added incrementally.
 
 Action metrics use the `dara.action.*` namespace. WebSocket message and custom-handler metrics use
 `dara.websocket.message.*`. Metric dimensions contain only bounded operation types, directions, execution modes,
@@ -64,6 +66,12 @@ and never a cache key. Python component, stream, upload, and backend-store metri
 `dara.stream.*`, `dara.upload.*`, and `dara.backend_store.*` namespaces. Upload content and filenames, stream events,
 store identifiers and keys, operation arguments, and returned values are not telemetry attributes. Each stream has one
 lifecycle span; individual emitted events do not create spans.
+
+Task metrics use `dara.task.*`; worker execution and occupancy use `dara.worker.*`. The task payload carries only the
+standard W3C propagation fields in addition to its existing function and argument data. Task IDs and arguments are not
+span attributes or metric dimensions. Scheduled-job metrics use `dara.scheduled_job.*`. Spawned processes initialize
+their own exporters from inherited `OTEL_*` variables and identify themselves with `process.pid` and the bounded
+`dara.process.type` resource attribute. Worker and scheduled-job telemetry is flushed on graceful process exit.
 
 ## HTTP latency percentiles
 

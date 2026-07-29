@@ -42,6 +42,7 @@ from dara.core.internal.pool.utils import (
     read_from_shared_memory,
     store_in_shared_memory,
 )
+from dara.core.telemetry import initialize_process_telemetry, observe_worker_task, shutdown_telemetry
 
 
 class StdoutLogger:
@@ -135,9 +136,11 @@ def worker_loop(worker_params: WorkerParameters, channel: Channel):
     # Initialize
     task_module = None
     try:
+        initialize_process_telemetry('task_worker')
         task_module = import_module(worker_params['task_module'])
     except BaseException as e:
         worker_api.send_error(task_uid=None, error=e)
+        shutdown_telemetry()
         sys.exit(1)
     else:
         worker_api.initialize_worker()
@@ -179,7 +182,10 @@ def worker_loop(worker_params: WorkerParameters, channel: Channel):
             if wrapped_by is not None and wrapped_by.__name__ == 'track_progress':
                 kwargs = {**kwargs, '__send_update': _create_send_update(task_uid, channel)}
 
-            result = execute_function(func, payload['args'], kwargs)
+            with observe_worker_task(payload['function_name'], payload.get('telemetry_context')) as observation:
+                result = execute_function(func, payload['args'], kwargs)
+                if isinstance(result, SubprocessException):
+                    observation.set_outcome('error')
 
             result_pointer = store_in_shared_memory(result)
             worker_api.send_result(task_uid, result_pointer)
@@ -188,6 +194,8 @@ def worker_loop(worker_params: WorkerParameters, channel: Channel):
         finally:
             # Task finished - restore graceful sigterm handler
             signal.signal(signal.SIGTERM, on_sigterm)
+
+    shutdown_telemetry()
 
 
 class WorkerProcess:

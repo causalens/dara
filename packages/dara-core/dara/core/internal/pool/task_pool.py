@@ -49,6 +49,12 @@ from dara.core.internal.pool.utils import (
 )
 from dara.core.internal.pool.worker import WorkerProcess
 from dara.core.logging import dev_logger
+from dara.core.telemetry import (
+    capture_telemetry_carrier,
+    record_task_queue_depth_change,
+    record_worker_busy_change,
+    record_worker_count_change,
+)
 
 
 class TaskPool:
@@ -143,13 +149,19 @@ class TaskPool:
         # Create a task definition to keep track of its progress
         new_task = TaskDefinition(
             uid=task_uid,
-            payload=TaskPayload(function_name=function_name, args=args, kwargs=kwargs),
+            payload=TaskPayload(
+                function_name=function_name,
+                args=args,
+                kwargs=kwargs,
+                telemetry_context=capture_telemetry_carrier(),
+            ),
         )
         self.tasks[task_uid] = new_task
 
         # Dispatch to workers
         try:
             self._channel.pool_api.dispatch(new_task)
+            record_task_queue_depth_change(1)
         except BaseException as e:
             # Dispatching could fail due to e.g. pickling issues - resolve the future with the exception raised
             self._update_task(new_task, e)
@@ -168,6 +180,8 @@ class TaskPool:
             return
 
         task = self.tasks.pop(task_uid)
+        if task.started_at is None:
+            record_task_queue_depth_change(-1)
         if not task.event.is_set():
             task.result = anyio.get_cancelled_exc_class()()
             task.event.set()
@@ -175,6 +189,7 @@ class TaskPool:
         # Task in progress, stop the worker
         if task.worker_id is not None:
             worker = self.workers.pop(task.worker_id)
+            self._record_worker_removed(worker)
             await stop_process_async(worker.process)
 
     @contextmanager
@@ -255,6 +270,7 @@ class TaskPool:
 
             try:
                 self.workers.pop(worker.process.pid)
+                self._record_worker_removed(worker)
                 await stop_process_async(worker.process)
             except BaseException as e:
                 # Failed to stop, probably already killed
@@ -303,6 +319,17 @@ class TaskPool:
             new_worker = WorkerProcess(self.worker_parameters, self._channel)
             assert new_worker.process.pid is not None, 'Worker failed to create process'
             self.workers[new_worker.process.pid] = new_worker
+            record_worker_count_change(1)
+
+    def _record_worker_removed(self, worker: WorkerProcess) -> None:
+        """
+        Update worker occupancy metrics before removing a tracked worker.
+
+        :param worker: worker leaving the pool
+        """
+        if worker.status == WorkerStatus.WORKING:
+            record_worker_busy_change(-1)
+        record_worker_count_change(-1)
 
     def _cleanup_worker(self, worker: WorkerProcess):
         """
@@ -322,8 +349,9 @@ class TaskPool:
                 self._update_task(task, Exception('Task failed due to unexpected worker failure'))
                 self.tasks.pop(task.uid)
 
-        if worker.process.pid:
-            self.workers.pop(worker.process.pid, 0)
+        if worker.process.pid and worker.process.pid in self.workers:
+            self.workers.pop(worker.process.pid)
+            self._record_worker_removed(worker)
 
     def _stop_worker(self, pid: int, force=False):
         """
@@ -369,7 +397,7 @@ class TaskPool:
             if worker.process.pid:
                 worker.terminate()
                 self.task_group.start_soon(stop_process_async, worker.process)
-                self.workers.pop(worker.process.pid)
+                self._cleanup_worker(worker)
 
     def _handle_excess_workers(self):
         """
@@ -431,8 +459,10 @@ class TaskPool:
             task = self.tasks.get(worker_msg['task_uid'])
 
             if task:
+                record_task_queue_depth_change(-1)
                 task.worker_id = worker_msg['worker_pid']
                 task.started_at = datetime.now()
+                record_worker_busy_change(1)
 
                 self.workers[worker_msg['worker_pid']].update_status(
                     WorkerStatus.WORKING, task_uid=worker_msg['task_uid']
@@ -458,6 +488,7 @@ class TaskPool:
                 self._update_task(task, result)
                 assert task.worker_id is not None
                 self.workers[task.worker_id].update_status(WorkerStatus.IDLE, task_uid=None)
+                record_worker_busy_change(-1)
         elif is_problem(worker_msg):
             # If the problem is to do with the task
             if worker_msg['task_uid']:

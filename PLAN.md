@@ -34,14 +34,14 @@
   - [x] Add low-cardinality duration and error metrics for these operations.
   - [x] Add focused tests for successful, cached, failed, and cancelled paths.
 
-- [ ] Slice 4 — Tasks, workers, and scheduled jobs
-  - [ ] Trace TaskManager scheduling, waiting, cancellation, and completion.
-  - [ ] Propagate W3C trace context through Dara's custom task payloads.
-  - [ ] Initialize telemetry in spawned worker processes and attach incoming context around task execution.
-  - [ ] Propagate context to scheduled-job subprocesses.
-  - [ ] Add worker count, busy-worker, queue-depth, task duration, and task outcome metrics.
-  - [ ] Flush worker telemetry on graceful process exit.
-  - [ ] Test propagation and resource identity across spawned processes.
+- [x] Slice 4 — Tasks, workers, and scheduled jobs
+  - [x] Trace TaskManager scheduling, waiting, cancellation, and completion.
+  - [x] Propagate W3C trace context through Dara's custom task payloads.
+  - [x] Initialize telemetry in spawned worker processes and attach incoming context around task execution.
+  - [x] Propagate context to scheduled-job subprocesses.
+  - [x] Add worker count, busy-worker, queue-depth, task duration, and task outcome metrics.
+  - [x] Flush worker telemetry on graceful process exit.
+  - [x] Test propagation and resource identity across spawned processes.
 
 - [ ] Slice 5 — Metric migration and Prometheus compatibility
   - [ ] Replace direct `prometheus_client` operation instrumentation with OTEL instruments.
