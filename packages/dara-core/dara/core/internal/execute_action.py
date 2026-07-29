@@ -41,12 +41,17 @@ from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
 from dara.core.internal.websocket import WebsocketManager
 from dara.core.logging import dev_logger
+from dara.core.telemetry import _OperationObservation, observe_action
 
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
 
 
 async def _execute_action(
-    handler: Callable, ctx: ActionCtx, values: Mapping[str, Any], _on_error: Literal['raise', 'notify'] = 'notify'
+    handler: Callable,
+    ctx: ActionCtx,
+    values: Mapping[str, Any],
+    _on_error: Literal['raise', 'notify'] = 'notify',
+    _observation: _OperationObservation | None = None,
 ):
     """
     Execute the action handler within the given action context, handling any exceptions that occur.
@@ -77,6 +82,8 @@ async def _execute_action(
     try:
         return await run_user_handler(handler, args=args, kwargs=parsed_values)
     except Exception as e:
+        if _observation is not None:
+            _observation.record_exception(e)
         if _on_error == 'raise':
             raise
         elif _on_error == 'notify':
@@ -118,18 +125,29 @@ async def _stream_action(
     :param batch: whether to emit batch framing markers (default True)
     :param values: the resolved values to pass to the handler
     """
-    try:
-        if batch:
-            await ctx._on_action(BatchStart())
-        async with anyio.create_task_group() as tg:
-            # Execute the handler and a stream consumer in parallel
-            tg.start_soon(partial(_execute_action, _on_error=_on_error), handler, ctx, values)
-            tg.start_soon(ctx._handle_results)
-    finally:
-        if batch:
-            await ctx._on_action(BatchEnd())
-        # None is treated as a sentinel value to stop waiting for new actions to come in on the client
-        await ctx._on_action(None)
+    action_name = (
+        f'{getattr(handler, "__module__", "unknown")}.{getattr(handler, "__qualname__", type(handler).__name__)}'
+    )
+    execution = 'async' if batch else 'sync'
+
+    with observe_action(action_name, execution) as observation:
+        try:
+            if batch:
+                await ctx._on_action(BatchStart())
+            async with anyio.create_task_group() as tg:
+                # Execute the handler and a stream consumer in parallel
+                tg.start_soon(
+                    partial(_execute_action, _on_error=_on_error, _observation=observation),
+                    handler,
+                    ctx,
+                    values,
+                )
+                tg.start_soon(ctx._handle_results)
+        finally:
+            if batch:
+                await ctx._on_action(BatchEnd())
+            # None is treated as a sentinel value to stop waiting for new actions to come in on the client
+            await ctx._on_action(None)
 
 
 async def execute_action_sync(

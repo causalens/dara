@@ -16,14 +16,14 @@
   - [x] Add focused bootstrap, disabled-mode, HTTP, log-correlation, and shutdown tests.
   - [x] Document configuration and update the `dara-core` changelog.
 
-- [ ] Slice 2 — Actions and WebSockets
-  - [ ] Trace the full asynchronous action lifecycle rather than only the scheduling HTTP request.
-  - [ ] Add spans for synchronous route-load actions.
-  - [ ] Add spans and duration/error metrics for non-heartbeat WebSocket message handlers.
-  - [ ] Trace custom synchronous and asynchronous WebSocket handlers.
-  - [ ] Carry trace context with queued server messages so the actual WebSocket send is correlated with the operation that produced it.
-  - [ ] Add action and WebSocket active-count, duration, and error metrics.
-  - [ ] Test parentage across background tasks and WebSocket queues.
+- [x] Slice 2 — Actions and WebSockets
+  - [x] Trace the full asynchronous action lifecycle rather than only the scheduling HTTP request.
+  - [x] Add spans for synchronous route-load actions.
+  - [x] Add spans and duration/error metrics for non-heartbeat WebSocket message handlers.
+  - [x] Trace custom synchronous and asynchronous WebSocket handlers.
+  - [x] Carry trace context with queued server messages so the actual WebSocket send is correlated with the operation that produced it.
+  - [x] Add action and WebSocket active-count, duration, and error metrics.
+  - [x] Test parentage across background tasks and WebSocket queues.
 
 - [ ] Slice 3 — Derived variables, components, streams, and stores
   - [ ] Trace derived-variable cache lookup, lock wait, dependency resolution, resolver execution, and cache write.

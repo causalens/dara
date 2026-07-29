@@ -15,19 +15,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import asyncio
 import os
-from contextlib import AbstractContextManager, suppress
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager, suppress
 from dataclasses import dataclass, field
+from time import perf_counter
 from typing import Any
 
 import logfire
 from fastapi import FastAPI, Request, WebSocket
+from opentelemetry import context as otel_context
+from opentelemetry import metrics, trace
+from opentelemetry.context import Context
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
-from opentelemetry.trace import Span
+from opentelemetry.metrics import Counter, Histogram, UpDownCounter
+from opentelemetry.trace import Span, Status, StatusCode
 from starlette.types import Scope
 
 from dara.core.internal.settings import get_settings
+
+_TRACER = trace.get_tracer('dara.core')
+_METER = metrics.get_meter('dara.core')
+
+_ACTION_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.action.active',
+    unit='{action}',
+    description='Number of Dara actions currently executing',
+)
+_ACTION_DURATION: Histogram = _METER.create_histogram(
+    'dara.action.duration',
+    unit='s',
+    description='Duration of Dara action execution',
+)
+_ACTION_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.action.executions',
+    unit='{action}',
+    description='Number of completed Dara action executions',
+)
+_WEBSOCKET_MESSAGE_ACTIVE: UpDownCounter = _METER.create_up_down_counter(
+    'dara.websocket.message.active',
+    unit='{message}',
+    description='Number of Dara WebSocket message operations currently executing',
+)
+_WEBSOCKET_MESSAGE_DURATION: Histogram = _METER.create_histogram(
+    'dara.websocket.message.duration',
+    unit='s',
+    description='Duration of Dara WebSocket message operations',
+)
+_WEBSOCKET_MESSAGE_EXECUTIONS: Counter = _METER.create_counter(
+    'dara.websocket.message.executions',
+    unit='{message}',
+    description='Number of completed Dara WebSocket message operations',
+)
 
 
 def _safe_request_attributes(
@@ -57,6 +98,176 @@ def _redact_server_request(span: Span, scope: Scope) -> None:
     if scope.get('client'):
         span.set_attribute('client.address', '[REDACTED]')
         span.set_attribute('client.port', 0)
+
+
+@dataclass
+class _OperationObservation:
+    """Mutable outcome shared by concurrent work inside one observed operation."""
+
+    span: Span | None = None
+    outcome: str = 'success'
+
+    def record_exception(self, error: BaseException) -> None:
+        """
+        Mark the operation as failed or cancelled and annotate its span.
+
+        :param error: exception raised by the observed operation
+        """
+        self.outcome = 'cancelled' if isinstance(error, asyncio.CancelledError) else 'error'
+        if self.span is None or not self.span.is_recording():
+            return
+
+        if isinstance(error, Exception):
+            self.span.record_exception(error)
+        self.span.set_status(Status(StatusCode.ERROR, str(error)))
+        self.span.set_attribute('dara.outcome', self.outcome)
+
+
+@contextmanager
+def _observe_operation(
+    *,
+    span_name: str,
+    span_attributes: dict[str, str],
+    metric_attributes: dict[str, str],
+    active: UpDownCounter,
+    duration: Histogram,
+    executions: Counter,
+) -> Iterator[_OperationObservation]:
+    if not _RUNTIME.configured:
+        yield _OperationObservation()
+        return
+
+    started = perf_counter()
+    active.add(1, metric_attributes)
+    observation = _OperationObservation()
+    try:
+        with _TRACER.start_as_current_span(span_name, attributes=span_attributes) as span:
+            observation.span = span
+            try:
+                yield observation
+            except BaseException as error:
+                observation.record_exception(error)
+                raise
+            finally:
+                span.set_attribute('dara.outcome', observation.outcome)
+    finally:
+        outcome_attributes = {**metric_attributes, 'dara.outcome': observation.outcome}
+        duration.record(perf_counter() - started, outcome_attributes)
+        executions.add(1, outcome_attributes)
+        active.add(-1, metric_attributes)
+
+
+@contextmanager
+def observe_action(action_name: str, execution: str) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure a complete Dara action execution.
+
+    :param action_name: stable registered callable name
+    :param execution: bounded execution mode such as ``sync`` or ``async``
+    """
+    attributes = {
+        'dara.action.name': action_name,
+        'dara.action.execution': execution,
+    }
+    with _observe_operation(
+        span_name='dara.action.execute',
+        span_attributes=attributes,
+        metric_attributes=attributes,
+        active=_ACTION_ACTIVE,
+        duration=_ACTION_DURATION,
+        executions=_ACTION_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_websocket_message(
+    direction: str,
+    message_type: str,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one inbound or outbound WebSocket message operation.
+
+    :param direction: bounded direction, ``inbound`` or ``outbound``
+    :param message_type: bounded protocol type, ``message``, ``custom``, or ``invalid``
+    """
+    attributes = {
+        'dara.websocket.direction': direction,
+        'dara.websocket.message.type': message_type,
+        'dara.websocket.operation': 'message',
+    }
+    with _observe_operation(
+        span_name=f'dara.websocket.message.{direction}',
+        span_attributes=attributes,
+        metric_attributes=attributes,
+        active=_WEBSOCKET_MESSAGE_ACTIVE,
+        duration=_WEBSOCKET_MESSAGE_DURATION,
+        executions=_WEBSOCKET_MESSAGE_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+@contextmanager
+def observe_websocket_handler(
+    handler_kind: str,
+    execution: str,
+) -> Iterator[_OperationObservation]:
+    """
+    Trace and measure one registered custom WebSocket handler.
+
+    The handler kind is recorded only on the span; metric dimensions remain
+    bounded even when a client submits arbitrary kinds.
+
+    :param handler_kind: registered custom handler kind
+    :param execution: bounded execution mode, ``sync`` or ``async``
+    """
+    span_attributes = {
+        'dara.websocket.direction': 'inbound',
+        'dara.websocket.handler.kind': handler_kind,
+        'dara.websocket.handler.execution': execution,
+        'dara.websocket.message.type': 'custom',
+        'dara.websocket.operation': 'handler',
+    }
+    metric_attributes = {
+        'dara.websocket.direction': 'inbound',
+        'dara.websocket.handler.execution': execution,
+        'dara.websocket.message.type': 'custom',
+        'dara.websocket.operation': 'handler',
+    }
+    with _observe_operation(
+        span_name='dara.websocket.handler.execute',
+        span_attributes=span_attributes,
+        metric_attributes=metric_attributes,
+        active=_WEBSOCKET_MESSAGE_ACTIVE,
+        duration=_WEBSOCKET_MESSAGE_DURATION,
+        executions=_WEBSOCKET_MESSAGE_EXECUTIONS,
+    ) as observation:
+        yield observation
+
+
+def capture_telemetry_context() -> Context | None:
+    """Capture the current OTEL context when Dara telemetry is enabled."""
+    if not _RUNTIME.configured:
+        return None
+    return otel_context.get_current()
+
+
+@contextmanager
+def use_telemetry_context(context: Context | None) -> Iterator[None]:
+    """
+    Attach a previously captured OTEL context for the duration of queued work.
+
+    :param context: context captured when the work was queued
+    """
+    if context is None:
+        yield
+        return
+
+    token = otel_context.attach(context)
+    try:
+        yield
+    finally:
+        otel_context.detach(token)
 
 
 @dataclass

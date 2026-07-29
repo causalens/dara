@@ -7,6 +7,7 @@ title: Changelog
 - Added a development-only server handshake that reports mismatched projects and supports overriding Vite's port with `dara start --dev-port` and `dara dev --port`.
 - Fixed `dara dev` to use the application's configured static files directory instead of always assuming `dist`.
 - Added opt-in OpenTelemetry export for HTTP traces and metrics, native logs, and process metrics through Pydantic Logfire and standard `OTEL_*` exporter configuration.
+- Added OpenTelemetry spans and bounded metrics for synchronous and background actions, individual WebSocket messages, custom WebSocket handlers, and context-aware queued WebSocket sends.
 
 ## 1.29.4
 

@@ -30,9 +30,11 @@ from exceptiongroup import catch
 from fastapi import WebSocketException
 from fastapi.encoders import jsonable_encoder
 from jwt import DecodeError
+from opentelemetry.context import Context
 from pydantic import (
     ConfigDict,
     Field,
+    PrivateAttr,
     SerializerFunctionWrapHandler,
     TypeAdapter,
     model_serializer,
@@ -41,6 +43,12 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.logging import dev_logger, eng_logger
+from dara.core.telemetry import (
+    capture_telemetry_context,
+    observe_websocket_handler,
+    observe_websocket_message,
+    use_telemetry_context,
+)
 
 
 # Client message types
@@ -126,6 +134,7 @@ class DaraServerMessage(BaseModel):
 
     type: Literal['message'] = 'message'
     message: ServerMessagePayload  # exact messages expected by frontend are defined in js/api/websocket.tsx
+    _telemetry_context: Context | None = PrivateAttr(default=None)
 
 
 class CustomServerMessage(BaseModel):
@@ -135,6 +144,7 @@ class CustomServerMessage(BaseModel):
 
     type: Literal['custom'] = 'custom'
     message: CustomServerMessagePayload
+    _telemetry_context: Context | None = PrivateAttr(default=None)
 
 
 ServerPayload = ServerMessagePayload | CustomServerMessagePayload
@@ -180,12 +190,14 @@ class WebSocketHandler:
         self.channel_id = channel_id
         self.pending_responses = {}
 
-    async def send_message(self, message: ServerMessage):
+    async def send_message(self, message: ServerMessage, telemetry_context: Context | None = None):
         """
         Send a message to the client.
 
         :param message: The message to send
+        :param telemetry_context: optional context captured when the message was produced
         """
+        message._telemetry_context = telemetry_context if telemetry_context is not None else capture_telemetry_context()
         await self.send_stream.send(message)
 
     def process_client_message(self, message: ClientMessage):
@@ -239,33 +251,33 @@ class WebSocketHandler:
                 if inspect.iscoroutinefunction(handler):
 
                     async def wrapper():
-                        response = await handler(self.channel_id, data)
-                        if response is not None:
-                            await self.send_message(
-                                CustomServerMessage(
-                                    message=CustomServerMessagePayload(
-                                        kind=kind,
-                                        data=response,
-                                        __response_for=message.message.rchan,
+                        with observe_websocket_handler(kind, 'async'):
+                            response = await handler(self.channel_id, data)
+                            if response is not None:
+                                await self.send_message(
+                                    CustomServerMessage(
+                                        message=CustomServerMessagePayload(
+                                            kind=kind,
+                                            data=response,
+                                            __response_for=message.message.rchan,
+                                        )
                                     )
                                 )
-                            )
 
                     asyncio.create_task(wrapper())
                     return None
                 else:
-                    response = handler(self.channel_id, data)
-                    if response is not None:
-                        # Return a coroutine for the caller to await
-                        return self.send_message(
-                            CustomServerMessage(
+                    with observe_websocket_handler(kind, 'sync'):
+                        response = handler(self.channel_id, data)
+                        if response is not None:
+                            response_message = CustomServerMessage(
                                 message=CustomServerMessagePayload(
-                                    kind=kind,
-                                    data=response,
-                                    __response_for=message.message.rchan,
+                                    kind=kind, data=response, __response_for=message.message.rchan
                                 )
                             )
-                        )
+                            response_context = capture_telemetry_context()
+                            # Return a coroutine for the caller to await
+                            return self.send_message(response_message, response_context)
             except KeyError as e:
                 eng_logger.error(f'No handler found for custom message kind {kind}', e)
             return None
@@ -283,7 +295,7 @@ class WebSocketHandler:
         ev = Event()
         self.pending_responses[message_id] = (ev, None)
         message.message.rchan = message_id
-        await self.send_stream.send(message)
+        await self.send_message(message)
 
         # Wait for the response; this is done in chunks as otherwise Jupyter blocks the event loop
         while not ev.is_set():
@@ -541,12 +553,17 @@ async def ws_handler(websocket: WebSocket):
                             await websocket.send_json({'type': 'pong', 'message': None})
                         else:
                             try:
-                                refresh_context_from_registry()
-                                parsed_data = TypeAdapter(ClientMessage).validate_python(data)
-                                result = handler.process_client_message(parsed_data)
-                                # Process the resulting coroutine before moving on to next message
-                                if inspect.iscoroutine(result):
-                                    await result
+                                raw_message_type = data.get('type')
+                                message_type = (
+                                    raw_message_type if raw_message_type in ('message', 'custom') else 'invalid'
+                                )
+                                with observe_websocket_message('inbound', message_type):
+                                    refresh_context_from_registry()
+                                    parsed_data = TypeAdapter(ClientMessage).validate_python(data)
+                                    result = handler.process_client_message(parsed_data)
+                                    # Process the resulting coroutine before moving on to next message
+                                    if inspect.iscoroutine(result):
+                                        await result
                             except Exception as e:
                                 eng_logger.error('Error processing client WS message', error=e)
 
@@ -555,20 +572,24 @@ async def ws_handler(websocket: WebSocket):
                     Handle messages sent to the client and pass them via the websocket
                     """
                     async for message in handler.receive_stream:
-                        # TODO: This is hacky, should probably be a model_serializer
-                        # on a proper payload type
-                        if (
-                            message.type == 'message'
-                            and isinstance(message.message, ServerMessagePayload)
-                            and getattr(message.message, 'task_id', None) is not None
-                            and getattr(message.message, 'status', None)
+                        with (
+                            use_telemetry_context(message._telemetry_context),
+                            observe_websocket_message('outbound', message.type),
                         ):
-                            data = message.message
-                            # Reconstruct the payload without the result field
-                            message.message = ServerMessagePayload(
-                                **{k: v for k, v in data.model_dump().items() if k != 'result'}
-                            )
-                        await websocket.send_json(jsonable_encoder(message))
+                            # TODO: This is hacky, should probably be a model_serializer
+                            # on a proper payload type
+                            if (
+                                message.type == 'message'
+                                and isinstance(message.message, ServerMessagePayload)
+                                and getattr(message.message, 'task_id', None) is not None
+                                and getattr(message.message, 'status', None)
+                            ):
+                                data = message.message
+                                # Reconstruct the payload without the result field
+                                message.message = ServerMessagePayload(
+                                    **{k: v for k, v in data.model_dump().items() if k != 'result'}
+                                )
+                            await websocket.send_json(jsonable_encoder(message))
 
                 # Start the two tasks to handle sending and receiving messages
                 tg.start_soon(receive_from_client)

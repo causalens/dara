@@ -32,9 +32,13 @@ The initial integration provides:
 
 - FastAPI HTTP server spans, including route, method, status, duration, and error state.
 - A WebSocket connection span from the ASGI instrumentation.
+- Full-lifecycle spans for synchronous and background action execution.
+- Spans for non-heartbeat inbound and outbound WebSocket messages and registered custom handlers.
+- Trace-context propagation from actions and custom handlers through queued WebSocket sends.
 - Standard-library logs as native OpenTelemetry log records with trace and span correlation.
 - Standard HTTP server metrics, including request duration, active requests, and request/response sizes.
 - Baseline process and runtime metrics from Logfire's system-metrics integration.
+- Action and WebSocket active-operation, duration, execution-count, and outcome metrics.
 
 Dara's existing console logs remain enabled. The OpenTelemetry log handler is additive.
 
@@ -42,8 +46,12 @@ Application endpoint arguments, query-string values, client addresses, request a
 are not captured by default. For failed FastAPI validation Dara records only the number of validation errors, not the
 rejected values or error messages.
 
-Framework-level spans for action execution, WebSocket message handling, derived variables, streams, task workers, and
-scheduled jobs will be added incrementally.
+Framework-level spans for derived variables, streams, task workers, and scheduled jobs will be added incrementally.
+
+Action metrics use the `dara.action.*` namespace. WebSocket message and custom-handler metrics use
+`dara.websocket.message.*`. Metric dimensions contain only bounded operation types, directions, execution modes,
+outcomes, and registered action names. Custom WebSocket handler kinds are span attributes but are deliberately excluded
+from metric dimensions so arbitrary client input cannot create unbounded time series.
 
 ## HTTP latency percentiles
 
