@@ -72,6 +72,7 @@ from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
+from dara.core.js_tooling.dev_server import DevServerInfo, DevServerSettings, check_dev_server
 from dara.core.js_tooling.js_utils import (
     BuildCache,
     BuildMode,
@@ -486,8 +487,27 @@ def _start_application(config: Configuration):
         else:
             context.update(build_vite_template(build_cache, config))
 
+        expected_dev_server = None
+        if build_cache.build_config.dev:
+            expected_dev_server = DevServerInfo.from_static_files_dir(
+                config.static_files_dir,
+                settings=DevServerSettings(),
+            )
+
         @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
         async def serve_app(full_path: str, request: Request):
+            if expected_dev_server is not None:
+                mismatch = await check_dev_server(expected_dev_server)
+                if mismatch is not None:
+                    return jinja_templates.TemplateResponse(
+                        request,
+                        'dev_server_mismatch.html',
+                        context={
+                            'mismatch': mismatch,
+                            'origin': expected_dev_server.origin,
+                        },
+                    )
+
             return jinja_templates.TemplateResponse(request, template_name, context=context)
 
     else:

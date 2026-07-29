@@ -24,9 +24,11 @@ import uvicorn
 
 import click
 from click.exceptions import UsageError
+from dara.core.configuration import ConfigurationBuilder
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
-from dara.core.internal.utils import find_module_path
+from dara.core.internal.utils import find_module_path, import_config
+from dara.core.js_tooling.dev_server import DevServerInfo, DevServerSettings
 from dara.core.js_tooling.js_utils import JsConfig, setup_js_scaffolding
 
 LOG_CONFIG_PATH = os.path.join(pathlib.Path(__file__).parent, 'log_configs')
@@ -36,6 +38,15 @@ DEFAULT_METRICS_PORT = 10000
 PORT_RANGE = 100
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_config_path(config: str | None) -> str:
+    """Resolve an explicit config path or infer the conventional path from the current directory."""
+    if config is not None:
+        return config
+
+    folder_name = os.path.basename(os.getcwd()).replace('-', '_')
+    return f'{folder_name}.main:config'
 
 
 @click.group()
@@ -59,6 +70,7 @@ def cli():
 @click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', None), help='Dev logger level to use')
 @click.option('--reload-dir', multiple=True, help='Directories to watch for reload')
 @click.option('--skip-jsbuild', is_flag=True, help='Whether to skip building the JS assets')
+@click.option('--dev-port', type=click.IntRange(1, 65535), help='The port used by the Vite development server')
 @click.option(
     '--base-url',
     default=lambda: os.environ.get('DARA_BASE_URL', None),
@@ -80,11 +92,13 @@ def start(
     log: str | None,
     reload_dir: list[str] | None,
     skip_jsbuild: bool,
+    dev_port: int | None,
     base_url: str | None,
 ):
-    if config is None:
-        folder_name = os.path.basename(os.getcwd()).replace('-', '_')
-        config = f'{folder_name}.main:config'
+    if dev_port is not None and not enable_hmr:
+        raise UsageError('--dev-port requires --enable-hmr')
+
+    config = _resolve_config_path(config)
 
     # Set the config path env var so main can pick it up
     os.environ['DARA_CONFIG_PATH'] = config
@@ -116,6 +130,9 @@ def start(
 
     # This enables HotModuleReloading when enable_hmr=True
     if enable_hmr:
+        if dev_port is not None:
+            os.environ['VITE_SERVER_PORT'] = str(dev_port)
+
         os.environ['DARA_HMR_MODE'] = 'TRUE'
         os.environ['VITE_HOT_RELOAD'] = 'True'
         os.environ['VITE_IS_REACT'] = 'True'
@@ -197,18 +214,36 @@ def setup_custom_js():
 
 
 @cli.command()
-def dev():
+@click.option('--config', help='The path to the config for the application')
+@click.option('--port', type=click.IntRange(1, 65535), help='The port used by the Vite development server')
+def dev(config: str | None, port: int | None):
     # Run vite dev command, printing output live
     js_config = JsConfig.from_file()
+    config_path = _resolve_config_path(config)
+    _, app_config = import_config(config_path)
+
+    if not isinstance(app_config, ConfigurationBuilder):
+        raise UsageError(f'"config" object in {config_path} is not an instance of ConfigurationBuilder')
 
     package_manager = 'npm'
 
     if js_config and js_config.package_manager:
         package_manager = js_config.package_manager
 
-    os.chdir(os.path.join(os.getcwd(), 'dist'))
+    dev_server_settings = DevServerSettings(port=port) if port is not None else DevServerSettings()
+    vite_env = {
+        **os.environ,
+        **dev_server_settings.as_environment(),
+        'VITE_DARA_DEV_SERVER_INFO': DevServerInfo.from_static_files_dir(
+            app_config.static_files_dir,
+            settings=dev_server_settings,
+        ).encode(),
+    }
+
+    os.chdir(app_config.static_files_dir)
     with subprocess.Popen(  # nosec B602 # package manager is validated
         f'{package_manager} run dev',
+        env=vite_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         shell=True,

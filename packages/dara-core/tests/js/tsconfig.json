@@ -1,6 +1,11 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["../../js/**/*", "./**/*.ts", "./**/*.tsx"],
+  "include": [
+    "../../dara/core/js_tooling/templates/vite.config.template.ts",
+    "../../js/**/*",
+    "./**/*.ts",
+    "./**/*.tsx"
+  ],
   "exclude": ["../../dist/**", "../../js/**/*.template.tsx"],
   "compilerOptions": {
     "composite": true,
