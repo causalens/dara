@@ -90,6 +90,40 @@ service:
 Replace the backend address and configure its authentication and TLS requirements. The Collector `debug` exporter is
 useful for checking a local connection before configuring a production sink.
 
+## Local end-to-end test
+
+For local development, Grafana's
+[`grafana/otel-lgtm`](https://github.com/grafana/docker-otel-lgtm) image provides a preconfigured Collector, Tempo,
+Loki, Prometheus, and Grafana in one container:
+
+```shell
+docker run --detach --rm --name dara-otel-lgtm \
+  --publish 3000:3000 \
+  --publish 4317:4317 \
+  --publish 4318:4318 \
+  grafana/otel-lgtm:latest
+```
+
+Start the Dara application from its project directory and send all three signals to the container:
+
+```shell
+env \
+  DARA_OTEL_ENABLED=TRUE \
+  OTEL_SERVICE_NAME=dara-local \
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
+  OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+  OTEL_TRACES_EXPORTER=otlp \
+  OTEL_LOGS_EXPORTER=otlp \
+  OTEL_METRICS_EXPORTER=otlp \
+  OTEL_METRIC_EXPORT_INTERVAL=1000 \
+  poetry run dara start
+```
+
+Exercise an endpoint, action, or derived variable, then open Grafana at
+[`http://127.0.0.1:3000`](http://127.0.0.1:3000) and sign in with `admin` / `admin`. The preconfigured Explore data
+sources show traces in Tempo, logs in Loki, and metrics in Prometheus; filter by the `dara-local` service. Stop the
+test backend with `docker stop dara-otel-lgtm`. This image is intended for development and testing, not production.
+
 ## What Dara records
 
 Dara provides:
