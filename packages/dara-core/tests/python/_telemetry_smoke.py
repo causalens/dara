@@ -300,6 +300,15 @@ async def main() -> None:
         'UpdateVariable',
     }
 
+    init_span = next(
+        span
+        for span in spans
+        if span.name == 'dara.websocket.message.outbound'
+        and span.attributes is not None
+        and span.attributes.get('dara.websocket.message.type') == 'init'
+    )
+    assert init_span.attributes['dara.websocket.message.payload.type'] == 'Init'
+
     handler_spans = [span for span in spans if span.name == 'dara.websocket.handler.execute']
     assert {span.attributes.get('dara.websocket.handler.execution') for span in handler_spans if span.attributes} == {
         'sync',

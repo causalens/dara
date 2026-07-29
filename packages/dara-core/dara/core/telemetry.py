@@ -701,7 +701,7 @@ def observe_websocket_message(
     Trace and measure one inbound or outbound WebSocket message operation.
 
     :param direction: bounded direction, ``inbound`` or ``outbound``
-    :param message_type: bounded protocol type, ``message``, ``custom``, or ``invalid``
+    :param message_type: bounded protocol type, such as ``message``, ``custom``, ``init``, or ``invalid``
     :param payload_type: safe protocol payload type to add to the span only
     """
     metric_attributes = {

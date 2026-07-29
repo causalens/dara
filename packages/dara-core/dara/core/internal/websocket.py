@@ -164,15 +164,40 @@ def _get_server_message_payload_type(message: ServerMessage) -> str | None:
     if isinstance(message, CustomServerMessage):
         return message.message.kind
 
-    extra = message.message.model_extra or {}
-    if 'action' not in extra:
-        return None
+    payload = message.message
+    if getattr(payload, 'typ', None) == 'ServerVariable':
+        return 'ServerVariable'
 
-    action = extra['action']
-    if action is None:
-        return 'ActionComplete'
+    extra = payload.model_extra or {}
+    if 'action' in extra:
+        action = extra['action']
+        if action is None:
+            return 'ActionComplete'
 
-    return getattr(type(action), 'py_name', None) or type(action).__name__
+        return getattr(type(action), 'py_name', None) or type(action).__name__
+
+    task_status = extra.get('status')
+    if 'task_id' in extra and task_status in ('CANCELED', 'COMPLETE', 'ERROR', 'PROGRESS'):
+        return {
+            'CANCELED': 'TaskCanceled',
+            'COMPLETE': 'TaskComplete',
+            'ERROR': 'TaskError',
+            'PROGRESS': 'TaskProgress',
+        }[task_status]
+
+    if 'variable' in extra:
+        return 'VariableRequest'
+
+    if 'store_uid' in extra and 'sequence_number' in extra:
+        if 'value' in extra:
+            return 'BackendStoreValue'
+        if 'patches' in extra:
+            return 'BackendStorePatch'
+
+    if 'error' in extra and 'time' in extra:
+        return 'ServerError'
+
+    return None
 
 
 class WebSocketHandler:
@@ -560,7 +585,8 @@ async def ws_handler(websocket: WebSocket):
             handler = ws_mgr.create_handler(channel)
 
             # Send the init message to tell the client it's channel
-            await websocket.send_json({'type': 'init', 'message': {'channel': channel}})
+            with observe_websocket_message('outbound', 'init', 'Init'):
+                await websocket.send_json({'type': 'init', 'message': {'channel': channel}})
 
             async with create_task_group() as tg:
 
@@ -576,6 +602,7 @@ async def ws_handler(websocket: WebSocket):
 
                         # Heartbeat to keep connection alive
                         if data['type'] == 'ping':
+                            # Heartbeats are deliberately not traced to avoid two spans every five seconds per client.
                             await websocket.send_json({'type': 'pong', 'message': None})
                         else:
                             try:

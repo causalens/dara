@@ -13,6 +13,7 @@ from dara.core.auth.definitions import SESSION_TOKEN_COOKIE_NAME, SessionRequest
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.any_variable import NOT_REGISTERED
+from dara.core.interactivity.server_variable import ServerVariableMessage
 from dara.core.internal.registries import utils_registry
 from dara.core.internal.websocket import (
     WS_CHANNEL,
@@ -23,6 +24,7 @@ from dara.core.internal.websocket import (
     ServerMessagePayload,
     WebSocketHandler,
     WebsocketManager,
+    _get_server_message_payload_type,
 )
 from dara.core.main import _start_application
 
@@ -62,6 +64,73 @@ async def cleanup_registry():
 
     yield
     custom_ws_handlers_registry.replace({})
+
+
+@pytest.mark.parametrize(
+    ('payload', 'custom', 'expected_type'),
+    [
+        (
+            {'kind': 'custom-handler', 'data': None},
+            True,
+            'custom-handler',
+        ),
+        (
+            {'variable': {'uid': 'variable-id'}},
+            False,
+            'VariableRequest',
+        ),
+        (
+            ServerVariableMessage(uid='server-variable-id', sequence_number=1),
+            False,
+            'ServerVariable',
+        ),
+        (
+            {'task_id': 'task-id', 'status': 'PROGRESS', 'progress': 50, 'message': 'halfway'},
+            False,
+            'TaskProgress',
+        ),
+        (
+            {'task_id': 'task-id', 'status': 'COMPLETE', 'result': 'value'},
+            False,
+            'TaskComplete',
+        ),
+        (
+            {'task_id': 'task-id', 'status': 'ERROR', 'error': 'detail'},
+            False,
+            'TaskError',
+        ),
+        (
+            {'task_id': 'task-id', 'status': 'CANCELED'},
+            False,
+            'TaskCanceled',
+        ),
+        (
+            {'store_uid': 'store-id', 'sequence_number': 1, 'value': 'value'},
+            False,
+            'BackendStoreValue',
+        ),
+        (
+            {'store_uid': 'store-id', 'sequence_number': 1, 'patches': []},
+            False,
+            'BackendStorePatch',
+        ),
+        (
+            {'error': 'detail', 'time': 'timestamp'},
+            False,
+            'ServerError',
+        ),
+        (
+            {'application': 'payload'},
+            False,
+            None,
+        ),
+    ],
+)
+async def test_get_server_message_payload_type(payload, custom, expected_type):
+    """Known protocol payloads are classified without labelling application messages."""
+    message = WebsocketManager()._construct_message(payload, custom)
+
+    assert _get_server_message_payload_type(message) == expected_type
 
 
 async def _send_task(handler: WebSocketHandler, messages: list):
