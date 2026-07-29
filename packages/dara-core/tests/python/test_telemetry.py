@@ -6,14 +6,20 @@ import time
 from pathlib import Path
 from unittest.mock import ANY, MagicMock, call, patch
 
+import anyio
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 from opentelemetry import baggage
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags, TraceState, set_span_in_context
 
 from dara.core import telemetry
 from dara.core.configuration import ConfigurationBuilder
+from dara.core.interactivity.any_variable import GET_VALUE_OVERRIDE, get_current_value
 from dara.core.internal.settings import get_settings
+from dara.core.internal.websocket import DaraClientMessage, DaraServerMessage, WebSocketHandler
 from dara.core.main import _start_application
 
 from tests.python.utils import create_app
@@ -419,6 +425,77 @@ def test_serialized_context_carrier_contains_only_w3c_trace_context():
     assert carrier is not None
     assert set(carrier) <= {'traceparent', 'tracestate'}
     assert 'private-value' not in repr(carrier)
+
+
+async def test_websocket_response_span_links_to_pending_round_trip():
+    """Inbound client responses link back to their pending server request operation."""
+    provider = TracerProvider()
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    handler = WebSocketHandler('channel')
+    message = DaraServerMessage.create('VariableRequestMessage', {'variable': {'__typename': 'Variable'}})
+
+    async def respond():
+        while not handler.pending_responses:
+            await anyio.sleep(0)
+        message_id = next(iter(handler.pending_responses))
+        linked_context, payload_type = handler.get_pending_response_telemetry(message_id)
+        with telemetry.observe_websocket_message(
+            'inbound',
+            'message',
+            payload_type,
+            linked_context=linked_context,
+        ):
+            handler.process_client_message(DaraClientMessage(channel=message_id, message='value'))
+
+    with (
+        patch.object(telemetry, '_TRACER', provider.get_tracer('test')),
+        patch.object(telemetry._RUNTIME, 'configured', True),
+    ):
+        async with anyio.create_task_group() as task_group:
+            task_group.start_soon(respond)
+            assert await handler.send_and_wait(message) == 'value'
+
+    spans = exporter.get_finished_spans()
+    round_trip = next(span for span in spans if span.name == 'dara.websocket.round_trip')
+    inbound = next(span for span in spans if span.name == 'dara.websocket.message.inbound')
+
+    assert round_trip.attributes is not None
+    assert round_trip.attributes['dara.websocket.message.payload.type'] == 'VariableRequestMessage'
+    assert inbound.attributes is not None
+    assert inbound.attributes['dara.websocket.message.payload.type'] == 'VariableRequestMessage'
+    assert len(inbound.links) == 1
+    assert inbound.links[0].context.span_id == round_trip.context.span_id
+
+
+async def test_client_variable_resolution_has_an_encompassing_span():
+    """Client-variable resolution records its bounded result without exporting the variable ID."""
+    provider = TracerProvider()
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    override_token = GET_VALUE_OVERRIDE.set(lambda _variable: 'value')
+
+    try:
+        with (
+            patch.object(telemetry, '_TRACER', provider.get_tracer('test')),
+            patch.object(telemetry._RUNTIME, 'configured', True),
+        ):
+            assert (
+                await get_current_value(
+                    {'__typename': 'Variable', 'uid': 'private-variable-id'},
+                )
+                == 'value'
+            )
+    finally:
+        GET_VALUE_OVERRIDE.reset(override_token)
+
+    span = next(span for span in exporter.get_finished_spans() if span.name == 'dara.client_variable.resolve')
+    assert span.attributes is not None
+    assert span.attributes['dara.internal.name'] == 'Variable'
+    assert span.attributes['dara.client_variable.kind'] == 'Variable'
+    assert span.attributes['dara.outcome'] == 'override'
+    assert span.attributes['dara.client_variable.attempt.count'] == 0
+    assert 'private-variable-id' not in repr(span.attributes)
 
 
 def test_cache_measurements_are_numeric_and_have_bounded_dimensions():

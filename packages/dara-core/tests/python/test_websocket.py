@@ -19,6 +19,8 @@ from dara.core.internal.websocket import (
     WS_CHANNEL,
     CustomClientMessage,
     CustomClientMessagePayload,
+    CustomServerMessage,
+    CustomServerMessagePayload,
     DaraClientMessage,
     DaraServerMessage,
     ServerMessagePayload,
@@ -154,12 +156,48 @@ async def test_serialized_typed_message_envelope_is_not_wrapped_again():
     """Transport adapters can forward a serialized protocol envelope without changing its shape."""
     manager = WebsocketManager()
     message = DaraServerMessage.create('ActionMessage', {'action': None, 'uid': 'action-id'})
+
+    for serialized_message in (message.model_dump(), jsonable_encoder(message)):
+        delivery = manager._construct_message(serialized_message, custom=False)
+
+        assert jsonable_encoder(delivery) == serialized_message
+        assert delivery.telemetry_payload_type() == 'ActionComplete'
+
+    action_message = DaraServerMessage.create(
+        'ActionMessage',
+        {'action': {'__typename': 'UpdateVariable'}, 'uid': 'action-id'},
+    )
+    forwarded_action = manager._construct_message(jsonable_encoder(action_message), custom=False)
+    assert forwarded_action.telemetry_payload_type() == 'UpdateVariable'
+
+
+async def test_serialized_custom_message_envelope_is_not_wrapped_again():
+    """Custom protocol envelopes survive transport serialization without being treated as payloads."""
+    manager = WebsocketManager()
+    message = CustomServerMessage(message=CustomServerMessagePayload(kind='test', data={'value': 1}))
+
+    for serialized_message in (message.model_dump(), jsonable_encoder(message)):
+        delivery = manager._construct_message(serialized_message, custom=True)
+
+        assert jsonable_encoder(delivery) == serialized_message
+
+
+async def test_transport_telemetry_is_consumed_before_browser_delivery():
+    """W3C transport context reaches the receiving handler but never the browser payload."""
+    manager = WebsocketManager()
+    handler = manager.create_handler('channel')
+    message = DaraServerMessage.create('ActionMessage', {'action': None, 'uid': 'action-id'})
+    message.transport_telemetry = {
+        'traceparent': '00-00000000000000000000000000000001-0000000000000002-01',
+    }
     serialized_message = jsonable_encoder(message)
 
     delivery = manager._construct_message(serialized_message, custom=False)
+    await handler.send_message(delivery)
+    queued_message = await handler.receive_stream.receive()
 
-    assert jsonable_encoder(delivery) == serialized_message
-    assert delivery.telemetry_payload_type() == 'ActionComplete'
+    assert queued_message._telemetry_carrier == message.transport_telemetry
+    assert '__dara_telemetry' not in jsonable_encoder(queued_message)
 
 
 async def _send_task(handler: WebSocketHandler, messages: list):

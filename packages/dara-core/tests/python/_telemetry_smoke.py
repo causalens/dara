@@ -1,5 +1,6 @@
 """Isolated end-to-end telemetry smoke test used by test_telemetry."""
 
+import json
 import logging
 from typing import Any, cast
 from unittest.mock import MagicMock
@@ -13,7 +14,7 @@ from opentelemetry.sdk._logs.export import InMemoryLogRecordExporter, SimpleLogR
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from dara.core import Variable, action, telemetry
+from dara.core import DerivedVariable, Variable, action, telemetry
 from dara.core.auth import BasicAuthConfig
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.http import get
@@ -23,6 +24,12 @@ from dara.core.internal.registries import action_registry, static_kwargs_registr
 from dara.core.logging import http_logger
 from dara.core.main import _start_application
 from dara.core.visual.components import RawString
+
+
+class _Unserializable:
+    """Value that FastAPI's encoder cannot coerce to JSON."""
+
+    __slots__ = ()
 
 
 class _FakeScheduledProcess:
@@ -48,6 +55,11 @@ async def main() -> None:
     """Exercise real Dara HTTP, action, and WebSocket telemetry."""
     builder = ConfigurationBuilder()
     result = Variable('initial')
+    unserializable_derived = DerivedVariable(
+        lambda _value: _Unserializable(),
+        variables=[result],
+        cache=None,
+    )
     error_handled = anyio.Event()
 
     @get(url='/health')
@@ -155,13 +167,24 @@ async def main() -> None:
             '/api/core/route/telemetry-page',
             json={
                 'action_payloads': [],
-                'derived_variable_payloads': [],
+                'derived_variable_payloads': [
+                    {
+                        'uid': unserializable_derived.uid,
+                        'values': {
+                            'data': ['initial'],
+                            'lookup': {},
+                        },
+                    }
+                ],
                 'py_component_payloads': [],
                 'ws_channel': 'telemetry-route-channel',
                 'params': {'customer_id': 'not-exported'},
             },
         )
         assert route_response.status_code == 200, route_response.text
+        route_chunks = [json.loads(line) for line in route_response.text.splitlines()]
+        derived_chunk = next(chunk for chunk in route_chunks if chunk['type'] == 'derived_variable')
+        assert derived_chunk['result']['ok'] is False
 
         sync_action_response = await client.get('/api/sync-action')
         assert sync_action_response.status_code == 200, sync_action_response.text
@@ -329,6 +352,31 @@ async def main() -> None:
     assert route_span.attributes['dara.route.name'] == 'Telemetry Page'
     assert route_span.attributes['dara.route.path'] == '/telemetry-page'
     assert 'not-exported' not in repr(route_span.attributes)
+
+    loader_stream_span = next(span for span in spans if span.name == 'dara.route_loader.stream')
+    assert loader_stream_span.parent is not None
+    assert loader_stream_span.parent.span_id == route_span.context.span_id
+    assert loader_stream_span.attributes is not None
+    assert loader_stream_span.attributes['dara.route_loader.derived_variable.count'] == 1
+    assert loader_stream_span.attributes['dara.route_loader.py_component.count'] == 0
+    assert loader_stream_span.attributes['dara.outcome'] == 'success'
+
+    failed_serialization_span = next(
+        span
+        for span in spans
+        if span.name == 'dara.route_loader.serialize'
+        and span.attributes is not None
+        and span.attributes.get('dara.internal.name') == 'derived_variable'
+    )
+    assert failed_serialization_span.attributes['dara.outcome'] == 'error'
+    assert failed_serialization_span.attributes['error.type'] == 'UnserializablePayloadError'
+    assert failed_serialization_span.status.description is None
+    assert not failed_serialization_span.events
+
+    loader_encode_spans = [span for span in spans if span.name == 'dara.route_loader.encode']
+    assert {
+        span.attributes.get('dara.internal.name') for span in loader_encode_spans if span.attributes is not None
+    } == {'actions', 'preload', 'template'}
 
     action_spans = [span for span in spans if span.name == 'dara.action.execute']
     action_span = next(

@@ -712,6 +712,8 @@ def observe_websocket_message(
     direction: str,
     message_type: str,
     payload_type: str | None = None,
+    *,
+    linked_context: Context | None = None,
 ) -> Iterator[_OperationObservation]:
     """
     Trace and measure one inbound or outbound WebSocket message operation.
@@ -719,6 +721,7 @@ def observe_websocket_message(
     :param direction: bounded direction, ``inbound`` or ``outbound``
     :param message_type: bounded protocol type, such as ``message``, ``custom``, ``init``, or ``invalid``
     :param payload_type: safe protocol payload type to add to the span only
+    :param linked_context: optional pending request context linked to an inbound response
     """
     metric_attributes = {
         'dara.websocket.direction': direction,
@@ -729,6 +732,17 @@ def observe_websocket_message(
     if payload_type is not None:
         span_attributes['dara.websocket.message.payload.type'] = payload_type
 
+    links: list[Link] | None = None
+    if linked_context is not None:
+        linked_span_context = trace.get_current_span(linked_context).get_span_context()
+        if linked_span_context.is_valid:
+            links = [
+                Link(
+                    linked_span_context,
+                    {'dara.websocket.relationship': 'response'},
+                )
+            ]
+
     with _observe_operation(
         span_name=f'dara.websocket.message.{direction}',
         span_attributes=span_attributes,
@@ -737,6 +751,7 @@ def observe_websocket_message(
         duration=_WEBSOCKET_MESSAGE_DURATION,
         executions=_WEBSOCKET_MESSAGE_EXECUTIONS,
         span_kind=SpanKind.CONSUMER if direction == 'inbound' else SpanKind.PRODUCER,
+        links=links,
     ) as observation:
         yield observation
 
@@ -780,16 +795,23 @@ def observe_websocket_handler(
 
 
 @contextmanager
-def observe_websocket_round_trip(message_type: str) -> Iterator[_OperationObservation]:
+def observe_websocket_round_trip(
+    message_type: str,
+    payload_type: str | None = None,
+) -> Iterator[_OperationObservation]:
     """
     Trace and measure a server-request/client-response WebSocket round trip.
 
     :param message_type: bounded protocol type, ``message`` or ``custom``
+    :param payload_type: safe protocol payload type to add to the span only
     """
-    attributes = {
+    metric_attributes = {
         'dara.websocket.message.type': message_type,
         'dara.websocket.operation': 'round_trip',
     }
+    span_attributes = dict(metric_attributes)
+    if payload_type is not None:
+        span_attributes['dara.websocket.message.payload.type'] = payload_type
     started = perf_counter()
     observation = _OperationObservation()
     if not _RUNTIME.configured:
@@ -799,8 +821,8 @@ def observe_websocket_round_trip(message_type: str) -> Iterator[_OperationObserv
     try:
         with _TRACER.start_as_current_span(
             'dara.websocket.round_trip',
-            kind=SpanKind.PRODUCER,
-            attributes=attributes,
+            kind=SpanKind.INTERNAL,
+            attributes=span_attributes,
             record_exception=False,
             set_status_on_exception=False,
         ) as span:
@@ -815,7 +837,7 @@ def observe_websocket_round_trip(message_type: str) -> Iterator[_OperationObserv
     finally:
         _WEBSOCKET_ROUND_TRIP_DURATION.record(
             perf_counter() - started,
-            {**attributes, 'dara.outcome': observation.outcome},
+            {**metric_attributes, 'dara.outcome': observation.outcome},
         )
 
 

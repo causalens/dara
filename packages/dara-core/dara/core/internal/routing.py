@@ -86,7 +86,7 @@ from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import WS_CHANNEL, ws_handler
 from dara.core.logging import dev_logger
 from dara.core.persistence import BackendStoreEntry
-from dara.core.telemetry import annotate_route
+from dara.core.telemetry import annotate_route, observe_internal_operation
 from dara.core.visual.dynamic_component import CURRENT_COMPONENT_ID, PyComponentDef
 
 
@@ -698,13 +698,14 @@ def create_loader_route(config: Configuration, app: FastAPI):
                 CURRENT_ACTION_ID.set('')
                 ACTION_CONTEXT.set(None)
 
-        def create_payload(x):
-            try:
-                return jsonable_encoder(x)
-            except Exception as e:
-                raise UnserializablePayloadError(
-                    f'Unserializable payload found - {str(e)}', payload_type=type(x)
-                ) from e
+        def create_payload(x, payload_kind: str):
+            with observe_internal_operation('route_loader', 'serialize', name=payload_kind):
+                try:
+                    return jsonable_encoder(x)
+                except Exception as e:
+                    raise UnserializablePayloadError(
+                        f'Unserializable payload found - {str(e)}', payload_type=type(x)
+                    ) from e
 
         async def process_variables(send_stream: MemoryObjectSendStream[Chunk]):
             for payload in body.derived_variable_payloads:
@@ -720,7 +721,10 @@ def create_loader_route(config: Configuration, app: FastAPI):
                     )
 
                     await send_stream.send(
-                        DerivedVariableChunk(uid=payload.uid, result=Result.success(create_payload(result)))
+                        DerivedVariableChunk(
+                            uid=payload.uid,
+                            result=Result.success(create_payload(result, 'derived_variable')),
+                        )
                     )
                 except UnserializablePayloadError as e:
                     dev_logger.warning(
@@ -747,7 +751,10 @@ def create_loader_route(config: Configuration, app: FastAPI):
                         ),
                     )
                     await send_stream.send(
-                        PyComponentChunk(uid=payload.uid, result=Result.success(create_payload(result)))
+                        PyComponentChunk(
+                            uid=payload.uid,
+                            result=Result.success(create_payload(result, 'py_component')),
+                        )
                     )
                 except UnserializablePayloadError as e:
                     dev_logger.warning(
@@ -766,41 +773,62 @@ def create_loader_route(config: Configuration, app: FastAPI):
 
         # Setup the stream response
         async def stream():
-            try:
+            with observe_internal_operation('route_loader', 'stream') as observation:
+                if observation.span is not None and observation.span.is_recording():
+                    observation.span.set_attribute(
+                        'dara.route_loader.derived_variable.count',
+                        len(body.derived_variable_payloads),
+                    )
+                    observation.span.set_attribute(
+                        'dara.route_loader.py_component.count',
+                        len(body.py_component_payloads),
+                    )
 
-                def create_chunk(x):
-                    return json.dumps(x) + '\r\n'
+                try:
 
-                # 1. Send the template and actions
-                yield create_chunk(
-                    {
-                        'type': 'template',
-                        'template': {
-                            'data': normalized_template,
-                            'lookup': lookup,
+                    def create_chunk(x, chunk_kind: str):
+                        with observe_internal_operation('route_loader', 'encode', name=chunk_kind):
+                            return json.dumps(x) + '\r\n'
+
+                    # 1. Send the template and actions
+                    yield create_chunk(
+                        {
+                            'type': 'template',
+                            'template': {
+                                'data': normalized_template,
+                                'lookup': lookup,
+                            },
                         },
-                    }
-                )
-                yield create_chunk({'type': 'actions', 'actions': jsonable_encoder(action_results)})
+                        'template',
+                    )
+                    yield create_chunk(
+                        {'type': 'actions', 'actions': jsonable_encoder(action_results)},
+                        'actions',
+                    )
 
-                # 2. Optionally, if there are DVs or py_components to preload, process them in the background and stream them back as they arrive
-                if len(body.derived_variable_payloads) > 0 or len(body.py_component_payloads) > 0:
-                    send_stream, receive_stream = anyio.create_memory_object_stream[Chunk](max_buffer_size=math.inf)
+                    # 2. Optionally, if there are DVs or py_components to preload, process them in the background and stream them back as they arrive
+                    if len(body.derived_variable_payloads) > 0 or len(body.py_component_payloads) > 0:
+                        send_stream, receive_stream = anyio.create_memory_object_stream[Chunk](max_buffer_size=math.inf)
 
-                    async def process_derived_state():
-                        async with send_stream, anyio.create_task_group() as tg:
-                            if len(body.derived_variable_payloads) > 0:
-                                tg.start_soon(process_variables, send_stream)
-                            if len(body.py_component_payloads) > 0:
-                                tg.start_soon(process_py_components, send_stream)
+                        async def process_derived_state():
+                            async with send_stream, anyio.create_task_group() as tg:
+                                if len(body.derived_variable_payloads) > 0:
+                                    tg.start_soon(process_variables, send_stream)
+                                if len(body.py_component_payloads) > 0:
+                                    tg.start_soon(process_py_components, send_stream)
 
-                    async with anyio.create_task_group() as tg:
-                        tg.start_soon(process_derived_state)
+                        async with anyio.create_task_group() as tg:
+                            tg.start_soon(process_derived_state)
 
-                        async for item in receive_stream:
-                            yield create_chunk(jsonable_encoder(item))
-            except Exception as e:
-                traceback.print_exc()
-                dev_logger.error(f'Error streaming loader data for route {route_id}', error=e)
+                            async for item in receive_stream:
+                                yield create_chunk(jsonable_encoder(item), 'preload')
+                except Exception as e:
+                    observation.record_exception(e)
+                    traceback.print_exc()
+                    dev_logger.error(
+                        'Error streaming loader data',
+                        error=e,
+                        event_name='route_loader.stream.error',
+                    )
 
         return StreamingResponse(content=stream(), media_type='application/x-ndjson')
