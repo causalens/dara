@@ -23,7 +23,9 @@ from pydantic import (
 
 from dara.core.auth.definitions import USER
 from dara.core.internal.utils import run_user_handler
+from dara.core.internal.websocket import DaraServerMessage, ServerMessageTypename
 from dara.core.logging import dev_logger
+from dara.core.telemetry import observe_backend_store
 
 if TYPE_CHECKING:
     from dara.core.interactivity.plain_variable import Variable
@@ -328,27 +330,40 @@ class BackendStore(PersistenceStore):
         self.sequence_number[key] = current + 1
         return self.sequence_number[key]
 
-    async def _notify_user(self, user_identifier: str, ignore_channel: str | None = None, **payload):
+    async def _notify_user(
+        self,
+        user_identifier: str,
+        typename: ServerMessageTypename,
+        ignore_channel: str | None = None,
+        **payload,
+    ):
         """
         Notify a given user about updates to this store.
         :param user_identifier: user to notify
+        :param typename: first-party WebSocket message discriminator
         :param ignore_channel: if specified, ignore the specified channel
         :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.send_message_to_user(
             user_identifier,
-            self._create_msg(user_identifier, **payload),
+            DaraServerMessage.create(typename, self._create_msg(user_identifier, **payload)),
             ignore_channel=ignore_channel,
         )
 
-    async def _notify_global(self, ignore_channel: str | None = None, **payload):
+    async def _notify_global(
+        self,
+        typename: ServerMessageTypename,
+        ignore_channel: str | None = None,
+        **payload,
+    ):
         """
         Notify all users about updates to this store.
+        :param typename: first-party WebSocket message discriminator
         :param ignore_channel: if specified, ignore the specified channel
         :param payload: either value=... or patches=...
         """
         return await self.ws_mgr.broadcast(
-            self._create_msg('global', **payload),
+            DaraServerMessage.create(typename, self._create_msg('global', **payload)),
             ignore_channel=ignore_channel,
         )
 
@@ -361,7 +376,11 @@ class BackendStore(PersistenceStore):
         :param ignore_channel: if passed, ignore the specified channel when broadcasting
         """
         if self.scope == 'global':
-            return await self._notify_global(value=value, ignore_channel=ignore_channel)
+            return await self._notify_global(
+                'BackendStoreMessage',
+                value=value,
+                ignore_channel=ignore_channel,
+            )
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -370,7 +389,12 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id
-        return await self._notify_user(user_identifier, value=value, ignore_channel=ignore_channel)
+        return await self._notify_user(
+            user_identifier,
+            'BackendStoreMessage',
+            value=value,
+            ignore_channel=ignore_channel,
+        )
 
     async def _notify_patches(self, patches: list[dict[str, Any]]):
         """
@@ -380,7 +404,7 @@ class BackendStore(PersistenceStore):
         :param patches: list of JSON patch operations
         """
         if self.scope == 'global':
-            return await self._notify_global(patches=patches)
+            return await self._notify_global('BackendStorePatchMessage', patches=patches)
 
         # For user scope, we need to find channels for the user and notify them
         user = USER.get()
@@ -389,7 +413,7 @@ class BackendStore(PersistenceStore):
             return
 
         user_identifier = user.identity_id
-        return await self._notify_user(user_identifier, patches=patches)
+        return await self._notify_user(user_identifier, 'BackendStorePatchMessage', patches=patches)
 
     async def init(self, variable: 'Variable'):
         """
@@ -403,14 +427,27 @@ class BackendStore(PersistenceStore):
         if self._register():
 
             async def _on_value(key: str, value: Any):
-                # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
-                if user := self._get_user(key):
-                    return await self._notify_user(user, value=value)
-                return await self._notify_global(value=value)
+                with observe_backend_store('subscription_callback', type(self.backend).__name__):
+                    # here we explicitly DON'T ignore the current channel, in case we created this variable inside e.g. a py_component we want to notify its creator as well
+                    if user := self._get_user(key):
+                        return await self._notify_user(user, 'BackendStoreMessage', value=value)
+                    return await self._notify_global('BackendStoreMessage', value=value)
 
-            await self.backend.subscribe(_on_value)
+            with observe_backend_store('subscribe', type(self.backend).__name__):
+                await self.backend.subscribe(_on_value)
 
     async def write_partial(self, data: list[dict[str, Any]] | Any, notify: bool = True, in_place: bool = False):
+        """
+        Apply a partial write under one backend-store telemetry lifecycle.
+
+        :param data: JSON patches or a full replacement value
+        :param notify: whether to notify connected clients
+        :param in_place: whether JSON patches may mutate the current value
+        """
+        with observe_backend_store('write_partial', type(self.backend).__name__):
+            return await self._write_partial(data, notify, in_place)
+
+    async def _write_partial(self, data: list[dict[str, Any]] | Any, notify: bool = True, in_place: bool = False):
         """
         Apply partial updates to the store using JSON Patch operations or automatic diffing.
 
@@ -472,6 +509,17 @@ class BackendStore(PersistenceStore):
 
     async def write(self, value: Any, notify=True, ignore_channel: str | None = None):
         """
+        Persist a value under one backend-store telemetry lifecycle.
+
+        :param value: value to persist
+        :param notify: whether to notify connected clients
+        :param ignore_channel: optional WebSocket channel to exclude from notification
+        """
+        with observe_backend_store('write', type(self.backend).__name__):
+            return await self._write(value, notify, ignore_channel)
+
+    async def _write(self, value: Any, notify=True, ignore_channel: str | None = None):
+        """
         Persist a value to the store.
 
         If scope='user', the value is written for the current user so the method can only
@@ -496,6 +544,11 @@ class BackendStore(PersistenceStore):
         return res
 
     async def read(self):
+        """Read the current value under one backend-store telemetry lifecycle."""
+        with observe_backend_store('read', type(self.backend).__name__):
+            return await self._read()
+
+    async def _read(self):
         """
         Read a value from the store.
 
@@ -509,6 +562,15 @@ class BackendStore(PersistenceStore):
             return await run_user_handler(self.backend.read, (key,))
 
     async def delete(self, notify=True):
+        """
+        Delete the current value under one backend-store telemetry lifecycle.
+
+        :param notify: whether to notify connected clients
+        """
+        with observe_backend_store('delete', type(self.backend).__name__):
+            return await self._delete(notify)
+
+    async def _delete(self, notify=True):
         """
         Delete the persisted value from the store
 
@@ -528,6 +590,11 @@ class BackendStore(PersistenceStore):
         return await run_user_handler(self.backend.delete, (key,))
 
     async def get_all(self) -> dict[str, Any]:
+        """Read all backend values under one backend-store telemetry lifecycle."""
+        with observe_backend_store('get_all', type(self.backend).__name__):
+            return await self._get_all()
+
+    async def _get_all(self) -> dict[str, Any]:
         """
         Get all the values from the store as a dictionary of key-value pairs.
 

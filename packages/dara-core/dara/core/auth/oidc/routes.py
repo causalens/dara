@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from collections.abc import Callable
+from functools import wraps
 from typing import Any, NoReturn
 from uuid import uuid4
 
@@ -34,10 +36,11 @@ from dara.core.auth.session import create_auth_session, get_auth_session_cookie_
 from dara.core.auth.utils import sign_jwt
 from dara.core.http import post
 from dara.core.logging import dev_logger
+from dara.core.telemetry import annotate_auth_observation, link_current_span_to_carrier, observe_auth
 
 from .definitions import OIDC_LOGIN_SESSION_COOKIE_NAME, AuthCodeRequestBody
 from .transaction_store import oidc_transaction_store
-from .utils import decode_id_token, get_token_from_idp
+from .utils import decode_id_token_async, get_token_from_idp
 
 
 def _oidc_login_cookie_log_extra(request: Request) -> dict[str, bool]:
@@ -74,7 +77,44 @@ def _raise_invalid_state_parameter(request: Request) -> NoReturn:
     raise HTTPException(status_code=400, detail=detail)
 
 
+def _observe_oidc_callback(func: Callable):
+    """Trace the complete OIDC callback without changing its public route signature."""
+
+    @wraps(func)
+    async def _wrapper(*args, **kwargs):
+        oidc_settings = kwargs.get('oidc_settings')
+        attributes = {}
+        if isinstance(oidc_settings, OIDCSettings):
+            attributes = {
+                'dara.auth.oidc.client.mode': oidc_settings.client_auth_mode,
+                'dara.auth.oidc.pkce.enabled': oidc_settings.client_auth_mode == 'pkce_public',
+                'dara.auth.oidc.userinfo.enabled': oidc_settings.use_userinfo,
+            }
+
+        with observe_auth('oidc.callback', system='oidc', attributes=attributes) as observation:
+            try:
+                return await func(*args, **kwargs)
+            except HTTPException as error:
+                failure_reason = (
+                    'access_denied'
+                    if error.status_code == 403
+                    else 'invalid_callback'
+                    if error.status_code < 500
+                    else 'internal_error'
+                )
+                annotate_auth_observation(
+                    observation,
+                    outcome='denied' if error.status_code < 500 else 'error',
+                    failure_reason=failure_reason,
+                    attributes={'http.response.status_code': error.status_code},
+                )
+                raise
+
+    return _wrapper
+
+
 @post('/auth/sso-callback', authenticated=False)
+@_observe_oidc_callback
 async def sso_callback(
     body: AuthCodeRequestBody,
     request: Request,
@@ -115,13 +155,31 @@ async def sso_callback(
             detail=detail,
         )
 
-    login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
-    if login_session_id is None:
-        _raise_invalid_state_parameter(request)
+    with observe_auth('oidc.state.validate', system='oidc') as state_observation:
+        login_session_id = request.cookies.get(OIDC_LOGIN_SESSION_COOKIE_NAME)
+        if login_session_id is None:
+            annotate_auth_observation(
+                state_observation,
+                outcome='denied',
+                failure_reason='missing_login_session',
+            )
+            _raise_invalid_state_parameter(request)
 
-    transaction = oidc_transaction_store.take_if_login_session_matches(body.state, login_session_id)
-    if transaction is None:
-        _raise_invalid_state_parameter(request)
+        transaction = oidc_transaction_store.take_if_login_session_matches(body.state, login_session_id)
+        if transaction is None:
+            annotate_auth_observation(
+                state_observation,
+                outcome='denied',
+                failure_reason='invalid_state',
+            )
+            _raise_invalid_state_parameter(request)
+
+    # The browser redirect cannot carry trace headers through the identity provider.
+    # Link this callback to the server-side context captured when login began.
+    link_current_span_to_carrier(
+        transaction.telemetry_carrier,
+        attributes={'dara.link.kind': 'oidc_handoff'},
+    )
 
     try:
         # Exchange authorization code for tokens per RFC 6749 Section 4.1.3
@@ -150,14 +208,20 @@ async def sso_callback(
             )
 
         # Decode and verify the ID token
-        claims = decode_id_token(oidc_tokens.id_token)
-        if claims.nonce is None or claims.nonce != transaction.nonce:
-            dev_logger.error(
-                'Invalid OIDC nonce',
-                error=Exception('nonce mismatch'),
-                extra=_oidc_callback_log_extra(request, status_code=401, detail=INVALID_TOKEN_ERROR),
-            )
-            raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
+        claims = await decode_id_token_async(oidc_tokens.id_token)
+        with observe_auth('oidc.nonce.validate', system='oidc') as nonce_observation:
+            if claims.nonce is None or claims.nonce != transaction.nonce:
+                annotate_auth_observation(
+                    nonce_observation,
+                    outcome='denied',
+                    failure_reason='invalid_nonce',
+                )
+                dev_logger.error(
+                    'Invalid OIDC nonce',
+                    error=Exception('nonce mismatch'),
+                    extra=_oidc_callback_log_extra(request, status_code=401, detail=INVALID_TOKEN_ERROR),
+                )
+                raise HTTPException(status_code=401, detail=INVALID_TOKEN_ERROR)
 
         # Fetch userinfo if enabled. Once enabled, userinfo is part of the auth contract.
         userinfo = None
@@ -168,7 +232,8 @@ async def sso_callback(
         user_data = auth_config.extract_user_data(claims, userinfo=userinfo)
 
         # Verify user has access based on groups
-        auth_config.verify_user_access(user_data)
+        with observe_auth('access.verify', system='oidc'):
+            auth_config.verify_user_access(user_data)
 
         session_id = str(uuid4())
 

@@ -22,7 +22,7 @@ import traceback
 from contextlib import contextmanager
 from datetime import datetime
 
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import DaraServerMessage, WebsocketManager
 from dara.core.logging import eng_logger
 
 
@@ -80,6 +80,9 @@ async def send_error_for_session(ws_mgr: WebsocketManager, session_id: str):
 
             if ws_channels:
                 for ws_channel in ws_channels:
-                    await ws_mgr.send_message(ws_channel, message=get_error_for_channel())
+                    await ws_mgr.send_message(
+                        ws_channel,
+                        message=DaraServerMessage.create('ServerErrorMessage', get_error_for_channel()),
+                    )
         except KeyError:
             eng_logger.warning('No ws_channel found for session', {'session_id': session_id})

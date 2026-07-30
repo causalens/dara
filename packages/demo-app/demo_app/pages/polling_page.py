@@ -1,9 +1,14 @@
 from datetime import datetime, timezone
 
-from dara.components import Card, Heading, Label, Select, Spacer, Stack, Text
-from dara.core import ComponentInstance, DerivedVariable, SwitchVariable, Variable, py_component
+from opentelemetry import trace
+
+from dara.components import Button, Card, Heading, Label, Select, Spacer, Stack, Text
+from dara.core import ComponentInstance, DerivedVariable, SwitchVariable, Variable, action, py_component
+
+tracer = trace.get_tracer(__name__)
 
 polling_mode = Variable('2s')
+action_count = Variable(0)
 
 polling_interval = SwitchVariable.match(
     value=polling_mode,
@@ -32,6 +37,15 @@ server_time_dv = DerivedVariable(
     variables=[],
     polling_interval=polling_interval,
 )
+
+
+@action
+async def increment_demo_counter(ctx: action.Ctx, current_count: int) -> None:
+    """Increment the demo counter inside an application-defined OTEL span."""
+    with tracer.start_as_current_span('demo.action.increment_counter') as span:
+        span.set_attribute('demo.operation', 'increment_counter')
+        await ctx.update(action_count, current_count + 1)
+        span.add_event('demo.counter.incremented')
 
 
 @py_component(polling_interval=polling_interval)
@@ -69,5 +83,17 @@ def polling_page() -> ComponentInstance:
                 server_time_py_component(),
             ),
             title='py_component Polling',
+        ),
+        Card(
+            Stack(
+                Text('Runs a server-side @action with a custom child span and increments the counter below.'),
+                Button('Run instrumented action', onclick=increment_demo_counter(action_count)),
+                Stack(
+                    Text('Completed runs:'),
+                    Text(text=action_count),
+                    direction='horizontal',
+                ),
+            ),
+            title='Action and Custom Span',
         ),
     )

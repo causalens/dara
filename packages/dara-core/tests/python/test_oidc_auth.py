@@ -14,7 +14,7 @@ import respx
 from async_asgi_testclient import TestClient as AsyncClient
 from fastapi import HTTPException
 from freezegun import freeze_time
-from jwt import PyJWK, PyJWKClient
+from jwt import PyJWK
 
 from dara.core.auth.definitions import (
     BAD_REQUEST_ERROR,
@@ -37,7 +37,7 @@ from dara.core.auth.oidc.definitions import (
 )
 from dara.core.auth.oidc.settings import get_oidc_settings
 from dara.core.auth.oidc.transaction_store import oidc_transaction_store
-from dara.core.auth.oidc.utils import decode_id_token
+from dara.core.auth.oidc.utils import InstrumentedPyJWKClient, decode_id_token
 from dara.core.auth.session import verify_auth_token
 from dara.core.auth.session_store import (
     AuthSession,
@@ -598,7 +598,7 @@ def make_mock_id_token(state: str, overrides: dict | None = None, jwk_data: dict
 def mock_registered_jwks_client(allowed_algs: list[str] | None = None):
     previous_registry = dict(utils_registry.get_all())
     utils_registry.set(ID_TOKEN_SIGNING_ALGS_REGISTRY_KEY, allowed_algs or [MOCK_JWK['alg']])
-    utils_registry.set(JWK_CLIENT_REGISTRY_KEY, PyJWKClient(MOCK_DISCOVERY.jwks_uri))
+    utils_registry.set(JWK_CLIENT_REGISTRY_KEY, InstrumentedPyJWKClient(MOCK_DISCOVERY.jwks_uri))
     try:
         yield
     finally:

@@ -17,11 +17,11 @@ limitations under the License.
 
 from prometheus_client import CollectorRegistry, GCCollector, PlatformCollector, ProcessCollector
 
-# Keep Dara's collectors isolated so importing Dara does not mutate Prometheus's process-wide default registry.
+# Keep Dara's OTEL Prometheus reader isolated so importing Dara does not mutate the process-wide default registry.
 DARA_METRICS_REGISTRY = CollectorRegistry()
 
-# These constructors self-register, but only with Dara's private registry, so their side effects cannot collide with
-# collectors owned by other packages. They preserve the runtime metrics previously exposed by Dara's metrics server.
+# Preserve the runtime families historically served from Dara's compatibility
+# endpoint while OTEL-native equivalents are adopted by operators.
 GCCollector(registry=DARA_METRICS_REGISTRY)
 PlatformCollector(registry=DARA_METRICS_REGISTRY)
 ProcessCollector(registry=DARA_METRICS_REGISTRY)

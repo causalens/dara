@@ -25,6 +25,7 @@ from fastapi import UploadFile
 from dara.core.base_definitions import UploadResolverDef
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.utils import run_user_handler
+from dara.core.telemetry import observe_upload
 
 
 class FieldType(TypedDict):
@@ -38,6 +39,19 @@ class DataFrameSchema(TypedDict):
 
 
 async def upload(data: UploadFile, data_uid: str | None = None, resolver_id: str | None = None):
+    """
+    Resolve an upload with one complete telemetry lifecycle.
+
+    :param data: uploaded file
+    :param data_uid: optional target server-variable UID
+    :param resolver_id: optional registered resolver identifier
+    """
+    resolver_kind = 'custom' if resolver_id is not None else 'default'
+    with observe_upload(resolver_kind):
+        return await _upload(data, data_uid, resolver_id)
+
+
+async def _upload(data: UploadFile, data_uid: str | None = None, resolver_id: str | None = None):
     """
     Handler for uploading data.
 

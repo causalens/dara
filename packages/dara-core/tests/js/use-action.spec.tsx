@@ -3,6 +3,7 @@ import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
 
 import { INPUT, TOGGLE } from '@/actions/update-variable';
+import { ServerMessageTypename } from '@/api/websocket';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import { clearActionHandlerCache_TEST, preloadActions, useActionIsLoading } from '@/shared/interactivity/use-action';
 
@@ -893,6 +894,7 @@ describe('useAction', () => {
             // get execution id from the received message
             const executionId = serverReceivedMessage!.execution_id;
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.ACTION,
                 message: {
                     action,
                     uid: executionId,
@@ -900,6 +902,7 @@ describe('useAction', () => {
                 type: 'message',
             });
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.ACTION,
                 message: {
                     action: null,
                     uid: executionId,
@@ -1142,6 +1145,7 @@ describe('useAction', () => {
             // get execution id from the received message
             const executionId = serverReceivedMessage!.execution_id;
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.ACTION,
                 message: {
                     action: customAction,
                     uid: executionId,
@@ -1149,6 +1153,7 @@ describe('useAction', () => {
                 type: 'message',
             });
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.ACTION,
                 message: {
                     action: customAction2,
                     uid: executionId,
@@ -1158,6 +1163,7 @@ describe('useAction', () => {
 
             // send null to indicate end
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.ACTION,
                 message: {
                     action: null,
                     uid: executionId,
@@ -1268,6 +1274,7 @@ describe('useAction', () => {
             // get execution id from the received message
             const executionId = serverReceivedMessage!.execution_id;
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.ACTION,
                 message: {
                     action: customAction,
                     uid: executionId,
@@ -1276,6 +1283,7 @@ describe('useAction', () => {
             });
             // send null to indicate end
             wsClient.receiveMessage({
+                __typename: ServerMessageTypename.ACTION,
                 message: {
                     action: null,
                     uid: executionId,
@@ -1310,6 +1318,7 @@ describe('useAction', () => {
         ): void {
             for (const action of actions) {
                 wsClient.receiveMessage({
+                    __typename: ServerMessageTypename.ACTION,
                     message: { action, uid: executionId },
                     type: 'message',
                 });
@@ -1649,10 +1658,12 @@ describe('useAction', () => {
             act(() => {
                 // Send BatchStart and custom action but NOT BatchEnd yet
                 wsClient.receiveMessage({
+                    __typename: ServerMessageTypename.ACTION,
                     message: { action: BATCH_START_IMPL, uid: executionId },
                     type: 'message',
                 });
                 wsClient.receiveMessage({
+                    __typename: ServerMessageTypename.ACTION,
                     message: { action: customAction, uid: executionId },
                     type: 'message',
                 });
@@ -1664,10 +1675,12 @@ describe('useAction', () => {
             // Now send BatchEnd and null
             act(() => {
                 wsClient.receiveMessage({
+                    __typename: ServerMessageTypename.ACTION,
                     message: { action: BATCH_END_IMPL, uid: executionId },
                     type: 'message',
                 });
                 wsClient.receiveMessage({
+                    __typename: ServerMessageTypename.ACTION,
                     message: { action: null, uid: executionId },
                     type: 'message',
                 });

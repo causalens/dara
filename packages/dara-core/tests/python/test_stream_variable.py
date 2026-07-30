@@ -5,7 +5,7 @@ Tests for StreamVariable functionality.
 import asyncio
 import json
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
@@ -619,6 +619,52 @@ async def _collect_events(run_stream_gen) -> list[str]:
     async for event in run_stream_gen:
         events.append(event)
     return events
+
+
+async def test_stream_first_event_timer_starts_before_dependency_resolution():
+    """Time-to-first-event includes work spent resolving stream dependencies."""
+    ordering: list[str] = []
+    progress: dict[str, Any] = {}
+    clock_values = iter((10.0, 15.0))
+
+    def clock():
+        ordering.append('clock')
+        return next(clock_values)
+
+    async def resolve_dependency(_value, _store, _task_mgr):
+        ordering.append('dependency')
+        return 'resolved'
+
+    async def stream(_value):
+        yield StreamEvent.json_snapshot({'ready': True})
+
+    def capture_progress(_observation, **kwargs):
+        progress.update(kwargs)
+
+    with (
+        patch('dara.core.interactivity.stream_variable.perf_counter', side_effect=clock),
+        patch(
+            'dara.core.internal.dependency_resolution.resolve_dependency',
+            side_effect=resolve_dependency,
+        ),
+        patch(
+            'dara.core.interactivity.stream_variable.record_stream_progress',
+            side_effect=capture_progress,
+        ),
+    ):
+        events = await _collect_events(
+            run_stream(
+                _make_entry(stream),
+                asyncio.Event(),
+                [object()],
+                Mock(),
+                Mock(),
+            )
+        )
+
+    assert len(events) == 1
+    assert ordering[:2] == ['clock', 'dependency']
+    assert progress['time_to_first_event'] == 5.0
 
 
 async def test_run_stream_disconnect_cancels_blocked_generator():

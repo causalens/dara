@@ -3,15 +3,20 @@ import json
 import tempfile
 from collections.abc import Awaitable, Callable
 from typing import Any
-from unittest.mock import AsyncMock, call
+from unittest.mock import AsyncMock, call, patch
 
 import pytest
 from anyio import sleep
 from fastapi.encoders import jsonable_encoder
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from pydantic import Field, ValidationError
 
+from dara.core import telemetry
 from dara.core.auth.definitions import USER, UserData
 from dara.core.interactivity.plain_variable import Variable
+from dara.core.internal.websocket import DaraServerMessage, ServerMessageTypename
 from dara.core.persistence import (
     BackendStore,
     FileBackend,
@@ -36,6 +41,12 @@ async def maybe_await(value):
     if inspect.iscoroutine(value):
         return await value
     return value
+
+
+def backend_store_message(payload: dict[str, Any], patch: bool = False) -> DaraServerMessage:
+    """Create the expected self-discriminating backend-store notification."""
+    typename: ServerMessageTypename = 'BackendStorePatchMessage' if patch else 'BackendStoreMessage'
+    return DaraServerMessage.create(typename, payload)
 
 
 @pytest.fixture
@@ -201,7 +212,9 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
         [
             call(
                 USER_1.identity_id,
-                {'store_uid': user_backend_store.uid, 'value': 'test_value', 'sequence_number': 1},
+                backend_store_message(
+                    {'store_uid': user_backend_store.uid, 'value': 'test_value', 'sequence_number': 1}
+                ),
                 ignore_channel=None,
             )
         ]
@@ -218,7 +231,9 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
         [
             call(
                 USER_2.identity_id,
-                {'store_uid': user_backend_store.uid, 'value': 'test_value_2', 'sequence_number': 1},
+                backend_store_message(
+                    {'store_uid': user_backend_store.uid, 'value': 'test_value_2', 'sequence_number': 1}
+                ),
                 ignore_channel=None,
             )
         ],
@@ -232,7 +247,9 @@ async def test_user_scope_notifications(user_backend_store, mock_ws_mgr):
         [
             call(
                 USER_2.identity_id,
-                {'store_uid': user_backend_store.uid, 'value': 'test_value_3', 'sequence_number': 2},
+                backend_store_message(
+                    {'store_uid': user_backend_store.uid, 'value': 'test_value_3', 'sequence_number': 2}
+                ),
                 ignore_channel='channel3',
             )
         ],
@@ -279,7 +296,8 @@ async def test_notify_on_write(backend_store, mock_ws_mgr):
     await backend_store.write('test_value')
 
     mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'value': 'test_value', 'sequence_number': 1}, ignore_channel=None
+        backend_store_message({'store_uid': backend_store.uid, 'value': 'test_value', 'sequence_number': 1}),
+        ignore_channel=None,
     )
 
 
@@ -290,7 +308,8 @@ async def test_notify_on_delete(backend_store, mock_ws_mgr):
 
     # Need to await to yield to the loop to process the task
     mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'value': None, 'sequence_number': 1}, ignore_channel=None
+        backend_store_message({'store_uid': backend_store.uid, 'value': None, 'sequence_number': 1}),
+        ignore_channel=None,
     )
 
 
@@ -439,7 +458,47 @@ async def test_backend_subscribe_global(custom_backend, mock_ws_mgr):
 
     # Verify the notification was sent
     mock_ws_mgr.broadcast.assert_called_with(
-        {'store_uid': store.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None
+        backend_store_message({'store_uid': store.uid, 'value': 'external_value', 'sequence_number': 0}),
+        ignore_channel=None,
+    )
+
+
+async def test_backend_subscription_callback_is_traced(custom_backend, mock_ws_mgr):
+    """External backend notifications retain a visible callback lifecycle."""
+    provider = TracerProvider()
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+
+    with (
+        patch.object(telemetry, '_TRACER', provider.get_tracer('test')),
+        patch.object(telemetry._RUNTIME, 'configured', True),
+    ):
+        store = BackendStore(backend=custom_backend, uid='subscription-telemetry-store')
+        Variable(default='default_value', store=store)
+        await wait_for(store.read)
+        await custom_backend.trigger_external_change('global', 'external_value')
+
+    spans = exporter.get_finished_spans()
+    subscribe_span = next(span for span in spans if span.name == 'dara.backend_store.subscribe')
+    callback_span = next(span for span in spans if span.name == 'dara.backend_store.subscription_callback')
+    for span, operation in (
+        (subscribe_span, 'subscribe'),
+        (callback_span, 'subscription_callback'),
+    ):
+        assert span.attributes is not None
+        assert span.attributes['dara.backend_store.operation'] == operation
+        assert span.attributes['dara.backend_store.backend'] == 'CustomBackend'
+        assert span.attributes['dara.outcome'] == 'success'
+
+    mock_ws_mgr.broadcast.assert_called_with(
+        backend_store_message(
+            {
+                'store_uid': store.uid,
+                'value': 'external_value',
+                'sequence_number': 0,
+            }
+        ),
+        ignore_channel=None,
     )
 
 
@@ -467,7 +526,7 @@ async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
     # Verify the notification was sent to USER_1
     mock_ws_mgr.send_message_to_user.assert_called_with(
         USER_1.identity_id,
-        {'store_uid': store.uid, 'value': 'external_value_1', 'sequence_number': 0},
+        backend_store_message({'store_uid': store.uid, 'value': 'external_value_1', 'sequence_number': 0}),
         ignore_channel=None,
     )
     assert mock_ws_mgr.send_message_to_user.call_count == 1
@@ -484,7 +543,7 @@ async def test_backend_subscribe_user(custom_backend, mock_ws_mgr: AsyncMock):
     # Verify the notification was sent to USER_2
     mock_ws_mgr.send_message_to_user.assert_called_with(
         USER_2.identity_id,
-        {'store_uid': store.uid, 'value': 'external_value_2', 'sequence_number': 0},
+        backend_store_message({'store_uid': store.uid, 'value': 'external_value_2', 'sequence_number': 0}),
         ignore_channel=None,
     )
     assert mock_ws_mgr.send_message_to_user.call_count == 1
@@ -513,10 +572,12 @@ async def test_backend_subscribe_multiple_stores(custom_backend, mock_ws_mgr):
     # Verify both stores received notifications
     assert mock_ws_mgr.broadcast.call_count == 2
     mock_ws_mgr.broadcast.assert_any_call(
-        {'store_uid': store1.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None
+        backend_store_message({'store_uid': store1.uid, 'value': 'external_value', 'sequence_number': 0}),
+        ignore_channel=None,
     )
     mock_ws_mgr.broadcast.assert_any_call(
-        {'store_uid': store2.uid, 'value': 'external_value', 'sequence_number': 0}, ignore_channel=None
+        backend_store_message({'store_uid': store2.uid, 'value': 'external_value', 'sequence_number': 0}),
+        ignore_channel=None,
     )
 
 
@@ -545,7 +606,11 @@ async def test_write_partial_basic(backend_store, mock_ws_mgr):
 
     # Verify patch notification was sent
     mock_ws_mgr.broadcast.assert_called_once_with(
-        {'store_uid': backend_store.uid, 'patches': patches, 'sequence_number': 2}, ignore_channel=None
+        backend_store_message(
+            {'store_uid': backend_store.uid, 'patches': patches, 'sequence_number': 2},
+            patch=True,
+        ),
+        ignore_channel=None,
     )
 
 
@@ -614,7 +679,10 @@ async def test_write_partial_user_scope(user_backend_store, mock_ws_mgr):
     # Verify patch notification was sent to the correct user
     mock_ws_mgr.send_message_to_user.assert_called_once_with(
         USER_1.identity_id,
-        {'store_uid': user_backend_store.uid, 'patches': patches, 'sequence_number': 2},
+        backend_store_message(
+            {'store_uid': user_backend_store.uid, 'patches': patches, 'sequence_number': 2},
+            patch=True,
+        ),
         ignore_channel=None,
     )
 
@@ -636,7 +704,7 @@ async def test_write_partial_with_full_object(backend_store, mock_ws_mgr):
 
     # Verify that patches were generated and sent
     assert mock_ws_mgr.broadcast.called
-    call_args = mock_ws_mgr.broadcast.call_args[0][0]
+    call_args = jsonable_encoder(mock_ws_mgr.broadcast.call_args[0][0])['message']
     assert 'store_uid' in call_args
     assert 'patches' in call_args
     assert call_args['store_uid'] == backend_store.uid
@@ -919,7 +987,7 @@ async def test_sequence_number_in_patch_message(backend_store, mock_ws_mgr):
     if backend_store.scope == 'global':
         mock_ws_mgr.broadcast.assert_called_once()
         call_args = mock_ws_mgr.broadcast.call_args[0]
-        message = call_args[0]
+        message = jsonable_encoder(call_args[0])['message']
         assert 'sequence_number' in message
         assert message['sequence_number'] == 2  # Should be 2 (1 from initial write + 1 from patch)
 
@@ -931,7 +999,7 @@ async def test_sequence_number_in_patch_message(backend_store, mock_ws_mgr):
         assert mock_ws_mgr.broadcast.call_count == 2
         # Get the second call
         second_call_args = mock_ws_mgr.broadcast.call_args_list[1][0]
-        second_message = second_call_args[0]
+        second_message = jsonable_encoder(second_call_args[0])['message']
         assert second_message['sequence_number'] == 3
 
 
@@ -1033,7 +1101,7 @@ async def test_sequence_number_subscription_notifications(mock_ws_mgr):
     # Verify notification was sent with proper message format
     mock_ws_mgr.broadcast.assert_called_once()
     call_args = mock_ws_mgr.broadcast.call_args[0]
-    message = call_args[0]
+    message = jsonable_encoder(call_args[0])['message']
 
     assert 'store_uid' in message
     assert 'value' in message
@@ -1073,7 +1141,7 @@ async def test_sequence_number_user_subscription_notifications(mock_ws_mgr):
 
     # Check the external trigger message
     call_args = mock_ws_mgr.send_message_to_user.call_args[0]
-    message = call_args[1]
+    message = jsonable_encoder(call_args[1])['message']
     assert 'value' in message
     assert message['sequence_number'] == 1  # Should use current sequence for this user
 

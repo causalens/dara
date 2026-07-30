@@ -13,11 +13,14 @@ from dara.core.auth.definitions import SESSION_TOKEN_COOKIE_NAME, SessionRequest
 from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.any_variable import NOT_REGISTERED
+from dara.core.interactivity.server_variable import ServerVariableMessage
 from dara.core.internal.registries import utils_registry
 from dara.core.internal.websocket import (
     WS_CHANNEL,
     CustomClientMessage,
     CustomClientMessagePayload,
+    CustomServerMessage,
+    CustomServerMessagePayload,
     DaraClientMessage,
     DaraServerMessage,
     ServerMessagePayload,
@@ -62,6 +65,139 @@ async def cleanup_registry():
 
     yield
     custom_ws_handlers_registry.replace({})
+
+
+@pytest.mark.parametrize(
+    ('typename', 'payload', 'expected_type'),
+    [
+        (
+            'VariableRequestMessage',
+            {'variable': {'uid': 'variable-id'}},
+            'VariableRequestMessage',
+        ),
+        (
+            'ServerVariableMessage',
+            ServerVariableMessage(uid='server-variable-id', sequence_number=1),
+            'ServerVariableMessage',
+        ),
+        (
+            'TaskNotificationMessage',
+            {'task_id': 'task-id', 'status': 'PROGRESS', 'progress': 50, 'message': 'halfway'},
+            'TaskProgress',
+        ),
+        (
+            'TaskNotificationMessage',
+            {'task_id': 'task-id', 'status': 'COMPLETE', 'result': 'value'},
+            'TaskComplete',
+        ),
+        (
+            'TaskNotificationMessage',
+            {'task_id': 'task-id', 'status': 'ERROR', 'error': 'detail'},
+            'TaskError',
+        ),
+        (
+            'TaskNotificationMessage',
+            {'task_id': 'task-id', 'status': 'CANCELED'},
+            'TaskCanceled',
+        ),
+        (
+            'BackendStoreMessage',
+            {'store_uid': 'store-id', 'sequence_number': 1, 'value': 'value'},
+            'BackendStoreMessage',
+        ),
+        (
+            'BackendStorePatchMessage',
+            {'store_uid': 'store-id', 'sequence_number': 1, 'patches': []},
+            'BackendStorePatchMessage',
+        ),
+        (
+            'ServerErrorMessage',
+            {'error': 'detail', 'time': 'timestamp'},
+            'ServerErrorMessage',
+        ),
+        (
+            'ActionMessage',
+            {'action': None, 'uid': 'action-id'},
+            'ActionComplete',
+        ),
+    ],
+)
+async def test_server_message_protocol_type(typename, payload, expected_type):
+    """First-party messages serialize and report their explicit protocol type."""
+    message = DaraServerMessage.create(typename, payload)
+    encoded = jsonable_encoder(message)
+
+    assert encoded['__typename'] == typename
+    assert message.telemetry_payload_type() == expected_type
+
+
+async def test_application_message_has_no_protocol_type():
+    """Application messages retain their existing untyped wire representation."""
+    message = WebsocketManager()._construct_message({'application': 'payload'}, custom=False)
+
+    assert jsonable_encoder(message) == {'type': 'message', 'message': {'application': 'payload'}}
+    assert message.telemetry_payload_type() is None
+
+
+async def test_typed_message_envelopes_are_copied_per_delivery():
+    """Delivery metadata is isolated when one protocol message is sent to multiple handlers."""
+    manager = WebsocketManager()
+    message = DaraServerMessage.create('ActionMessage', {'action': None, 'uid': 'action-id'})
+
+    first_delivery = manager._construct_message(message, custom=False)
+    second_delivery = manager._construct_message(message, custom=False)
+
+    assert first_delivery == second_delivery == message
+    assert first_delivery is not second_delivery
+    assert first_delivery is not message
+
+
+async def test_serialized_typed_message_envelope_is_not_wrapped_again():
+    """Transport adapters can forward a serialized protocol envelope without changing its shape."""
+    manager = WebsocketManager()
+    message = DaraServerMessage.create('ActionMessage', {'action': None, 'uid': 'action-id'})
+
+    for serialized_message in (message.model_dump(), jsonable_encoder(message)):
+        delivery = manager._construct_message(serialized_message, custom=False)
+
+        assert jsonable_encoder(delivery) == serialized_message
+        assert delivery.telemetry_payload_type() == 'ActionComplete'
+
+    action_message = DaraServerMessage.create(
+        'ActionMessage',
+        {'action': {'__typename': 'UpdateVariable'}, 'uid': 'action-id'},
+    )
+    forwarded_action = manager._construct_message(jsonable_encoder(action_message), custom=False)
+    assert forwarded_action.telemetry_payload_type() == 'UpdateVariable'
+
+
+async def test_serialized_custom_message_envelope_is_not_wrapped_again():
+    """Custom protocol envelopes survive transport serialization without being treated as payloads."""
+    manager = WebsocketManager()
+    message = CustomServerMessage(message=CustomServerMessagePayload(kind='test', data={'value': 1}))
+
+    for serialized_message in (message.model_dump(), jsonable_encoder(message)):
+        delivery = manager._construct_message(serialized_message, custom=True)
+
+        assert jsonable_encoder(delivery) == serialized_message
+
+
+async def test_transport_telemetry_is_consumed_before_browser_delivery():
+    """W3C transport context reaches the receiving handler but never the browser payload."""
+    manager = WebsocketManager()
+    handler = manager.create_handler('channel')
+    message = DaraServerMessage.create('ActionMessage', {'action': None, 'uid': 'action-id'})
+    message.transport_telemetry = {
+        'traceparent': '00-00000000000000000000000000000001-0000000000000002-01',
+    }
+    serialized_message = jsonable_encoder(message)
+
+    delivery = manager._construct_message(serialized_message, custom=False)
+    await handler.send_message(delivery)
+    queued_message = await handler.receive_stream.receive()
+
+    assert queued_message._telemetry_carrier == message.transport_telemetry
+    assert '__dara_telemetry' not in jsonable_encoder(queued_message)
 
 
 async def _send_task(handler: WebSocketHandler, messages: list):

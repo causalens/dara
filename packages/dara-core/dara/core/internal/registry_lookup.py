@@ -20,6 +20,7 @@ from typing import Literal, TypeVar
 
 from dara.core.internal.registry import Registry, RegistryType
 from dara.core.internal.utils import async_dedupe
+from dara.core.telemetry import observe_internal_operation
 
 RegistryLookupKey = Literal[
     RegistryType.ACTION,
@@ -33,7 +34,7 @@ RegistryLookupKey = Literal[
 ]
 CustomRegistryLookup = dict[RegistryLookupKey, Callable[[str], Coroutine]]
 
-RegistryType = TypeVar('RegistryType')
+RegistryValue = TypeVar('RegistryValue')
 
 
 class RegistryLookup:
@@ -47,7 +48,7 @@ class RegistryLookup:
         self.handlers = handlers
 
     @async_dedupe
-    async def get(self, registry: Registry[RegistryType], uid: str) -> RegistryType:
+    async def get(self, registry: Registry[RegistryValue], uid: str) -> RegistryValue:
         """
         Get the entry from registry by uid.
         If uid is not in registry and it has a external handler that defined, will execute the handler
@@ -55,17 +56,19 @@ class RegistryLookup:
         :param registry: target registry
         :param uid: entry id
         """
-        try:
-            return registry.get(uid)
-        except KeyError as e:
-            if registry.name in self.handlers:
-                func = self.handlers[registry.name]  # type: ignore
-                entry = await func(uid)
-                # If something else registered the entry while we were waiting, return that
-                if registry.has(uid):
-                    return registry.get(uid)
-                registry.register(uid, entry)
-                return entry
-            raise ValueError(
-                f'Could not find uid {uid} in {registry.name} registry, did you register it before the app was initialized?'
-            ) from e
+        registry_name = registry.name.value if isinstance(registry.name, RegistryType) else registry.name
+        with observe_internal_operation('registry', 'lookup', name=registry_name):
+            try:
+                return registry.get(uid)
+            except KeyError as e:
+                if registry.name in self.handlers:
+                    func = self.handlers[registry.name]  # type: ignore
+                    entry = await func(uid)
+                    # If something else registered the entry while we were waiting, return that
+                    if registry.has(uid):
+                        return registry.get(uid)
+                    registry.register(uid, entry)
+                    return entry
+                raise ValueError(
+                    f'Could not find uid {uid} in {registry.name} registry, did you register it before the app was initialized?'
+                ) from e

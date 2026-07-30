@@ -20,6 +20,7 @@ from functools import lru_cache
 from secrets import token_hex
 
 from dotenv import dotenv_values
+from pydantic import PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from dara.core.internal.signing_key import PROCESS_JWT_SECRET, resolve_jwt_secret
@@ -35,8 +36,28 @@ class Settings(BaseSettings):
 
     # Feature flags
     cgroup_memory_limit_enabled: bool = False
+    dara_otel_enabled: bool = False
+
+    # OpenTelemetry defaults owned by Dara. Exporter configuration remains
+    # standard OTEL configuration and is consumed directly by Logfire.
+    otel_semconv_stability_opt_in: str = 'http'
+    otel_metrics_exporter: str = 'otlp'
+    dara_otel_shutdown_timeout_millis: PositiveInt = 5000
+
+    dara_metrics_port: int = 10000
+    dara_disable_metrics: bool = False
 
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
+
+    @property
+    def otlp_metrics_enabled(self) -> bool:
+        """Return whether Dara should export metrics over OTLP."""
+        return self.dara_otel_enabled and self.otel_metrics_exporter.lower() not in {'none', 'prometheus'}
+
+    @property
+    def prometheus_metrics_enabled(self) -> bool:
+        """Return whether Dara should expose its Prometheus endpoint."""
+        return not self.dara_disable_metrics
 
 
 def generate_env_content():

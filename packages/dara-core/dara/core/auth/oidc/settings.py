@@ -25,6 +25,8 @@ class OIDCSettings(BaseSettings):
     """Token endpoint client authentication mode."""
     issuer_url: str = 'https://login.causalens.com/api/authentication'
     jwks_lifespan: int = 86400  # 1 day
+    jwks_request_timeout_seconds: float = Field(default=30.0, gt=0)
+    """Timeout applied when refreshing signing keys from the JWKS endpoint."""
     # validation_alias bypasses env_prefix, so include full env names here.
     id_token_signed_response_alg: str | None = Field(
         default=None,

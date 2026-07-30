@@ -40,7 +40,7 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
                 return None
 
             del self.cache[key]
-            return entry
+            return entry.value
 
     async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any | None:
         """
@@ -81,3 +81,11 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         """
         async with self.lock:
             self.cache = {}
+
+    def __len__(self) -> int:
+        """Return the number of entries currently held by this cache."""
+        return len(self.cache)
+
+    def values(self) -> list[Any]:
+        """Return a point-in-time snapshot of cached values."""
+        return [entry.value for entry in self.cache.values()]

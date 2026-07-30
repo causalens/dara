@@ -1,7 +1,9 @@
 # This file contains some dummy tasks that can be run in tests and pass the task validation logic
+import os
 import time
 
 import anyio
+from opentelemetry import trace
 from pandas import DataFrame
 
 from dara.core.visual.progress_updater import ProgressUpdater, track_progress
@@ -43,6 +45,36 @@ def unpicklable_result_task(x):
 
 def identity_task(x):
     return x
+
+
+def telemetry_context_task():
+    """Return trace and process identity visible inside a task worker."""
+    span = trace.get_current_span()
+    span_context = span.get_span_context()
+    parent = getattr(span, 'parent', None)
+    provider = trace.get_tracer_provider()
+    resource = getattr(provider, 'resource', None)
+    resource_attributes = getattr(resource, 'attributes', {})
+    return {
+        'trace_id': format(span_context.trace_id, '032x'),
+        'span_id': format(span_context.span_id, '016x'),
+        'parent_span_id': format(parent.span_id, '016x') if parent is not None else None,
+        'span_name': getattr(span, 'name', None),
+        'process_pid': os.getpid(),
+        'resource_process_pid': resource_attributes.get('process.pid'),
+        'process_type': resource_attributes.get('dara.process.type'),
+        'process_boot_id': resource_attributes.get('dara.process.boot.id'),
+    }
+
+
+def telemetry_failure_task():
+    """Fail immediately for task telemetry tests."""
+    raise RuntimeError('expected telemetry task failure')
+
+
+def telemetry_slow_task():
+    """Remain active until cancelled by a task telemetry test."""
+    time.sleep(10)
 
 
 def log_task(x):

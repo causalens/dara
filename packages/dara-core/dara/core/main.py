@@ -25,6 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from importlib.util import find_spec
 from inspect import iscoroutine
+from multiprocessing.process import BaseProcess
 from pathlib import Path
 
 from anyio import create_task_group
@@ -68,6 +69,7 @@ from dara.core.internal.registries import (
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import core_api_router, create_loader_route, error_decorator
 from dara.core.internal.runtime_env import is_backend_reload_enabled, is_docker_mode, is_hmr_enabled
+from dara.core.internal.scheduler import stop_scheduled_process
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
@@ -83,6 +85,12 @@ from dara.core.js_tooling.js_utils import (
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 from dara.core.router import convert_template_to_router
+from dara.core.telemetry import initialize_telemetry, observe_internal_operation, shutdown_telemetry
+
+
+def _callable_name(func: Callable) -> str:
+    """Return a stable module-qualified callable name."""
+    return f'{getattr(func, "__module__", "unknown")}.{getattr(func, "__qualname__", type(func).__name__)}'
 
 
 class CacheStaticFiles(StaticFiles):
@@ -140,106 +148,172 @@ def _start_application(config: Configuration):
     sessions_registry.replace({}, deepcopy=False)
     session_auth_token_registry.replace({}, deepcopy=False)
     config_registry.replace({}, deepcopy=False)
+    scheduled_processes: list[tuple[BaseProcess, str]] = []
+
+    @asynccontextmanager
+    async def application_lifespan(app: FastAPI):
+        # Create a task group for the application so we can kick off tasks in the background
+        async with create_task_group() as task_group:
+            # STARTUP
+            with observe_internal_operation('application', 'startup'):
+                with observe_internal_operation(
+                    'application',
+                    'signal_handlers.setup',
+                ) as signal_handler_observation:
+                    try:
+                        setup_signal_handlers()
+                    except Exception as e:
+                        signal_handler_observation.record_exception(e)
+                        dev_logger.warning('Failed to set up signal handlers', {'error_type': type(e).__name__})
+
+                with observe_internal_operation(
+                    'application',
+                    'auth_session_backend.initialize',
+                ) as auth_backend_observation:
+                    auth_session_backend = resolve_auth_session_backend(config.auth_session_backend, config)
+                    if auth_backend_observation.span is not None:
+                        auth_backend_observation.span.set_attribute(
+                            'dara.internal.name',
+                            type(auth_session_backend).__name__,
+                        )
+                    set_auth_session_backend(auth_session_backend)
+
+                # Retrieve the existing Store instance for the application
+                # Store must exist before the app starts as instantiating e.g. Variables
+                # requires a store existing
+                store: CacheStore = utils_registry.get('Store')
+                utils_registry.set('RegistryLookup', RegistryLookup(config.registry_lookup))
+
+                with observe_internal_operation('application', 'runtime.initialize'):
+                    ws_manager = WebsocketManager()
+                    task_manager = TaskManager(task_group, ws_manager, store)
+
+                    # Add other internals
+                    utils_registry.set('TaskGroup', task_group)
+                    utils_registry.set('WebsocketManager', ws_manager)
+                    utils_registry.set('TaskManager', task_manager)
+
+                    utils_registry.set('TaskPool', None)
+
+                task_pool: TaskPool | None = None
+
+                # Only initialize the pool if a task module is configured
+                if config.task_module:
+                    with observe_internal_operation('application', 'task_pool.start', name=config.task_module):
+                        # Verify task module exists
+                        task_module_spec = find_spec(config.task_module)
+                        if task_module_spec is None or not task_module_spec.name.endswith('.tasks'):
+                            raise RuntimeError(
+                                f'Task module {config.task_module} does not exist or is invalid. Set config.task_module path to a tasks.py module'
+                            )
+
+                        # Default to number of CPUs - 1 (with minimum of 1)
+                        cpu_count = get_cpu_count()
+                        max_workers = int(os.environ.get('DARA_POOL_MAX_WORKERS', max(1, cpu_count - 1)))
+                        worker_timeout = float(os.environ.get('DARA_POOL_WORKER_TIMEOUT', '5'))
+                        min_workers = int(os.environ.get('DARA_POOL_MIN_WORKERS', '0'))
+                        dev_logger.info(
+                            'Initializing task pool...',
+                            {
+                                'max_workers': max_workers,
+                                'min_workers': min_workers,
+                                'worker_timeout': worker_timeout,
+                                'task_module': config.task_module,
+                            },
+                        )
+                        task_pool = TaskPool(
+                            task_group=task_group,
+                            worker_parameters={'task_module': config.task_module},
+                            max_workers=max_workers,
+                            worker_timeout=worker_timeout,
+                            min_workers=min_workers,
+                        )
+                        await task_pool.start(60)  # timeout after 60s
+                        utils_registry.set('TaskPool', task_pool)
+                        dev_logger.info('Task pool initialized')
+
+                # App is now ready, call user-defined startup functions
+                eng_logger.info(f'Running {len(config.startup_functions)} local startup functions')
+                cleanup_functions: list[Callable] = []
+                for startup_function in config.startup_functions:
+                    with observe_internal_operation(
+                        'application',
+                        'startup_hook',
+                        name=_callable_name(startup_function),
+                    ):
+                        res = startup_function()
+
+                        # Check if the response is awaitable and if it is then wait for it
+                        if iscoroutine(res):
+                            res = await res
+
+                        # If the startup function returned a callable, collect it as a cleanup function
+                        if callable(res):
+                            cleanup_functions.append(res)
+
+                eng_logger.info(f'Starting {len(config.scheduled_jobs)} local scheduled jobs')
+                try:
+                    for job, func, args in config.scheduled_jobs:
+                        job_name = _callable_name(func)
+                        with observe_internal_operation('application', 'scheduled_job.start', name=job_name):
+                            scheduled_processes.append((job.do(func, args), job_name))
+                except BaseException:
+                    for scheduled_process, job_name in scheduled_processes:
+                        with observe_internal_operation('application', 'scheduled_job.rollback', name=job_name):
+                            await asyncio.to_thread(stop_scheduled_process, scheduled_process, 5)
+                    scheduled_processes.clear()
+                    raise
+
+            try:
+                # Yield back to the app
+                yield
+            finally:
+                # SHUTDOWN
+                with observe_internal_operation('application', 'shutdown'):
+                    # Run user-defined cleanup functions in reverse order (LIFO)
+                    eng_logger.debug(f'Running {len(cleanup_functions)} cleanup functions')
+                    for cleanup_fn in reversed(cleanup_functions):
+                        with observe_internal_operation(
+                            'application',
+                            'cleanup_hook',
+                            name=_callable_name(cleanup_fn),
+                        ) as cleanup_observation:
+                            try:
+                                cleanup_res = cleanup_fn()
+                                if iscoroutine(cleanup_res):
+                                    await cleanup_res
+                            except Exception as e:
+                                cleanup_observation.record_exception(e)
+                                eng_logger.error('Error running cleanup function', e)
+
+                    eng_logger.debug('App shutting down, attempting to cancel all tasks and shut down the task pool')
+                    with observe_internal_operation('application', 'tasks.cancel'):
+                        await task_manager.cancel_all_tasks()
+
+                    if task_pool is not None:
+                        with observe_internal_operation(
+                            'application',
+                            'task_pool.stop',
+                            name=config.task_module,
+                        ):
+                            eng_logger.debug('Shutting down task pool...')
+                            await task_pool.join(5)
+                            eng_logger.debug('Task pool shut down')
+
+                    for scheduled_process, job_name in scheduled_processes:
+                        with observe_internal_operation('application', 'scheduled_job.stop', name=job_name):
+                            await asyncio.to_thread(stop_scheduled_process, scheduled_process, 5)
+                    scheduled_processes.clear()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        # STARTUP
         try:
-            setup_signal_handlers()
-        except Exception as e:
-            dev_logger.warning(f'Failed to set up signal handlers: {e}')
-
-        set_auth_session_backend(resolve_auth_session_backend(config.auth_session_backend, config))
-
-        # Retrieve the existing Store instance for the application
-        # Store must exist before the app starts as instantiating e.g. Variables
-        # requires a store existing
-        store: CacheStore = utils_registry.get('Store')
-        utils_registry.set('RegistryLookup', RegistryLookup(config.registry_lookup))
-
-        # Create a task group for the application so we can kick off tasks in the background
-        async with create_task_group() as task_group:
-            ws_manager = WebsocketManager()
-            task_manager = TaskManager(task_group, ws_manager, store)
-
-            # Add other internals
-            utils_registry.set('TaskGroup', task_group)
-            utils_registry.set('WebsocketManager', ws_manager)
-            utils_registry.set('TaskManager', task_manager)
-
-            utils_registry.set('TaskPool', None)
-
-            task_pool: TaskPool | None = None
-
-            # Only initialize the pool if a task module is configured
-            if config.task_module:
-                # Verify task module exists
-                task_module_spec = find_spec(config.task_module)
-                if task_module_spec is None or not task_module_spec.name.endswith('.tasks'):
-                    raise RuntimeError(
-                        f'Task module {config.task_module} does not exist or is invalid. Set config.task_module path to a tasks.py module'
-                    )
-
-                # Default to number of CPUs - 1 (with minimum of 1)
-                cpu_count = get_cpu_count()
-                max_workers = int(os.environ.get('DARA_POOL_MAX_WORKERS', max(1, cpu_count - 1)))
-                worker_timeout = float(os.environ.get('DARA_POOL_WORKER_TIMEOUT', '5'))
-                min_workers = int(os.environ.get('DARA_POOL_MIN_WORKERS', '0'))
-                dev_logger.info(
-                    'Initializing task pool...',
-                    {
-                        'max_workers': max_workers,
-                        'min_workers': min_workers,
-                        'worker_timeout': worker_timeout,
-                        'task_module': config.task_module,
-                    },
-                )
-                task_pool = TaskPool(
-                    task_group=task_group,
-                    worker_parameters={'task_module': config.task_module},
-                    max_workers=max_workers,
-                    worker_timeout=worker_timeout,
-                    min_workers=min_workers,
-                )
-                await task_pool.start(60)  # timeout after 60s
-                utils_registry.set('TaskPool', task_pool)
-                dev_logger.info('Task pool initialized')
-
-            # App is now ready, call user-defined startup functions
-            eng_logger.info(f'Running {len(config.startup_functions)} local startup functions')
-            cleanup_functions: list[Callable] = []
-            for startup_function in config.startup_functions:
-                res = startup_function()
-
-                # Check if the response is awaitable and if it is then wait for it
-                if iscoroutine(res):
-                    res = await res
-
-                # If the startup function returned a callable, collect it as a cleanup function
-                if callable(res):
-                    cleanup_functions.append(res)
-
-            # Yield back to the app
-            yield
-
-            # SHUTDOWN
-            # Run user-defined cleanup functions in reverse order (LIFO)
-            eng_logger.debug(f'Running {len(cleanup_functions)} cleanup functions')
-            for cleanup_fn in reversed(cleanup_functions):
-                try:
-                    cleanup_res = cleanup_fn()
-                    if iscoroutine(cleanup_res):
-                        await cleanup_res
-                except Exception as e:
-                    eng_logger.error('Error running cleanup function', e)
-
-            eng_logger.debug('App shutting down, attempting to cancel all tasks and shut down the task pool')
-            await task_manager.cancel_all_tasks()
-
-            if task_pool is not None:
-                eng_logger.debug('Shutting down task pool...')
-                await task_pool.join(5)
-                eng_logger.debug('Task pool shut down')
+            async with application_lifespan(app):
+                yield
+        finally:
+            # Telemetry is initialized before the ASGI lifespan begins, so it
+            # must also be shut down when application startup itself fails.
+            shutdown_telemetry()
 
     app = FastAPI(
         lifespan=lifespan,
@@ -247,6 +321,7 @@ def _start_application(config: Configuration):
         redoc_url=None if is_production else '/redoc',
         default_response_class=CustomResponse,
     )
+    initialize_telemetry(app)
 
     # Ensure session-cookie auth is reflected in Authorization header for
     # downstream handlers still expecting bearer token transport.
@@ -273,20 +348,11 @@ def _start_application(config: Configuration):
     if os.environ.get('DARA_TEST_FLAG', None) is None:
         app.add_middleware(LoggingMiddleware, logger=http_logger)
 
-    # Setup Prometheus HTTP request metrics middleware
-    if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
-        from dara.core.metrics.http import PrometheusMiddleware
-
-        app.add_middleware(PrometheusMiddleware)
+    settings = get_settings()
 
     # Add custom middlewares
     for middleware in config.middlewares:
         app.user_middleware.insert(0, middleware)
-
-    # Loop over scheduled jobs and start them
-    eng_logger.info(f'Starting {len(config.scheduled_jobs)} local scheduled jobs')
-    for job, func, args in config.scheduled_jobs:
-        job.do(func, args)
 
     route_urls = [f'"/api/{route.url}"' for route in config.routes]
     eng_logger.info(f'Registering local routes [{", ".join(route_urls)}]')
@@ -398,10 +464,9 @@ def _start_application(config: Configuration):
         """
         return {'status': 'ok'}
 
-    # Start metrics server in a daemon thread
-    if os.environ.get('DARA_DISABLE_METRICS') != 'TRUE' and os.environ.get('DARA_TEST_FLAG', None) is None:
-        port = int(os.environ.get('DARA_METRICS_PORT', '10000'))
-        start_http_server(port, registry=DARA_METRICS_REGISTRY)
+    # Start the compatibility metrics server in a daemon thread
+    if settings.prometheus_metrics_enabled and os.environ.get('DARA_TEST_FLAG', None) is None:
+        start_http_server(settings.dara_metrics_port, registry=DARA_METRICS_REGISTRY)
 
     # Start profiling server in a daemon thread if explicitly enabled (only works on linux)
     if os.environ.get('DARA_PYPPROF_PORT', None) is not None:

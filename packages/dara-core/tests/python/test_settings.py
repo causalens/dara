@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from dara.core.internal import signing_key
-from dara.core.internal.settings import PROCESS_JWT_SECRET, get_settings
+from dara.core.internal.settings import PROCESS_JWT_SECRET, Settings, get_settings
 
 
 @pytest.fixture(autouse=True)
@@ -22,6 +22,65 @@ def _clear_runtime_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     monkeypatch.delenv('DARA_CONFIG_PATH', raising=False)
+    monkeypatch.delenv('DARA_OTEL_ENABLED', raising=False)
+    monkeypatch.delenv('DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS', raising=False)
+    monkeypatch.delenv('DARA_METRICS_PORT', raising=False)
+    monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('OTEL_METRICS_EXPORTER', raising=False)
+    monkeypatch.delenv('OTEL_SEMCONV_STABILITY_OPT_IN', raising=False)
+
+
+@pytest.mark.parametrize(
+    ('otel_enabled', 'metrics_disabled', 'otel_exporter', 'otlp_metrics', 'prometheus_metrics'),
+    [
+        (False, False, 'otlp', False, True),
+        (False, True, 'otlp', False, False),
+        (True, False, 'otlp', True, True),
+        (True, True, 'otlp', True, False),
+        (True, False, 'prometheus', False, True),
+        (True, False, 'none', False, True),
+    ],
+)
+def test_metrics_transports_follow_existing_switches(
+    otel_enabled: bool,
+    metrics_disabled: bool,
+    otel_exporter: str,
+    otlp_metrics: bool,
+    prometheus_metrics: bool,
+):
+    """Dara and standard OTEL switches independently select each transport."""
+    settings = Settings(
+        _env_file=None,
+        dara_otel_enabled=otel_enabled,
+        dara_disable_metrics=metrics_disabled,
+        otel_metrics_exporter=otel_exporter,
+    )
+
+    assert settings.otlp_metrics_enabled is otlp_metrics
+    assert settings.prometheus_metrics_enabled is prometheus_metrics
+
+
+def test_disable_metrics_only_overrides_prometheus_compatibility_endpoint():
+    """The Prometheus server flag does not unexpectedly disable OTLP metrics."""
+    settings = Settings(
+        _env_file=None,
+        dara_disable_metrics=True,
+        dara_otel_enabled=True,
+        otel_metrics_exporter='otlp',
+    )
+
+    assert settings.otlp_metrics_enabled is True
+    assert settings.prometheus_metrics_enabled is False
+
+
+def test_otel_shutdown_timeout_uses_dara_settings(monkeypatch: pytest.MonkeyPatch):
+    """The telemetry shutdown deadline is configurable and must remain positive."""
+    monkeypatch.setenv('DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS', '1250')
+
+    assert Settings(_env_file=None).dara_otel_shutdown_timeout_millis == 1250
+
+    with pytest.raises(ValueError):
+        Settings(_env_file=None, dara_otel_shutdown_timeout_millis=0)
 
 
 def _use_cache_dir(monkeypatch: pytest.MonkeyPatch, cache_dir: Path):
@@ -207,3 +266,27 @@ def test_settings_test_flag_keeps_dotenv_test_precedence(monkeypatch):
     settings = get_settings()
 
     assert settings.jwt_secret == 'd6446c35450e31c4d0b48351c0423bf9'
+
+
+def test_settings_loads_telemetry_configuration(monkeypatch, tmp_path):
+    _clear_runtime_env(monkeypatch)
+    _use_cache_dir(monkeypatch, tmp_path / 'cache')
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'TRUE')
+    monkeypatch.setenv('OTEL_SEMCONV_STABILITY_OPT_IN', 'http/dup')
+
+    settings = get_settings()
+
+    assert settings.dara_otel_enabled is True
+    assert settings.otel_semconv_stability_opt_in == 'http/dup'
+
+
+def test_settings_telemetry_defaults_to_disabled(monkeypatch, tmp_path):
+    _clear_runtime_env(monkeypatch)
+    _use_cache_dir(monkeypatch, tmp_path / 'cache')
+    monkeypatch.chdir(tmp_path)
+
+    settings = get_settings()
+
+    assert settings.dara_otel_enabled is False
+    assert settings.otel_semconv_stability_opt_in == 'http'

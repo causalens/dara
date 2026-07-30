@@ -17,10 +17,12 @@ limitations under the License.
 
 from datetime import datetime
 from enum import Enum
+from time import perf_counter
 from typing import Any, TypeGuard
 
 from anyio import Event
-from typing_extensions import TypedDict
+from opentelemetry.context import Context
+from typing_extensions import NotRequired, TypedDict
 
 from dara.core.internal.pool.utils import SharedMemoryPointer, SubprocessException
 
@@ -64,6 +66,7 @@ class TaskPayload(TypedDict):
     function_name: str
     args: tuple
     kwargs: dict
+    telemetry_context: NotRequired[dict[str, str] | None]
 
 
 class TaskDefinition:
@@ -78,6 +81,8 @@ class TaskDefinition:
     worker_id: int | None = None
     started_at: datetime | None = None
     """TODO: can be used for task timeout or metrics/visibility"""
+    queued_at: float
+    telemetry_context: Context | None
 
     def __init__(
         self,
@@ -85,11 +90,14 @@ class TaskDefinition:
         payload: TaskPayload,
         worker_id: int | None = None,
         started_at: datetime | None = None,
+        telemetry_context: Context | None = None,
     ):
         self.uid = uid
         self.payload = payload
         self.worker_id = worker_id
         self.started_at = started_at
+        self.queued_at = perf_counter()
+        self.telemetry_context = telemetry_context
         self.event = Event()
 
     def __await__(self):
@@ -107,6 +115,8 @@ class WorkerTask(TypedDict):
     """Sent to workers as a definition of a task to do"""
 
     task_uid: str
+    task_name: str
+    telemetry_context: NotRequired[dict[str, str] | None]
     payload: SharedMemoryPointer
     """Pointer to shared memory storing TaskPayload"""
 
@@ -130,6 +140,8 @@ class Result(TypedDict):
     task_uid: str
     result: SharedMemoryPointer
     """Pointer to shared memory storing result"""
+    telemetry_context: NotRequired[dict[str, str] | None]
+    """W3C context captured while the worker encoded the result"""
 
 
 class Problem(TypedDict):
