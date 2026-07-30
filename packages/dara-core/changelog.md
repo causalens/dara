@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## 1.29.5
+## NEXT
 
 - Added a development-only server handshake that reports mismatched projects and supports overriding Vite's port with `dara start --dev-port` and `dara dev --port`.
 - Fixed `dara dev` to use the application's configured static files directory instead of always assuming `dist`.
