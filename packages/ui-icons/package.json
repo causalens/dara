@@ -1,6 +1,6 @@
 {
   "name": "@darajs/ui-icons",
-  "version": "1.29.4",
+  "version": "1.29.5",
   "description": "Icons for the Dara UI framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -18,9 +18,9 @@
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@darajs/oxfmt-config": "1.29.4",
-    "@darajs/oxlint-config": "1.29.4",
-    "@darajs/stylelint-config": "1.29.4",
+    "@darajs/oxfmt-config": "1.29.5",
+    "@darajs/oxlint-config": "1.29.5",
+    "@darajs/stylelint-config": "1.29.5",
     "@types/react": "18.2.60",
     "@types/styled-components": "^5.1.26",
     "@typescript/native": "npm:typescript@^7.0.0",
@@ -33,7 +33,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.29.4",
+    "@darajs/styled-components": "1.29.5",
     "@fortawesome/fontawesome-svg-core": "~6.4.0",
     "@fortawesome/free-brands-svg-icons": "~6.4.0",
     "@fortawesome/free-regular-svg-icons": "~6.4.0",
