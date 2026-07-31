@@ -508,6 +508,8 @@ function startStreamConnection(
 
         onerror: (err) => {
             if (controller.signal.aborted) {
+                // An intentional cleanup must terminate fetch-event-source's
+                // retry loop even if abort is reported through onerror.
                 throw err;
             }
 
@@ -529,6 +531,9 @@ function startStreamConnection(
         },
 
         onclose: () => {
+            // StreamVariables are long-lived: a clean transport EOF without an
+            // explicit server event is still unexpected and must use the same
+            // bounded retry policy as other transient failures.
             throw new RetriableStreamError('Stream closed unexpectedly');
         },
 

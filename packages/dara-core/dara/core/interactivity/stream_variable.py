@@ -369,6 +369,9 @@ async def run_stream(
         f'{getattr(entry.func, "__qualname__", type(entry.func).__name__)}'
     )
     with observe_stream(stream_name) as observation:
+        # Keep at most one produced chunk ahead of the browser. Besides bounding
+        # memory, this makes cancellation deterministic when the browser stops
+        # consuming while the producer is blocked on an upstream stream.
         queue: asyncio.Queue[_StreamQueueItem] = asyncio.Queue(maxsize=1)
         producer_task = asyncio.create_task(
             _produce_stream(
@@ -388,6 +391,9 @@ async def run_stream(
                 if item_task is None:
                     item_task = asyncio.create_task(queue.get())
 
+                # Reuse the same queue.get() task after a heartbeat timeout.
+                # Replacing it could abandon a concurrently completed get and
+                # silently drop the next application event.
                 done, _ = await asyncio.wait(
                     {item_task, disconnect_task},
                     timeout=keepalive_interval_seconds,
@@ -419,6 +425,10 @@ async def run_stream(
                 with contextlib.suppress(asyncio.CancelledError):
                     await item_task
 
+            # Cancelling the single lifecycle owner injects cancellation into
+            # whichever dependency/upstream read is blocked. Awaiting it ensures
+            # the async generator's finally blocks close subscriptions before
+            # this browser-facing stream returns.
             if not producer_task.done():
                 producer_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -441,7 +451,9 @@ async def _produce_stream(
     Run the entire stream lifecycle in one task and serialize its outcomes.
 
     Keeping dependency resolution, generator iteration, and cleanup in the same
-    task preserves generator-local ContextVar state across yields.
+    task preserves generator-local ContextVar state across yields. Advancing one
+    async generator from a fresh task per yield can otherwise make a ContextVar
+    token impossible to reset during generator cleanup.
     """
     try:
         async for chunk in _generate_stream(entry, values, store, task_mgr, observation):
