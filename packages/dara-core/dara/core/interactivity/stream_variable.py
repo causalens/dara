@@ -456,8 +456,14 @@ async def _produce_stream(
     token impossible to reset during generator cleanup.
     """
     try:
-        async for chunk in _generate_stream(entry, values, store, task_mgr, observation):
-            await queue.put(_StreamChunk(chunk))
+        # async for does not own iterator teardown. In particular, cancellation
+        # can land while queue.put() is blocked, leaving _generate_stream
+        # suspended at yield and deferring its finally block until GC. Owning it
+        # explicitly ensures upstream subscriptions close before cancellation
+        # returns to the browser-facing parent.
+        async with contextlib.aclosing(_generate_stream(entry, values, store, task_mgr, observation)) as stream:
+            async for chunk in stream:
+                await queue.put(_StreamChunk(chunk))
     except asyncio.CancelledError:
         raise
     except BaseException as error:

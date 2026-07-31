@@ -4,6 +4,7 @@ Tests for StreamVariable functionality.
 
 import asyncio
 import json
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from typing import Any
 from unittest.mock import Mock, patch
@@ -618,18 +619,27 @@ async def test_stream_endpoint_request_cancellation_cleans_up_generator(monkeypa
     generator_started = asyncio.Event()
     generator_cancelled = asyncio.Event()
     generator_cleaned_up = asyncio.Event()
+    subscription_closed = asyncio.Event()
+
+    @asynccontextmanager
+    async def upstream_subscription():
+        try:
+            yield
+        finally:
+            subscription_closed.set()
 
     async def blocking_stream():
-        try:
-            generator_started.set()
-            yield StreamEvent.json_snapshot({'ready': True})
+        async with upstream_subscription():
             try:
-                await asyncio.Event().wait()
-            except asyncio.CancelledError:
-                generator_cancelled.set()
-                raise
-        finally:
-            generator_cleaned_up.set()
+                generator_started.set()
+                yield StreamEvent.json_snapshot({'ready': True})
+                try:
+                    await asyncio.Event().wait()
+                except asyncio.CancelledError:
+                    generator_cancelled.set()
+                    raise
+            finally:
+                generator_cleaned_up.set()
 
     stream_var = StreamVariable(blocking_stream, variables=[])
     builder.add_page('Test', content=MockComponent(stream=stream_var))
@@ -653,6 +663,7 @@ async def test_stream_endpoint_request_cancellation_cleans_up_generator(monkeypa
         response.send({'type': 'http.disconnect'})
 
     await asyncio.wait_for(generator_cleaned_up.wait(), timeout=1)
+    await asyncio.wait_for(subscription_closed.wait(), timeout=1)
     assert generator_cancelled.is_set()
 
 
@@ -885,6 +896,57 @@ async def test_run_stream_disconnect_cancels_blocked_generator():
 
     assert generator_cleaned_up.is_set(), 'Generator finally block should have run'
     assert inner_was_cancelled.is_set(), 'CancelledError should have propagated into the blocked await'
+
+
+async def test_run_stream_parent_close_closes_backpressured_generator():
+    """
+    Closing the browser-facing parent must close its nested iterator even when
+    the producer is suspended while publishing an already-produced chunk.
+    """
+    third_chunk_produced = asyncio.Event()
+    nested_iterator_closed = asyncio.Event()
+
+    class NestedStreamIterator:
+        def __init__(self):
+            self.chunks = iter(['chunk 1', 'chunk 2', 'chunk 3'])
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            try:
+                chunk = next(self.chunks)
+            except StopIteration as error:
+                raise StopAsyncIteration from error
+            if chunk == 'chunk 3':
+                third_chunk_produced.set()
+            return chunk
+
+        async def aclose(self):
+            nested_iterator_closed.set()
+
+    nested_iterator = NestedStreamIterator()
+
+    with patch(
+        'dara.core.interactivity.stream_variable._generate_stream',
+        return_value=nested_iterator,
+    ):
+        stream_generator = run_stream(
+            _make_entry(Mock()),
+            asyncio.Event(),
+            [],
+            Mock(),
+            Mock(),
+        )
+
+        assert await anext(stream_generator) == 'chunk 1'
+        await asyncio.wait_for(third_chunk_produced.wait(), timeout=1)
+
+        # The parent closes while chunk 2 occupies the bounded queue and the
+        # producer is blocked trying to publish chunk 3.
+        await stream_generator.aclose()
+
+    assert nested_iterator_closed.is_set()
 
 
 async def test_run_stream_normal_exhaustion():
