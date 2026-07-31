@@ -4,7 +4,7 @@ Tests for StreamVariable functionality.
 
 import asyncio
 import json
-from contextlib import asynccontextmanager, suppress
+from contextlib import aclosing, asynccontextmanager, suppress
 from contextvars import ContextVar
 from typing import Any
 from unittest.mock import Mock, patch
@@ -761,13 +761,19 @@ async def test_stream_endpoint_browser_disconnect_closes_nested_generator(monkey
 
 
 async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypatch: pytest.MonkeyPatch):
-    """Browser disconnect waits for a blocked user generator to close its real HTTPX socket."""
+    """Disconnect after a sent event releases a real capacity-one HTTPX pool."""
     builder = ConfigurationBuilder()
     upstream_connected = asyncio.Event()
     upstream_read_started = asyncio.Event()
     upstream_socket_closed = asyncio.Event()
+    next_stream_item_requested = asyncio.Event()
+    connection_count = 0
 
     async def handle_upstream(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        nonlocal connection_count
+        connection_count += 1
+        is_first_connection = connection_count == 1
+
         try:
             await reader.readuntil(b'\r\n\r\n')
             writer.write(
@@ -779,10 +785,12 @@ async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypa
                 b'data: ready\n\n'
             )
             await writer.drain()
-            upstream_connected.set()
+            if is_first_connection:
+                upstream_connected.set()
             await reader.read()
         finally:
-            upstream_socket_closed.set()
+            if is_first_connection:
+                upstream_socket_closed.set()
             writer.close()
             with suppress(ConnectionError):
                 await writer.wait_closed()
@@ -811,7 +819,7 @@ async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypa
 
     monkeypatch.setattr(
         'dara.core.internal.routing.get_settings',
-        lambda: Mock(dara_stream_keepalive_interval_seconds=0.01),
+        lambda: Mock(dara_stream_keepalive_interval_seconds=1),
     )
 
     retained_sources = []
@@ -819,7 +827,21 @@ async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypa
     def retained_run_stream(*args, **kwargs):
         source = run_stream(*args, **kwargs)
         retained_sources.append(source)
-        return source
+
+        async def observe_next_item_request():
+            first_item = True
+            async with aclosing(source):
+                async for item in source:
+                    yield item
+                    if first_item:
+                        first_item = False
+                        # This runs only when StreamingResponse requests another
+                        # body after the ready frame's send() has returned. The
+                        # following async-for step then drives run_stream to its
+                        # quiet asyncio.wait before receive() can disconnect.
+                        next_stream_item_requested.set()
+
+        return observe_next_item_request()
 
     monkeypatch.setattr('dara.core.internal.routing.run_stream', retained_run_stream)
 
@@ -834,18 +856,18 @@ async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypa
                 body=StreamRequestBody(values={'data': normalized_values, 'lookup': lookup}),
             )
             http_stream = response.body_iterator
-            body_send_started = asyncio.Event()
+            ready_body_sent = asyncio.Event()
 
             async def receive():
-                await body_send_started.wait()
+                await ready_body_sent.wait()
+                await next_stream_item_requested.wait()
                 await upstream_connected.wait()
                 await upstream_read_started.wait()
                 return {'type': 'http.disconnect'}
 
             async def send(message):
-                if message['type'] == 'http.response.body' and message.get('body'):
-                    body_send_started.set()
-                    await asyncio.Event().wait()
+                if message['type'] == 'http.response.body' and b'"ready":true' in message.get('body', b''):
+                    ready_body_sent.set()
 
             await response(
                 {'type': 'http', 'asgi': {'spec_version': '2.3'}},
@@ -854,6 +876,19 @@ async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypa
             )
 
             await asyncio.wait_for(upstream_socket_closed.wait(), timeout=1)
+
+            # The first response must have returned its checked-out connection,
+            # not merely released a higher-level admission lease. A leaked
+            # response would make this replacement request PoolTimeout forever.
+            async def fetch_replacement_event():
+                async with upstream_client.stream(
+                    'GET',
+                    f'http://127.0.0.1:{upstream_port}/events',
+                ) as replacement:
+                    return await anext(replacement.aiter_raw())
+
+            replacement_event = await asyncio.wait_for(fetch_replacement_event(), timeout=2)
+            assert b'data: ready\n\n' in replacement_event
     finally:
         if http_stream is not None:
             await http_stream.aclose()
