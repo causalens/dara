@@ -22,7 +22,7 @@ import json
 import math
 import os
 import traceback
-from collections.abc import Callable, Mapping
+from collections.abc import AsyncGenerator, Callable, Mapping
 from functools import wraps
 from importlib.metadata import version
 from typing import Annotated, Any, Literal
@@ -51,6 +51,7 @@ from pandas import DataFrame
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 from starlette.status import HTTP_415_UNSUPPORTED_MEDIA_TYPE
+from starlette.types import Send
 
 from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef, BaseTask, NonTabularDataError, UploadResolverDef
@@ -523,6 +524,26 @@ class StreamRequestBody(BaseModel):
     """Normalized payload of resolved variable values to pass to the stream generator."""
 
 
+class _ClosableStreamingResponse(StreamingResponse):
+    """StreamingResponse that deterministically closes its async-generator body."""
+
+    def __init__(self, content: AsyncGenerator[Any, None], **kwargs: Any):
+        super().__init__(content, **kwargs)
+        self._closable_body_iterator = content
+
+    async def stream_response(self, send: Send) -> None:
+        """Stream the response and close its body even when ASGI cancels during send."""
+        try:
+            await super().stream_response(send)
+        finally:
+            # For ASGI <2.4 Starlette cancels this task when http.disconnect
+            # wins its task-group race. AnyIO cancellation is level-triggered,
+            # so cleanup must be shielded or aclose() can itself be cancelled
+            # before the nested run_stream producer releases its subscription.
+            with anyio.CancelScope(shield=True):
+                await self._closable_body_iterator.aclose()
+
+
 @core_api_router.post('/stream/{stream_uid}', dependencies=[Depends(verify_session)])
 async def stream_endpoint(
     request: Request,
@@ -578,7 +599,7 @@ async def stream_endpoint(
             # generator exhaustion, or task cancellation).
             disconnect_event.set()
 
-    return StreamingResponse(
+    return _ClosableStreamingResponse(
         stream(),
         media_type='text/event-stream',
         headers={

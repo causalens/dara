@@ -669,8 +669,8 @@ async def test_stream_endpoint_request_cancellation_cleans_up_generator(monkeypa
     assert generator_cancelled.is_set()
 
 
-async def test_stream_endpoint_wrapper_close_cleans_up_nested_generator(monkeypatch: pytest.MonkeyPatch):
-    """Closing the HTTP-facing iterator immediately tears down the upstream stream."""
+async def test_stream_endpoint_browser_disconnect_closes_nested_generator(monkeypatch: pytest.MonkeyPatch):
+    """ASGI disconnect while sending an event immediately tears down the upstream stream."""
     builder = ConfigurationBuilder()
     producer_blocked = asyncio.Event()
     generator_cleaned_up = asyncio.Event()
@@ -708,6 +708,7 @@ async def test_stream_endpoint_wrapper_close_cleans_up_nested_generator(monkeypa
     monkeypatch.setattr('dara.core.internal.routing.run_stream', retained_run_stream)
 
     app = _start_application(config)
+    http_stream = None
     try:
         async with AsyncClient(app):
             normalized_values, lookup = normalize_request([], stream_var.variables)
@@ -717,18 +718,36 @@ async def test_stream_endpoint_wrapper_close_cleans_up_nested_generator(monkeypa
                 body=StreamRequestBody(values={'data': normalized_values, 'lookup': lookup}),
             )
             http_stream = response.body_iterator
+            body_send_started = asyncio.Event()
+            sent_bodies = []
 
-            first_chunk = await anext(http_stream)
-            assert '"ready":true' in first_chunk
-            await asyncio.wait_for(producer_blocked.wait(), timeout=1)
+            async def receive():
+                # Disconnect after StreamingResponse has pulled the first item and
+                # become suspended sending it to the browser. This is the ASGI
+                # timing where Starlette cancels its response task between pulls.
+                await body_send_started.wait()
+                await producer_blocked.wait()
+                return {'type': 'http.disconnect'}
 
-            # StreamingResponse closes this iterator while it is suspended at yield.
-            # No further iteration is available to deliver disconnect_event to run_stream.
-            await http_stream.aclose()
+            async def send(message):
+                if message['type'] == 'http.response.body' and message.get('body'):
+                    sent_bodies.append(message['body'])
+                    body_send_started.set()
+                    await asyncio.Event().wait()
 
-        await asyncio.wait_for(generator_cleaned_up.wait(), timeout=1)
-        await asyncio.wait_for(subscription_closed.wait(), timeout=1)
+            await response(
+                {'type': 'http', 'asgi': {'spec_version': '2.3'}},
+                receive,
+                send,
+            )
+
+            assert len(sent_bodies) == 1
+            assert b'"ready":true' in sent_bodies[0]
+            assert generator_cleaned_up.is_set()
+            assert subscription_closed.is_set()
     finally:
+        if http_stream is not None:
+            await http_stream.aclose()
         for source in retained_sources:
             await source.aclose()
 
