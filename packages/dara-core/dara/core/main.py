@@ -85,7 +85,12 @@ from dara.core.js_tooling.js_utils import (
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 from dara.core.router import convert_template_to_router
-from dara.core.telemetry import initialize_telemetry, observe_internal_operation, shutdown_telemetry
+from dara.core.telemetry import (
+    initialize_process_telemetry,
+    instrument_fastapi_app,
+    observe_internal_operation,
+    shutdown_telemetry,
+)
 
 
 def _callable_name(func: Callable) -> str:
@@ -121,6 +126,11 @@ def _start_application(config: Configuration):
     # Check we have a config
     if isinstance(config, Configuration) is False:
         raise ValueError('Invalid Configuration class passed to Dara Core. Did you forget to call _to_configuration()?')
+
+    # Configure process-wide providers early enough to capture application
+    # construction and lifespan startup telemetry. FastAPI middleware is
+    # attached only after the application has been built successfully.
+    initialize_process_telemetry('application')
 
     # Setup the main template to work with Vite
     os.environ['VITE_MANIFEST_PATH'] = f'{config.static_files_dir}/manifest.json'
@@ -321,7 +331,6 @@ def _start_application(config: Configuration):
         redoc_url=None if is_production else '/redoc',
         default_response_class=CustomResponse,
     )
-    initialize_telemetry(app)
 
     # Ensure session-cookie auth is reflected in Authorization header for
     # downstream handlers still expecting bearer token transport.
@@ -581,6 +590,7 @@ def _start_application(config: Configuration):
         async def not_found(rest_of_path: str):
             raise HTTPException(status_code=404, detail='API endpoint not found')
 
+    instrument_fastapi_app(app)
     return app
 
 
