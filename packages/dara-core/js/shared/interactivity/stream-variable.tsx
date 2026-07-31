@@ -34,7 +34,7 @@ import { HTTP_METHOD } from '@darajs/ui-utils';
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
-import { type GlobalTaskContext, type StreamVariable, isVariable } from '@/types';
+import { type GlobalTaskContext, type StreamVariable, UserError, isVariable } from '@/types';
 
 import { getUniqueIdentifier } from '../utils/hashing';
 import { normalizeRequest } from '../utils/normalization';
@@ -303,6 +303,10 @@ export function applyStreamEvent(
  * @returns The value to expose to components
  */
 export function getStreamValue(state: StreamState, keyAccessor: string | null): unknown {
+    if (state.status === 'error') {
+        throw new UserError(state.error ?? 'Stream failed');
+    }
+
     if (keyAccessor !== null && state.data !== null && typeof state.data === 'object' && !Array.isArray(state.data)) {
         // Keyed mode: expose as array
         return Object.values(state.data as Record<string, unknown>);
@@ -313,6 +317,12 @@ export function getStreamValue(state: StreamState, keyAccessor: string | null): 
 const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
+
+/** Error that should stop the SSE connection rather than be retried. */
+class FatalStreamError extends Error {}
+
+/** Error that should be handled by the SSE retry policy. */
+class RetriableStreamError extends Error {}
 
 /**
  * Calculate exponential backoff delay.
@@ -360,7 +370,7 @@ interface StreamConnectionCallbacks {
     onFirstData: (state: StreamState) => void;
     /** Called for subsequent data updates */
     onUpdate: (state: StreamState) => void;
-    /** Called on error after max retries */
+    /** Called when the stream reaches a terminal error */
     onError: (error: string) => void;
 }
 
@@ -392,7 +402,6 @@ function startStreamConnection(
         // eslint-disable-next-line @typescript-eslint/require-await
         onopen: async (response) => {
             if (response.ok) {
-                retryCount = 0; // Reset retry count on successful connection
                 return;
             }
 
@@ -415,14 +424,19 @@ function startStreamConnection(
                 return;
             }
 
-            // Handle reconnect event - throw to trigger retry logic
             if (event.type === 'reconnect') {
                 // eslint-disable-next-line no-console
                 console.info('StreamVariable: Server requested reconnect, reconnecting...');
-                throw new Error('Server requested reconnect');
+                throw new RetriableStreamError('Server requested reconnect');
             }
 
-            // Apply event to current state (accumulate)
+            if (event.type === 'error') {
+                const message = typeof event.data === 'string' ? event.data : 'Unknown error';
+                throw new FatalStreamError(message);
+            }
+
+            // Receiving valid data proves the connection recovered.
+            retryCount = 0;
             currentState = applyStreamEvent(currentState, event, params.keyAccessor);
 
             if (isFirstMessage) {
@@ -435,18 +449,20 @@ function startStreamConnection(
 
         onerror: (err) => {
             if (controller.signal.aborted) {
-                // Connection was intentionally aborted, don't retry
-                return;
+                throw err;
+            }
+
+            if (err instanceof FatalStreamError) {
+                callbacks.onError(err.message);
+                throw err;
             }
 
             retryCount++;
             if (retryCount > MAX_RETRIES) {
                 callbacks.onError(err instanceof Error ? err.message : String(err));
-                // Return undefined to stop retrying
-                return;
+                throw err;
             }
 
-            // Return delay to retry
             const delay = getBackoffDelay(retryCount - 1);
             // eslint-disable-next-line no-console
             console.warn(`Stream connection failed, retrying in ${delay}ms (attempt ${retryCount}/${MAX_RETRIES})...`);
@@ -454,8 +470,7 @@ function startStreamConnection(
         },
 
         onclose: () => {
-            // Stream closed normally - could be server shutting down
-            // The library will attempt to reconnect
+            throw new RetriableStreamError('Stream closed unexpectedly');
         },
 
         // Use our request wrapper for auth headers
@@ -466,7 +481,7 @@ function startStreamConnection(
         ...params.extras,
         // @ts-expect-error - Headers type doesn't match exactly
         headers: params.extras.headers,
-    });
+    }).catch(() => undefined);
 
     // Return cleanup function and controller
     return {
@@ -490,14 +505,12 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
         // Deserialize params from atom key
         const params = deserializeAtomParams(atomKey);
 
-        // Create a Promise that resolves when first data arrives.
+        // Create a Promise that resolves when the stream produces its initial data or terminal error state.
         // Following recoil-sync pattern: setSelf(promise) enables native Suspense.
         let resolveInitialData: ((state: StreamState) => void) | null = null;
-        let rejectInitialData: ((error: Error) => void) | null = null;
 
-        const initialDataPromise = new Promise<StreamState>((resolve, reject) => {
+        const initialDataPromise = new Promise<StreamState>((resolve) => {
             resolveInitialData = resolve;
-            rejectInitialData = reject;
         });
 
         // Set atom to the Promise - Recoil will handle Suspense natively
@@ -511,7 +524,6 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
                     if (resolveInitialData) {
                         resolveInitialData(state);
                         resolveInitialData = null;
-                        rejectInitialData = null;
                     }
                     // Also explicitly set the atom value to ensure Recoil sees the update
                     setSelf(state);
@@ -521,19 +533,20 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
                     setSelf(state);
                 },
                 onError: (error) => {
-                    if (rejectInitialData) {
-                        // If we haven't received first data yet, reject the Promise
-                        rejectInitialData(new Error(error));
+                    const errorState: StreamState = {
+                        data: undefined,
+                        status: 'error',
+                        error,
+                    };
+
+                    if (resolveInitialData) {
+                        // Resolve Suspense with an explicit error state. The value selector
+                        // throws UserError without creating an unhandled rejected Promise.
+                        resolveInitialData(errorState);
                         resolveInitialData = null;
-                        rejectInitialData = null;
-                    } else {
-                        // Otherwise update the state with error
-                        setSelf({
-                            data: undefined,
-                            status: 'error',
-                            error,
-                        });
                     }
+
+                    setSelf(errorState);
                 },
             });
         };

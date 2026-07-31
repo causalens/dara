@@ -20,6 +20,7 @@ import {
     extractKey,
     getStreamValue,
 } from '@/shared/interactivity/stream-variable';
+import { UserError } from '@/types';
 
 import { server } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
@@ -34,6 +35,7 @@ describe('StreamVariable', () => {
     });
 
     beforeEach(() => {
+        vi.useRealTimers();
         window.localStorage.clear();
         vi.restoreAllMocks();
         setSessionIdentifier(SESSION_TOKEN);
@@ -44,6 +46,7 @@ describe('StreamVariable', () => {
     afterEach(() => {
         setSessionIdentifier(null);
         vi.clearAllTimers();
+        vi.useRealTimers();
         server.resetHandlers();
         clearStreamUsage_TEST();
     });
@@ -633,6 +636,17 @@ describe('StreamVariable', () => {
             expect(getStreamValue(nullState, 'id')).toBeNull();
             expect(getStreamValue(undefinedState, 'id')).toBeUndefined();
         });
+
+        it('throws a user-visible error instead of returning stale data', () => {
+            const state: StreamState = {
+                data: { stale: true },
+                status: 'error',
+                error: 'Stream failed permanently',
+            };
+
+            expect(() => getStreamValue(state, null)).toThrow(UserError);
+            expect(() => getStreamValue(state, null)).toThrow('Stream failed permanently');
+        });
     });
 
     describe('helper functions', () => {
@@ -809,6 +823,180 @@ describe('StreamVariable', () => {
             // Clean up
             first.cleanup();
             second.cleanup();
+        });
+
+        it('reconnects when an SSE response reaches a clean EOF', async () => {
+            vi.useFakeTimers();
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            controller.close();
+                        },
+                    });
+                    return new HttpResponse(stream, {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams(), callbacks);
+
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(1);
+                expect(console.warn).toHaveBeenCalledTimes(1);
+            });
+
+            await vi.advanceTimersByTimeAsync(1000);
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(2);
+            });
+
+            expect(callbacks.onError).not.toHaveBeenCalled();
+            connection.cleanup();
+        });
+
+        it('exposes a fatal event after data and does not retry it', async () => {
+            vi.useFakeTimers();
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    const encoder = new TextEncoder();
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            controller.enqueue(
+                                encoder.encode(
+                                    `data: ${JSON.stringify({
+                                        type: 'json_snapshot',
+                                        data: { stale: true },
+                                    })}\n\n`
+                                )
+                            );
+                            controller.enqueue(
+                                encoder.encode(
+                                    `data: ${JSON.stringify({
+                                        type: 'error',
+                                        data: 'Fatal stream failure',
+                                    })}\n\n`
+                                )
+                            );
+                            controller.close();
+                        },
+                    });
+                    return new HttpResponse(stream, {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams({ keyAccessor: null }), callbacks);
+
+            await vi.waitFor(() => {
+                expect(callbacks.onFirstData).toHaveBeenCalledWith({
+                    data: { stale: true },
+                    status: 'connected',
+                    error: undefined,
+                });
+                expect(callbacks.onError).toHaveBeenCalledWith('Fatal stream failure');
+            });
+
+            await vi.advanceTimersByTimeAsync(60000);
+
+            expect(connectionCount).toBe(1);
+            expect(callbacks.onUpdate).not.toHaveBeenCalled();
+            expect(callbacks.onError).toHaveBeenCalledTimes(1);
+            connection.cleanup();
+        });
+
+        it('stops after exhausting the retry budget', async () => {
+            vi.useFakeTimers();
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    return new HttpResponse(null, {
+                        status: 503,
+                        statusText: 'Unavailable',
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams(), callbacks);
+
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(1);
+            });
+
+            for (const [index, delay] of [1000, 2000, 4000, 8000, 16000].entries()) {
+                // eslint-disable-next-line no-await-in-loop
+                await vi.advanceTimersByTimeAsync(delay);
+                // eslint-disable-next-line no-await-in-loop
+                await vi.waitFor(() => {
+                    expect(connectionCount).toBe(index + 2);
+                });
+            }
+
+            await vi.waitFor(() => {
+                expect(callbacks.onError).toHaveBeenCalledWith('Stream request failed: 503 Unavailable');
+            });
+            await vi.advanceTimersByTimeAsync(60000);
+
+            expect(connectionCount).toBe(6);
+            expect(callbacks.onError).toHaveBeenCalledTimes(1);
+            connection.cleanup();
+        });
+
+        it('does not retry an intentionally aborted connection', async () => {
+            vi.useFakeTimers();
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    return new HttpResponse(new ReadableStream(), {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams(), callbacks);
+
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(1);
+            });
+            connection.cleanup();
+            await vi.advanceTimersByTimeAsync(60000);
+
+            expect(connectionCount).toBe(1);
+            expect(callbacks.onError).not.toHaveBeenCalled();
         });
     });
 });
