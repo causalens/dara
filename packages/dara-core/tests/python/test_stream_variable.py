@@ -16,8 +16,10 @@ from dara.core import DerivedVariable, Variable
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.stream_event import ReconnectException, StreamEvent, StreamEventType
+from dara.core.interactivity.stream_utils import track_stream
 from dara.core.interactivity.stream_variable import StreamVariable, StreamVariableRegistryEntry, run_stream
 from dara.core.internal.dependency_resolution import ResolvedDerivedVariable
+from dara.core.internal.routing import StreamRequestBody, stream_endpoint
 from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
 
@@ -665,6 +667,97 @@ async def test_stream_endpoint_request_cancellation_cleans_up_generator(monkeypa
     await asyncio.wait_for(generator_cleaned_up.wait(), timeout=1)
     await asyncio.wait_for(subscription_closed.wait(), timeout=1)
     assert generator_cancelled.is_set()
+
+
+async def test_stream_endpoint_wrapper_close_cleans_up_nested_generator(monkeypatch: pytest.MonkeyPatch):
+    """Closing the HTTP-facing iterator immediately tears down the upstream stream."""
+    builder = ConfigurationBuilder()
+    producer_blocked = asyncio.Event()
+    generator_cleaned_up = asyncio.Event()
+    subscription_closed = asyncio.Event()
+
+    @asynccontextmanager
+    async def upstream_subscription():
+        try:
+            yield
+        finally:
+            subscription_closed.set()
+
+    async def blocking_stream():
+        async with upstream_subscription():
+            try:
+                yield StreamEvent.json_snapshot({'ready': True})
+                producer_blocked.set()
+                await asyncio.Event().wait()
+            finally:
+                generator_cleaned_up.set()
+
+    stream_var = StreamVariable(blocking_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    # Retain the source so reference-counting cannot mask a missing explicit
+    # close at the route's async-iterator ownership seam.
+    retained_sources = []
+
+    def retained_run_stream(*args, **kwargs):
+        source = run_stream(*args, **kwargs)
+        retained_sources.append(source)
+        return source
+
+    monkeypatch.setattr('dara.core.internal.routing.run_stream', retained_run_stream)
+
+    app = _start_application(config)
+    try:
+        async with AsyncClient(app):
+            normalized_values, lookup = normalize_request([], stream_var.variables)
+            response = await stream_endpoint(
+                request=Mock(),
+                stream_uid=str(stream_var.uid),
+                body=StreamRequestBody(values={'data': normalized_values, 'lookup': lookup}),
+            )
+            http_stream = response.body_iterator
+
+            first_chunk = await anext(http_stream)
+            assert '"ready":true' in first_chunk
+            await asyncio.wait_for(producer_blocked.wait(), timeout=1)
+
+            # StreamingResponse closes this iterator while it is suspended at yield.
+            # No further iteration is available to deliver disconnect_event to run_stream.
+            await http_stream.aclose()
+
+        await asyncio.wait_for(generator_cleaned_up.wait(), timeout=1)
+        await asyncio.wait_for(subscription_closed.wait(), timeout=1)
+    finally:
+        for source in retained_sources:
+            await source.aclose()
+
+
+async def test_track_stream_wrapper_close_closes_retained_source():
+    """The HTTP tracking wrapper owns its nested route iterator."""
+    source_closed = asyncio.Event()
+    retained_sources = []
+
+    async def source():
+        try:
+            yield 'first'
+            await asyncio.Event().wait()
+        finally:
+            source_closed.set()
+
+    def create_source():
+        nested_source = source()
+        retained_sources.append(nested_source)
+        return nested_source
+
+    http_stream = track_stream(create_source)()
+    try:
+        assert await anext(http_stream) == 'first'
+        await http_stream.aclose()
+        await asyncio.wait_for(source_closed.wait(), timeout=1)
+    finally:
+        for nested_source in retained_sources:
+            await nested_source.aclose()
 
 
 async def test_stream_endpoint_not_found():

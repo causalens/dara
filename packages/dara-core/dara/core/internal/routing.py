@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import asyncio
+import contextlib
 import inspect
 import json
 import math
@@ -555,15 +556,22 @@ async def stream_endpoint(
     async def stream():
         try:
             interval_seconds = get_settings().dara_stream_keepalive_interval_seconds
-            async for event in run_stream(
-                entry,
-                disconnect_event,
-                values,
-                store,
-                task_mgr,
-                keepalive_interval_seconds=interval_seconds,
-            ):
-                yield event
+            # A forwarding async generator does not implicitly close the
+            # iterator used by async for. StreamingResponse can close this
+            # wrapper while it is suspended at yield, so explicitly own
+            # run_stream to await its producer and upstream subscription cleanup.
+            async with contextlib.aclosing(
+                run_stream(
+                    entry,
+                    disconnect_event,
+                    values,
+                    store,
+                    task_mgr,
+                    keepalive_interval_seconds=interval_seconds,
+                )
+            ) as source:
+                async for event in source:
+                    yield event
         finally:
             # Signal disconnect so run_stream's race loop can cancel a blocked generator.
             # This fires when StreamingResponse stops consuming (client disconnect,
