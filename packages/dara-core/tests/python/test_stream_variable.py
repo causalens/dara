@@ -4,11 +4,12 @@ Tests for StreamVariable functionality.
 
 import asyncio
 import json
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from contextvars import ContextVar
 from typing import Any
 from unittest.mock import Mock, patch
 
+import httpx
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 
@@ -674,6 +675,7 @@ async def test_stream_endpoint_browser_disconnect_closes_nested_generator(monkey
     builder = ConfigurationBuilder()
     producer_blocked = asyncio.Event()
     generator_cleaned_up = asyncio.Event()
+    subscription_cleanup_started = asyncio.Event()
     subscription_closed = asyncio.Event()
 
     @asynccontextmanager
@@ -681,6 +683,11 @@ async def test_stream_endpoint_browser_disconnect_closes_nested_generator(monkey
         try:
             yield
         finally:
+            subscription_cleanup_started.set()
+            # Real transports need an event-loop checkpoint to close their
+            # response body/socket; setting an event alone cannot prove that
+            # cleanup survived cancellation.
+            await asyncio.sleep(0)
             subscription_closed.set()
 
     async def blocking_stream():
@@ -744,12 +751,117 @@ async def test_stream_endpoint_browser_disconnect_closes_nested_generator(monkey
             assert len(sent_bodies) == 1
             assert b'"ready":true' in sent_bodies[0]
             assert generator_cleaned_up.is_set()
+            assert subscription_cleanup_started.is_set()
             assert subscription_closed.is_set()
     finally:
         if http_stream is not None:
             await http_stream.aclose()
         for source in retained_sources:
             await source.aclose()
+
+
+async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypatch: pytest.MonkeyPatch):
+    """Browser disconnect waits for a blocked user generator to close its real HTTPX socket."""
+    builder = ConfigurationBuilder()
+    upstream_connected = asyncio.Event()
+    upstream_read_started = asyncio.Event()
+    upstream_socket_closed = asyncio.Event()
+
+    async def handle_upstream(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        try:
+            await reader.readuntil(b'\r\n\r\n')
+            writer.write(
+                b'HTTP/1.1 200 OK\r\n'
+                b'Content-Type: text/event-stream\r\n'
+                b'Cache-Control: no-cache\r\n'
+                b'Connection: keep-alive\r\n'
+                b'\r\n'
+                b'data: ready\n\n'
+            )
+            await writer.drain()
+            upstream_connected.set()
+            await reader.read()
+        finally:
+            upstream_socket_closed.set()
+            writer.close()
+            with suppress(ConnectionError):
+                await writer.wait_closed()
+
+    upstream_server = await asyncio.start_server(handle_upstream, '127.0.0.1', 0)
+    upstream_port = upstream_server.sockets[0].getsockname()[1]
+    upstream_client = httpx.AsyncClient(
+        limits=httpx.Limits(max_connections=1, max_keepalive_connections=1),
+        timeout=None,
+    )
+
+    async def blocking_stream():
+        # The shared capacity-one client outlives this stream, matching Dara's
+        # use of an application-scoped HTTPX pool. Only closing the response
+        # can release its checked-out connection.
+        async with upstream_client.stream('GET', f'http://127.0.0.1:{upstream_port}/events') as response:
+            chunks = response.aiter_raw()
+            await anext(chunks)
+            yield StreamEvent.json_snapshot({'ready': True})
+            upstream_read_started.set()
+            await anext(chunks)
+
+    stream_var = StreamVariable(blocking_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=0.01),
+    )
+
+    retained_sources = []
+
+    def retained_run_stream(*args, **kwargs):
+        source = run_stream(*args, **kwargs)
+        retained_sources.append(source)
+        return source
+
+    monkeypatch.setattr('dara.core.internal.routing.run_stream', retained_run_stream)
+
+    app = _start_application(config)
+    http_stream = None
+    try:
+        async with AsyncClient(app):
+            normalized_values, lookup = normalize_request([], stream_var.variables)
+            response = await stream_endpoint(
+                request=Mock(),
+                stream_uid=str(stream_var.uid),
+                body=StreamRequestBody(values={'data': normalized_values, 'lookup': lookup}),
+            )
+            http_stream = response.body_iterator
+            body_send_started = asyncio.Event()
+
+            async def receive():
+                await body_send_started.wait()
+                await upstream_connected.wait()
+                await upstream_read_started.wait()
+                return {'type': 'http.disconnect'}
+
+            async def send(message):
+                if message['type'] == 'http.response.body' and message.get('body'):
+                    body_send_started.set()
+                    await asyncio.Event().wait()
+
+            await response(
+                {'type': 'http', 'asgi': {'spec_version': '2.3'}},
+                receive,
+                send,
+            )
+
+            await asyncio.wait_for(upstream_socket_closed.wait(), timeout=1)
+    finally:
+        if http_stream is not None:
+            await http_stream.aclose()
+        for source in retained_sources:
+            await source.aclose()
+        await upstream_client.aclose()
+        upstream_server.close()
+        await upstream_server.wait_closed()
 
 
 async def test_track_stream_wrapper_close_closes_retained_source():
@@ -1008,6 +1120,56 @@ async def test_run_stream_disconnect_cancels_blocked_generator():
 
     assert generator_cleaned_up.is_set(), 'Generator finally block should have run'
     assert inner_was_cancelled.is_set(), 'CancelledError should have propagated into the blocked await'
+
+
+async def test_run_stream_repeated_parent_cancellation_waits_for_generator_cleanup():
+    """Repeated response cancellation must not interrupt awaited upstream cleanup."""
+    first_event_received = asyncio.Event()
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    cleanup_finished = asyncio.Event()
+
+    @asynccontextmanager
+    async def upstream_subscription():
+        try:
+            yield
+        finally:
+            cleanup_started.set()
+            await allow_cleanup.wait()
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            cleanup_finished.set()
+
+    async def blocking_stream():
+        async with upstream_subscription():
+            yield StreamEvent.json_snapshot({'ready': True})
+            await asyncio.Event().wait()
+
+    async def consume():
+        async for _event in run_stream(
+            _make_entry(blocking_stream),
+            asyncio.Event(),
+            [],
+            Mock(),
+            Mock(),
+        ):
+            first_event_received.set()
+
+    consumer_task = asyncio.create_task(consume())
+    await asyncio.wait_for(first_event_received.wait(), timeout=1)
+
+    # The first cancellation reaches run_stream and cancels its producer.
+    consumer_task.cancel()
+    await asyncio.wait_for(cleanup_started.wait(), timeout=1)
+
+    # ASGI/AnyIO cancellation is level-triggered and can hit the response
+    # owner again while it is awaiting the child producer's async cleanup.
+    consumer_task.cancel()
+    allow_cleanup.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(consumer_task, timeout=1)
+    assert cleanup_finished.is_set()
 
 
 async def test_run_stream_parent_close_closes_backpressured_generator():

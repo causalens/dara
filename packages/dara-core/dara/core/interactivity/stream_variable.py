@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Generic, Literal
 
+import anyio
 from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 from typing_extensions import TypeVar
 
@@ -343,6 +344,38 @@ class _StreamFailed:
 _StreamQueueItem = _StreamChunk | _StreamFinished | _StreamFailed
 
 
+async def _cancel_and_wait_for_task(task: asyncio.Task[Any]) -> asyncio.CancelledError | None:
+    """
+    Cancel and await an owned child without forwarding parent cancellation.
+
+    ``asyncio`` normally propagates cancellation from a task awaiting another
+    task. During stream teardown that can cancel the producer a second time
+    while it is already inside an awaited user-generator ``aclose()``. Wait
+    indirectly until the child's cleanup finishes, but remember a new parent
+    cancellation so it can be re-raised after all teardown completes.
+
+    :param task: child task whose termination and cleanup must be awaited
+    :return: cancellation received by the waiting parent, if any
+    """
+    deferred_cancellation: asyncio.CancelledError | None = None
+
+    if not task.done():
+        task.cancel()
+
+    while not task.done():
+        try:
+            # Unlike directly awaiting a task (even through shield()),
+            # cancelling this waiter never forwards cancellation to ``task``.
+            await asyncio.wait((task,))
+        except asyncio.CancelledError as error:
+            deferred_cancellation = error
+
+    if not task.cancelled():
+        task.result()
+
+    return deferred_cancellation
+
+
 async def run_stream(
     entry: StreamVariableRegistryEntry,
     disconnect_event: asyncio.Event,
@@ -419,24 +452,33 @@ async def run_stream(
                     raise item.error
                 break
         finally:
-            if item_task is not None:
-                if not item_task.done():
-                    item_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await item_task
+            deferred_cancellation: asyncio.CancelledError | None = None
 
-            # Cancelling the single lifecycle owner injects cancellation into
-            # whichever dependency/upstream read is blocked. Awaiting it ensures
-            # the async generator's finally blocks close subscriptions before
-            # this browser-facing stream returns.
-            if not producer_task.done():
-                producer_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await producer_task
+            # The ASGI response task can enter this block from an already
+            # cancelled AnyIO task group. Shield the lifecycle owner here—not
+            # only at the later StreamingResponse boundary—so level-triggered
+            # parent cancellation cannot interrupt a user generator while its
+            # async context is closing a real upstream transport.
+            with anyio.CancelScope(shield=True):
+                if item_task is not None:
+                    cancellation = await _cancel_and_wait_for_task(item_task)
+                    if cancellation is not None:
+                        deferred_cancellation = cancellation
 
-            disconnect_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await disconnect_task
+                # Cancelling the single lifecycle owner injects cancellation
+                # into whichever dependency/upstream read is blocked. Awaiting
+                # it ensures async generator finally blocks close subscriptions
+                # before this browser-facing stream returns.
+                cancellation = await _cancel_and_wait_for_task(producer_task)
+                if cancellation is not None:
+                    deferred_cancellation = cancellation
+
+                cancellation = await _cancel_and_wait_for_task(disconnect_task)
+                if cancellation is not None:
+                    deferred_cancellation = cancellation
+
+            if deferred_cancellation is not None:
+                raise deferred_cancellation
 
 
 async def _produce_stream(
