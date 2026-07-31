@@ -75,6 +75,52 @@ export interface StreamEvent {
     data: unknown;
 }
 
+const STREAM_EVENT_TYPES = new Set<StreamEventType>([
+    'add',
+    'remove',
+    'clear',
+    'replace',
+    'json_snapshot',
+    'json_patch',
+    'reconnect',
+    'error',
+]);
+
+/**
+ * Parse an SSE message into a supported StreamEvent.
+ *
+ * Comment-only SSE frames are delivered by fetch-event-source as messages with
+ * empty data. They are transport heartbeats rather than application events.
+ */
+function parseStreamEventMessage(message: EventSourceMessage): StreamEvent | null {
+    if (message.data.trim() === '') {
+        return null;
+    }
+
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(message.data);
+    } catch (parseError) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to parse SSE event:', parseError, message.data);
+        return null;
+    }
+
+    if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        !('type' in parsed) ||
+        typeof parsed.type !== 'string' ||
+        !STREAM_EVENT_TYPES.has(parsed.type as StreamEventType)
+    ) {
+        // eslint-disable-next-line no-console
+        console.error('Unsupported SSE event:', parsed);
+        return null;
+    }
+
+    return parsed as StreamEvent;
+}
+
 /**
  * State of a stream connection.
  * 'loading' is the initial state before first data arrives.
@@ -390,11 +436,24 @@ function startStreamConnection(
     let retryCount = 0;
     let isFirstMessage = true;
     let currentState: StreamState = INITIAL_CONNECTED_STATE;
+    let terminalErrorReported = false;
 
     // Normalize values for the request
     const normalizedValues = normalizeRequest(params.resolvedValues, params.variables as any[]);
 
+    const reportTerminalError = (error: unknown): void => {
+        if (terminalErrorReported) {
+            return;
+        }
+        terminalErrorReported = true;
+        callbacks.onError(error instanceof Error ? error.message : String(error));
+    };
+
     void fetchEventSource(`/api/core/stream/${params.uid}`, {
+        // Request extras may customize headers, credentials, and other fetch
+        // behavior, but the StreamVariable module owns its method, body, and
+        // cancellation lifecycle.
+        ...params.extras,
         method: HTTP_METHOD.POST,
         body: JSON.stringify({ values: normalizedValues }),
         signal: controller.signal,
@@ -415,12 +474,8 @@ function startStreamConnection(
         },
 
         onmessage: (msg: EventSourceMessage) => {
-            let event: StreamEvent;
-            try {
-                event = JSON.parse(msg.data) as StreamEvent;
-            } catch (parseError) {
-                // eslint-disable-next-line no-console
-                console.error('Failed to parse SSE event:', parseError, msg.data);
+            const event = parseStreamEventMessage(msg);
+            if (event === null) {
                 return;
             }
 
@@ -435,10 +490,14 @@ function startStreamConnection(
                 throw new FatalStreamError(message);
             }
 
-            // Receiving valid data proves the connection recovered.
-            retryCount = 0;
-            currentState = applyStreamEvent(currentState, event, params.keyAccessor);
+            const nextState = applyStreamEvent(currentState, event, params.keyAccessor);
+            if (nextState === currentState || nextState.status === 'error') {
+                throw new FatalStreamError(nextState.error ?? `Stream event "${event.type}" could not be applied`);
+            }
 
+            // Only successfully applied application data proves recovery.
+            retryCount = 0;
+            currentState = nextState;
             if (isFirstMessage) {
                 isFirstMessage = false;
                 callbacks.onFirstData(currentState);
@@ -453,13 +512,13 @@ function startStreamConnection(
             }
 
             if (err instanceof FatalStreamError) {
-                callbacks.onError(err.message);
+                reportTerminalError(err);
                 throw err;
             }
 
             retryCount++;
             if (retryCount > MAX_RETRIES) {
-                callbacks.onError(err instanceof Error ? err.message : String(err));
+                reportTerminalError(err);
                 throw err;
             }
 
@@ -477,11 +536,13 @@ function startStreamConnection(
         // @ts-expect-error - fetch signature differs slightly but works
         fetch: request,
 
-        // Pass through extras (headers, etc.)
-        ...params.extras,
         // @ts-expect-error - Headers type doesn't match exactly
         headers: params.extras.headers,
-    }).catch(() => undefined);
+    }).catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+            reportTerminalError(error);
+        }
+    });
 
     // Return cleanup function and controller
     return {

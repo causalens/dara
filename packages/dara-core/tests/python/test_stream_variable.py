@@ -4,6 +4,7 @@ Tests for StreamVariable functionality.
 
 import asyncio
 import json
+from contextvars import ContextVar
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -22,6 +23,14 @@ from dara.core.main import _start_application
 from tests.python.utils import _get_auth_headers, create_app, normalize_request
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_cache():
+    """Keep environment-backed settings isolated between stream endpoint tests."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class MockComponent(ComponentInstance):
@@ -529,9 +538,12 @@ async def test_stream_endpoint_sends_protocol_comments_while_quiet(monkeypatch: 
     builder = ConfigurationBuilder()
     release_generator = asyncio.Event()
     generator_cleaned_up = asyncio.Event()
+    generator_started_at: float | None = None
 
     async def quiet_stream():
+        nonlocal generator_started_at
         try:
+            generator_started_at = asyncio.get_running_loop().time()
             await release_generator.wait()
             yield StreamEvent.json_snapshot({'ready': True})
         finally:
@@ -541,24 +553,27 @@ async def test_stream_endpoint_sends_protocol_comments_while_quiet(monkeypatch: 
     builder.add_page('Test', content=MockComponent(stream=stream_var))
     config = create_app(builder)
 
-    monkeypatch.setenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', '0.01')
-    get_settings.cache_clear()
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=0.05),
+    )
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
         normalized_values, lookup = normalize_request([], stream_var.variables)
-        started_at = asyncio.get_running_loop().time()
         response = await client.post(
             f'/api/core/stream/{str(stream_var.uid)}',
             json={'values': {'data': normalized_values, 'lookup': lookup}},
             headers=await _get_auth_headers(),
             stream=True,
         )
-        first_chunk_at = asyncio.get_running_loop().time()
         first_chunk = response.raw.read()
+        heartbeat_received_at = asyncio.get_running_loop().time()
 
         assert first_chunk == b': keepalive\n\n'
-        assert first_chunk_at - started_at >= 0.005
+        assert generator_started_at is not None
+        heartbeat_delay = heartbeat_received_at - generator_started_at
+        assert 0.04 <= heartbeat_delay < 0.2
 
         release_generator.set()
         remaining_chunks = b''.join([chunk async for chunk in response])
@@ -584,8 +599,10 @@ async def test_stream_endpoint_does_not_delay_normal_events(monkeypatch: pytest.
     builder.add_page('Test', content=MockComponent(stream=stream_var))
     config = create_app(builder)
 
-    monkeypatch.setenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', '0.1')
-    get_settings.cache_clear()
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=0.1),
+    )
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
@@ -618,8 +635,10 @@ async def test_stream_endpoint_request_cancellation_cleans_up_generator(monkeypa
     builder.add_page('Test', content=MockComponent(stream=stream_var))
     config = create_app(builder)
 
-    monkeypatch.setenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', '0.01')
-    get_settings.cache_clear()
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=0.01),
+    )
 
     app = _start_application(config)
     async with AsyncClient(app) as client:
@@ -781,6 +800,46 @@ async def test_stream_first_event_timer_starts_before_dependency_resolution():
     assert progress['time_to_first_event'] == 5.0
 
 
+async def test_run_stream_heartbeats_during_dependency_resolution():
+    """The browser connection stays active while a slow dependency is resolving."""
+    dependency_started = asyncio.Event()
+    release_dependency = asyncio.Event()
+
+    async def resolve_dependency(_value, _store, _task_mgr):
+        dependency_started.set()
+        await release_dependency.wait()
+        return 'resolved'
+
+    async def stream(_value):
+        yield StreamEvent.json_snapshot({'ready': True})
+
+    with patch(
+        'dara.core.internal.dependency_resolution.resolve_dependency',
+        side_effect=resolve_dependency,
+    ):
+        stream_generator = run_stream(
+            _make_entry(stream),
+            asyncio.Event(),
+            [object()],
+            Mock(),
+            Mock(),
+            keepalive_interval_seconds=0.05,
+        )
+        started_at = asyncio.get_running_loop().time()
+        first_chunk = await asyncio.wait_for(anext(stream_generator), timeout=0.3)
+        heartbeat_received_at = asyncio.get_running_loop().time()
+
+        assert dependency_started.is_set()
+        assert first_chunk == ': keepalive\n\n'
+        assert 0.04 <= heartbeat_received_at - started_at < 0.2
+
+        release_dependency.set()
+        remaining_chunks = await _collect_events(stream_generator)
+
+    assert len(remaining_chunks) == 1
+    assert '"ready":true' in remaining_chunks[0]
+
+
 async def test_run_stream_disconnect_cancels_blocked_generator():
     """
     Core scenario from the leak document: a generator blocked on an inner
@@ -853,6 +912,36 @@ async def test_run_stream_normal_exhaustion():
     assert generator_cleaned_up.is_set()
 
 
+async def test_run_stream_preserves_generator_context_between_yields():
+    """One producer task owns the generator's ContextVar lifecycle."""
+    stream_context = ContextVar('stream_context', default='outside')
+    observed_values: list[str] = []
+
+    async def context_stream():
+        token = stream_context.set('inside')
+        try:
+            observed_values.append(stream_context.get())
+            yield StreamEvent.json_snapshot({'event': 1})
+            observed_values.append(stream_context.get())
+            yield StreamEvent.json_snapshot({'event': 2})
+        finally:
+            stream_context.reset(token)
+
+    events = await _collect_events(
+        run_stream(
+            _make_entry(context_stream),
+            asyncio.Event(),
+            [],
+            Mock(),
+            Mock(),
+        )
+    )
+
+    assert len(events) == 2
+    assert observed_values == ['inside', 'inside']
+    assert stream_context.get() == 'outside'
+
+
 async def test_run_stream_disconnect_between_yields():
     """Disconnect detected between yields when generator is not blocked."""
     generator_cleaned_up = asyncio.Event()
@@ -882,6 +971,37 @@ async def test_run_stream_disconnect_between_yields():
     assert len(collected) == 1
     assert 'first' in collected[0]
     assert generator_cleaned_up.is_set()
+
+
+async def test_run_stream_disconnect_wins_over_simultaneous_failure():
+    """A disconnect suppresses an upstream failure from the same event-loop turn."""
+    generator_started = asyncio.Event()
+    release_generator = asyncio.Event()
+
+    async def failing_stream():
+        generator_started.set()
+        await release_generator.wait()
+        raise RuntimeError('upstream failure after disconnect')
+        yield  # noqa: RET503 -- unreachable, but required to make this an async generator
+
+    disconnect_event = asyncio.Event()
+    consume_task = asyncio.create_task(
+        _collect_events(
+            run_stream(
+                _make_entry(failing_stream),
+                disconnect_event,
+                [],
+                Mock(),
+                Mock(),
+            )
+        )
+    )
+    await asyncio.wait_for(generator_started.wait(), timeout=1)
+
+    release_generator.set()
+    disconnect_event.set()
+
+    assert await asyncio.wait_for(consume_task, timeout=1) == []
 
 
 async def test_run_stream_generator_exception_produces_error_event():

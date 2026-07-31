@@ -737,6 +737,41 @@ describe('StreamVariable', () => {
             expect(controller.signal.aborted).toBe(true);
         });
 
+        it('keeps ownership of cancellation when request extras contain a serialized signal', async () => {
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    return new HttpResponse(new ReadableStream(), {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(
+                createMockParams({
+                    // AbortSignal becomes an empty object when StreamAtomParams
+                    // cross the serialized Recoil seam.
+                    extras: { signal: {} as AbortSignal },
+                }),
+                callbacks
+            );
+
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(1);
+            });
+
+            connection.cleanup();
+
+            expect(connection.controller.signal.aborted).toBe(true);
+            expect(callbacks.onError).not.toHaveBeenCalled();
+        });
+
         it('routes auth failures on stream open through auth handling', async () => {
             const originalWindowLocation = window.location;
             const originalDara = window.dara;
@@ -932,6 +967,7 @@ describe('StreamVariable', () => {
         it('ignores heartbeat comments without resetting the retry budget', async () => {
             vi.useFakeTimers();
             vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
             let connectionCount = 0;
             server.use(
@@ -983,6 +1019,125 @@ describe('StreamVariable', () => {
             expect(callbacks.onFirstData).not.toHaveBeenCalled();
             expect(callbacks.onUpdate).not.toHaveBeenCalled();
             expect(callbacks.onError).not.toHaveBeenCalled();
+            expect(consoleError).not.toHaveBeenCalled();
+            connection.cleanup();
+        });
+
+        it('does not reset the retry budget for an unsupported event', async () => {
+            vi.useFakeTimers();
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    if (connectionCount === 1) {
+                        return new HttpResponse(null, {
+                            status: 503,
+                            statusText: 'Unavailable',
+                        });
+                    }
+
+                    if (connectionCount === 2) {
+                        const encoder = new TextEncoder();
+                        const stream = new ReadableStream({
+                            start(controller) {
+                                controller.enqueue(
+                                    encoder.encode(
+                                        `data: ${JSON.stringify({
+                                            type: 'future_event',
+                                            data: null,
+                                        })}\n\n`
+                                    )
+                                );
+                                controller.close();
+                            },
+                        });
+                        return new HttpResponse(stream, {
+                            headers: { 'Content-Type': 'text/event-stream' },
+                        });
+                    }
+
+                    return new HttpResponse(new ReadableStream(), {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams(), callbacks);
+
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(1);
+            });
+            await vi.advanceTimersByTimeAsync(1000);
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(2);
+            });
+
+            // The unsupported event did not prove recovery, so the clean EOF
+            // uses the second backoff delay.
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(connectionCount).toBe(2);
+            await vi.advanceTimersByTimeAsync(1000);
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(3);
+            });
+
+            expect(callbacks.onFirstData).not.toHaveBeenCalled();
+            expect(callbacks.onUpdate).not.toHaveBeenCalled();
+            expect(callbacks.onError).not.toHaveBeenCalled();
+            connection.cleanup();
+        });
+
+        it('surfaces an application event that cannot be applied as fatal', async () => {
+            vi.useFakeTimers();
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    const encoder = new TextEncoder();
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            controller.enqueue(
+                                encoder.encode(
+                                    `data: ${JSON.stringify({
+                                        type: 'json_patch',
+                                        data: [{ op: 'remove', path: '/missing' }],
+                                    })}\n\n`
+                                )
+                            );
+                            controller.close();
+                        },
+                    });
+                    return new HttpResponse(stream, {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams({ keyAccessor: null }), callbacks);
+
+            await vi.waitFor(() => {
+                expect(callbacks.onError).toHaveBeenCalledWith('Stream event "json_patch" could not be applied');
+            });
+            await vi.advanceTimersByTimeAsync(60000);
+
+            expect(connectionCount).toBe(1);
+            expect(callbacks.onFirstData).not.toHaveBeenCalled();
+            expect(callbacks.onUpdate).not.toHaveBeenCalled();
             connection.cleanup();
         });
 
