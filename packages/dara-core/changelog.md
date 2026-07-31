@@ -4,12 +4,12 @@ title: Changelog
 
 ## NEXT
 
+- Fixed StreamVariable clean connection closures not reconnecting and fatal stream errors silently leaving stale values visible, and added configurable SSE keepalive comments for idle browser connections.
 - Fixed FastAPI telemetry cleanup errors when application construction fails by attaching instrumentation only after
   the application has been built successfully.
 
 ## 1.29.6
 
-- Fixed StreamVariable clean connection closures not reconnecting and fatal stream errors silently leaving stale values visible.
 - Added a development-only server handshake that reports mismatched projects and supports overriding Vite's port with `dara start --dev-port` and `dara dev --port`.
 - Fixed `dara dev` to use the application's configured static files directory instead of always assuming `dist`.
 - Added opt-in, vendor-neutral OpenTelemetry traces, logs, and metrics through Pydantic Logfire, covering HTTP,

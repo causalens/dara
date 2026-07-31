@@ -20,7 +20,7 @@ from functools import lru_cache
 from secrets import token_hex
 
 from dotenv import dotenv_values
-from pydantic import PositiveInt
+from pydantic import PositiveFloat, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from dara.core.internal.signing_key import PROCESS_JWT_SECRET, resolve_jwt_secret
@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     dara_metrics_port: int = 10000
     dara_disable_metrics: bool = False
+    dara_stream_keepalive_interval_seconds: PositiveFloat = 15
 
     model_config = SettingsConfigDict(env_file='.env', extra='allow')
 

@@ -81,6 +81,7 @@ from dara.core.internal.registries import (
     utils_registry,
 )
 from dara.core.internal.registry_lookup import RegistryLookup
+from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import WS_CHANNEL, ws_handler
@@ -553,7 +554,15 @@ async def stream_endpoint(
     @track_stream
     async def stream():
         try:
-            async for event in run_stream(entry, disconnect_event, values, store, task_mgr):
+            interval_seconds = get_settings().dara_stream_keepalive_interval_seconds
+            async for event in run_stream(
+                entry,
+                disconnect_event,
+                values,
+                store,
+                task_mgr,
+                keepalive_interval_seconds=interval_seconds,
+            ):
                 yield event
         finally:
             # Signal disconnect so run_stream's race loop can cancel a blocked generator.

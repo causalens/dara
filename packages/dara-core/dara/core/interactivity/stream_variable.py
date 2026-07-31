@@ -327,18 +327,35 @@ async def run_stream(
     values: list[Any],
     store: CacheStore,
     task_mgr: TaskManager,
+    keepalive_interval_seconds: float | None = None,
 ):
     """
     Run a StreamVariable under one lifecycle span.
 
-    Stream events are intentionally not traced individually.
+    Stream events and optional SSE keepalive comments are intentionally not
+    traced individually.
+
+    :param entry: registered StreamVariable definition
+    :param disconnect_event: signal set when the browser connection closes
+    :param values: serialized dependency values for the stream
+    :param store: cache used to resolve dependencies
+    :param task_mgr: task manager used to resolve dependencies
+    :param keepalive_interval_seconds: maximum quiet period before emitting an SSE comment
     """
     stream_name = (
         f'{getattr(entry.func, "__module__", "unknown")}.'
         f'{getattr(entry.func, "__qualname__", type(entry.func).__name__)}'
     )
     with observe_stream(stream_name) as observation:
-        async for event in _run_stream(entry, disconnect_event, values, store, task_mgr, observation):
+        async for event in _run_stream(
+            entry,
+            disconnect_event,
+            values,
+            store,
+            task_mgr,
+            observation,
+            keepalive_interval_seconds,
+        ):
             yield event
 
 
@@ -349,6 +366,7 @@ async def _run_stream(
     store: CacheStore,
     task_mgr: TaskManager,
     observation: _OperationObservation,
+    keepalive_interval_seconds: float | None,
 ):
     """Implement a StreamVariable lifecycle and report handled terminal outcomes."""
     started = perf_counter()
@@ -405,25 +423,37 @@ async def _run_stream(
         # event-loop machinery with negligible cost compared to the HTTP I/O the
         # generator performs (hundreds of ms to seconds per event).
         disconnect_task = asyncio.ensure_future(disconnect_event.wait())
+        next_task: asyncio.Task[StreamEvent] | None = None
         try:
             while True:
-                next_task: asyncio.Task[StreamEvent] = asyncio.ensure_future(generator.__anext__())
+                if next_task is None:
+                    next_task = asyncio.ensure_future(generator.__anext__())
                 done, _ = await asyncio.wait(
                     {next_task, disconnect_task},
+                    timeout=keepalive_interval_seconds,
                     return_when=asyncio.FIRST_COMPLETED,
                 )
+
+                if not done:
+                    # SSE comments keep the browser-facing connection active but
+                    # are ignored by event parsers and StreamVariable reducers.
+                    yield ': keepalive\n\n'
+                    continue
 
                 if disconnect_task in done:
                     observation.set_outcome('cancelled')
                     next_task.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
                         await next_task
+                    next_task = None
                     break
 
                 try:
                     event = next_task.result()
                 except StopAsyncIteration:
+                    next_task = None
                     break
+                next_task = None
 
                 _validate_event_mode(event, entry.key_accessor)
                 emitted_at = perf_counter()
@@ -439,6 +469,11 @@ async def _run_stream(
         except StopAsyncIteration:
             pass
         finally:
+            if next_task is not None:
+                if not next_task.done():
+                    next_task.cancel()
+                with contextlib.suppress(Exception, asyncio.CancelledError, StopAsyncIteration):
+                    await next_task
             disconnect_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await disconnect_task

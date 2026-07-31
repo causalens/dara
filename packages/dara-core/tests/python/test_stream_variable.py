@@ -16,6 +16,7 @@ from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.stream_event import ReconnectException, StreamEvent, StreamEventType
 from dara.core.interactivity.stream_variable import StreamVariable, StreamVariableRegistryEntry, run_stream
 from dara.core.internal.dependency_resolution import ResolvedDerivedVariable
+from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
 
 from tests.python.utils import _get_auth_headers, create_app, normalize_request
@@ -521,6 +522,119 @@ async def test_stream_endpoint_reconnect_exception():
         assert len(events) == 2
         assert events[0]['type'] == 'clear'
         assert events[1]['type'] == 'reconnect'
+
+
+async def test_stream_endpoint_sends_protocol_comments_while_quiet(monkeypatch: pytest.MonkeyPatch):
+    """Quiet browser-facing streams emit heartbeats without creating application events."""
+    builder = ConfigurationBuilder()
+    release_generator = asyncio.Event()
+    generator_cleaned_up = asyncio.Event()
+
+    async def quiet_stream():
+        try:
+            await release_generator.wait()
+            yield StreamEvent.json_snapshot({'ready': True})
+        finally:
+            generator_cleaned_up.set()
+
+    stream_var = StreamVariable(quiet_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', '0.01')
+    get_settings.cache_clear()
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        normalized_values, lookup = normalize_request([], stream_var.variables)
+        started_at = asyncio.get_running_loop().time()
+        response = await client.post(
+            f'/api/core/stream/{str(stream_var.uid)}',
+            json={'values': {'data': normalized_values, 'lookup': lookup}},
+            headers=await _get_auth_headers(),
+            stream=True,
+        )
+        first_chunk_at = asyncio.get_running_loop().time()
+        first_chunk = response.raw.read()
+
+        assert first_chunk == b': keepalive\n\n'
+        assert first_chunk_at - started_at >= 0.005
+
+        release_generator.set()
+        remaining_chunks = b''.join([chunk async for chunk in response])
+
+    content = (first_chunk + remaining_chunks).decode()
+    assert parse_sse_events(content) == [
+        {
+            'type': 'json_snapshot',
+            'data': {'ready': True},
+        }
+    ]
+    assert generator_cleaned_up.is_set()
+
+
+async def test_stream_endpoint_does_not_delay_normal_events(monkeypatch: pytest.MonkeyPatch):
+    """Events available before the heartbeat deadline are delivered without comments."""
+    builder = ConfigurationBuilder()
+
+    async def immediate_stream():
+        yield StreamEvent.json_snapshot({'ready': True})
+
+    stream_var = StreamVariable(immediate_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', '0.1')
+    get_settings.cache_clear()
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response = await _get_stream_response(client, stream_var, [])
+
+    assert ': keepalive' not in response.text
+    assert parse_sse_events(response.text)[0]['data'] == {'ready': True}
+
+
+async def test_stream_endpoint_request_cancellation_cleans_up_generator(monkeypatch: pytest.MonkeyPatch):
+    """A browser disconnect closes a blocked stream generator and its subscription."""
+    builder = ConfigurationBuilder()
+    generator_started = asyncio.Event()
+    generator_cancelled = asyncio.Event()
+    generator_cleaned_up = asyncio.Event()
+
+    async def blocking_stream():
+        try:
+            generator_started.set()
+            yield StreamEvent.json_snapshot({'ready': True})
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                generator_cancelled.set()
+                raise
+        finally:
+            generator_cleaned_up.set()
+
+    stream_var = StreamVariable(blocking_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', '0.01')
+    get_settings.cache_clear()
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        normalized_values, lookup = normalize_request([], stream_var.variables)
+        response = await client.post(
+            f'/api/core/stream/{str(stream_var.uid)}',
+            json={'values': {'data': normalized_values, 'lookup': lookup}},
+            headers=await _get_auth_headers(),
+            stream=True,
+        )
+        await asyncio.wait_for(generator_started.wait(), timeout=1)
+        response.send({'type': 'http.disconnect'})
+
+    await asyncio.wait_for(generator_cleaned_up.wait(), timeout=1)
+    assert generator_cancelled.is_set()
 
 
 async def test_stream_endpoint_not_found():

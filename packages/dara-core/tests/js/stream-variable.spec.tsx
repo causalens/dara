@@ -865,6 +865,127 @@ describe('StreamVariable', () => {
             connection.cleanup();
         });
 
+        it('resets the retry budget only after receiving valid data', async () => {
+            vi.useFakeTimers();
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    if (connectionCount === 1) {
+                        return new HttpResponse(null, {
+                            status: 503,
+                            statusText: 'Unavailable',
+                        });
+                    }
+
+                    const encoder = new TextEncoder();
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            if (connectionCount === 2) {
+                                controller.enqueue(
+                                    encoder.encode(
+                                        `data: ${JSON.stringify({
+                                            type: 'json_snapshot',
+                                            data: { recovered: true },
+                                        })}\n\n`
+                                    )
+                                );
+                            }
+                            controller.close();
+                        },
+                    });
+                    return new HttpResponse(stream, {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams({ keyAccessor: null }), callbacks);
+
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(1);
+            });
+            await vi.advanceTimersByTimeAsync(1000);
+            await vi.waitFor(() => {
+                expect(callbacks.onFirstData).toHaveBeenCalledTimes(1);
+                expect(connectionCount).toBe(2);
+            });
+
+            // The valid snapshot reset the budget, so the following clean EOF
+            // uses the first backoff delay rather than the second.
+            await vi.advanceTimersByTimeAsync(1000);
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(3);
+            });
+
+            expect(callbacks.onError).not.toHaveBeenCalled();
+            connection.cleanup();
+        });
+
+        it('ignores heartbeat comments without resetting the retry budget', async () => {
+            vi.useFakeTimers();
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            let connectionCount = 0;
+            server.use(
+                http.post('/api/core/stream/test-stream', () => {
+                    connectionCount++;
+                    if (connectionCount === 1) {
+                        return new HttpResponse(null, {
+                            status: 503,
+                            statusText: 'Unavailable',
+                        });
+                    }
+
+                    const encoder = new TextEncoder();
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            controller.enqueue(encoder.encode(': keepalive\n\n'));
+                            controller.close();
+                        },
+                    });
+                    return new HttpResponse(stream, {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                })
+            );
+
+            const callbacks = {
+                onFirstData: vi.fn(),
+                onUpdate: vi.fn(),
+                onError: vi.fn(),
+            };
+            const connection = _internal.startStreamConnection(createMockParams(), callbacks);
+
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(1);
+            });
+            await vi.advanceTimersByTimeAsync(1000);
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(2);
+            });
+
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(connectionCount).toBe(2);
+
+            await vi.advanceTimersByTimeAsync(1000);
+            await vi.waitFor(() => {
+                expect(connectionCount).toBe(3);
+            });
+
+            expect(callbacks.onFirstData).not.toHaveBeenCalled();
+            expect(callbacks.onUpdate).not.toHaveBeenCalled();
+            expect(callbacks.onError).not.toHaveBeenCalled();
+            connection.cleanup();
+        });
+
         it('exposes a fatal event after data and does not retry it', async () => {
             vi.useFakeTimers();
 

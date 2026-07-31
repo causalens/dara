@@ -48,6 +48,18 @@ page = Stack(For(items=events, renderer=Card(Text(events.list_item.get('message'
 
 When the user changes the `category` variable, the current stream closes and a new one opens with the new category value.
 
+### Keeping Idle Connections Alive
+
+Dara sends an SSE protocol comment to the browser every 15 seconds while a
+`StreamVariable` generator is quiet. This keeps the Dara-to-browser connection
+active even when an upstream SSE client has consumed its own heartbeat comments.
+Protocol comments are not application events: they do not update the
+`StreamVariable`, wake components, or reset the browser's reconnect retry count.
+
+The interval is intentionally shorter than common 30-60 second proxy idle
+timeouts. Deployments with different infrastructure requirements can set
+`DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS` to any positive number of seconds.
+
 ## Handling Reconnection (Important)
 
 :::warning

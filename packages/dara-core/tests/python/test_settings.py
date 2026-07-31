@@ -26,6 +26,7 @@ def _clear_runtime_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv('DARA_OTEL_SHUTDOWN_TIMEOUT_MILLIS', raising=False)
     monkeypatch.delenv('DARA_METRICS_PORT', raising=False)
     monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', raising=False)
     monkeypatch.delenv('OTEL_METRICS_EXPORTER', raising=False)
     monkeypatch.delenv('OTEL_SEMCONV_STABILITY_OPT_IN', raising=False)
 
@@ -81,6 +82,17 @@ def test_otel_shutdown_timeout_uses_dara_settings(monkeypatch: pytest.MonkeyPatc
 
     with pytest.raises(ValueError):
         Settings(_env_file=None, dara_otel_shutdown_timeout_millis=0)
+
+
+def test_stream_keepalive_interval_uses_dara_settings(monkeypatch: pytest.MonkeyPatch):
+    """The StreamVariable SSE heartbeat is configurable and must remain positive."""
+    monkeypatch.setenv('DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS', '2.5')
+
+    assert Settings(_env_file=None).dara_stream_keepalive_interval_seconds == 2.5
+    assert Settings.model_fields['dara_stream_keepalive_interval_seconds'].default == 15
+
+    with pytest.raises(ValueError):
+        Settings(_env_file=None, dara_stream_keepalive_interval_seconds=0)
 
 
 def _use_cache_dir(monkeypatch: pytest.MonkeyPatch, cache_dir: Path):
