@@ -607,7 +607,7 @@ async def test_pool_cancel():
 async def test_dynamic_worker_spawn():
     """
     Test dynamic worker spawning:
-    - initial number of workers == 2
+    - initial number of workers == 1
     - number of workers scales up as number of jobs processed increases up to maximum
     - excess workers shut down after a timeout
     """
@@ -619,11 +619,19 @@ async def test_dynamic_worker_spawn():
             assert len(worker_pids) == 1
 
             # Fire off a task
-            task_1 = pool.submit('test_uid', 'add', (1, 2), {'delay': 2})
+            task_1 = pool.submit('test_uid', 'add', (1, 2), {'delay': 5})
             await wait_assert(lambda: task_1.worker_id is not None, timeout=2)
 
-            # A new worker should be started, up to 2 total
-            await wait_assert(lambda: len(pool.workers) == 2, timeout=1)
+            # Wait for the new worker to be ready while the first worker is
+            # still busy. Process creation alone does not mean it can accept work.
+            await wait_assert(
+                lambda: (
+                    len(pool.workers) == 2
+                    and sum(worker.status == WorkerStatus.WORKING for worker in pool.workers.values()) == 1
+                    and sum(worker.status == WorkerStatus.IDLE for worker in pool.workers.values()) == 1
+                ),
+                timeout=5,
+            )
 
             # Fire off a task again
             task_2 = pool.submit('test_uid2', 'add', (2, 3), {'delay': 2})
