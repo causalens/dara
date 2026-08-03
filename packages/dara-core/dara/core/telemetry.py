@@ -1680,12 +1680,12 @@ class _TelemetryRuntime:
                 self.system_metrics_instrumented = True
         return True
 
-    def initialize(self, app: FastAPI) -> None:
-        """Configure process telemetry once and instrument a FastAPI application once."""
-        try:
-            if not self.initialize_process():
-                return
+    def instrument_fastapi_app(self, app: FastAPI) -> None:
+        """Instrument a FastAPI application once after process telemetry is configured."""
+        if not self.configured:
+            return
 
+        try:
             app_id = id(app)
             if app_id in self.fastapi_instrumentation:
                 return
@@ -1772,17 +1772,17 @@ class _TelemetryRuntime:
 _RUNTIME = _TelemetryRuntime()
 
 
-def initialize_telemetry(app: FastAPI) -> None:
+def instrument_fastapi_app(app: FastAPI) -> None:
     """
-    Initialize Dara telemetry and instrument an application when enabled.
+    Instrument a fully constructed FastAPI application when telemetry is configured.
 
-    Set ``DARA_OTEL_ENABLED=TRUE`` to opt in. Export destinations and signal
-    settings are read from standard OpenTelemetry ``OTEL_*`` environment
-    variables. Dara never sends data to Pydantic's hosted Logfire service.
+    Process telemetry must be initialized first with :func:`initialize_process_telemetry`.
+    Keeping FastAPI instrumentation separate allows Dara to capture application
+    construction telemetry without attaching middleware to a partially built app.
 
-    :param app: FastAPI application to instrument
+    :param app: fully constructed FastAPI application to instrument
     """
-    _RUNTIME.initialize(app)
+    _RUNTIME.instrument_fastapi_app(app)
 
 
 def instrument_httpx_client(client: Any) -> None:

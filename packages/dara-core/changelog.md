@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed FastAPI telemetry cleanup errors when application construction fails by attaching instrumentation only after
+  the application has been built successfully.
+
 ## 1.29.6
 
 - Added a development-only server handshake that reports mismatched projects and supports overriding Vite's port with `dara start --dev-port` and `dara dev --port`.

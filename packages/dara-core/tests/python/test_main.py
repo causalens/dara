@@ -108,7 +108,8 @@ async def test_metrics_server_uses_dara_registry(monkeypatch: pytest.MonkeyPatch
     config = create_app(builder)
 
     with (
-        patch('dara.core.main.initialize_telemetry'),
+        patch('dara.core.main.initialize_process_telemetry'),
+        patch('dara.core.main.instrument_fastapi_app'),
         patch('dara.core.main.start_http_server') as start_http_server,
     ):
         _start_application(config)
@@ -127,7 +128,8 @@ async def test_prometheus_endpoint_keeps_port_10000_by_default(monkeypatch: pyte
     config = create_app(builder)
 
     with (
-        patch('dara.core.main.initialize_telemetry'),
+        patch('dara.core.main.initialize_process_telemetry'),
+        patch('dara.core.main.instrument_fastapi_app'),
         patch('dara.core.main.start_http_server') as start_http_server,
     ):
         _start_application(config)
@@ -145,12 +147,29 @@ async def test_otel_enabled_keeps_prometheus_server(monkeypatch: pytest.MonkeyPa
     config = create_app(builder)
 
     with (
-        patch('dara.core.main.initialize_telemetry'),
+        patch('dara.core.main.initialize_process_telemetry'),
+        patch('dara.core.main.instrument_fastapi_app'),
         patch('dara.core.main.start_http_server') as start_http_server,
     ):
         _start_application(config)
 
     start_http_server.assert_called_once_with(10000, registry=DARA_METRICS_REGISTRY)
+
+
+async def test_fastapi_is_instrumented_only_after_application_construction():
+    """A construction failure must not leave a partially built FastAPI app instrumented."""
+    config = create_app(ConfigurationBuilder())
+
+    with (
+        patch('dara.core.main.initialize_process_telemetry') as initialize_process_telemetry,
+        patch('dara.core.main.instrument_fastapi_app') as instrument_fastapi_app,
+        patch('dara.core.main.BuildCache.from_config', side_effect=RuntimeError('build failed')),
+        pytest.raises(SystemExit),
+    ):
+        _start_application(config)
+
+    initialize_process_telemetry.assert_called_once_with('application')
+    instrument_fastapi_app.assert_not_called()
 
 
 def assert_dict_subset(haystack: dict, needle: dict):
