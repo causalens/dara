@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.7
 
 - Added one-at-a-time polling for DerivedVariable and Python components. Polling now waits after each request, pauses in hidden tabs, spreads retries with jitter and backoff, honors Retry-After, aborts work on cleanup, and drops stale results.
 - Fixed rapid navigation after early route chunks raising `Deferred already resolved` and leaving the NDJSON body open.
