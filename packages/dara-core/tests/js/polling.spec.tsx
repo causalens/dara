@@ -64,13 +64,13 @@ describe('Poller', () => {
         poller: Poller,
         key: string,
         interval = 1
-    ): Array<Deferred<number> & { result?: Promise<number>; signal?: AbortSignal }> {
-        const runs: Array<Deferred<number> & { result?: Promise<number>; signal?: AbortSignal }> = [];
+    ): Array<Deferred<number> & { run?: Promise<number>; signal?: AbortSignal }> {
+        const runs: Array<Deferred<number> & { run?: Promise<number>; signal?: AbortSignal }> = [];
         let saved = 0;
         poller.subscribe(key, interval, () => {
-            const next: Deferred<number> & { result?: Promise<number>; signal?: AbortSignal } = defer<number>();
+            const next: Deferred<number> & { run?: Promise<number>; signal?: AbortSignal } = defer<number>();
             runs.push(next);
-            next.result = poller.run({
+            next.run = poller.run({
                 cause: 'poll',
                 key,
                 read: () => ({ found: true, value: saved }),
@@ -99,7 +99,7 @@ describe('Poller', () => {
         runs[0]!.resolve(1);
         await vi.waitFor(() => expect(runs).toHaveLength(2));
         runs[1]!.resolve(2);
-        await expect(runs[1]!.result).resolves.toBe(2);
+        await expect(runs[1]!.run).resolves.toBe(2);
         expect(runs).toHaveLength(2);
     });
 
@@ -180,7 +180,7 @@ describe('Poller', () => {
         await vi.advanceTimersByTimeAsync(1000);
         visibility.setState('hidden');
         runs[1]!.resolve(2);
-        await expect(runs[1]!.result).resolves.toBe(2);
+        await expect(runs[1]!.run).resolves.toBe(2);
         visibility.setState('visible');
         await vi.waitFor(() => expect(runs).toHaveLength(3));
 
@@ -257,6 +257,23 @@ describe('Poller', () => {
         vi.advanceTimersByTime(1);
         expect(fast).toHaveBeenCalledTimes(1);
         expect(slow).not.toHaveBeenCalled();
+    });
+
+    it('lengthens the timer when the fastest consumer stops watching', () => {
+        const { poller } = createPoller();
+        const slow = vi.fn();
+        const fast = vi.fn();
+
+        poller.subscribe('shared', 60, slow);
+        const stopFast = poller.subscribe('shared', 1, fast);
+        vi.advanceTimersByTime(500);
+        stopFast();
+
+        vi.advanceTimersByTime(500);
+        expect(slow).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(59_500);
+        expect(slow).toHaveBeenCalledTimes(1);
+        expect(fast).not.toHaveBeenCalled();
     });
 
     it('uses the latest refresh callback without restarting its timer', () => {
@@ -358,7 +375,7 @@ describe('Poller', () => {
         const owner = 'component';
         let signal: AbortSignal | undefined;
 
-        poller.commitOwner(owner, new Set(['derived:first-load']));
+        poller.commitOwner(owner, new Map([['first-hook', 'derived:first-load']]));
         void poller.run({
             cause: 'dependency',
             key: 'derived:first-load',
@@ -379,7 +396,7 @@ describe('Poller', () => {
         const owner = 'component';
         let signal: AbortSignal | undefined;
 
-        poller.commitOwner(owner, new Set(['derived:first-load']));
+        poller.commitOwner(owner, new Map([['first-hook', 'derived:first-load']]));
         void poller.run({
             cause: 'dependency',
             key: 'derived:first-load',
@@ -390,7 +407,7 @@ describe('Poller', () => {
             write: () => {},
         });
         poller.releaseOwner(owner);
-        poller.commitOwner(owner, new Set(['derived:first-load']));
+        poller.commitOwner(owner, new Map([['first-hook', 'derived:first-load']]));
         vi.advanceTimersByTime(0);
 
         expect(signal?.aborted).toBe(false);
@@ -401,7 +418,7 @@ describe('Poller', () => {
         const owner = 'component';
         let oldSignal: AbortSignal | undefined;
 
-        poller.commitOwner(owner, new Set(['derived:old']));
+        poller.commitOwner(owner, new Map([['old-hook', 'derived:old']]));
         void poller.run({
             cause: 'dependency',
             key: 'derived:old',
@@ -412,9 +429,80 @@ describe('Poller', () => {
             write: () => {},
         });
 
-        poller.commitOwner(owner, new Set(['derived:new']));
+        poller.commitOwner(owner, new Map([['new-hook', 'derived:new']]));
 
         expect(oldSignal?.aborted).toBe(true);
+    });
+
+    it('drops a suspended render claim when the owner commits without it', () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        let signal: AbortSignal | undefined;
+
+        poller.claimKey(owner, 'late-hook', 'derived:abandoned');
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:abandoned',
+            work: (runSignal) => {
+                signal = runSignal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
+
+        poller.commitOwner(owner, new Map());
+
+        expect(signal?.aborted).toBe(true);
+    });
+
+    it('does not keep a render claim after its committed hook unmounts', () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const hook = 'hook';
+        let signal: AbortSignal | undefined;
+
+        poller.claimKey(owner, hook, 'derived:committed');
+        poller.mountKey(owner, hook, 'derived:committed');
+        poller.claimKey(owner, hook, 'derived:committed');
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:committed',
+            work: (runSignal) => {
+                signal = runSignal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
+
+        poller.unmountKey(owner, hook, 'derived:committed');
+        vi.advanceTimersByTime(0);
+
+        expect(signal?.aborted).toBe(true);
+    });
+
+    it('prunes an abandoned hook that shares a key with a committed hook', () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        let signal: AbortSignal | undefined;
+
+        poller.claimKey(owner, 'abandoned-hook', 'derived:shared');
+        poller.claimKey(owner, 'live-hook', 'derived:shared');
+        poller.mountKey(owner, 'live-hook', 'derived:shared');
+        poller.commitOwner(owner, new Map([['live-hook', 'derived:shared']]));
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:shared',
+            work: (runSignal) => {
+                signal = runSignal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
+
+        poller.unmountKey(owner, 'live-hook', 'derived:shared');
+        vi.advanceTimersByTime(0);
+
+        expect(signal?.aborted).toBe(true);
     });
 
     it('keeps a shared key until its last committed hook unmounts', () => {

@@ -296,8 +296,8 @@ describe('DynamicComponent', () => {
 
         server.use(
             http.post('/api/core/components/FreshPythonComponent', async ({ request }) => {
-                requestCount++;
-                if (requestCount === 2) {
+                const currentRequest = ++requestCount;
+                if (currentRequest === 2) {
                     staleSignal = request.signal;
                     await new Promise<void>((resolve) => {
                         request.signal.addEventListener('abort', () => resolve(), { once: true });
@@ -307,7 +307,8 @@ describe('DynamicComponent', () => {
                     data: {
                         name: 'RawString',
                         props: {
-                            content: requestCount === 1 ? 'initial' : requestCount === 2 ? 'stale-poll' : 'fresh-input',
+                            content:
+                                currentRequest === 1 ? 'initial' : currentRequest === 2 ? 'stale-poll' : 'fresh-input',
                         },
                     },
                     lookup: {},

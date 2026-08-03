@@ -720,6 +720,7 @@ export function getOrRegisterDerivedVariableValue(
                                     wsClient,
                                 });
                             }
+                            signal?.throwIfAborted();
 
                             let variableValue: any = NOT_SET;
 

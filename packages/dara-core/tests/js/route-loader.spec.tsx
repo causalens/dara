@@ -37,6 +37,7 @@ describe('Route Loader', () => {
     });
 
     beforeEach(async () => {
+        window.history.replaceState({}, '', '/');
         window.localStorage.clear();
         clearRegistries_TEST();
         clearCaches_TEST();
@@ -252,6 +253,82 @@ describe('Route Loader', () => {
         await expect(latestData.py_components[0]!.handle.getValue()).resolves.toMatchObject({ ok: true });
     });
 
+    it('keeps the latest route when an older partial stream aborts', async () => {
+        const route = {
+            id: 'latest-route',
+            case_sensitive: false,
+            children: [],
+            full_path: '/latest-route/:page',
+            path: '/latest-route/:page',
+            __typename: 'PageRoute',
+        } satisfies RouteDefinition;
+        const encoder = new TextEncoder();
+        let requestCount = 0;
+        const oldBodyCancel = vi.fn();
+        const oldTemplateSent = deferred<void>();
+        const send = (controller: ReadableStreamDefaultController<Uint8Array>, text: string): void => {
+            controller.enqueue(
+                encoder.encode(
+                    `${JSON.stringify({
+                        type: 'template',
+                        template: {
+                            data: {
+                                name: 'TestPropsComponent',
+                                props: { text },
+                                uid: `template-${text}`,
+                            },
+                            lookup: {},
+                        },
+                    } satisfies ResponseChunk)}\n`
+                )
+            );
+        };
+
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+            const currentRequest = ++requestCount;
+            const stream = new ReadableStream<Uint8Array>({
+                cancel: currentRequest === 2 ? oldBodyCancel : undefined,
+                start(controller) {
+                    const text = currentRequest === 1 ? 'initial' : currentRequest === 2 ? 'old' : 'latest';
+                    send(controller, text);
+                    if (currentRequest === 2) {
+                        oldTemplateSent.resolve();
+                        return;
+                    }
+                    controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'actions', actions: {} })}\n`));
+                    controller.close();
+                },
+            });
+            return new Response(stream, {
+                headers: { 'content-type': 'application/x-ndjson' },
+            });
+        });
+
+        if (!window.dara) {
+            const ws = deferred<WebSocketClientInterface>();
+            ws.resolve(wsClient);
+            window.dara = { base_url: '', ws };
+        }
+        window.history.pushState({}, '', '/latest-route/initial');
+        const router = createBrowserRouter([createRoute(route, () => snapshot_UNSTABLE(), new Map())]);
+        const rendered = render(<RouterProvider router={router} />, {
+            wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
+        });
+        await waitFor(() => expect(rendered.getByText('initial', { exact: false })).toBeVisible());
+
+        const oldNavigation = router.navigate('/latest-route/old');
+        await oldTemplateSent.getValue();
+        const latestNavigation = router.navigate('/latest-route/latest');
+
+        await latestNavigation;
+        await oldNavigation;
+        await waitFor(() => expect(rendered.getByText('latest', { exact: false })).toBeVisible());
+        expect(rendered.queryByText('old', { exact: false })).not.toBeInTheDocument();
+        await vi.waitFor(() => expect(oldBodyCancel).toHaveBeenCalledTimes(1));
+
+        router.dispose();
+    });
+
     it('rejects the route load and cancels the body when navigation aborts before any chunks', async () => {
         const route = {
             id: 'empty-streaming-route',
@@ -284,6 +361,59 @@ describe('Route Loader', () => {
         const navigation = new AbortController();
         const result = fetchRouteData(route, {}, snapshot_UNSTABLE(), navigation.signal);
         await readerStarted.getValue();
+        navigation.abort();
+
+        await expect(result).rejects.toMatchObject({ name: 'AbortError' });
+        await vi.waitFor(() => expect(bodyCancel).toHaveBeenCalledTimes(1));
+    });
+
+    it('keeps an early template settled when navigation aborts before actions', async () => {
+        const route = {
+            id: 'partial-streaming-route',
+            case_sensitive: false,
+            index: true,
+            full_path: '/partial-streaming-route',
+            __typename: 'IndexRoute',
+        } satisfies RouteDefinition;
+        const bodyCancel = vi.fn();
+        const templateSent = deferred<void>();
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+            const stream = new ReadableStream<Uint8Array>({
+                cancel: bodyCancel,
+                start(controller) {
+                    const encoder = new TextEncoder();
+                    controller.enqueue(
+                        encoder.encode(
+                            `${JSON.stringify({
+                                type: 'template',
+                                template: {
+                                    data: {
+                                        name: 'TestPropsComponent',
+                                        props: { text: 'early' },
+                                        uid: 'early-template',
+                                    },
+                                    lookup: {},
+                                },
+                            } satisfies ResponseChunk)}\n`
+                        )
+                    );
+                    templateSent.resolve();
+                },
+            });
+            return new Response(stream, {
+                headers: { 'content-type': 'application/x-ndjson' },
+            });
+        });
+
+        if (!window.dara) {
+            const ws = deferred<WebSocketClientInterface>();
+            ws.resolve(wsClient);
+            window.dara = { base_url: '', ws };
+        }
+        const navigation = new AbortController();
+        const result = fetchRouteData(route, {}, snapshot_UNSTABLE(), navigation.signal);
+        await templateSent.getValue();
+        await new Promise((resolve) => setTimeout(resolve, 0));
         navigation.abort();
 
         await expect(result).rejects.toMatchObject({ name: 'AbortError' });

@@ -2,6 +2,7 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { request } from '@/api';
+import { RequestExtrasSerializable } from '@/api/http';
 
 const requested401 = vi.fn();
 const requested403 = vi.fn();
@@ -63,5 +64,17 @@ describe('HTTP Utils', () => {
             accept: 'application/json',
             contentType: 'application/json',
         });
+    });
+
+    it('keeps AbortSignal identity in serialized request extras', () => {
+        const firstSignal = new AbortController().signal;
+        const secondSignal = new AbortController().signal;
+
+        const first = new RequestExtrasSerializable({ signal: firstSignal }).toJSON();
+        const firstAgain = new RequestExtrasSerializable({ signal: firstSignal }).toJSON();
+        const second = new RequestExtrasSerializable({ signal: secondSignal }).toJSON();
+
+        expect(firstAgain).toBe(first);
+        expect(second).not.toBe(first);
     });
 });

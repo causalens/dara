@@ -281,6 +281,7 @@ function getOrRegisterServerComponent({
                                 );
                             }
 
+                            signal?.throwIfAborted();
                             taskContext.cleanupRunningTasks(key);
 
                             // Metatask returned

@@ -10,7 +10,7 @@ const retryAfterByError = new WeakMap<object, number>();
 type TimerHandle = ReturnType<typeof setTimeout>;
 type RunCause = 'dependency' | 'poll';
 
-interface PollingSubscriber {
+interface Subscriber {
     intervalMs: number;
     refresh: () => void;
 }
@@ -28,7 +28,7 @@ interface ActiveRun {
 
 type RunState = { kind: 'idle' } | { kind: 'running'; run: ActiveRun } | { kind: 'starting' };
 
-interface PollingEntry {
+interface Entry {
     disposeTimer?: TimerHandle;
     failureCount: number;
     generation: number;
@@ -37,7 +37,7 @@ interface PollingEntry {
     runAgain: boolean;
     runOnShow: boolean;
     state: RunState;
-    subscribers: Map<symbol, PollingSubscriber>;
+    subscribers: Map<symbol, Subscriber>;
     timer?: TimerHandle;
 }
 
@@ -52,6 +52,7 @@ interface PollerOptions {
 }
 
 interface PollOwner {
+    claims: Map<string, string>;
     disposeTimer?: TimerHandle;
     hooks: Map<string, string>;
     renderKeys: Set<string>;
@@ -59,8 +60,8 @@ interface PollOwner {
 }
 
 export interface PollScope {
+    claims: Map<string, string>;
     id: string;
-    keys: Set<string>;
 }
 
 type RunOutcome =
@@ -127,7 +128,7 @@ function getRetryAfterMs(error: unknown): number | undefined {
  */
 export class Poller {
     readonly #clearTimeout: (timer: TimerHandle) => void;
-    readonly #entries = new Map<string, PollingEntry>();
+    readonly #entries = new Map<string, Entry>();
     readonly #getVisibilityState: () => DocumentVisibilityState;
     readonly #jitterRatio: number;
     readonly #now: () => number;
@@ -175,7 +176,7 @@ export class Poller {
         this.#startVisibilityListener();
 
         if (entry.subscribers.size === 1 && entry.state.kind === 'idle' && entry.timer === undefined) {
-            this.#scheduleOrdinaryPoll(key, entry);
+            this.#schedulePoll(key, entry);
         } else if (
             entry.timer !== undefined &&
             entry.failureCount === 0 &&
@@ -187,8 +188,16 @@ export class Poller {
         }
 
         return () => {
+            const removedIntervalMs = this.#getIntervalMs(entry);
             entry.subscribers.delete(subscriberId);
             if (entry.subscribers.size > 0) {
+                if (
+                    entry.timer !== undefined &&
+                    entry.failureCount === 0 &&
+                    this.#getIntervalMs(entry) > removedIntervalMs
+                ) {
+                    this.#schedulePoll(key, entry);
+                }
                 return;
             }
 
@@ -216,20 +225,46 @@ export class Poller {
         };
     }
 
-    /** Apply the polling keys collected by one committed owner render. */
-    commitOwner(ownerId: string, keys: ReadonlySet<string>): void {
+    /**
+     * Claim a key during render so Suspense cannot skip its ownership effect.
+     *
+     * A later owner commit prunes claims left by an abandoned render.
+     */
+    claimKey(ownerId: string, hookId: string, key: string): void {
+        const owner = this.#getOrCreateOwner(ownerId);
+        if (owner.hooks.get(hookId) === key) {
+            return;
+        }
+        const oldKey = owner.claims.get(hookId);
+        owner.claims.set(hookId, key);
+        this.#getOrCreateEntry(key).owners.add(ownerId);
+        if (oldKey !== undefined && oldKey !== key && !this.#ownerHasKey(owner, oldKey)) {
+            this.#dropOwnedKey(ownerId, oldKey);
+        }
+    }
+
+    /** Apply the hook claims collected by one committed owner render. */
+    commitOwner(ownerId: string, claims: ReadonlyMap<string, string>): void {
         const owner = this.#getOrCreateOwner(ownerId);
         if (owner.disposeTimer !== undefined) {
             this.#clearTimeout(owner.disposeTimer);
             owner.disposeTimer = undefined;
         }
 
+        const droppedClaims = new Set<string>();
+        for (const [hookId, key] of owner.claims) {
+            if (claims.get(hookId) !== key) {
+                owner.claims.delete(hookId);
+                droppedClaims.add(key);
+            }
+        }
+
         // Add the new render before dropping the old one. A rerender must not
         // leave a live request without an owner between layout effects.
         const nextRenderKeys = new Set<string>();
-        for (const key of keys) {
+        for (const key of new Set(claims.values())) {
             this.#getOrCreateEntry(key).owners.add(ownerId);
-            if (!this.#hasHookForKey(owner, key)) {
+            if (!this.#hasHookForKey(owner, key) && !this.#hasClaimForKey(owner, key)) {
                 nextRenderKeys.add(key);
             }
         }
@@ -238,6 +273,11 @@ export class Poller {
         owner.renderKeys = nextRenderKeys;
         for (const key of oldRenderKeys) {
             if (!nextRenderKeys.has(key) && !this.#hasHookForKey(owner, key)) {
+                this.#dropOwnedKey(ownerId, key);
+            }
+        }
+        for (const key of droppedClaims) {
+            if (!this.#ownerHasKey(owner, key)) {
                 this.#dropOwnedKey(ownerId, key);
             }
         }
@@ -258,6 +298,7 @@ export class Poller {
 
         const oldKey = owner.hooks.get(hookId);
         owner.hooks.set(hookId, key);
+        owner.claims.delete(hookId);
         owner.renderKeys.delete(key);
         this.#getOrCreateEntry(key).owners.add(ownerId);
         if (oldKey !== undefined && oldKey !== key && !this.#ownerHasKey(owner, oldKey)) {
@@ -379,7 +420,7 @@ export class Poller {
                     return;
                 }
                 finished = true;
-                this.#finishRequest(key, activeRun.generation, outcome);
+                this.#finishRun(key, activeRun.generation, outcome);
             },
             isCurrent: () => {
                 const state = this.#entries.get(key)?.state;
@@ -484,7 +525,7 @@ export class Poller {
         return this.#now();
     }
 
-    #finishRequest(key: string, generation: number, outcome: RunOutcome): void {
+    #finishRun(key: string, generation: number, outcome: RunOutcome): void {
         const entry = this.#entries.get(key);
         if (!entry || entry.state.kind !== 'running' || entry.state.run.generation !== generation) {
             return;
@@ -528,7 +569,7 @@ export class Poller {
                 this.runNow(key);
                 return;
             }
-            this.#scheduleOrdinaryPoll(key, entry);
+            this.#schedulePoll(key, entry);
             return;
         }
 
@@ -537,7 +578,7 @@ export class Poller {
                 entry.runAgain = false;
                 this.runNow(key);
             } else {
-                this.#scheduleOrdinaryPoll(key, entry);
+                this.#schedulePoll(key, entry);
             }
         }
     }
@@ -555,11 +596,11 @@ export class Poller {
         }
     }
 
-    #getIntervalMs(entry: PollingEntry): number {
+    #getIntervalMs(entry: Entry): number {
         return Math.min(...Array.from(entry.subscribers.values(), (subscriber) => subscriber.intervalMs));
     }
 
-    #getOrCreateEntry(key: string): PollingEntry {
+    #getOrCreateEntry(key: string): Entry {
         let entry = this.#entries.get(key);
         if (!entry) {
             entry = {
@@ -576,7 +617,7 @@ export class Poller {
         return entry;
     }
 
-    #getSubscriber(entry: PollingEntry): PollingSubscriber | undefined {
+    #getSubscriber(entry: Entry): Subscriber | undefined {
         return Array.from(entry.subscribers.values()).sort((a, b) => a.intervalMs - b.intervalMs)[0];
     }
 
@@ -584,6 +625,7 @@ export class Poller {
         let owner = this.#owners.get(ownerId);
         if (!owner) {
             const newOwner: PollOwner = {
+                claims: new Map(),
                 hooks: new Map(),
                 renderKeys: new Set(),
                 timers: new Map(),
@@ -620,11 +662,15 @@ export class Poller {
         for (const timer of owner.timers.values()) {
             this.#clearTimeout(timer);
         }
-        const keys = new Set([...owner.renderKeys, ...owner.hooks.values()]);
+        const keys = new Set([...owner.claims.values(), ...owner.renderKeys, ...owner.hooks.values()]);
         for (const key of keys) {
             this.#dropOwnedKey(ownerId, key);
         }
         this.#stopVisibilityListenerIfIdle();
+    }
+
+    #hasClaimForKey(owner: PollOwner, key: string): boolean {
+        return Array.from(owner.claims.values()).some((claimKey) => claimKey === key);
     }
 
     #hasHookForKey(owner: PollOwner, key: string): boolean {
@@ -632,14 +678,14 @@ export class Poller {
     }
 
     #ownerHasKey(owner: PollOwner, key: string): boolean {
-        return owner.renderKeys.has(key) || this.#hasHookForKey(owner, key);
+        return owner.renderKeys.has(key) || this.#hasHookForKey(owner, key) || this.#hasClaimForKey(owner, key);
     }
 
-    #scheduleOrdinaryPoll(key: string, entry: PollingEntry): void {
+    #schedulePoll(key: string, entry: Entry): void {
         this.#schedule(key, entry, this.#withJitter(this.#getIntervalMs(entry)));
     }
 
-    #schedule(key: string, entry: PollingEntry, delay: number): void {
+    #schedule(key: string, entry: Entry, delay: number): void {
         this.#clearTimer(entry);
         entry.nextRunAt = this.#now() + delay;
         if (this.#getVisibilityState() === 'hidden') {
@@ -653,7 +699,7 @@ export class Poller {
         }, delay);
     }
 
-    #clearTimer(entry: PollingEntry, clearNextRun = true): void {
+    #clearTimer(entry: Entry, clearNextRun = true): void {
         if (entry.timer !== undefined) {
             this.#clearTimeout(entry.timer);
             entry.timer = undefined;
@@ -727,34 +773,37 @@ export function usePolling(key: string, intervalSeconds: number | undefined, ref
 }
 
 /**
- * Create a render-local list of polling keys and apply it after commit.
+ * Create a render-local map of hooks to polling keys.
  *
- * Descendants may suspend before their own effects run. They add keys to this
- * detached set during render; only the owner's layout effect changes Poller.
+ * The commit drops claims left by hooks that did not render.
  */
 export function usePollScope(): PollScope {
     const id = useId();
-    const keys = new Set<string>();
+    const claims = new Map<string, string>();
 
     useLayoutEffect(() => {
-        poller.commitOwner(id, keys);
+        poller.commitOwner(id, claims);
     });
     useLayoutEffect(() => () => poller.releaseOwner(id), [id]);
 
-    return { id, keys };
+    return { claims, id };
 }
 
 /**
  * Keep one request key for a rendered hook.
  *
- * The render-local key lets a committed parent own work while this hook is
- * suspended. Its passive effect stays mounted when Suspense hides an existing
- * tree, so a dependency refresh does not lose ownership of the active request.
+ * The hook must claim the key during render because an initial suspended render
+ * runs no effect. The claim only marks ownership; it starts no work. The passive
+ * effect keeps the claim after commit and stays mounted when Suspense hides an
+ * existing tree.
  */
 export function usePollKey(scope: PollScope | undefined, key: string): void {
     const hookId = useId();
-    scope?.keys.add(key);
+    scope?.claims.set(hookId, key);
     const ownerId = scope?.id;
+    if (ownerId) {
+        poller.claimKey(ownerId, hookId, key);
+    }
 
     useEffect(() => {
         if (!ownerId) {
