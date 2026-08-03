@@ -18,7 +18,7 @@ import ProgressTracker from '@/components/progress-tracker';
 import { FallbackCtx, VariableCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector, useVariable } from '@/shared/interactivity';
-import { usePolling } from '@/shared/interactivity/polling';
+import { beginPollOwner, keepPollOwner, releasePollOwner, usePolling } from '@/shared/interactivity/polling';
 import useServerComponent, {
     getServerComponentRequestKey,
     usePollServerComponent,
@@ -280,6 +280,14 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
 
     const { hasRunningTasks, cleanupRunningTasks } = useTaskContext();
     const variables = useRef<Set<string>>(new Set());
+    const [pollingOwner] = useState(() => Symbol('dynamic-component'));
+    const variableContext = useMemo(() => ({ pollingOwner, variables }), [pollingOwner]);
+    beginPollOwner(pollingOwner);
+
+    useEffect(() => {
+        keepPollOwner(pollingOwner);
+    });
+    useEffect(() => () => releasePollOwner(pollingOwner), [pollingOwner]);
 
     /*
         When this component unmounts, then cancel any pending tasks for this component. This is required because recoil uses
@@ -322,7 +330,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
             onReset={onResetErrorBoundary}
         >
             <FallbackCtx.Provider value={{ suspend }}>
-                <VariableCtx.Provider value={{ variables }}>
+                <VariableCtx.Provider value={variableContext}>
                     <Suspense fallback={fallback}>{component}</Suspense>
                 </VariableCtx.Provider>
             </FallbackCtx.Provider>

@@ -12,7 +12,7 @@
 import isEqual from 'lodash/isEqual';
 import set from 'lodash/set';
 import { nanoid } from 'nanoid';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import type { Params } from 'react-router';
 import {
     type GetRecoilValue,
@@ -49,16 +49,15 @@ import { type Deferred, deferred, isDeferred } from '../utils/deferred';
 // eslint-disable-next-line import/no-cycle
 import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable, resolveVariableStatic } from './internal';
 import {
-    type PollingRequestOutcome,
-    assertCurrentRequest,
     createPollForceKey,
-    getRetryAfterMs,
     isAbortError,
     isPollForceKey,
-    parseRetryAfter,
-    startPollingRequest,
+    markRetryAfter,
+    ownPoll,
+    releasePoll,
+    runPoll,
     usePolling,
-    waitForAbort,
+    waitOrAbort,
 } from './polling';
 import {
     type TriggerIndexValue,
@@ -145,43 +144,39 @@ export async function fetchDerivedVariable<T>({
     try {
         await validateResponse(res, `Failed to fetch the derived variable with uid: ${variableUid}`);
     } catch (error) {
-        if (typeof error === 'object' && error !== null) {
-            Object.assign(error, { retryAfterMs: parseRetryAfter(res) });
-        }
-        throw error;
+        throw markRetryAfter(error, res);
     }
     return res.json();
 }
 
-interface DebouncedFetchBatch {
+interface PendingFetch {
     args: FetchDerivedVariableArgs;
-    timer: ReturnType<typeof setTimeout>;
+    timer?: ReturnType<typeof setTimeout>;
     waiters: Array<{
         reject: (error: unknown) => void;
         resolve: (response: DerivedVariableResponse<any>) => void;
     }>;
 }
 
-const debouncedFetchBatches = new Map<string, DebouncedFetchBatch>();
+const pendingFetches = new Map<string, PendingFetch>();
 
 /**
- * Debounce startup calls to one selector identity without sharing errors
- * between already-started and newly queued request generations.
+ * Wait 10 ms so matching selector reads share one fetch. A running fetch stays separate.
  */
-function runDebouncedFetch(selectorKey: string, batch: DebouncedFetchBatch): void {
-    if (debouncedFetchBatches.get(selectorKey) !== batch) {
+function startPendingFetch(selectorKey: string, pending: PendingFetch): void {
+    if (pendingFetches.get(selectorKey) !== pending) {
         return;
     }
-    debouncedFetchBatches.delete(selectorKey);
+    pendingFetches.delete(selectorKey);
 
-    void fetchDerivedVariable(batch.args).then(
+    void fetchDerivedVariable(pending.args).then(
         (response) => {
-            for (const waiter of batch.waiters) {
+            for (const waiter of pending.waiters) {
                 waiter.resolve(response);
             }
         },
         (error: unknown) => {
-            for (const waiter of batch.waiters) {
+            for (const waiter of pending.waiters) {
                 waiter.reject(error);
             }
         }
@@ -190,22 +185,23 @@ function runDebouncedFetch(selectorKey: string, batch: DebouncedFetchBatch): voi
 
 async function debouncedFetchDerivedVariable(args: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
     return new Promise((resolve, reject) => {
-        const pendingBatch = debouncedFetchBatches.get(args.selectorKey);
-        if (pendingBatch) {
-            clearTimeout(pendingBatch.timer);
-            pendingBatch.args = args;
-            pendingBatch.waiters.push({ reject, resolve });
-            pendingBatch.timer = setTimeout(() => runDebouncedFetch(args.selectorKey, pendingBatch), 10);
+        const pending = pendingFetches.get(args.selectorKey);
+        if (pending) {
+            if (pending.timer !== undefined) {
+                clearTimeout(pending.timer);
+            }
+            pending.args = args;
+            pending.waiters.push({ reject, resolve });
+            pending.timer = setTimeout(() => startPendingFetch(args.selectorKey, pending), 10);
             return;
         }
 
-        const batch: DebouncedFetchBatch = {
+        const next: PendingFetch = {
             args,
-            timer: undefined as unknown as ReturnType<typeof setTimeout>,
             waiters: [{ reject, resolve }],
         };
-        batch.timer = setTimeout(() => runDebouncedFetch(args.selectorKey, batch), 10);
-        debouncedFetchBatches.set(args.selectorKey, batch);
+        next.timer = setTimeout(() => startPendingFetch(args.selectorKey, next), 10);
+        pendingFetches.set(args.selectorKey, next);
     });
 }
 
@@ -378,7 +374,8 @@ export type DerivedResult = PreviousResult | CurrentResult | CachedResponse;
  * @param resolvedVariables resolved values of dependant variables - turned into primitives and Resolved forms
  * @param get getter function to resolve atoms to values
  * @param triggerList list of trigger info objects
- * @param triggers list of triggers to register as dependencies; first one is expected to be the self-trigger
+ * @param selfTriggers triggers owned by this request identity
+ * @param childTriggers triggers owned by nested variables
  */
 export function resolveDerivedValue({
     key,
@@ -387,8 +384,8 @@ export function resolveDerivedValue({
     resolvedVariables,
     resolutionStrategy,
     triggerList,
-    triggers,
-    selfTriggerCount = 1,
+    selfTriggers,
+    childTriggers,
 }: {
     key: string;
     variables: any[];
@@ -398,10 +395,10 @@ export function resolveDerivedValue({
         | { name: 'get'; get: GetRecoilValue }
         | { name: 'static'; snapshot: Snapshot; params: Params<string> };
     triggerList: Array<TriggerInfo>;
-    triggers: TriggerIndexValue[];
-    /** Number of leading triggers that directly force this request identity. */
-    selfTriggerCount?: number;
+    selfTriggers: TriggerIndexValue[];
+    childTriggers: TriggerIndexValue[];
 }): DerivedResult {
+    const triggers = [...selfTriggers, ...childTriggers];
     /**
      * Array of values:
      * - primitive values are resolved to themselves
@@ -504,13 +501,13 @@ export function resolveDerivedValue({
              *  handle the force_key appropriately
              */
             if (triggerValue.inc !== previousTriggerCounters[idx]) {
-                if (idx < selfTriggerCount) {
+                if (idx < selfTriggers.length) {
                     // This is a self-trigger (polling, manual trigger) - use global force
                     selfTriggerForceKey = triggerValue.force_key;
                 } else if (triggerValue.force_key) {
                     // This is a nested variable trigger - embed force_key in the specific variable
                     // shift index back by the number of prepended self triggers
-                    const valueIndex = idx - selfTriggerCount;
+                    const valueIndex = idx - selfTriggers.length;
                     const triggerInfo = triggerList[valueIndex]!;
 
                     // If the trigger path is empty, it means we need to force the DV itself
@@ -599,8 +596,7 @@ export function getOrRegisterDerivedVariableResult(
                         const triggerList = buildTriggerList(variable.variables);
 
                         // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
-                        const triggers = registerChildTriggers(triggerList, get);
-                        triggers.unshift(selfTrigger, pollingTrigger);
+                        const childTriggers = registerChildTriggers(triggerList, get);
 
                         const derivedResult = resolveDerivedValue({
                             key: selectorKey,
@@ -609,8 +605,8 @@ export function getOrRegisterDerivedVariableResult(
                             resolvedVariables,
                             resolutionStrategy: { name: 'get', get },
                             triggerList,
-                            triggers,
-                            selfTriggerCount: 2,
+                            selfTriggers: [selfTrigger, pollingTrigger],
+                            childTriggers,
                         });
                         return derivedResult;
                     },
@@ -690,26 +686,16 @@ export function getOrRegisterDerivedVariableValue(
                         const currentResult =
                             derivedResult.type === 'current' ? (derivedResult as CurrentResult) : undefined;
                         const pollRequest = isPollForceKey(currentResult?.selfTriggerForceKey);
-                        const requestFingerprint = currentResult
+                        const inputKey = currentResult
                             ? JSON.stringify({
                                   forceKey: currentResult.selfTriggerForceKey,
                                   values: currentResult.values,
                               })
                             : undefined;
-                        const requestHandle = currentResult
-                            ? startPollingRequest(
-                                  selectorKey,
-                                  pollRequest ? 'poll' : 'dependency',
-                                  extras.signal ?? undefined,
-                                  requestFingerprint
-                              )
-                            : undefined;
-                        let requestOutcome: PollingRequestOutcome = { status: 'success' };
-                        let variableResponse = null;
-                        // whether to check for an initial task
-                        let shouldFetchTask = false;
+                        const fetchValue = async (signal?: AbortSignal): Promise<any> => {
+                            let variableResponse = null;
+                            let shouldFetchTask = false;
 
-                        try {
                             // Skip fetching if we have a cached result, await it instead
                             if (derivedResult.type === 'cached') {
                                 const response = await derivedResult.response.getValue();
@@ -720,18 +706,15 @@ export function getOrRegisterDerivedVariableValue(
                                 variableResponse = response.value;
                                 derivedResult = derivedResult.currentResult;
                             } else {
-                                assertCurrentRequest(requestHandle!);
-                                requestHandle!.signal.addEventListener(
-                                    'abort',
-                                    () => taskContext.cleanupRunningTasks(variable.uid),
-                                    { once: true }
-                                );
+                                signal!.addEventListener('abort', () => taskContext.cleanupRunningTasks(variable.uid), {
+                                    once: true,
+                                });
                                 variableResponse = await debouncedFetchDerivedVariable({
                                     cache: variable.cache,
                                     extras,
                                     force_key: currentResult!.selfTriggerForceKey,
                                     selectorKey,
-                                    signal: requestHandle!.signal,
+                                    signal: signal!,
                                     values: normalizeRequest(cleanArgs(currentResult!.values), variable.variables),
                                     variableUid: variable.uid,
                                     wsClient,
@@ -751,7 +734,7 @@ export function getOrRegisterDerivedVariableValue(
                                 if (shouldFetchTask) {
                                     const taskResult = await fetchTaskResult<any>(taskId, {
                                         ...extras,
-                                        signal: requestHandle?.signal,
+                                        signal,
                                     });
                                     if (taskResult.status === 'ok') {
                                         variableValue = taskResult.result;
@@ -764,7 +747,7 @@ export function getOrRegisterDerivedVariableValue(
                                     taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
 
                                     try {
-                                        await waitForAbort(wsClient.waitForTask(taskId), requestHandle?.signal);
+                                        await waitOrAbort(wsClient.waitForTask(taskId), signal);
                                     } catch (e: unknown) {
                                         if (e instanceof TaskError || isAbortError(e)) {
                                             throw e;
@@ -779,7 +762,7 @@ export function getOrRegisterDerivedVariableValue(
 
                                     const result = await fetchTaskResult<any>(taskId, {
                                         ...extras,
-                                        signal: requestHandle?.signal,
+                                        signal,
                                     });
                                     if (result.status === 'not_found') {
                                         throw new Error('Task result not found');
@@ -790,38 +773,43 @@ export function getOrRegisterDerivedVariableValue(
                                 variableValue = variableResponse.value;
                             }
 
-                            if (requestHandle) {
-                                assertCurrentRequest(requestHandle);
-                            }
-
-                            // Store the final result and arguments used
-                            depsRegistry.set(derivedResult.depsKey, {
-                                args: derivedResult.relevantValues,
-                                result: variableValue,
-                            });
-
                             return variableValue;
+                        };
+
+                        if (!currentResult) {
+                            try {
+                                const variableValue = await fetchValue();
+                                depsRegistry.set(derivedResult.depsKey, {
+                                    args: derivedResult.relevantValues,
+                                    result: variableValue,
+                                });
+                                return variableValue;
+                            } catch (error) {
+                                return throwError(error);
+                            }
+                        }
+
+                        const runResult = currentResult;
+                        try {
+                            return await runPoll({
+                                cause: pollRequest ? 'poll' : 'dependency',
+                                inputKey,
+                                key: selectorKey,
+                                read: () => {
+                                    const saved = depsRegistry.get(runResult.depsKey);
+                                    return saved ? { found: true, value: saved.result } : { found: false };
+                                },
+                                signal: extras.signal ?? undefined,
+                                work: fetchValue,
+                                write: (variableValue) => {
+                                    depsRegistry.set(runResult.depsKey, {
+                                        args: runResult.relevantValues,
+                                        result: variableValue,
+                                    });
+                                },
+                            });
                         } catch (error) {
-                            requestOutcome = isAbortError(error)
-                                ? { status: 'aborted' }
-                                : { status: 'error', retryAfterMs: getRetryAfterMs(error) };
-
-                            const previous = depsRegistry.get((derivedResult as CurrentResult).depsKey);
-                            if (isAbortError(error) && previous) {
-                                await requestHandle?.waitForSupersedingRequest();
-                                return (
-                                    depsRegistry.get((derivedResult as CurrentResult).depsKey)?.result ??
-                                    previous.result
-                                );
-                            }
-
-                            if (pollRequest && previous) {
-                                return previous.result;
-                            }
-
-                            throwError(error);
-                        } finally {
-                            requestHandle?.finish(requestOutcome);
+                            return throwError(error);
                         }
                     },
                 key: nanoid(),
@@ -925,19 +913,19 @@ export function preloadDerivedValue({
     variables,
     deps,
     triggerList,
-    triggers,
+    selfTriggers,
+    childTriggers,
     snapshot,
     params,
-    selfTriggerCount,
 }: {
     key: string;
     variables: any[];
     deps: any[];
     triggerList: Array<TriggerInfo>;
-    triggers: TriggerIndexValue[];
+    selfTriggers: TriggerIndexValue[];
+    childTriggers: TriggerIndexValue[];
     snapshot: Snapshot;
     params: Params<string>;
-    selfTriggerCount?: number;
 }): {
     handle: Deferred<any>;
     result: DerivedResult;
@@ -949,8 +937,8 @@ export function preloadDerivedValue({
         resolvedVariables: variables,
         resolutionStrategy: { name: 'static', snapshot, params },
         triggerList,
-        triggers,
-        selfTriggerCount,
+        selfTriggers,
+        childTriggers,
     });
 
     // otherwise we already have a valid entry, nothing to do here
@@ -975,21 +963,21 @@ export function preloadDerivedVariable(
 
     // prepare trigger list as usual but use static resolution
     const triggerList = buildTriggerList(variable.variables);
-    const triggers = [
+    const selfTriggers = [
         resolveTriggerStatic(getOrRegisterTrigger(variable), snapshot),
         resolveTriggerStatic(getOrRegisterPollingTrigger(requestKey), snapshot),
-        ...triggerList.map((ti) => resolveTriggerStatic(getOrRegisterTrigger(ti.variable), snapshot)),
     ];
+    const childTriggers = triggerList.map((ti) => resolveTriggerStatic(getOrRegisterTrigger(ti.variable), snapshot));
 
     return preloadDerivedValue({
         key,
         variables: variable.variables,
         deps: variable.deps,
-        triggers,
+        selfTriggers,
+        childTriggers,
         triggerList,
         snapshot,
         params,
-        selfTriggerCount: 2,
     });
 }
 
@@ -1001,17 +989,24 @@ export function preloadDerivedVariable(
  * @param taskContext global task context
  * @param search search query
  * @param extras request extras to be merged into the options
+ * @param pollingOwner Suspense-safe owner for requests started during render
  */
 export function useDerivedVariable(
     variable: DerivedVariable,
     WsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     extras: RequestExtras,
-    pollingInterval?: number
+    pollingInterval?: number,
+    pollingOwner?: symbol
 ): RecoilValue<any> {
     const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, extras);
 
     const pollingKey = getRegistryKey(variable, 'derived-selector') + new RequestExtrasSerializable(extras).toJSON();
+    ownPoll(pollingOwner, pollingKey);
+    useEffect(() => {
+        ownPoll(pollingOwner, pollingKey);
+        return () => releasePoll(pollingOwner, pollingKey);
+    }, [pollingOwner, pollingKey]);
     const triggerIndex = useMemo(() => getOrRegisterPollingTrigger(pollingKey), [pollingKey]);
 
     // Creating a setter function for triggerIndex

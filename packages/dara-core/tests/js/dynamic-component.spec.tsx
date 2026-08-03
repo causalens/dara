@@ -226,6 +226,118 @@ describe('DynamicComponent', () => {
         expect(slowPollSignal?.aborted).toBe(true);
     });
 
+    it('aborts the first Python component request when its suspended owner unmounts', async () => {
+        vi.useFakeTimers();
+        let firstSignal: AbortSignal | undefined;
+        server.use(
+            http.post('/api/core/components/SuspendedComponent', async ({ request }) => {
+                firstSignal = request.signal;
+                await new Promise<void>((resolve) => {
+                    if (request.signal.aborted) {
+                        resolve();
+                    } else {
+                        request.signal.addEventListener('abort', () => resolve(), { once: true });
+                    }
+                });
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: { content: 'old' },
+                    },
+                    lookup: {},
+                });
+            })
+        );
+
+        const rendered = wrappedRender(
+            <DynamicComponent
+                component={
+                    {
+                        name: 'SuspendedComponent',
+                        props: {
+                            dynamic_kwargs: {},
+                            polling_interval: 1,
+                            js_module: 'test',
+                            func_name: 'suspended',
+                        },
+                        uid: 'suspended-component',
+                    } satisfies PyComponentInstance
+                }
+            />
+        );
+
+        await vi.waitFor(() => expect(firstSignal).toBeDefined());
+        rendered.unmount();
+        act(() => vi.advanceTimersByTime(0));
+
+        expect(firstSignal?.aborted).toBe(true);
+    });
+
+    it('aborts a slow Python poll when an input changes and drops its stale result', async () => {
+        vi.useFakeTimers();
+        const dependency: Variable<number> = {
+            __typename: 'Variable',
+            default: 1,
+            nested: [],
+            uid: 'python-poll-dependency',
+        };
+        const component = {
+            name: 'FreshPythonComponent',
+            props: {
+                dynamic_kwargs: { value: dependency },
+                polling_interval: 1,
+                js_module: 'test',
+                func_name: 'fresh_python',
+            },
+            uid: 'fresh-python-component',
+        } satisfies PyComponentInstance;
+        let requestCount = 0;
+        let staleSignal: AbortSignal | undefined;
+
+        server.use(
+            http.post('/api/core/components/FreshPythonComponent', async ({ request }) => {
+                requestCount++;
+                if (requestCount === 2) {
+                    staleSignal = request.signal;
+                    await new Promise<void>((resolve) => {
+                        request.signal.addEventListener('abort', () => resolve(), { once: true });
+                    });
+                }
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: {
+                            content: requestCount === 1 ? 'initial' : requestCount === 2 ? 'stale-poll' : 'fresh-input',
+                        },
+                    },
+                    lookup: {},
+                });
+            })
+        );
+
+        function TestHost(): JSX.Element {
+            const [, setDependency] = useVariable(dependency);
+            return (
+                <>
+                    <button onClick={() => setDependency(2)} type="button">
+                        update
+                    </button>
+                    <DynamicComponent component={component} />
+                </>
+            );
+        }
+
+        const rendered = wrappedRender(<TestHost />);
+        await vi.waitFor(() => expect(rendered.getByText('initial')).toBeInTheDocument());
+        act(() => vi.advanceTimersByTime(1200));
+        await vi.waitFor(() => expect(requestCount).toBe(2));
+        fireEvent.click(rendered.getByText('update'));
+
+        await vi.waitFor(() => expect(rendered.getByText('fresh-input')).toBeInTheDocument());
+        expect(staleSignal?.aborted).toBe(true);
+        expect(rendered.queryByText('stale-poll')).not.toBeInTheDocument();
+    });
+
     it('should publish EventBus notification on server component render', async () => {
         const receivedData: Array<DaraEventMap['SERVER_COMPONENT_LOADED']> = [];
 

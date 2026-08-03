@@ -1,8 +1,4 @@
-import {
-    PollingCoordinator,
-    assertCurrentRequest,
-    parseRetryAfter,
-} from '@/shared/interactivity/polling';
+import { Poller, markRetryAfter, parseRetryAfter, waitOrAbort } from '@/shared/interactivity/polling';
 
 class VisibilityTarget extends EventTarget {
     state: DocumentVisibilityState = 'visible';
@@ -13,7 +9,23 @@ class VisibilityTarget extends EventTarget {
     }
 }
 
-describe('PollingCoordinator', () => {
+interface Deferred<T> {
+    promise: Promise<T>;
+    reject: (error: unknown) => void;
+    resolve: (value: T) => void;
+}
+
+function defer<T>(): Deferred<T> {
+    let reject!: (error: unknown) => void;
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+        reject = rejectPromise;
+        resolve = resolvePromise;
+    });
+    return { promise, reject, resolve };
+}
+
+describe('Poller', () => {
     beforeEach(() => {
         vi.useFakeTimers();
     });
@@ -23,12 +35,12 @@ describe('PollingCoordinator', () => {
         vi.useRealTimers();
     });
 
-    function createCoordinator(
+    function createPoller(
         visibility = new VisibilityTarget(),
         options: { jitterRatio?: number; random?: () => number } = {}
-    ): { coordinator: PollingCoordinator; visibility: VisibilityTarget } {
+    ): { poller: Poller; visibility: VisibilityTarget } {
         return {
-            coordinator: new PollingCoordinator({
+            poller: new Poller({
                 getVisibilityState: () => visibility.state,
                 jitterRatio: options.jitterRatio ?? 0,
                 random: options.random,
@@ -38,135 +50,162 @@ describe('PollingCoordinator', () => {
         };
     }
 
-    it('allows one active poll and coalesces busy refreshes into one trailing request', () => {
-        const { coordinator } = createCoordinator();
-        const handles: ReturnType<PollingCoordinator['startRequest']>[] = [];
-        let active = 0;
-        let peak = 0;
-
-        coordinator.subscribe('derived:one', 1, () => {
-            const handle = coordinator.startRequest('derived:one', 'poll');
-            handles.push(handle);
-            active++;
-            peak = Math.max(peak, active);
+    function watchPolls(
+        poller: Poller,
+        key: string,
+        interval = 1
+    ): Array<Deferred<number> & { result?: Promise<number>; signal?: AbortSignal }> {
+        const runs: Array<Deferred<number> & { result?: Promise<number>; signal?: AbortSignal }> = [];
+        let saved = 0;
+        poller.subscribe(key, interval, () => {
+            const next: Deferred<number> & { result?: Promise<number>; signal?: AbortSignal } = defer<number>();
+            runs.push(next);
+            next.result = poller.run({
+                cause: 'poll',
+                key,
+                read: () => ({ found: true, value: saved }),
+                work: (signal) => {
+                    next.signal = signal;
+                    return waitOrAbort(next.promise, signal);
+                },
+                write: (value) => {
+                    saved = value;
+                },
+            });
         });
+        return runs;
+    }
+
+    it('runs one poll at a time and keeps one refresh while busy', async () => {
+        const { poller } = createPoller();
+        const runs = watchPolls(poller, 'derived:one');
 
         vi.advanceTimersByTime(1000);
-        expect(handles).toHaveLength(1);
+        poller.runNow('derived:one');
+        poller.runNow('derived:one');
+        poller.runNow('derived:one');
+        expect(runs).toHaveLength(1);
 
-        coordinator.requestRefresh('derived:one');
-        coordinator.requestRefresh('derived:one');
-        coordinator.requestRefresh('derived:one');
-        expect(handles).toHaveLength(1);
-
-        active--;
-        handles[0]!.finish({ status: 'success' });
-        expect(handles).toHaveLength(2);
-
-        active--;
-        handles[1]!.finish({ status: 'success' });
-        expect(peak).toBe(1);
+        runs[0]!.resolve(1);
+        await vi.waitFor(() => expect(runs).toHaveLength(2));
+        runs[1]!.resolve(2);
+        await expect(runs[1]!.result).resolves.toBe(2);
+        expect(runs).toHaveLength(2);
     });
 
-    it('uses fixed delay measured from request completion', () => {
-        const { coordinator } = createCoordinator();
-        const handles: ReturnType<PollingCoordinator['startRequest']>[] = [];
-
-        coordinator.subscribe('derived:fixed-delay', 1, () => {
-            handles.push(coordinator.startRequest('derived:fixed-delay', 'poll'));
-        });
+    it('uses fixed delay measured from request completion', async () => {
+        const { poller } = createPoller();
+        const runs = watchPolls(poller, 'derived:fixed-delay');
 
         vi.advanceTimersByTime(1000);
-        expect(handles).toHaveLength(1);
-
         vi.advanceTimersByTime(5000);
-        expect(handles).toHaveLength(1);
+        expect(runs).toHaveLength(1);
 
-        handles[0]!.finish({ status: 'success' });
-        vi.advanceTimersByTime(999);
-        expect(handles).toHaveLength(1);
-        vi.advanceTimersByTime(1);
-        expect(handles).toHaveLength(2);
+        runs[0]!.resolve(1);
+        await vi.advanceTimersByTimeAsync(999);
+        expect(runs).toHaveLength(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(runs).toHaveLength(2);
     });
 
-    it('pauses while hidden and performs exactly one prompt refresh on resume', () => {
-        const { coordinator, visibility } = createCoordinator();
-        const refresh = vi.fn(() => coordinator.startRequest('component:hidden', 'poll'));
+    it('pauses while hidden and refreshes once when shown', () => {
+        const { poller, visibility } = createPoller();
+        const refresh = vi.fn();
+        poller.subscribe('component:hidden', 1, refresh);
 
-        coordinator.subscribe('component:hidden', 1, refresh);
         visibility.setState('hidden');
         vi.advanceTimersByTime(10_000);
         expect(refresh).not.toHaveBeenCalled();
 
         visibility.setState('visible');
-        expect(refresh).toHaveBeenCalledTimes(1);
         visibility.setState('visible');
         expect(refresh).toHaveBeenCalledTimes(1);
     });
 
-    it('coalesces a visibility resume that occurs while a request is active', () => {
-        const { coordinator, visibility } = createCoordinator();
-        const handles: ReturnType<PollingCoordinator['startRequest']>[] = [];
-        coordinator.subscribe('component:resume-busy', 1, () => {
-            handles.push(coordinator.startRequest('component:resume-busy', 'poll'));
-        });
+    it('keeps one refresh when the tab becomes visible during a request', async () => {
+        const { poller, visibility } = createPoller();
+        const runs = watchPolls(poller, 'component:resume-busy');
 
         vi.advanceTimersByTime(1000);
         visibility.setState('hidden');
         visibility.setState('visible');
         visibility.setState('hidden');
         visibility.setState('visible');
-        expect(handles).toHaveLength(1);
+        expect(runs).toHaveLength(1);
 
-        handles[0]!.finish({ status: 'success' });
-        expect(handles).toHaveLength(2);
+        runs[0]!.resolve(1);
+        await vi.waitFor(() => expect(runs).toHaveLength(2));
     });
 
-    it('backs off exponentially after errors and resets after success', () => {
-        const { coordinator } = createCoordinator();
-        const handles: ReturnType<PollingCoordinator['startRequest']>[] = [];
-        coordinator.subscribe('derived:backoff', 1, () => {
-            handles.push(coordinator.startRequest('derived:backoff', 'poll'));
-        });
+    it('backs off after errors and resets after success', async () => {
+        const { poller } = createPoller();
+        const runs = watchPolls(poller, 'derived:backoff');
 
         vi.advanceTimersByTime(1000);
-        handles[0]!.finish({ status: 'error' });
-        vi.advanceTimersByTime(999);
-        expect(handles).toHaveLength(1);
-        vi.advanceTimersByTime(1);
-        expect(handles).toHaveLength(2);
+        runs[0]!.reject(new Error('first'));
+        await vi.advanceTimersByTimeAsync(999);
+        expect(runs).toHaveLength(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(runs).toHaveLength(2);
 
-        handles[1]!.finish({ status: 'error' });
-        vi.advanceTimersByTime(1999);
-        expect(handles).toHaveLength(2);
-        vi.advanceTimersByTime(1);
-        expect(handles).toHaveLength(3);
+        runs[1]!.reject(new Error('second'));
+        await vi.advanceTimersByTimeAsync(1999);
+        expect(runs).toHaveLength(2);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(runs).toHaveLength(3);
 
-        handles[2]!.finish({ status: 'success' });
-        vi.advanceTimersByTime(999);
-        expect(handles).toHaveLength(3);
-        vi.advanceTimersByTime(1);
-        expect(handles).toHaveLength(4);
+        runs[2]!.resolve(3);
+        await vi.advanceTimersByTimeAsync(999);
+        expect(runs).toHaveLength(3);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(runs).toHaveLength(4);
     });
 
-    it('respects Retry-After when it exceeds exponential backoff', () => {
-        const { coordinator } = createCoordinator();
-        const handles: ReturnType<PollingCoordinator['startRequest']>[] = [];
-        coordinator.subscribe('derived:retry-after', 1, () => {
-            handles.push(coordinator.startRequest('derived:retry-after', 'poll'));
-        });
+    it('resets errors when a run succeeds while hidden', async () => {
+        const { poller, visibility } = createPoller();
+        const runs = watchPolls(poller, 'derived:hidden-success');
 
         vi.advanceTimersByTime(1000);
-        handles[0]!.finish({ status: 'error', retryAfterMs: 5000 });
-        vi.advanceTimersByTime(4999);
-        expect(handles).toHaveLength(1);
-        vi.advanceTimersByTime(1);
-        expect(handles).toHaveLength(2);
+        runs[0]!.reject(new Error('first'));
+        await vi.advanceTimersByTimeAsync(1000);
+        visibility.setState('hidden');
+        runs[1]!.resolve(2);
+        await expect(runs[1]!.result).resolves.toBe(2);
+        visibility.setState('visible');
+        await vi.waitFor(() => expect(runs).toHaveLength(3));
+
+        runs[2]!.reject(new Error('after success'));
+        await vi.advanceTimersByTimeAsync(999);
+        expect(runs).toHaveLength(3);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(runs).toHaveLength(4);
     });
 
-    it('keeps ordinary jitter inside the configured bound', () => {
-        const early = createCoordinator(undefined, { jitterRatio: 0.1, random: () => 0 }).coordinator;
-        const late = createCoordinator(undefined, { jitterRatio: 0.1, random: () => 1 }).coordinator;
+    it('keeps Retry-After when an error finishes while hidden', async () => {
+        const { poller, visibility } = createPoller();
+        const runs = watchPolls(poller, 'derived:hidden-retry-after');
+
+        vi.advanceTimersByTime(1000);
+        visibility.setState('hidden');
+        runs[0]!.reject(
+            markRetryAfter(
+                new Error('busy'),
+                new Response(null, {
+                    headers: { 'Retry-After': '5' },
+                })
+            )
+        );
+        await Promise.resolve();
+        visibility.setState('visible');
+        await vi.advanceTimersByTimeAsync(4999);
+        expect(runs).toHaveLength(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(runs).toHaveLength(2);
+    });
+
+    it('keeps jitter inside the configured bound', () => {
+        const early = createPoller(undefined, { jitterRatio: 0.1, random: () => 0 }).poller;
+        const late = createPoller(undefined, { jitterRatio: 0.1, random: () => 1 }).poller;
         const earlyRefresh = vi.fn();
         const lateRefresh = vi.fn();
 
@@ -177,33 +216,102 @@ describe('PollingCoordinator', () => {
         expect(earlyRefresh).not.toHaveBeenCalled();
         vi.advanceTimersByTime(1);
         expect(earlyRefresh).toHaveBeenCalledTimes(1);
-        expect(lateRefresh).not.toHaveBeenCalled();
         vi.advanceTimersByTime(199);
         expect(lateRefresh).not.toHaveBeenCalled();
         vi.advanceTimersByTime(1);
         expect(lateRefresh).toHaveBeenCalledTimes(1);
     });
 
-    it('aborts the owned request when its final rendered consumer unmounts', () => {
-        const { coordinator } = createCoordinator();
-        let request: ReturnType<PollingCoordinator['startRequest']> | undefined;
-        const unsubscribe = coordinator.subscribe('component:unmount', 1, () => {
-            request = coordinator.startRequest('component:unmount', 'poll');
+    it('caps jittered error backoff at one minute', async () => {
+        const { poller } = createPoller(undefined, { jitterRatio: 0.1, random: () => 1 });
+        const runs = watchPolls(poller, 'derived:max-backoff', 60);
+
+        vi.advanceTimersByTime(66_000);
+        runs[0]!.reject(new Error('failed'));
+        await vi.advanceTimersByTimeAsync(59_999);
+        expect(runs).toHaveLength(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(runs).toHaveLength(2);
+    });
+
+    it('shortens the timer when a faster consumer starts watching', () => {
+        const { poller } = createPoller();
+        const slow = vi.fn();
+        const fast = vi.fn();
+
+        poller.subscribe('shared', 60, slow);
+        vi.advanceTimersByTime(100);
+        poller.subscribe('shared', 1, fast);
+        vi.advanceTimersByTime(999);
+        expect(fast).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(fast).toHaveBeenCalledTimes(1);
+        expect(slow).not.toHaveBeenCalled();
+    });
+
+    it('does not let an old cleanup delete a new entry', async () => {
+        const { poller } = createPoller();
+        const firstCleanup = poller.subscribe('component:owned', 1, () => {});
+
+        vi.advanceTimersByTime(1000);
+        const old = defer<number>();
+        const oldRun = poller.run({
+            cause: 'poll',
+            key: 'component:owned',
+            read: () => ({ found: true, value: 0 }),
+            work: (signal) => waitOrAbort(old.promise, signal),
+            write: () => {},
+        });
+        firstCleanup();
+        old.resolve(1);
+        await oldRun;
+
+        const refresh = vi.fn();
+        poller.subscribe('component:owned', 1, refresh);
+        await vi.advanceTimersByTimeAsync(0);
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('aborts the run when its final consumer unmounts', () => {
+        const { poller } = createPoller();
+        let signal: AbortSignal | undefined;
+        const never = defer<number>();
+        const unsubscribe = poller.subscribe('component:unmount', 1, () => {
+            void poller.run({
+                cause: 'poll',
+                key: 'component:unmount',
+                read: () => ({ found: true, value: 0 }),
+                work: (runSignal) => {
+                    signal = runSignal;
+                    return never.promise;
+                },
+                write: () => {},
+            });
         });
 
         vi.advanceTimersByTime(1000);
         unsubscribe();
         vi.advanceTimersByTime(0);
-
-        expect(request?.signal.aborted).toBe(true);
+        expect(signal?.aborted).toBe(true);
     });
 
-    it('does not abort an immediately reacquired StrictMode subscription', () => {
-        const { coordinator } = createCoordinator();
-        let request: ReturnType<PollingCoordinator['startRequest']> | undefined;
+    it('keeps a run through an immediate StrictMode resubscribe', () => {
+        const { poller } = createPoller();
+        let signal: AbortSignal | undefined;
+        const never = defer<number>();
         const subscribe = (): (() => void) =>
-            coordinator.subscribe('component:strict-mode', 1, () => {
-                request = coordinator.startRequest('component:strict-mode', 'poll');
+            poller.subscribe('component:strict-mode', 1, () => {
+                void poller.run({
+                    cause: 'poll',
+                    key: 'component:strict-mode',
+                    read: () => ({ found: true, value: 0 }),
+                    work: (runSignal) => {
+                        signal = runSignal;
+                        return never.promise;
+                    },
+                    write: () => {},
+                });
             });
 
         const firstCleanup = subscribe();
@@ -211,50 +319,167 @@ describe('PollingCoordinator', () => {
         firstCleanup();
         const secondCleanup = subscribe();
         vi.advanceTimersByTime(0);
-        expect(request?.signal.aborted).toBe(false);
+        expect(signal?.aborted).toBe(false);
 
         secondCleanup();
         vi.advanceTimersByTime(0);
-        expect(request?.signal.aborted).toBe(true);
+        expect(signal?.aborted).toBe(true);
     });
 
-    it('aborts and makes a slow poll stale when a dependency request supersedes it', () => {
-        const { coordinator } = createCoordinator();
-        coordinator.subscribe('derived:freshness', 1, () => {});
+    it('aborts an initial suspended run when its rendered owner unmounts', () => {
+        const { poller } = createPoller();
+        const owner = Symbol('component');
+        let signal: AbortSignal | undefined;
 
-        const poll = coordinator.startRequest('derived:freshness', 'poll');
-        const dependency = coordinator.startRequest('derived:freshness', 'dependency');
+        poller.own(owner, 'derived:first-load');
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:first-load',
+            work: (runSignal) => {
+                signal = runSignal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
+        poller.keepOwner(owner);
+        poller.releaseOwner(owner);
+        vi.advanceTimersByTime(0);
 
-        expect(poll.signal.aborted).toBe(true);
-        expect(() => assertCurrentRequest(poll)).toThrowError(/superseded/);
-        expect(dependency.signal.aborted).toBe(false);
-
-        poll.finish({ status: 'aborted' });
-        dependency.finish({ status: 'success' });
+        expect(signal?.aborted).toBe(true);
     });
 
-    it('deduplicates shared consumers while keeping request-extras identities independent', () => {
-        const { coordinator } = createCoordinator();
-        const sharedRefresh = vi.fn(() => coordinator.startRequest('dv:headers-a', 'poll'));
-        const otherExtrasRefresh = vi.fn(() => coordinator.startRequest('dv:headers-b', 'poll'));
+    it('keeps an initial run through a StrictMode owner remount', () => {
+        const { poller } = createPoller();
+        const owner = Symbol('component');
+        let signal: AbortSignal | undefined;
 
-        coordinator.subscribe('dv:headers-a', 1, sharedRefresh);
-        coordinator.subscribe('dv:headers-a', 1, sharedRefresh);
-        coordinator.subscribe('dv:headers-b', 1, otherExtrasRefresh);
+        poller.own(owner, 'derived:first-load');
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:first-load',
+            work: (runSignal) => {
+                signal = runSignal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
+        poller.keepOwner(owner);
+        poller.releaseOwner(owner);
+        poller.keepOwner(owner);
+        vi.advanceTimersByTime(0);
+
+        expect(signal?.aborted).toBe(false);
+    });
+
+    it('aborts work dropped by the next committed owner render', () => {
+        const { poller } = createPoller();
+        const owner = Symbol('component');
+        let oldSignal: AbortSignal | undefined;
+
+        poller.beginOwner(owner);
+        poller.own(owner, 'derived:old');
+        poller.keepOwner(owner);
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:old',
+            work: (signal) => {
+                oldSignal = signal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
+
+        poller.beginOwner(owner);
+        poller.own(owner, 'derived:new');
+        poller.keepOwner(owner);
+
+        expect(oldSignal?.aborted).toBe(true);
+    });
+
+    it('waits through every newer dependency run before returning', async () => {
+        const { poller } = createPoller();
+        let saved = 'old';
+        const a = defer<string>();
+        const b = defer<string>();
+        const c = defer<string>();
+        const start = (inputKey: string, work: Deferred<string>): Promise<string> =>
+            poller.run({
+                cause: 'dependency',
+                inputKey,
+                key: 'derived:freshness',
+                read: () => ({ found: true, value: saved }),
+                work: (signal) => waitOrAbort(work.promise, signal),
+                write: (value) => {
+                    saved = value;
+                },
+            });
+
+        const runA = start('a', a);
+        const runB = start('b', b);
+        const runC = start('c', c);
+        c.resolve('new');
+
+        await expect(runC).resolves.toBe('new');
+        await expect(runB).resolves.toBe('new');
+        await expect(runA).resolves.toBe('new');
+        expect(saved).toBe('new');
+    });
+
+    it('shares one promise and one fetch for matching input', async () => {
+        const { poller } = createPoller();
+        const result = defer<number>();
+        const work = vi.fn(() => result.promise);
+        const write = vi.fn();
+        const options = {
+            cause: 'dependency' as const,
+            inputKey: 'same',
+            key: 'derived:shared',
+            work,
+            write,
+        };
+
+        const first = poller.run(options);
+        const second = poller.run(options);
+        expect(second).toBe(first);
+        expect(work).toHaveBeenCalledTimes(1);
+
+        result.resolve(42);
+        await expect(first).resolves.toBe(42);
+        expect(write).toHaveBeenCalledTimes(1);
+    });
+
+    it('shares matching extras and keeps different extras apart', () => {
+        const { poller } = createPoller();
+        const sharedRefresh = vi.fn();
+        const otherExtrasRefresh = vi.fn();
+
+        poller.subscribe('dv:headers-a', 1, sharedRefresh);
+        poller.subscribe('dv:headers-a', 1, sharedRefresh);
+        poller.subscribe('dv:headers-b', 1, otherExtrasRefresh);
         vi.advanceTimersByTime(1000);
 
         expect(sharedRefresh).toHaveBeenCalledTimes(1);
         expect(otherExtrasRefresh).toHaveBeenCalledTimes(1);
     });
 
-    it('propagates external cancellation into the coordinator-owned signal', () => {
-        const { coordinator } = createCoordinator();
+    it('passes an outer abort to the run', () => {
+        const { poller } = createPoller();
         const navigation = new AbortController();
-        const request = coordinator.startRequest('derived:navigation', 'dependency', navigation.signal);
+        let signal: AbortSignal | undefined;
 
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:navigation',
+            signal: navigation.signal,
+            work: (runSignal) => {
+                signal = runSignal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
         navigation.abort();
 
-        expect(request.signal.aborted).toBe(true);
+        expect(signal?.aborted).toBe(true);
     });
 });
 

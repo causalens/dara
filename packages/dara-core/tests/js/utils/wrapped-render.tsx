@@ -15,6 +15,7 @@ import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
+import { beginPollOwner, keepPollOwner, releasePollOwner } from '@/shared/interactivity/polling';
 import { type Deferred, deferred, useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
@@ -133,6 +134,12 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
     const queryClient = new QueryClient();
 
     const variables = useRef<Set<string>>(new Set());
+    const [pollingOwner] = useState(() => Symbol('test-wrapper'));
+    beginPollOwner(pollingOwner);
+    useEffect(() => {
+        keepPollOwner(pollingOwner);
+    });
+    useEffect(() => () => releasePollOwner(pollingOwner), [pollingOwner]);
 
     let child = children;
 
@@ -154,7 +161,7 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
     if (withTaskCtx) {
         child = (
             <GlobalTaskProvider>
-                <VariableCtx.Provider value={{ variables }}>{child}</VariableCtx.Provider>
+                <VariableCtx.Provider value={{ pollingOwner, variables }}>{child}</VariableCtx.Provider>
             </GlobalTaskProvider>
         );
     }

@@ -130,35 +130,67 @@ function createCacheKey(routeId: string, params: Params<string>): string {
  * @param signal AbortSignal to abort the generator
  */
 async function* ndjson(response: Response, signal?: AbortSignal): AsyncGenerator<any, void> {
-    const reader = response.body!.getReader();
+    if (!response.body) {
+        throw new Error('Route response body is missing');
+    }
+    const reader = response.body.getReader();
     const newline = /\r?\n/;
     const decoder = new TextDecoder();
 
     let buffer = '';
+    let cancelPromise: Promise<void> | undefined;
+    const abortError = (): DOMException => new DOMException('The operation was aborted', 'AbortError');
+    const cancel = (reason: unknown): Promise<void> => {
+        cancelPromise ??= reader.cancel(reason).catch(() => undefined);
+        return cancelPromise;
+    };
+    const abort = (): void => {
+        void cancel(signal?.reason ?? abortError());
+    };
+    signal?.addEventListener('abort', abort, { once: true });
 
-    while (true) {
-        if (signal?.aborted) {
-            throw new DOMException('The operation was aborted', 'AbortError');
-        }
-
-        // eslint-disable-next-line no-await-in-loop
-        const { done, value } = await reader.read();
-        if (done) {
-            if (buffer.length > 0) {
-                yield JSON.parse(buffer);
+    try {
+        while (true) {
+            if (signal?.aborted) {
+                throw abortError();
             }
-            return;
-        }
 
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
+            // eslint-disable-next-line no-await-in-loop
+            const { done, value } = await reader.read();
+            if (signal?.aborted) {
+                throw abortError();
+            }
+            if (done) {
+                if (buffer.length > 0) {
+                    yield JSON.parse(buffer);
+                }
+                return;
+            }
 
-        const parts = buffer.split(newline);
-        buffer = parts.pop()!;
-        for (const part of parts) {
-            yield JSON.parse(part);
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            const parts = buffer.split(newline);
+            buffer = parts.pop()!;
+            for (const part of parts) {
+                yield JSON.parse(part);
+            }
         }
+    } catch (error) {
+        await cancel(error);
+        throw error;
+    } finally {
+        signal?.removeEventListener('abort', abort);
+        reader.releaseLock();
     }
+}
+
+function rejectPending<T>(handle: Deferred<T>, error: unknown): void {
+    if (handle.status !== 'pending') {
+        return;
+    }
+    void handle.getValue().catch(() => undefined);
+    handle.reject(error);
 }
 
 /**
@@ -303,9 +335,6 @@ export async function fetchRouteData(
     const template = deferred<ComponentInstance>();
     const onLoadActions = deferred<ActionImpl[]>();
 
-    const resolvedDvs = new Set<string>();
-    const resolvedPyComponents = new Set<string>();
-
     // kick off the async generator in the background
     queueMicrotask(async () => {
         try {
@@ -323,27 +352,20 @@ export async function fetchRouteData(
                 // process the other chunks, resolving the deferreds as they come in
                 if (chunk.type === 'derived_variable') {
                     dvHandlesByUid[chunk.uid]?.handle.resolve(chunk.result);
-                    resolvedDvs.add(chunk.uid);
                 }
                 if (chunk.type === 'py_component') {
                     pyHandlesByUid[chunk.uid]?.handle.resolve(chunk.result);
-                    resolvedPyComponents.add(chunk.uid);
                 }
             }
         } catch (e) {
-            template.reject(e);
-            onLoadActions.reject(e);
+            rejectPending(template, e);
+            rejectPending(onLoadActions, e);
 
-            // reject remaining unresolved promises
-            for (const [uid, handle] of Object.entries(dvHandlesByUid)) {
-                if (!resolvedDvs.has(uid)) {
-                    handle.handle.reject(e);
-                }
+            for (const handle of Object.values(dvHandlesByUid)) {
+                rejectPending(handle.handle, e);
             }
-            for (const [uid, handle] of Object.entries(pyHandlesByUid)) {
-                if (!resolvedPyComponents.has(uid)) {
-                    handle.handle.reject(e);
-                }
+            for (const handle of Object.values(pyHandlesByUid)) {
+                rejectPending(handle.handle, e);
             }
         }
     });

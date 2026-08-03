@@ -113,7 +113,14 @@ export function useVariable<T>(
 
     if (isDerivedVariable(variable)) {
         const [pollingInterval] = useVariable<number | null>(variable.polling_interval ?? null, { suspend: false });
-        const selector = useDerivedVariable(variable, wsClient, taskContext, extras, pollingInterval ?? undefined);
+        const selector = useDerivedVariable(
+            variable,
+            wsClient,
+            taskContext,
+            extras,
+            pollingInterval ?? undefined,
+            variablesContext?.pollingOwner
+        );
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
         useEffect(() => {
@@ -132,7 +139,14 @@ export function useVariable<T>(
     }
 
     if (isStateVariable(variable)) {
-        const parentSelector = useDerivedVariable(variable.parent_variable, wsClient, taskContext, extras);
+        const parentSelector = useDerivedVariable(
+            variable.parent_variable,
+            wsClient,
+            taskContext,
+            extras,
+            undefined,
+            variablesContext?.pollingOwner
+        );
         const parentLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(parentSelector);
 
         // Map the loadable state to the specific property

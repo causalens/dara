@@ -896,6 +896,41 @@ describe('useVariable', () => {
             expect(slowPollSignal?.aborted).toBe(true);
         });
 
+        it('aborts the first DerivedVariable request when its suspended owner unmounts', async () => {
+            vi.useFakeTimers();
+            let firstSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/suspended-derived', async ({ request }) => {
+                    firstSignal = request.signal;
+                    await new Promise<void>((resolve) => {
+                        if (request.signal.aborted) {
+                            resolve();
+                        } else {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        }
+                    });
+                    return HttpResponse.json({ cache_key: 'aborted', value: 'old' });
+                })
+            );
+
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                polling_interval: 1,
+                uid: 'suspended-derived',
+                variables: [],
+            };
+            const rendered = renderHook(() => useVariable<string>(variable), { wrapper: Wrapper });
+
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(firstSignal).toBeDefined());
+            rendered.unmount();
+            act(() => vi.advanceTimersByTime(0));
+
+            expect(firstSignal?.aborted).toBe(true);
+        });
+
         it('aborts a slow poll for a dependency change and does not publish its stale result', async () => {
             vi.useFakeTimers();
             const dependency: Variable<number> = {

@@ -2,12 +2,13 @@ import { act, render, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import * as React from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router';
-import { useRecoilCallback } from 'recoil';
+import { snapshot_UNSTABLE, useRecoilCallback } from 'recoil';
 
+import { type WebSocketClientInterface } from '@/api';
 import { setSessionIdentifier } from '@/auth';
 import { createRoute } from '@/router/create-router';
-import { ResponseChunk } from '@/router/fetching';
-import { clearRegistries_TEST, useVariable } from '@/shared';
+import { ResponseChunk, fetchRouteData } from '@/router/fetching';
+import { clearRegistries_TEST, deferred, useVariable } from '@/shared';
 import DynamicComponent, { clearCaches_TEST, preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
 import { preloadActions } from '@/shared/interactivity/use-action';
@@ -26,7 +27,7 @@ import {
 
 import { Wrapper, server } from './utils';
 import { mockActions, mockComponents } from './utils/test-server-handlers';
-import { importers } from './utils/wrapped-render';
+import { importers, wsClient } from './utils/wrapped-render';
 
 const TEST_TOKEN = 'TEST_TOKEN';
 
@@ -126,6 +127,167 @@ describe('Route Loader', () => {
                 })
             ).toBeVisible()
         );
+    });
+
+    it('keeps settled route chunks and cancels only pending work when an old navigation aborts', async () => {
+        const firstDv: DerivedVariable = {
+            __typename: 'DerivedVariable',
+            deps: [],
+            nested: [],
+            uid: 'first-route-dv',
+            variables: [],
+        };
+        const pendingDv: DerivedVariable = {
+            __typename: 'DerivedVariable',
+            deps: [],
+            nested: [],
+            uid: 'pending-route-dv',
+            variables: [],
+        };
+        const pendingPy = {
+            name: 'PendingRouteComponent',
+            props: {
+                dynamic_kwargs: {},
+                polling_interval: null,
+                js_module: 'test',
+                func_name: 'pending_route',
+            },
+            uid: 'pending-route-py',
+        } satisfies PyComponentInstance;
+        const route = {
+            id: 'streaming-route',
+            case_sensitive: false,
+            index: true,
+            full_path: '/streaming-route',
+            __typename: 'IndexRoute',
+            dependency_graph: {
+                derived_variables: {
+                    [firstDv.uid]: firstDv,
+                    [pendingDv.uid]: pendingDv,
+                },
+                py_components: {
+                    [pendingPy.uid]: pendingPy,
+                },
+            },
+        } satisfies RouteDefinition;
+        const encoder = new TextEncoder();
+        let requestCount = 0;
+        const firstBodyCancel = vi.fn();
+        const send = (controller: ReadableStreamDefaultController<Uint8Array>, chunk: ResponseChunk): void => {
+            controller.enqueue(encoder.encode(`${JSON.stringify(chunk)}\n`));
+        };
+
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+            requestCount++;
+            const currentRequest = requestCount;
+            const stream = new ReadableStream<Uint8Array>({
+                cancel: currentRequest === 1 ? firstBodyCancel : undefined,
+                start(controller) {
+                    send(controller, {
+                        type: 'template',
+                        template: {
+                            data: {
+                                name: 'TestPropsComponent',
+                                props: { text: currentRequest === 1 ? 'old' : 'latest' },
+                                uid: `template-${currentRequest}`,
+                            },
+                            lookup: {},
+                        },
+                    });
+                    send(controller, { type: 'actions', actions: {} });
+                    send(controller, {
+                        type: 'derived_variable',
+                        uid: firstDv.uid,
+                        result: { ok: true, value: currentRequest === 1 ? 'old-dv' : 'latest-dv' },
+                    });
+                    if (currentRequest === 2) {
+                        send(controller, {
+                            type: 'derived_variable',
+                            uid: pendingDv.uid,
+                            result: { ok: true, value: 'latest-pending-dv' },
+                        });
+                        send(controller, {
+                            type: 'py_component',
+                            uid: pendingPy.uid,
+                            result: { ok: true, value: 'latest-py' },
+                        });
+                        controller.close();
+                    }
+                },
+            });
+            return new Response(stream, {
+                headers: { 'content-type': 'application/x-ndjson' },
+            });
+        });
+
+        if (!window.dara) {
+            const ws = deferred<WebSocketClientInterface>();
+            ws.resolve(wsClient);
+            window.dara = { base_url: '', ws };
+        }
+        const snapshot = snapshot_UNSTABLE();
+        const oldNavigation = new AbortController();
+        const oldData = await fetchRouteData(route, {}, snapshot, oldNavigation.signal);
+        const latestData = await fetchRouteData(route, {}, snapshot, new AbortController().signal);
+
+        const oldResolvedDv = oldData.derived_variables.find((handle) => handle.dv.uid === firstDv.uid)!;
+        const oldPendingDv = oldData.derived_variables.find((handle) => handle.dv.uid === pendingDv.uid)!;
+        const oldPendingPy = oldData.py_components.find((handle) => handle.py.uid === pendingPy.uid)!;
+        const pendingDvResult = oldPendingDv.handle.getValue();
+        const pendingPyResult = oldPendingPy.handle.getValue();
+
+        oldNavigation.abort();
+
+        await expect(pendingDvResult).rejects.toMatchObject({ name: 'AbortError' });
+        await expect(pendingPyResult).rejects.toMatchObject({ name: 'AbortError' });
+        await vi.waitFor(() => expect(firstBodyCancel).toHaveBeenCalledTimes(1));
+        expect(oldResolvedDv.handle.status).toBe('resolved');
+        await expect(oldResolvedDv.handle.getValue()).resolves.toEqual({ ok: true, value: 'old-dv' });
+        expect(oldData.template).toMatchObject({ props: { text: 'old' } });
+        expect(oldData.on_load).toEqual([]);
+
+        expect(latestData.template).toMatchObject({ props: { text: 'latest' } });
+        await expect(latestData.derived_variables[0]!.handle.getValue()).resolves.toMatchObject({ ok: true });
+        await expect(latestData.derived_variables[1]!.handle.getValue()).resolves.toMatchObject({ ok: true });
+        await expect(latestData.py_components[0]!.handle.getValue()).resolves.toMatchObject({ ok: true });
+    });
+
+    it('rejects the route load and cancels the body when navigation aborts before any chunks', async () => {
+        const route = {
+            id: 'empty-streaming-route',
+            case_sensitive: false,
+            index: true,
+            full_path: '/empty-streaming-route',
+            __typename: 'IndexRoute',
+        } satisfies RouteDefinition;
+        const bodyCancel = vi.fn();
+        const readerStarted = deferred<void>();
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+            const stream = new ReadableStream<Uint8Array>({
+                cancel: bodyCancel,
+                pull() {
+                    if (readerStarted.status === 'pending') {
+                        readerStarted.resolve();
+                    }
+                },
+            });
+            return new Response(stream, {
+                headers: { 'content-type': 'application/x-ndjson' },
+            });
+        });
+
+        if (!window.dara) {
+            const ws = deferred<WebSocketClientInterface>();
+            ws.resolve(wsClient);
+            window.dara = { base_url: '', ws };
+        }
+        const navigation = new AbortController();
+        const result = fetchRouteData(route, {}, snapshot_UNSTABLE(), navigation.signal);
+        await readerStarted.getValue();
+        navigation.abort();
+
+        await expect(result).rejects.toMatchObject({ name: 'AbortError' });
+        await vi.waitFor(() => expect(bodyCancel).toHaveBeenCalledTimes(1));
     });
 
     it('executes on_load actions', async () => {

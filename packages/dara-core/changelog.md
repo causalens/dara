@@ -4,7 +4,8 @@ title: Changelog
 
 ## NEXT
 
-- Added backpressure-aware DerivedVariable and Python component polling with fixed-delay scheduling, visibility pausing, jittered error backoff, request cancellation, and stale-result protection.
+- Added one-at-a-time polling for DerivedVariable and Python components. Polling now waits after each request, pauses in hidden tabs, spreads retries with jitter and backoff, honors Retry-After, aborts work on cleanup, and drops stale results.
+- Fixed rapid navigation after early route chunks raising `Deferred already resolved` and leaving the NDJSON body open.
 - Fixed StreamVariable clean connection closures not reconnecting and fatal stream errors silently leaving stale values visible, and added configurable SSE keepalive comments with robust parsing and cleanup across the full stream lifecycle.
 - Fixed FastAPI telemetry cleanup errors when application construction fails by attaching instrumentation only after
   the application has been built successfully.
