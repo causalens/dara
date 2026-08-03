@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect } from 'react';
+
+import { useLatestRef } from '@darajs/ui-utils';
 
 const DEFAULT_JITTER_RATIO = 0.1;
 const MAX_BACKOFF_MS = 60_000;
@@ -31,7 +33,7 @@ interface PollingEntry {
     failureCount: number;
     generation: number;
     nextRunAt?: number;
-    owners: Set<symbol>;
+    owners: Set<string>;
     runAgain: boolean;
     runOnShow: boolean;
     state: RunState;
@@ -51,10 +53,14 @@ interface PollerOptions {
 
 interface PollOwner {
     disposeTimer?: TimerHandle;
-    keyDisposeTimers: Map<string, TimerHandle>;
+    hooks: Map<string, string>;
+    renderKeys: Set<string>;
+    timers: Map<string, TimerHandle>;
+}
+
+export interface PollScope {
+    id: string;
     keys: Set<string>;
-    mounted: boolean;
-    seenKeys: Set<string>;
 }
 
 type RunOutcome =
@@ -128,7 +134,7 @@ export class Poller {
     readonly #random: () => number;
     readonly #setTimeout: (callback: () => void, delay: number) => TimerHandle;
     readonly #visibilityTarget?: Pick<Document, 'addEventListener' | 'removeEventListener'>;
-    readonly #owners = new Map<symbol, PollOwner>();
+    readonly #owners = new Map<string, PollOwner>();
 
     #listeningForVisibility = false;
 
@@ -210,67 +216,81 @@ export class Poller {
         };
     }
 
-    /** Start one render pass for a Suspense-safe owner. */
-    beginOwner(ownerId: symbol): void {
+    /** Apply the polling keys collected by one committed owner render. */
+    commitOwner(ownerId: string, keys: ReadonlySet<string>): void {
         const owner = this.#getOrCreateOwner(ownerId);
-        owner.seenKeys.clear();
-    }
-
-    /** Keep a request alive while a rendered owner may still suspend. */
-    own(ownerId: symbol, key: string): void {
-        const owner = this.#getOrCreateOwner(ownerId);
-        owner.seenKeys.add(key);
-        const disposeTimer = owner.keyDisposeTimers.get(key);
-        if (disposeTimer !== undefined) {
-            this.#clearTimeout(disposeTimer);
-            owner.keyDisposeTimers.delete(key);
-        }
-        if (owner.keys.has(key)) {
-            return;
-        }
-        owner.keys.add(key);
-        this.#getOrCreateEntry(key).owners.add(ownerId);
-    }
-
-    /** Drop one key after the StrictMode remount window. */
-    release(ownerId: symbol, key: string): void {
-        const owner = this.#owners.get(ownerId);
-        if (!owner || owner.keyDisposeTimers.has(key)) {
-            return;
-        }
-        const timer = this.#setTimeout(() => {
-            owner.keyDisposeTimers.delete(key);
-            this.#dropOwnedKey(ownerId, owner, key);
-            this.#stopVisibilityListenerIfIdle();
-        }, 0);
-        owner.keyDisposeTimers.set(key, timer);
-    }
-
-    /** Mark a rendered owner as committed and cancel provisional cleanup. */
-    keepOwner(ownerId: symbol): void {
-        const owner = this.#owners.get(ownerId);
-        if (!owner) {
-            return;
-        }
-        for (const key of Array.from(owner.keys)) {
-            if (!owner.seenKeys.has(key)) {
-                this.#dropOwnedKey(ownerId, owner, key);
-            }
-        }
-        owner.mounted = true;
         if (owner.disposeTimer !== undefined) {
             this.#clearTimeout(owner.disposeTimer);
             owner.disposeTimer = undefined;
         }
+
+        // Add the new render before dropping the old one. A rerender must not
+        // leave a live request without an owner between layout effects.
+        const nextRenderKeys = new Set<string>();
+        for (const key of keys) {
+            this.#getOrCreateEntry(key).owners.add(ownerId);
+            if (!this.#hasHookForKey(owner, key)) {
+                nextRenderKeys.add(key);
+            }
+        }
+
+        const oldRenderKeys = owner.renderKeys;
+        owner.renderKeys = nextRenderKeys;
+        for (const key of oldRenderKeys) {
+            if (!nextRenderKeys.has(key) && !this.#hasHookForKey(owner, key)) {
+                this.#dropOwnedKey(ownerId, key);
+            }
+        }
     }
 
-    /** Release an owner after the StrictMode remount window. */
-    releaseOwner(ownerId: symbol): void {
+    /** Keep one key after its hook commits. */
+    mountKey(ownerId: string, hookId: string, key: string): void {
+        const owner = this.#getOrCreateOwner(ownerId);
+        if (owner.disposeTimer !== undefined) {
+            this.#clearTimeout(owner.disposeTimer);
+            owner.disposeTimer = undefined;
+        }
+        const timer = owner.timers.get(hookId);
+        if (timer !== undefined) {
+            this.#clearTimeout(timer);
+            owner.timers.delete(hookId);
+        }
+
+        const oldKey = owner.hooks.get(hookId);
+        owner.hooks.set(hookId, key);
+        owner.renderKeys.delete(key);
+        this.#getOrCreateEntry(key).owners.add(ownerId);
+        if (oldKey !== undefined && oldKey !== key && !this.#ownerHasKey(owner, oldKey)) {
+            this.#dropOwnedKey(ownerId, oldKey);
+        }
+    }
+
+    /** Drop a committed hook key after the StrictMode remount window. */
+    unmountKey(ownerId: string, hookId: string, key: string): void {
+        const owner = this.#owners.get(ownerId);
+        if (!owner || owner.timers.has(hookId)) {
+            return;
+        }
+        const timer = this.#setTimeout(() => {
+            owner.timers.delete(hookId);
+            if (owner.hooks.get(hookId) !== key) {
+                return;
+            }
+            owner.hooks.delete(hookId);
+            if (!this.#ownerHasKey(owner, key)) {
+                this.#dropOwnedKey(ownerId, key);
+            }
+            this.#stopVisibilityListenerIfIdle();
+        }, 0);
+        owner.timers.set(hookId, timer);
+    }
+
+    /** Release a rendered owner after the StrictMode remount window. */
+    releaseOwner(ownerId: string): void {
         const owner = this.#owners.get(ownerId);
         if (!owner || owner.disposeTimer !== undefined) {
             return;
         }
-        owner.mounted = false;
         owner.disposeTimer = this.#setTimeout(() => this.#dropOwner(ownerId, owner), 0);
     }
 
@@ -302,6 +322,8 @@ export class Poller {
         if (entry.state.kind === 'running') {
             const running = entry.state.run;
             if (cause === 'poll') {
+                // A slow poll must finish. Keep one later run instead of
+                // stopping work on every tick.
                 entry.runAgain = true;
                 const abortedController = new AbortController();
                 abortedController.abort();
@@ -394,6 +416,8 @@ export class Poller {
 
             const previous = read?.();
             if (isAbortError(error) && previous?.found) {
+                // A replaced selector still owns a Recoil promise. Wait until
+                // every newer run publishes before returning its value.
                 await handle.waitForNewer();
                 const latest = read?.();
                 return latest?.found ? latest.value : previous.value;
@@ -446,7 +470,7 @@ export class Poller {
             if (owner.disposeTimer !== undefined) {
                 this.#clearTimeout(owner.disposeTimer);
             }
-            for (const timer of owner.keyDisposeTimers.values()) {
+            for (const timer of owner.timers.values()) {
                 this.#clearTimeout(timer);
             }
         }
@@ -491,6 +515,8 @@ export class Poller {
         }
 
         if (this.#getVisibilityState() === 'hidden') {
+            // Keep the due time so Retry-After and backoff still hold when the
+            // tab becomes visible.
             entry.runOnShow = true;
             return;
         }
@@ -554,24 +580,21 @@ export class Poller {
         return Array.from(entry.subscribers.values()).sort((a, b) => a.intervalMs - b.intervalMs)[0];
     }
 
-    #getOrCreateOwner(ownerId: symbol): PollOwner {
+    #getOrCreateOwner(ownerId: string): PollOwner {
         let owner = this.#owners.get(ownerId);
         if (!owner) {
             const newOwner: PollOwner = {
-                keyDisposeTimers: new Map(),
-                keys: new Set(),
-                mounted: false,
-                seenKeys: new Set(),
+                hooks: new Map(),
+                renderKeys: new Set(),
+                timers: new Map(),
             };
             owner = newOwner;
             this.#owners.set(ownerId, newOwner);
-            newOwner.disposeTimer = this.#setTimeout(() => this.#dropOwner(ownerId, newOwner), 0);
         }
         return owner;
     }
 
-    #dropOwnedKey(ownerId: symbol, owner: PollOwner, key: string): void {
-        owner.keys.delete(key);
+    #dropOwnedKey(ownerId: string, key: string): void {
         const entry = this.#entries.get(key);
         if (!entry) {
             return;
@@ -589,18 +612,27 @@ export class Poller {
         this.#entries.delete(key);
     }
 
-    #dropOwner(ownerId: symbol, owner: PollOwner): void {
-        if (this.#owners.get(ownerId) !== owner || owner.mounted) {
+    #dropOwner(ownerId: string, owner: PollOwner): void {
+        if (this.#owners.get(ownerId) !== owner) {
             return;
         }
         this.#owners.delete(ownerId);
-        for (const timer of owner.keyDisposeTimers.values()) {
+        for (const timer of owner.timers.values()) {
             this.#clearTimeout(timer);
         }
-        for (const key of Array.from(owner.keys)) {
-            this.#dropOwnedKey(ownerId, owner, key);
+        const keys = new Set([...owner.renderKeys, ...owner.hooks.values()]);
+        for (const key of keys) {
+            this.#dropOwnedKey(ownerId, key);
         }
         this.#stopVisibilityListenerIfIdle();
+    }
+
+    #hasHookForKey(owner: PollOwner, key: string): boolean {
+        return Array.from(owner.hooks.values()).some((hookKey) => hookKey === key);
+    }
+
+    #ownerHasKey(owner: PollOwner, key: string): boolean {
+        return owner.renderKeys.has(key) || this.#hasHookForKey(owner, key);
     }
 
     #scheduleOrdinaryPoll(key: string, entry: PollingEntry): void {
@@ -686,39 +718,51 @@ const poller = new Poller();
  * backpressure, retries, and cancellation remain owned by the poller.
  */
 export function usePolling(key: string, intervalSeconds: number | undefined, refresh: () => void): void {
-    const refreshRef = useRef(refresh);
-    refreshRef.current = refresh;
+    const refreshRef = useLatestRef(refresh);
 
-    useEffect(() => poller.subscribe(key, intervalSeconds, () => refreshRef.current()), [key, intervalSeconds]);
+    useEffect(
+        () => poller.subscribe(key, intervalSeconds, () => refreshRef.current()),
+        [intervalSeconds, key, refreshRef]
+    );
 }
 
-/** Link a polling key to a Suspense-safe rendered owner. */
-export function ownPoll(ownerId: symbol | undefined, key: string): void {
-    if (ownerId) {
-        poller.own(ownerId, key);
-    }
+/**
+ * Create a render-local list of polling keys and apply it after commit.
+ *
+ * Descendants may suspend before their own effects run. They add keys to this
+ * detached set during render; only the owner's layout effect changes Poller.
+ */
+export function usePollScope(): PollScope {
+    const id = useId();
+    const keys = new Set<string>();
+
+    useLayoutEffect(() => {
+        poller.commitOwner(id, keys);
+    });
+    useLayoutEffect(() => () => poller.releaseOwner(id), [id]);
+
+    return { id, keys };
 }
 
-/** Release one polling key after its hook unmounts or changes identity. */
-export function releasePoll(ownerId: symbol | undefined, key: string): void {
-    if (ownerId) {
-        poller.release(ownerId, key);
-    }
-}
+/**
+ * Keep one request key for a rendered hook.
+ *
+ * The render-local key lets a committed parent own work while this hook is
+ * suspended. Its passive effect stays mounted when Suspense hides an existing
+ * tree, so a dependency refresh does not lose ownership of the active request.
+ */
+export function usePollKey(scope: PollScope | undefined, key: string): void {
+    const hookId = useId();
+    scope?.keys.add(key);
+    const ownerId = scope?.id;
 
-/** Start one render pass for a polling owner. */
-export function beginPollOwner(ownerId: symbol): void {
-    poller.beginOwner(ownerId);
-}
-
-/** Keep a polling owner after its render commits. */
-export function keepPollOwner(ownerId: symbol): void {
-    poller.keepOwner(ownerId);
-}
-
-/** Release a polling owner after its rendered tree unmounts. */
-export function releasePollOwner(ownerId: symbol): void {
-    poller.releaseOwner(ownerId);
+    useEffect(() => {
+        if (!ownerId) {
+            return;
+        }
+        poller.mountKey(ownerId, hookId, key);
+        return () => poller.unmountKey(ownerId, hookId, key);
+    }, [hookId, key, ownerId]);
 }
 
 /** Run one request using the production poller. */

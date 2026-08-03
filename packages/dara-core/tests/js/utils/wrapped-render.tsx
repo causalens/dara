@@ -5,8 +5,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type RenderOptions, type RenderResult, render } from '@testing-library/react';
-import React, { type ComponentType, type ReactElement, type ReactNode, useEffect, useRef } from 'react';
-import { useState } from 'react';
+import React, { type ComponentType, type ReactElement, type ReactNode, useRef } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router';
 import { RecoilRoot } from 'recoil';
 import { RecoilURLSync } from 'recoil-sync';
@@ -15,7 +14,7 @@ import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
-import { beginPollOwner, keepPollOwner, releasePollOwner } from '@/shared/interactivity/polling';
+import { usePollScope } from '@/shared/interactivity/polling';
 import { type Deferred, deferred, useUrlSync } from '@/shared/utils';
 
 import { NavigateTo, ResetVariables, TriggerVariable, UpdateVariable } from '../../../js/actions';
@@ -134,12 +133,7 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
     const queryClient = new QueryClient();
 
     const variables = useRef<Set<string>>(new Set());
-    const [pollingOwner] = useState(() => Symbol('test-wrapper'));
-    beginPollOwner(pollingOwner);
-    useEffect(() => {
-        keepPollOwner(pollingOwner);
-    });
-    useEffect(() => () => releasePollOwner(pollingOwner), [pollingOwner]);
+    const pollScope = usePollScope();
 
     let child = children;
 
@@ -161,7 +155,7 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
     if (withTaskCtx) {
         child = (
             <GlobalTaskProvider>
-                <VariableCtx.Provider value={{ pollingOwner, variables }}>{child}</VariableCtx.Provider>
+                <VariableCtx.Provider value={{ pollScope, variables }}>{child}</VariableCtx.Provider>
             </GlobalTaskProvider>
         );
     }

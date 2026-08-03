@@ -35,15 +35,7 @@ import { useEventBus } from '../event-bus/event-bus';
 import { type CurrentResult, preloadDerivedValue, resolveDerivedValue } from './derived-variable';
 import { findStreamVariablesInArray } from './find-stream-variables';
 import { buildTriggerList, getOrRegisterTrigger, registerChildTriggers, resolveTriggerStatic } from './internal';
-import {
-    createPollForceKey,
-    isPollForceKey,
-    markRetryAfter,
-    ownPoll,
-    releasePoll,
-    runPoll,
-    waitOrAbort,
-} from './polling';
+import { createPollForceKey, isPollForceKey, markRetryAfter, runPoll, usePollKey, waitOrAbort } from './polling';
 import { cleanKwargs, resolveVariable } from './resolve-variable';
 import {
     type TriggerIndexValue,
@@ -448,11 +440,7 @@ export default function useServerComponent(
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
     const requestKey = getServerComponentRequestKey(uid, loop_instance_uid, extras);
-    ownPoll(variablesContext?.pollingOwner, requestKey);
-    useEffect(() => {
-        ownPoll(variablesContext?.pollingOwner, requestKey);
-        return () => releasePoll(variablesContext?.pollingOwner, requestKey);
-    }, [variablesContext?.pollingOwner, requestKey]);
+    usePollKey(variablesContext?.pollScope, requestKey);
 
     const bus = useEventBus();
 

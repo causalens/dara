@@ -1,10 +1,12 @@
 import * as React from 'react';
 
+import type { PollScope } from '@/shared/interactivity/polling';
+
 export interface VariableContext {
     /**
-     * Owns requests started by descendants before Suspense lets their effects commit.
+     * Collects request keys before Suspense lets descendant effects commit.
      */
-    pollingOwner?: symbol;
+    pollScope?: PollScope;
     /**
      * Set of variables subscribed to (with useVariable)
      */

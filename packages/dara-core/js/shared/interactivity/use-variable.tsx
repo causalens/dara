@@ -119,7 +119,7 @@ export function useVariable<T>(
             taskContext,
             extras,
             pollingInterval ?? undefined,
-            variablesContext?.pollingOwner
+            variablesContext?.pollScope
         );
         const selectorLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(selector);
 
@@ -145,7 +145,7 @@ export function useVariable<T>(
             taskContext,
             extras,
             undefined,
-            variablesContext?.pollingOwner
+            variablesContext?.pollScope
         );
         const parentLoadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(parentSelector);
 

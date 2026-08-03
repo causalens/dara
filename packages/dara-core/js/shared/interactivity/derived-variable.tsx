@@ -12,7 +12,7 @@
 import isEqual from 'lodash/isEqual';
 import set from 'lodash/set';
 import { nanoid } from 'nanoid';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { Params } from 'react-router';
 import {
     type GetRecoilValue,
@@ -53,9 +53,9 @@ import {
     isAbortError,
     isPollForceKey,
     markRetryAfter,
-    ownPoll,
-    releasePoll,
+    type PollScope,
     runPoll,
+    usePollKey,
     usePolling,
     waitOrAbort,
 } from './polling';
@@ -989,7 +989,7 @@ export function preloadDerivedVariable(
  * @param taskContext global task context
  * @param search search query
  * @param extras request extras to be merged into the options
- * @param pollingOwner Suspense-safe owner for requests started during render
+ * @param pollScope render-local scope for requests started before commit
  */
 export function useDerivedVariable(
     variable: DerivedVariable,
@@ -997,16 +997,12 @@ export function useDerivedVariable(
     taskContext: GlobalTaskContext,
     extras: RequestExtras,
     pollingInterval?: number,
-    pollingOwner?: symbol
+    pollScope?: PollScope
 ): RecoilValue<any> {
     const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, extras);
 
     const pollingKey = getRegistryKey(variable, 'derived-selector') + new RequestExtrasSerializable(extras).toJSON();
-    ownPoll(pollingOwner, pollingKey);
-    useEffect(() => {
-        ownPoll(pollingOwner, pollingKey);
-        return () => releasePoll(pollingOwner, pollingKey);
-    }, [pollingOwner, pollingKey]);
+    usePollKey(pollScope, pollingKey);
     const triggerIndex = useMemo(() => getOrRegisterPollingTrigger(pollingKey), [pollingKey]);
 
     // Creating a setter function for triggerIndex

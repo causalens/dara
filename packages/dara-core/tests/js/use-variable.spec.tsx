@@ -931,6 +931,62 @@ describe('useVariable', () => {
             expect(firstSignal?.aborted).toBe(true);
         });
 
+        it('keeps a dependency request owned while Suspense hides its consumer', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'suspended-refresh-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                uid: 'suspended-refresh-derived',
+                variables: [dependency],
+            };
+            let finishRequest!: () => void;
+            const requestGate = new Promise<void>((resolve) => {
+                finishRequest = resolve;
+            });
+            let requestCount = 0;
+            let refreshSignal: AbortSignal | undefined;
+
+            server.use(
+                http.post('/api/core/derived-variable/suspended-refresh-derived', async ({ request }) => {
+                    requestCount++;
+                    if (requestCount === 2) {
+                        refreshSignal = request.signal;
+                        await requestGate;
+                    }
+                    return HttpResponse.json({
+                        cache_key: String(requestCount),
+                        value: requestCount,
+                    });
+                })
+            );
+
+            const rendered = renderHook(
+                () => {
+                    const [value] = useVariable<number>(variable);
+                    const [, setDependency] = useVariable<number>(dependency);
+                    return { setDependency, value };
+                },
+                { wrapper: Wrapper }
+            );
+
+            await waitFor(() => expect(rendered.result.current.value).toBe(1));
+            act(() => rendered.result.current.setDependency(2));
+            await vi.waitFor(() => expect(refreshSignal).toBeDefined());
+
+            act(() => vi.advanceTimersByTime(0));
+            expect(refreshSignal?.aborted).toBe(false);
+
+            finishRequest();
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe(2));
+        });
+
         it('aborts a slow poll for a dependency change and does not publish its stale result', async () => {
             vi.useFakeTimers();
             const dependency: Variable<number> = {

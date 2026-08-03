@@ -1,4 +1,13 @@
-import { Poller, markRetryAfter, parseRetryAfter, waitOrAbort } from '@/shared/interactivity/polling';
+import { act, renderHook } from '@testing-library/react';
+
+import {
+    Poller,
+    clearPolling_TEST,
+    markRetryAfter,
+    parseRetryAfter,
+    usePolling,
+    waitOrAbort,
+} from '@/shared/interactivity/polling';
 
 class VisibilityTarget extends EventTarget {
     state: DocumentVisibilityState = 'visible';
@@ -31,6 +40,7 @@ describe('Poller', () => {
     });
 
     afterEach(() => {
+        clearPolling_TEST();
         vi.clearAllTimers();
         vi.useRealTimers();
     });
@@ -249,6 +259,23 @@ describe('Poller', () => {
         expect(slow).not.toHaveBeenCalled();
     });
 
+    it('uses the latest refresh callback without restarting its timer', () => {
+        const firstRefresh = vi.fn();
+        const latestRefresh = vi.fn();
+        const rendered = renderHook(
+            ({ refresh }) => {
+                usePolling('derived:latest-refresh', 1, refresh);
+            },
+            { initialProps: { refresh: firstRefresh } }
+        );
+
+        rendered.rerender({ refresh: latestRefresh });
+        act(() => vi.advanceTimersByTime(1200));
+
+        expect(firstRefresh).not.toHaveBeenCalled();
+        expect(latestRefresh).toHaveBeenCalledTimes(1);
+    });
+
     it('does not let an old cleanup delete a new entry', async () => {
         const { poller } = createPoller();
         const firstCleanup = poller.subscribe('component:owned', 1, () => {});
@@ -328,10 +355,10 @@ describe('Poller', () => {
 
     it('aborts an initial suspended run when its rendered owner unmounts', () => {
         const { poller } = createPoller();
-        const owner = Symbol('component');
+        const owner = 'component';
         let signal: AbortSignal | undefined;
 
-        poller.own(owner, 'derived:first-load');
+        poller.commitOwner(owner, new Set(['derived:first-load']));
         void poller.run({
             cause: 'dependency',
             key: 'derived:first-load',
@@ -341,7 +368,6 @@ describe('Poller', () => {
             },
             write: () => {},
         });
-        poller.keepOwner(owner);
         poller.releaseOwner(owner);
         vi.advanceTimersByTime(0);
 
@@ -350,10 +376,10 @@ describe('Poller', () => {
 
     it('keeps an initial run through a StrictMode owner remount', () => {
         const { poller } = createPoller();
-        const owner = Symbol('component');
+        const owner = 'component';
         let signal: AbortSignal | undefined;
 
-        poller.own(owner, 'derived:first-load');
+        poller.commitOwner(owner, new Set(['derived:first-load']));
         void poller.run({
             cause: 'dependency',
             key: 'derived:first-load',
@@ -363,9 +389,8 @@ describe('Poller', () => {
             },
             write: () => {},
         });
-        poller.keepOwner(owner);
         poller.releaseOwner(owner);
-        poller.keepOwner(owner);
+        poller.commitOwner(owner, new Set(['derived:first-load']));
         vi.advanceTimersByTime(0);
 
         expect(signal?.aborted).toBe(false);
@@ -373,12 +398,10 @@ describe('Poller', () => {
 
     it('aborts work dropped by the next committed owner render', () => {
         const { poller } = createPoller();
-        const owner = Symbol('component');
+        const owner = 'component';
         let oldSignal: AbortSignal | undefined;
 
-        poller.beginOwner(owner);
-        poller.own(owner, 'derived:old');
-        poller.keepOwner(owner);
+        poller.commitOwner(owner, new Set(['derived:old']));
         void poller.run({
             cause: 'dependency',
             key: 'derived:old',
@@ -389,11 +412,37 @@ describe('Poller', () => {
             write: () => {},
         });
 
-        poller.beginOwner(owner);
-        poller.own(owner, 'derived:new');
-        poller.keepOwner(owner);
+        poller.commitOwner(owner, new Set(['derived:new']));
 
         expect(oldSignal?.aborted).toBe(true);
+    });
+
+    it('keeps a shared key until its last committed hook unmounts', () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const firstHook = 'first';
+        const secondHook = 'second';
+        let signal: AbortSignal | undefined;
+
+        poller.mountKey(owner, firstHook, 'derived:shared');
+        poller.mountKey(owner, secondHook, 'derived:shared');
+        void poller.run({
+            cause: 'dependency',
+            key: 'derived:shared',
+            work: (runSignal) => {
+                signal = runSignal;
+                return new Promise(() => {});
+            },
+            write: () => {},
+        });
+
+        poller.unmountKey(owner, firstHook, 'derived:shared');
+        vi.advanceTimersByTime(0);
+        expect(signal?.aborted).toBe(false);
+
+        poller.unmountKey(owner, secondHook, 'derived:shared');
+        vi.advanceTimersByTime(0);
+        expect(signal?.aborted).toBe(true);
     });
 
     it('waits through every newer dependency run before returning', async () => {
