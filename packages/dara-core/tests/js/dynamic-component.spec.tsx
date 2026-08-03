@@ -30,7 +30,11 @@ describe('DynamicComponent', () => {
         await preloadActions(importers, Object.values(mockActions));
         await preloadComponents(importers, Object.values(mockComponents));
     });
-    afterEach(() => server.resetHandlers());
+    afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+        server.resetHandlers();
+    });
     afterAll(() => server.close());
 
     it("should load the component from the registry and render it if it's a JS one", async () => {
@@ -159,6 +163,67 @@ describe('DynamicComponent', () => {
                 )
             ).toBeInstanceOf(HTMLDivElement);
         });
+    });
+
+    it('keeps slow Python component polling at one request in flight and aborts on unmount', async () => {
+        vi.useFakeTimers();
+        let requestCount = 0;
+        let activeRequests = 0;
+        let peakRequests = 0;
+        let slowPollSignal: AbortSignal | undefined;
+
+        server.use(
+            http.post('/api/core/components/SlowPollingComponent', async ({ request }) => {
+                requestCount++;
+                activeRequests++;
+                peakRequests = Math.max(peakRequests, activeRequests);
+
+                if (requestCount > 1) {
+                    slowPollSignal = request.signal;
+                    await new Promise<void>((resolve) => {
+                        request.signal.addEventListener('abort', () => resolve(), { once: true });
+                    });
+                }
+
+                activeRequests--;
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: { content: `request-${requestCount}` },
+                    },
+                    lookup: {},
+                });
+            })
+        );
+
+        const rendered = wrappedRender(
+            <DynamicComponent
+                component={
+                    {
+                        name: 'SlowPollingComponent',
+                        props: {
+                            dynamic_kwargs: {},
+                            polling_interval: 1,
+                            js_module: 'test',
+                            func_name: 'slow_poll',
+                        },
+                        uid: 'slow-polling-component',
+                    } satisfies PyComponentInstance
+                }
+            />
+        );
+
+        await waitFor(() => expect(rendered.getByText('request-1')).toBeInTheDocument());
+        act(() => vi.advanceTimersByTime(1200));
+        await vi.waitFor(() => expect(requestCount).toBe(2));
+
+        act(() => vi.advanceTimersByTime(10_000));
+        expect(requestCount).toBe(2);
+        expect(peakRequests).toBe(1);
+
+        rendered.unmount();
+        act(() => vi.advanceTimersByTime(0));
+        expect(slowPollSignal?.aborted).toBe(true);
     });
 
     it('should publish EventBus notification on server component render', async () => {

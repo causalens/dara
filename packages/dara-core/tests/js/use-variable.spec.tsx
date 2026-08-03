@@ -845,6 +845,165 @@ describe('useVariable', () => {
             });
         });
 
+        it('keeps slow DerivedVariable polling at one request in flight and aborts on unmount', async () => {
+            vi.useFakeTimers();
+            let requestCount = 0;
+            let activeRequests = 0;
+            let peakRequests = 0;
+            let slowPollSignal: AbortSignal | undefined;
+
+            server.use(
+                http.post('/api/core/derived-variable/slow-polling-derived', async ({ request }) => {
+                    requestCount++;
+                    activeRequests++;
+                    peakRequests = Math.max(peakRequests, activeRequests);
+
+                    if (requestCount > 1) {
+                        slowPollSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+
+                    activeRequests--;
+                    return HttpResponse.json({
+                        cache_key: String(requestCount),
+                        value: requestCount,
+                    });
+                })
+            );
+
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                polling_interval: 1,
+                uid: 'slow-polling-derived',
+                variables: [],
+            };
+            const rendered = renderHook(() => useVariable<number>(variable), { wrapper: Wrapper });
+
+            await waitFor(() => expect(rendered.result.current[0]).toBe(1));
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => expect(requestCount).toBe(2));
+
+            act(() => vi.advanceTimersByTime(10_000));
+            expect(requestCount).toBe(2);
+            expect(peakRequests).toBe(1);
+
+            rendered.unmount();
+            act(() => vi.advanceTimersByTime(0));
+            expect(slowPollSignal?.aborted).toBe(true);
+        });
+
+        it('aborts a slow poll for a dependency change and does not publish its stale result', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'poll-freshness-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                polling_interval: 1,
+                uid: 'poll-freshness-derived',
+                variables: [dependency],
+            };
+
+            let requestCount = 0;
+            let stalePollSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/poll-freshness-derived', async ({ request }) => {
+                    requestCount++;
+                    if (requestCount === 2) {
+                        stalePollSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                        return HttpResponse.json({ cache_key: 'stale', value: 'stale-poll' });
+                    }
+                    return HttpResponse.json({
+                        cache_key: String(requestCount),
+                        value: requestCount === 1 ? 'initial' : 'fresh-dependency',
+                    });
+                })
+            );
+
+            const rendered = renderHook(
+                () => {
+                    const [value] = useVariable<string>(variable);
+                    const [, setDependency] = useVariable<number>(dependency);
+                    return { setDependency, value };
+                },
+                { wrapper: Wrapper }
+            );
+
+            await waitFor(() => expect(rendered.result.current.value).toBe('initial'));
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => expect(requestCount).toBe(2));
+
+            act(() => rendered.result.current.setDependency(2));
+            await vi.waitFor(() => expect(requestCount).toBe(3));
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe('fresh-dependency'));
+
+            expect(stalePollSignal?.aborted).toBe(true);
+            expect(rendered.result.current.value).not.toBe('stale-poll');
+        });
+
+        it('deduplicates shared polling consumers within each RequestExtras identity', async () => {
+            vi.useFakeTimers();
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                polling_interval: 1,
+                uid: 'polling-extras-derived',
+                variables: [],
+            };
+            const requestsByExtras = new Map<string, number>();
+            server.use(
+                http.post('/api/core/derived-variable/polling-extras-derived', ({ request }) => {
+                    const extras = request.headers.get('X-Dara-Test')!;
+                    requestsByExtras.set(extras, (requestsByExtras.get(extras) ?? 0) + 1);
+                    return HttpResponse.json({
+                        cache_key: extras,
+                        value: requestsByExtras.get(extras),
+                    });
+                })
+            );
+
+            function Consumer({ testId }: { testId: string }): JSX.Element {
+                const [value] = useVariable<number>(variable);
+                return <span data-testid={testId}>{value}</span>;
+            }
+
+            wrappedRender(
+                <>
+                    <RequestExtrasProvider options={{ headers: { 'X-Dara-Test': 'shared' } }}>
+                        <Consumer testId="shared-a" />
+                        <Consumer testId="shared-b" />
+                    </RequestExtrasProvider>
+                    <RequestExtrasProvider options={{ headers: { 'X-Dara-Test': 'other' } }}>
+                        <Consumer testId="other" />
+                    </RequestExtrasProvider>
+                </>
+            );
+
+            await vi.waitFor(() => {
+                expect(requestsByExtras.get('shared')).toBe(1);
+                expect(requestsByExtras.get('other')).toBe(1);
+            });
+
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => {
+                expect(requestsByExtras.get('shared')).toBe(2);
+                expect(requestsByExtras.get('other')).toBe(2);
+            });
+        });
+
         it('should support SwitchVariable as polling_interval and stop polling when disabled', async () => {
             vi.useFakeTimers();
             const pollingEnabled: Variable<boolean> = {

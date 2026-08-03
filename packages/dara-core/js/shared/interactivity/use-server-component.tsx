@@ -32,14 +32,26 @@ import {
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { useTaskContext } from '../context/global-task-context';
 import { useEventBus } from '../event-bus/event-bus';
-import { preloadDerivedValue, resolveDerivedValue } from './derived-variable';
+import { type CurrentResult, preloadDerivedValue, resolveDerivedValue } from './derived-variable';
 import { findStreamVariablesInArray } from './find-stream-variables';
 import { buildTriggerList, getOrRegisterTrigger, registerChildTriggers, resolveTriggerStatic } from './internal';
+import {
+    type PollingRequestOutcome,
+    assertCurrentRequest,
+    createPollForceKey,
+    getRetryAfterMs,
+    isAbortError,
+    isPollForceKey,
+    parseRetryAfter,
+    startPollingRequest,
+    waitForAbort,
+} from './polling';
 import { cleanKwargs, resolveVariable } from './resolve-variable';
 import {
     type TriggerIndexValue,
     atomRegistry,
     depsRegistry,
+    getOrRegisterPollingTrigger,
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
 } from './store';
@@ -70,6 +82,17 @@ export function getComponentRegistryKey(uid: string, trigger?: boolean, loopInst
 }
 
 /**
+ * Generate the request identity used for polling and cancellation.
+ */
+export function getServerComponentRequestKey(
+    uid: string,
+    loopInstanceUid: string | undefined,
+    extras: RequestExtras
+): string {
+    return getComponentRegistryKey(uid, false, loopInstanceUid) + new RequestExtrasSerializable(extras).toJSON();
+}
+
+/**
  * Fetch a component from the backend, expects a component instance to be returned.
  *
  * @param component the component to fetch
@@ -85,7 +108,8 @@ async function fetchFunctionComponent(
     },
     uid: string,
     extras: RequestExtras,
-    wsClient: WebSocketClientInterface
+    wsClient: WebSocketClientInterface,
+    signal?: AbortSignal
 ): Promise<TaskResponse | NormalizedPayload<ComponentInstance> | null> {
     const ws_channel = await wsClient.getChannel();
     const res = await request(
@@ -94,10 +118,18 @@ async function fetchFunctionComponent(
             body: JSON.stringify({ uid, values, ws_channel }),
             method: HTTP_METHOD.POST,
         },
-        extras
+        extras,
+        { signal }
     );
     await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
-    await validateResponse(res, `Failed to fetch the component: ${component}`);
+    try {
+        await validateResponse(res, `Failed to fetch the component: ${component}`);
+    } catch (error) {
+        if (typeof error === 'object' && error !== null) {
+            Object.assign(error, { retryAfterMs: parseRetryAfter(res) });
+        }
+        throw error;
+    }
     const result: TaskResponse | NormalizedPayload<ComponentInstance> | null = await res.json();
     return result;
 }
@@ -169,13 +201,7 @@ function getOrRegisterServerComponent({
                             (error as any).selectorExtras = extrasSerializable.toJSON();
                             throw error;
                         };
-                        const handleError = <R,>(func: () => R): R | undefined => {
-                            try {
-                                return func();
-                            } catch (e) {
-                                throwError(e);
-                            }
-                        };
+                        const selectorKey = key + extrasSerializable.toJSON();
 
                         // Kwargs resolved to their simple values
                         const resolvedKwargs = await Promise.all(
@@ -193,24 +219,26 @@ function getOrRegisterServerComponent({
 
                         const triggerAtom = getOrRegisterComponentTrigger(uid, loop_instance_uid);
                         const selfTrigger = get(triggerAtom);
+                        const pollingTrigger = get(getOrRegisterPollingTrigger(selectorKey));
 
                         // Build trigger map once for efficient lookups
                         const triggerList = buildTriggerList(kwargsList);
 
                         // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
                         const triggers = registerChildTriggers(triggerList, get);
-                        triggers.unshift(selfTrigger);
+                        triggers.unshift(selfTrigger, pollingTrigger);
 
                         const { extras } = extrasSerializable;
 
                         let derivedResult = resolveDerivedValue({
-                            key,
+                            key: selectorKey,
                             variables: kwargsList,
                             deps: kwargsList,
                             resolvedVariables: resolvedKwargsList,
                             resolutionStrategy: { name: 'get', get },
                             triggerList,
                             triggers,
+                            selfTriggerCount: 2,
                         });
 
                         // returning previous result as no change in dependant values
@@ -218,12 +246,31 @@ function getOrRegisterServerComponent({
                             return derivedResult.entry.result;
                         }
 
-                        let result: any = NOT_SET;
-                        // whether to check for an initial task
-                        let shouldFetchTask = false;
+                        const currentResult =
+                            derivedResult.type === 'current' ? (derivedResult as CurrentResult) : undefined;
+                        const pollRequest = isPollForceKey(currentResult?.selfTriggerForceKey);
+                        const requestFingerprint = currentResult
+                            ? JSON.stringify({
+                                  forceKey: currentResult.selfTriggerForceKey,
+                                  values: currentResult.values,
+                              })
+                            : undefined;
+                        const requestHandle = currentResult
+                            ? startPollingRequest(
+                                  selectorKey,
+                                  pollRequest ? 'poll' : 'dependency',
+                                  extras.signal ?? undefined,
+                                  requestFingerprint
+                              )
+                            : undefined;
+                        let requestOutcome: PollingRequestOutcome = { status: 'success' };
 
-                        if (derivedResult.type === 'cached') {
-                            try {
+                        try {
+                            let result: any = NOT_SET;
+                            // whether to check for an initial task
+                            let shouldFetchTask = false;
+
+                            if (derivedResult.type === 'cached') {
                                 const response = await derivedResult.response.getValue();
                                 shouldFetchTask = true;
                                 if (!response.ok) {
@@ -232,89 +279,115 @@ function getOrRegisterServerComponent({
 
                                 result = response.value;
                                 derivedResult = derivedResult.currentResult;
-                            } catch (e) {
-                                throwError(e);
-                            }
-                        } else {
-                            // Otherwise fetch new component
-                            // turn the resolved values back into an object and clean them up
-                            const kwargValues = cleanKwargs(
-                                Object.keys(dynamicKwargs).reduce(
-                                    (acc, k, idx) => {
-                                        acc[k] = (derivedResult as any).values[idx];
-                                        return acc;
-                                    },
-                                    {} as Record<string, any>
-                                )
-                            );
+                            } else {
+                                requestHandle!.signal.addEventListener(
+                                    'abort',
+                                    () => taskContext.cleanupRunningTasks(key),
+                                    { once: true }
+                                );
 
-                            result = await handleError(() =>
-                                fetchFunctionComponent(
+                                // Otherwise fetch new component
+                                // turn the resolved values back into an object and clean them up
+                                const kwargValues = cleanKwargs(
+                                    Object.keys(dynamicKwargs).reduce(
+                                        (acc, k, idx) => {
+                                            acc[k] = currentResult!.values[idx];
+                                            return acc;
+                                        },
+                                        {} as Record<string, any>
+                                    )
+                                );
+
+                                result = await fetchFunctionComponent(
                                     name,
                                     normalizeRequest(kwargValues, dynamicKwargs),
                                     uid,
                                     extras,
-                                    wsClient
-                                )
-                            );
-                        }
+                                    wsClient,
+                                    requestHandle!.signal
+                                );
+                            }
 
-                        taskContext.cleanupRunningTasks(key);
+                            taskContext.cleanupRunningTasks(key);
 
-                        // Metatask returned
-                        if (isTaskResponse(result)) {
-                            const taskId = result.task_id;
-                            result = NOT_SET;
+                            // Metatask returned
+                            if (isTaskResponse(result)) {
+                                const taskId = result.task_id;
+                                result = NOT_SET;
 
-                            // pre-fetch task result since it could already be available without us receiving the notif
-                            if (shouldFetchTask) {
-                                try {
-                                    const taskResult = await fetchTaskResult<any>(taskId, extras);
+                                // pre-fetch task result since it could already be available without us receiving the notif
+                                if (shouldFetchTask) {
+                                    const taskResult = await fetchTaskResult<any>(taskId, {
+                                        ...extras,
+                                        signal: requestHandle?.signal,
+                                    });
                                     if (taskResult.status === 'ok') {
                                         result = taskResult.result;
                                     }
-                                } catch (e) {
-                                    throwError(e);
-                                }
-                            }
-
-                            // no value yet, need to wait for the task
-                            if (result === NOT_SET) {
-                                // Register the task under the component's instance key
-                                taskContext.startTask(taskId, key, getComponentRegistryKey(uid, true));
-
-                                try {
-                                    await wsClient.waitForTask(taskId);
-                                } catch (e: unknown) {
-                                    throwError(e);
-                                } finally {
-                                    taskContext.endTask(taskId);
                                 }
 
-                                result = await handleError(async () => {
-                                    const res = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(
+                                // no value yet, need to wait for the task
+                                if (result === NOT_SET) {
+                                    // Register the task under the component's instance key
+                                    taskContext.startTask(taskId, key, getComponentRegistryKey(uid, true));
+
+                                    try {
+                                        await waitForAbort(wsClient.waitForTask(taskId), requestHandle?.signal);
+                                    } finally {
+                                        taskContext.endTask(taskId);
+                                    }
+
+                                    const response = await fetchTaskResult<NormalizedPayload<ComponentInstance>>(
                                         taskId,
-                                        extras
+                                        {
+                                            ...extras,
+                                            signal: requestHandle?.signal,
+                                        }
                                     );
-                                    if (res.status === 'not_found') {
+                                    if (response.status === 'not_found') {
                                         throw new Error('Task result not found');
                                     }
-                                    return res.result;
-                                });
+                                    result = response.result;
+                                }
                             }
+
+                            if (result !== NOT_SET && result !== null) {
+                                // Denormalize
+                                result = denormalize(result.data, result.lookup);
+                            }
+
+                            if (requestHandle) {
+                                assertCurrentRequest(requestHandle);
+                            }
+
+                            depsRegistry.set(derivedResult.depsKey, {
+                                args: derivedResult.relevantValues,
+                                result,
+                            });
+
+                            return result;
+                        } catch (error) {
+                            requestOutcome = isAbortError(error)
+                                ? { status: 'aborted' }
+                                : { status: 'error', retryAfterMs: getRetryAfterMs(error) };
+
+                            const previous = depsRegistry.get((derivedResult as CurrentResult).depsKey);
+                            if (isAbortError(error) && previous) {
+                                await requestHandle?.waitForSupersedingRequest();
+                                return (
+                                    depsRegistry.get((derivedResult as CurrentResult).depsKey)?.result ??
+                                    previous.result
+                                );
+                            }
+
+                            if (pollRequest && previous) {
+                                return previous.result;
+                            }
+
+                            throwError(error);
+                        } finally {
+                            requestHandle?.finish(requestOutcome);
                         }
-
-                        if (result !== NOT_SET && result !== null) {
-                            // Denormalize
-                            result = denormalize(result.data, result.lookup);
-                        }
-
-                        depsRegistry.set(key, {
-                            args: derivedResult.relevantValues,
-                            result,
-                        });
-
-                        return result;
                     },
                 key,
             })
@@ -344,7 +417,7 @@ export function preloadServerComponent(
     snapshot: Snapshot,
     params: Params<string>
 ): ReturnType<typeof preloadDerivedValue> {
-    const key = getComponentRegistryKey(component.uid, false, component.loop_instance_uid);
+    const key = getServerComponentRequestKey(component.uid, component.loop_instance_uid, {});
 
     const kwargsList = Object.values(component.props.dynamic_kwargs);
 
@@ -352,8 +425,9 @@ export function preloadServerComponent(
 
     // prepare trigger list as usual but use static resolution
     const triggers = [
+        resolveTriggerStatic(getOrRegisterComponentTrigger(component.uid, component.loop_instance_uid), snapshot),
+        resolveTriggerStatic(getOrRegisterPollingTrigger(key), snapshot),
         ...triggerList.map((ti) => resolveTriggerStatic(getOrRegisterTrigger(ti.variable), snapshot)),
-        resolveTriggerStatic(getOrRegisterComponentTrigger(component.uid), snapshot),
     ];
 
     return preloadDerivedValue({
@@ -364,6 +438,7 @@ export function preloadServerComponent(
         triggers,
         snapshot,
         params,
+        selfTriggerCount: 2,
     });
 }
 
@@ -444,5 +519,26 @@ export function useRefreshServerComponent(uid: string, loop_instance_uid?: strin
                 }));
             },
         [uid]
+    );
+}
+
+/**
+ * Refresh one server-component/request-extras identity for polling.
+ */
+export function usePollServerComponent(
+    uid: string,
+    loopInstanceUid: string | undefined,
+    extras: RequestExtras
+): () => void {
+    const requestKey = getServerComponentRequestKey(uid, loopInstanceUid, extras);
+    return useRecoilCallback(
+        ({ set }) =>
+            () => {
+                set(getOrRegisterPollingTrigger(requestKey), (triggerIndexValue) => ({
+                    force_key: createPollForceKey(),
+                    inc: triggerIndexValue.inc + 1,
+                }));
+            },
+        [requestKey]
     );
 }

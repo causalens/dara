@@ -15,11 +15,15 @@ import { ErrorBoundary } from 'react-error-boundary';
 import DefaultFallback from '@/components/fallback/default';
 import { hasMarkers } from '@/components/for/templating';
 import ProgressTracker from '@/components/progress-tracker';
-import { FallbackCtx, VariableCtx, useTaskContext } from '@/shared/context';
+import { FallbackCtx, VariableCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector, useVariable } from '@/shared/interactivity';
-import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
-import { useInterval } from '@/shared/utils';
+import { usePolling } from '@/shared/interactivity/polling';
+import useServerComponent, {
+    getServerComponentRequestKey,
+    usePollServerComponent,
+    useRefreshServerComponent,
+} from '@/shared/interactivity/use-server-component';
 import {
     type ComponentInstance,
     type DerivedVariable,
@@ -381,6 +385,8 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         props.component.loop_instance_uid
     );
     const refresh = useRefreshServerComponent(props.uid, props.component.loop_instance_uid);
+    const extras = useRequestExtras();
+    const poll = usePollServerComponent(props.uid, props.component.loop_instance_uid, extras);
     const [componentPollingInterval] = useVariable<number | null>(props.polling_interval ?? null);
     const resolvedKwargPollingIntervals = useResolveDynamicKwargPollingIntervals(props.dynamic_kwargs);
 
@@ -389,7 +395,8 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         () => computePollingInterval(resolvedKwargPollingIntervals, componentPollingInterval),
         [resolvedKwargPollingIntervals, componentPollingInterval]
     );
-    useInterval(refresh, pollingInterval);
+    const pollingKey = getServerComponentRequestKey(props.uid, props.component.loop_instance_uid, extras);
+    usePolling(pollingKey, pollingInterval, poll);
 
     if (component === null) {
         return null;
