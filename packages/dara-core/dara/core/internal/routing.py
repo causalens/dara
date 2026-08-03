@@ -16,12 +16,13 @@ limitations under the License.
 """
 
 import asyncio
+import contextlib
 import inspect
 import json
 import math
 import os
 import traceback
-from collections.abc import Callable, Mapping
+from collections.abc import AsyncGenerator, Callable, Mapping
 from functools import wraps
 from importlib.metadata import version
 from typing import Annotated, Any, Literal
@@ -50,6 +51,7 @@ from pandas import DataFrame
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 from starlette.status import HTTP_415_UNSUPPORTED_MEDIA_TYPE
+from starlette.types import Send
 
 from dara.core.auth.routes import verify_session
 from dara.core.base_definitions import ActionResolverDef, BaseTask, NonTabularDataError, UploadResolverDef
@@ -81,6 +83,7 @@ from dara.core.internal.registries import (
     utils_registry,
 )
 from dara.core.internal.registry_lookup import RegistryLookup
+from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager, TaskManagerError
 from dara.core.internal.utils import get_cache_scope
 from dara.core.internal.websocket import WS_CHANNEL, ws_handler
@@ -521,6 +524,26 @@ class StreamRequestBody(BaseModel):
     """Normalized payload of resolved variable values to pass to the stream generator."""
 
 
+class _ClosableStreamingResponse(StreamingResponse):
+    """StreamingResponse that deterministically closes its async-generator body."""
+
+    def __init__(self, content: AsyncGenerator[Any, None], **kwargs: Any):
+        super().__init__(content, **kwargs)
+        self._closable_body_iterator = content
+
+    async def stream_response(self, send: Send) -> None:
+        """Stream the response and close its body even when ASGI cancels during send."""
+        try:
+            await super().stream_response(send)
+        finally:
+            # For ASGI <2.4 Starlette cancels this task when http.disconnect
+            # wins its task-group race. AnyIO cancellation is level-triggered,
+            # so cleanup must be shielded or aclose() can itself be cancelled
+            # before the nested run_stream producer releases its subscription.
+            with anyio.CancelScope(shield=True):
+                await self._closable_body_iterator.aclose()
+
+
 @core_api_router.post('/stream/{stream_uid}', dependencies=[Depends(verify_session)])
 async def stream_endpoint(
     request: Request,
@@ -553,15 +576,30 @@ async def stream_endpoint(
     @track_stream
     async def stream():
         try:
-            async for event in run_stream(entry, disconnect_event, values, store, task_mgr):
-                yield event
+            interval_seconds = get_settings().dara_stream_keepalive_interval_seconds
+            # A forwarding async generator does not implicitly close the
+            # iterator used by async for. StreamingResponse can close this
+            # wrapper while it is suspended at yield, so explicitly own
+            # run_stream to await its producer and upstream subscription cleanup.
+            async with contextlib.aclosing(
+                run_stream(
+                    entry,
+                    disconnect_event,
+                    values,
+                    store,
+                    task_mgr,
+                    keepalive_interval_seconds=interval_seconds,
+                )
+            ) as source:
+                async for event in source:
+                    yield event
         finally:
             # Signal disconnect so run_stream's race loop can cancel a blocked generator.
             # This fires when StreamingResponse stops consuming (client disconnect,
             # generator exhaustion, or task cancellation).
             disconnect_event.set()
 
-    return StreamingResponse(
+    return _ClosableStreamingResponse(
         stream(),
         media_type='text/event-stream',
         headers={

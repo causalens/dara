@@ -5,6 +5,7 @@
 import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { Suspense, useContext, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useRecoilValue } from 'recoil';
 
 import { setSessionIdentifier } from '@/auth/session-state';
@@ -150,6 +151,21 @@ function StreamWithSuspenseDirect({ variable }: { variable: StreamVariable }): J
     );
 }
 
+/**
+ * Component with the same Suspense and error boundaries used by Dara components.
+ */
+function StreamWithBoundaries({ variable }: { variable: StreamVariable }): JSX.Element {
+    return (
+        <ErrorBoundary
+            fallbackRender={({ error }) => (
+                <div data-testid="stream-error">{error instanceof Error ? error.message : String(error)}</div>
+            )}
+        >
+            <StreamWithSuspenseDirect variable={variable} />
+        </ErrorBoundary>
+    );
+}
+
 describe('useVariable with StreamVariable', () => {
     beforeAll(() => {
         server.listen({ onUnhandledRequest: 'bypass' });
@@ -237,6 +253,103 @@ describe('useVariable with StreamVariable', () => {
 
         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
         expect(screen.getByTestId('stream-data')).toHaveTextContent('{"message":"hello"}');
+    });
+
+    it('rejects the initial load with a user-visible fatal stream error', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const streamVar: StreamVariable = {
+            __typename: 'StreamVariable',
+            uid: 'test-initial-fatal-error',
+            variables: [],
+            key_accessor: null,
+            nested: [],
+        };
+
+        server.use(
+            createSSEHandler('test-initial-fatal-error', [
+                {
+                    type: 'error',
+                    data: 'Initial stream failure',
+                },
+            ])
+        );
+
+        wrappedRender(<StreamWithBoundaries variable={streamVar} />);
+
+        expect(screen.getByTestId('loading')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByTestId('stream-error')).toHaveTextContent('Initial stream failure');
+        });
+
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('stream-data')).not.toBeInTheDocument();
+    });
+
+    it('replaces previously rendered data with a user-visible fatal stream error', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const streamVar: StreamVariable = {
+            __typename: 'StreamVariable',
+            uid: 'test-fatal-error-after-data',
+            variables: [],
+            key_accessor: null,
+            nested: [],
+        };
+
+        let sendFatalError: (() => void) | undefined;
+        server.use(
+            http.post('/api/core/stream/test-fatal-error-after-data', () => {
+                const encoder = new TextEncoder();
+                const stream = new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(
+                            encoder.encode(
+                                `data: ${JSON.stringify({
+                                    type: 'json_snapshot',
+                                    data: { stale: true },
+                                })}\n\n`
+                            )
+                        );
+                        sendFatalError = () => {
+                            controller.enqueue(
+                                encoder.encode(
+                                    `data: ${JSON.stringify({
+                                        type: 'error',
+                                        data: 'Fatal stream failure',
+                                    })}\n\n`
+                                )
+                            );
+                            controller.close();
+                        };
+                    },
+                });
+
+                return new HttpResponse(stream, {
+                    headers: {
+                        'Content-Type': 'text/event-stream',
+                        'Cache-Control': 'no-cache',
+                        Connection: 'keep-alive',
+                    },
+                });
+            })
+        );
+
+        wrappedRender(<StreamWithBoundaries variable={streamVar} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('stream-data')).toHaveTextContent('{"stale":true}');
+        });
+
+        await act(async () => {
+            sendFatalError?.();
+            await Promise.resolve();
+        });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('stream-error')).toHaveTextContent('Fatal stream failure');
+        });
+        expect(screen.queryByTestId('stream-data')).not.toBeInTheDocument();
     });
 
     it('suspends again when dependencies change', async () => {

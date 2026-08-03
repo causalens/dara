@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Fixed StreamVariable clean connection closures not reconnecting and fatal stream errors silently leaving stale values visible, and added configurable SSE keepalive comments with robust parsing and cleanup across the full stream lifecycle.
 - Fixed FastAPI telemetry cleanup errors when application construction fails by attaching instrumentation only after
   the application has been built successfully.
 
