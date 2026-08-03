@@ -1,8 +1,10 @@
-import { type RecoilState, type RecoilValue } from 'recoil';
+import { type RecoilState, type RecoilValue, atom } from 'recoil';
 
 import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { type AnyVariable, isDerivedVariable, isVariable } from '@/types';
+
+import { clearPolling_TEST } from './polling';
 
 /**
  * Selector family type which constructs a selector from a given set of extras.
@@ -18,6 +20,8 @@ export type AtomFamily = (P: RequestExtrasSerializable) => RecoilState<any>;
  * Key -> atom
  */
 export const atomRegistry = new Map<string, RecoilState<any>>();
+/** Request identity -> polling-only trigger atom. */
+export const pollingTriggerRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
 /**
  * Key -> atom family
  */
@@ -65,6 +69,25 @@ export type TriggerIndexValue = {
     inc: number;
 };
 
+/**
+ * Get the trigger used to refresh exactly one selector/request-extras identity.
+ */
+export function getOrRegisterPollingTrigger(requestKey: string): RecoilState<TriggerIndexValue> {
+    if (!pollingTriggerRegistry.has(requestKey)) {
+        pollingTriggerRegistry.set(
+            requestKey,
+            atom<TriggerIndexValue>({
+                default: {
+                    force_key: null,
+                    inc: 0,
+                } satisfies TriggerIndexValue,
+                key: `_POLLING_TRIGGER_${requestKey}`,
+            })
+        );
+    }
+    return pollingTriggerRegistry.get(requestKey)!;
+}
+
 type RegistryKeyType = 'result-selector' | 'derived-selector' | 'selector-nested' | 'trigger' | 'filters';
 
 /**
@@ -94,8 +117,11 @@ export function getRegistryKey<T>(variable: AnyVariable<T>, type: RegistryKeyTyp
  * Clear registries - to be used in tests only.
  */
 export function clearRegistries_TEST(): void {
+    clearPolling_TEST();
+
     for (const registry of [
         atomRegistry,
+        pollingTriggerRegistry,
         atomFamilyRegistry,
         atomFamilyMembersRegistry,
         selectorRegistry,

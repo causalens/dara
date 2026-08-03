@@ -15,11 +15,15 @@ import { ErrorBoundary } from 'react-error-boundary';
 import DefaultFallback from '@/components/fallback/default';
 import { hasMarkers } from '@/components/for/templating';
 import ProgressTracker from '@/components/progress-tracker';
-import { FallbackCtx, VariableCtx, useTaskContext } from '@/shared/context';
+import { FallbackCtx, VariableCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector, useVariable } from '@/shared/interactivity';
-import useServerComponent, { useRefreshServerComponent } from '@/shared/interactivity/use-server-component';
-import { useInterval } from '@/shared/utils';
+import { usePollScope, usePolling } from '@/shared/interactivity/polling';
+import useServerComponent, {
+    getServerComponentRequestKey,
+    usePollServerComponent,
+    useRefreshServerComponent,
+} from '@/shared/interactivity/use-server-component';
 import {
     type ComponentInstance,
     type DerivedVariable,
@@ -276,6 +280,8 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
 
     const { hasRunningTasks, cleanupRunningTasks } = useTaskContext();
     const variables = useRef<Set<string>>(new Set());
+    const pollScope = usePollScope();
+    const variableContext = { pollScope, variables };
 
     /*
         When this component unmounts, then cancel any pending tasks for this component. This is required because recoil uses
@@ -318,7 +324,7 @@ function DynamicComponent(props: DynamicComponentProps): React.ReactNode {
             onReset={onResetErrorBoundary}
         >
             <FallbackCtx.Provider value={{ suspend }}>
-                <VariableCtx.Provider value={{ variables }}>
+                <VariableCtx.Provider value={variableContext}>
                     <Suspense fallback={fallback}>{component}</Suspense>
                 </VariableCtx.Provider>
             </FallbackCtx.Provider>
@@ -381,6 +387,8 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         props.component.loop_instance_uid
     );
     const refresh = useRefreshServerComponent(props.uid, props.component.loop_instance_uid);
+    const extras = useRequestExtras();
+    const poll = usePollServerComponent(props.uid, props.component.loop_instance_uid, extras);
     const [componentPollingInterval] = useVariable<number | null>(props.polling_interval ?? null);
     const resolvedKwargPollingIntervals = useResolveDynamicKwargPollingIntervals(props.dynamic_kwargs);
 
@@ -389,7 +397,8 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         () => computePollingInterval(resolvedKwargPollingIntervals, componentPollingInterval),
         [resolvedKwargPollingIntervals, componentPollingInterval]
     );
-    useInterval(refresh, pollingInterval);
+    const pollingKey = getServerComponentRequestKey(props.uid, props.component.loop_instance_uid, extras);
+    usePolling(pollingKey, pollingInterval, poll);
 
     if (component === null) {
         return null;

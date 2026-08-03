@@ -23,8 +23,6 @@ import {
     useRecoilValue,
     useSetRecoilState,
 } from 'recoil';
-import { BehaviorSubject, Observable, from } from 'rxjs';
-import { debounceTime, filter, share, switchMap, take } from 'rxjs/operators';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
@@ -34,7 +32,6 @@ import { TaskError } from '@/api/websocket';
 import { handleAuthErrors } from '@/auth/auth';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
 import { normalizeRequest } from '@/shared/utils/normalization';
-import useInterval from '@/shared/utils/use-interval';
 import {
     type DerivedVariable,
     type GlobalTaskContext,
@@ -52,8 +49,20 @@ import { type Deferred, deferred, isDeferred } from '../utils/deferred';
 // eslint-disable-next-line import/no-cycle
 import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable, resolveVariableStatic } from './internal';
 import {
+    createPollForceKey,
+    isAbortError,
+    isPollForceKey,
+    markRetryAfter,
+    type PollScope,
+    runPoll,
+    usePollKey,
+    usePolling,
+    waitOrAbort,
+} from './polling';
+import {
     type TriggerIndexValue,
     depsRegistry,
+    getOrRegisterPollingTrigger,
     getRegistryKey,
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
@@ -80,6 +89,7 @@ interface FetchDerivedVariableArgs {
     cache: DerivedVariable['cache'];
     extras: RequestExtras;
     force_key?: string | null;
+    signal?: AbortSignal;
     /**
      * selector instance key  - each selector's requests should be treated separately
      */
@@ -106,6 +116,7 @@ export async function fetchDerivedVariable<T>({
     cache,
     extras,
     force_key,
+    signal,
     variableUid,
     values,
     wsClient,
@@ -126,59 +137,71 @@ export async function fetchDerivedVariable<T>({
             headers: { ...cacheControl },
             method: HTTP_METHOD.POST,
         },
-        extras
+        extras,
+        { signal }
     );
     await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
-    await validateResponse(res, `Failed to fetch the derived variable with uid: ${variableUid}`);
+    try {
+        await validateResponse(res, `Failed to fetch the derived variable with uid: ${variableUid}`);
+    } catch (error) {
+        throw markRetryAfter(error, res);
+    }
     return res.json();
 }
 
+interface PendingFetch {
+    args: FetchDerivedVariableArgs;
+    timer?: ReturnType<typeof setTimeout>;
+    waiters: Array<{
+        reject: (error: unknown) => void;
+        resolve: (response: DerivedVariableResponse<any>) => void;
+    }>;
+}
+
+const pendingFetches = new Map<string, PendingFetch>();
+
 /**
- * Add a debounced version of the fetch so as to not overload the backend on startup. This needs to be cached per uid
- * so that we only debounce calls to the same DerivedVariable. Debouncing is done with rxjs as everything here is
- * promise based and async
+ * Wait 10 ms so matching selector reads share one fetch. A running fetch stays separate.
  */
-const debouncedFetchSubjects: {
-    [k: string]: BehaviorSubject<FetchDerivedVariableArgs | null>;
-} = {};
-const debouncedFetchCache: {
-    [k: string]: Observable<any>;
-} = {};
-
-async function debouncedFetchDerivedVariable({
-    variableUid,
-    selectorKey,
-    values,
-    wsClient,
-    extras,
-    cache,
-    force_key,
-}: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
-    // If this is the first time this is called then set up a subject and return stream for this selector
-    if (!debouncedFetchSubjects[selectorKey]) {
-        debouncedFetchSubjects[selectorKey] = new BehaviorSubject<FetchDerivedVariableArgs | null>(null);
-        debouncedFetchCache[selectorKey] = debouncedFetchSubjects[selectorKey].pipe(
-            filter((args) => !!args),
-            debounceTime(10),
-            switchMap((args) => from(fetchDerivedVariable(args))),
-            share()
-        );
+function startPendingFetch(selectorKey: string, pending: PendingFetch): void {
+    if (pendingFetches.get(selectorKey) !== pending) {
+        return;
     }
+    pendingFetches.delete(selectorKey);
 
-    // Push the next set of args to the subject
-    debouncedFetchSubjects[selectorKey].next({
-        cache,
-        extras,
-        force_key,
-        selectorKey,
-        values,
-        variableUid,
-        wsClient,
-    });
+    void fetchDerivedVariable(pending.args).then(
+        (response) => {
+            for (const waiter of pending.waiters) {
+                waiter.resolve(response);
+            }
+        },
+        (error: unknown) => {
+            for (const waiter of pending.waiters) {
+                waiter.reject(error);
+            }
+        }
+    );
+}
 
-    // Return the debounced response from the backend
+async function debouncedFetchDerivedVariable(args: FetchDerivedVariableArgs): Promise<DerivedVariableResponse<any>> {
     return new Promise((resolve, reject) => {
-        debouncedFetchCache[selectorKey]!.pipe(take(1)).subscribe(resolve, reject);
+        const pending = pendingFetches.get(args.selectorKey);
+        if (pending) {
+            if (pending.timer !== undefined) {
+                clearTimeout(pending.timer);
+            }
+            pending.args = args;
+            pending.waiters.push({ reject, resolve });
+            pending.timer = setTimeout(() => startPendingFetch(args.selectorKey, pending), 10);
+            return;
+        }
+
+        const next: PendingFetch = {
+            args,
+            waiters: [{ reject, resolve }],
+        };
+        next.timer = setTimeout(() => startPendingFetch(args.selectorKey, next), 10);
+        pendingFetches.set(args.selectorKey, next);
     });
 }
 
@@ -300,7 +323,7 @@ interface PreviousResult {
  * DerivedVariable resolution result meaning that the value changed since last time
  * and should be refetched.
  */
-interface CurrentResult {
+export interface CurrentResult {
     /**
      * List of new 'relevant' values which should be used to update the depsRegistry entry if refetch was successful
      */
@@ -351,7 +374,8 @@ export type DerivedResult = PreviousResult | CurrentResult | CachedResponse;
  * @param resolvedVariables resolved values of dependant variables - turned into primitives and Resolved forms
  * @param get getter function to resolve atoms to values
  * @param triggerList list of trigger info objects
- * @param triggers list of triggers to register as dependencies; first one is expected to be the self-trigger
+ * @param selfTriggers triggers owned by this request identity
+ * @param childTriggers triggers owned by nested variables
  */
 export function resolveDerivedValue({
     key,
@@ -360,7 +384,8 @@ export function resolveDerivedValue({
     resolvedVariables,
     resolutionStrategy,
     triggerList,
-    triggers,
+    selfTriggers,
+    childTriggers,
 }: {
     key: string;
     variables: any[];
@@ -370,8 +395,10 @@ export function resolveDerivedValue({
         | { name: 'get'; get: GetRecoilValue }
         | { name: 'static'; snapshot: Snapshot; params: Params<string> };
     triggerList: Array<TriggerInfo>;
-    triggers: TriggerIndexValue[];
+    selfTriggers: TriggerIndexValue[];
+    childTriggers: TriggerIndexValue[];
 }): DerivedResult {
+    const triggers = [...selfTriggers, ...childTriggers];
     /**
      * Array of values:
      * - primitive values are resolved to themselves
@@ -460,23 +487,27 @@ export function resolveDerivedValue({
         const previousTriggerCounters = previousEntry.args.slice(
             previousEntry.args.length - triggers.length
         ) as number[];
+        const dependenciesChanged = !isEqual(
+            previousEntry.args.slice(0, -triggers.length),
+            relevantValues.slice(0, -triggers.length)
+        );
 
         // Find which trigger changed and handle force_key appropriately
         let selfTriggerForceKey: string | null = null;
 
-        for (const [idx, triggerValue] of triggers.entries()) {
+        for (const [idx, triggerValue] of dependenciesChanged ? [] : triggers.entries()) {
             /**
              *  If any of the nested trigger value has changed (this execution was caused by a trigger)
              *  handle the force_key appropriately
              */
             if (triggerValue.inc !== previousTriggerCounters[idx]) {
-                if (idx === 0) {
+                if (idx < selfTriggers.length) {
                     // This is a self-trigger (polling, manual trigger) - use global force
                     selfTriggerForceKey = triggerValue.force_key;
                 } else if (triggerValue.force_key) {
                     // This is a nested variable trigger - embed force_key in the specific variable
-                    // shift index back by 1 because we prepended a self trigger
-                    const valueIndex = idx - 1;
+                    // shift index back by the number of prepended self triggers
+                    const valueIndex = idx - selfTriggers.length;
                     const triggerInfo = triggerList[valueIndex]!;
 
                     // If the trigger path is empty, it means we need to force the DV itself
@@ -558,13 +589,14 @@ export function getOrRegisterDerivedVariableResult(
 
                         // for deps use a different key for each selector instance rather than one per family
                         const selectorKey = key + extrasSerializable.toJSON();
+                        const requestKey = getRegistryKey(variable, 'derived-selector') + extrasSerializable.toJSON();
+                        const pollingTrigger = get(getOrRegisterPollingTrigger(requestKey));
 
                         // Build trigger map once for efficient lookups
                         const triggerList = buildTriggerList(variable.variables);
 
                         // Register nested triggers as dependencies so triggering one of the nested derived variables will trigger a recalculation here
-                        const triggers = registerChildTriggers(triggerList, get);
-                        triggers.unshift(selfTrigger);
+                        const childTriggers = registerChildTriggers(triggerList, get);
 
                         const derivedResult = resolveDerivedValue({
                             key: selectorKey,
@@ -573,7 +605,8 @@ export function getOrRegisterDerivedVariableResult(
                             resolvedVariables,
                             resolutionStrategy: { name: 'get', get },
                             triggerList,
-                            triggers,
+                            selfTriggers: [selfTrigger, pollingTrigger],
+                            childTriggers,
                         });
                         return derivedResult;
                     },
@@ -635,13 +668,6 @@ export function getOrRegisterDerivedVariableValue(
                             (error as any).selectorExtras = extrasSerializable.toJSON();
                             throw error;
                         };
-                        const handleError = <R,>(func: () => R): R | undefined => {
-                            try {
-                                return func();
-                            } catch (e) {
-                                throwError(e);
-                            }
-                        };
 
                         // get the result selector instance for this extras value
                         const dvResultSelector = getOrRegisterDerivedVariableResult(
@@ -657,13 +683,21 @@ export function getOrRegisterDerivedVariableValue(
                         }
 
                         const { extras } = extrasSerializable;
-                        let variableResponse = null;
-                        // whether to check for an initial task
-                        let shouldFetchTask = false;
+                        const currentResult =
+                            derivedResult.type === 'current' ? (derivedResult as CurrentResult) : undefined;
+                        const pollRequest = isPollForceKey(currentResult?.selfTriggerForceKey);
+                        const inputKey = currentResult
+                            ? JSON.stringify({
+                                  forceKey: currentResult.selfTriggerForceKey,
+                                  values: currentResult.values,
+                              })
+                            : undefined;
+                        const fetchValue = async (signal?: AbortSignal): Promise<any> => {
+                            let variableResponse = null;
+                            let shouldFetchTask = false;
 
-                        // Skip fetching if we have a cached result, await it instead
-                        if (derivedResult.type === 'cached') {
-                            try {
+                            // Skip fetching if we have a cached result, await it instead
+                            if (derivedResult.type === 'cached') {
                                 const response = await derivedResult.response.getValue();
                                 shouldFetchTask = true;
                                 if (!response.ok) {
@@ -671,85 +705,113 @@ export function getOrRegisterDerivedVariableValue(
                                 }
                                 variableResponse = response.value;
                                 derivedResult = derivedResult.currentResult;
-                            } catch (e) {
-                                throwError(e);
-                            }
-                        } else {
-                            variableResponse = await handleError(() =>
-                                debouncedFetchDerivedVariable({
+                            } else {
+                                signal!.addEventListener('abort', () => taskContext.cleanupRunningTasks(variable.uid), {
+                                    once: true,
+                                });
+                                variableResponse = await debouncedFetchDerivedVariable({
                                     cache: variable.cache,
                                     extras,
-                                    force_key: (derivedResult as CurrentResult).selfTriggerForceKey,
+                                    force_key: currentResult!.selfTriggerForceKey,
                                     selectorKey,
-                                    values: normalizeRequest(
-                                        cleanArgs((derivedResult as CurrentResult).values),
-                                        variable.variables
-                                    ),
+                                    signal: signal!,
+                                    values: normalizeRequest(cleanArgs(currentResult!.values), variable.variables),
                                     variableUid: variable.uid,
                                     wsClient,
-                                })
-                            );
-                        }
+                                });
+                            }
+                            signal?.throwIfAborted();
 
-                        let variableValue: any = NOT_SET;
+                            let variableValue: any = NOT_SET;
 
-                        // If there is a task running related to the current variable then something has changed, so cancel them
-                        taskContext.cleanupRunningTasks(variable.uid);
+                            // If there is a task running related to the current variable then something has changed, so cancel them
+                            taskContext.cleanupRunningTasks(variable.uid);
 
-                        // If the variable is computed as a task then wait for it to finish and fetch the result
-                        if (isTaskResponse(variableResponse)) {
-                            const taskId = variableResponse.task_id;
+                            // If the variable is computed as a task then wait for it to finish and fetch the result
+                            if (isTaskResponse(variableResponse)) {
+                                const taskId = variableResponse.task_id;
 
-                            // pre-fetch task result since it could already be available without us receiving the notif
-                            if (shouldFetchTask) {
-                                try {
-                                    const taskResult = await fetchTaskResult<any>(taskId, extras);
+                                // pre-fetch task result since it could already be available without us receiving the notif
+                                if (shouldFetchTask) {
+                                    const taskResult = await fetchTaskResult<any>(taskId, {
+                                        ...extras,
+                                        signal,
+                                    });
                                     if (taskResult.status === 'ok') {
                                         variableValue = taskResult.result;
                                     }
-                                } catch (e) {
-                                    throwError(e);
                                 }
-                            }
 
-                            // continue waiting for the task if it's not available yet
-                            if (variableValue === NOT_SET) {
-                                // register task being started
-                                taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
+                                // continue waiting for the task if it's not available yet
+                                if (variableValue === NOT_SET) {
+                                    // register task being started
+                                    taskContext.startTask(taskId, variable.uid, getRegistryKey(variable, 'trigger'));
 
-                                try {
-                                    await wsClient.waitForTask(taskId);
-                                } catch (e: unknown) {
-                                    if (e instanceof TaskError) {
-                                        throwError(e);
+                                    try {
+                                        await waitOrAbort(wsClient.waitForTask(taskId), signal);
+                                    } catch (e: unknown) {
+                                        if (e instanceof TaskError || isAbortError(e)) {
+                                            throw e;
+                                        }
+
+                                        // should be a TaskCancelledError
+                                        // It should be safe to return `null` here as the selector will re-run and throw suspense again
+                                        return null;
+                                    } finally {
+                                        taskContext.endTask(taskId);
                                     }
 
-                                    // should be a TaskCancelledError
-                                    // It should be safe to return `null` here as the selector will re-run and throw suspense again
-                                    return null;
-                                } finally {
-                                    taskContext.endTask(taskId);
-                                }
-
-                                variableValue = await handleError(async () => {
-                                    const result = await fetchTaskResult<any>(taskId, extras);
+                                    const result = await fetchTaskResult<any>(taskId, {
+                                        ...extras,
+                                        signal,
+                                    });
                                     if (result.status === 'not_found') {
                                         throw new Error('Task result not found');
                                     }
-                                    return result.result;
-                                });
+                                    variableValue = result.result;
+                                }
+                            } else {
+                                variableValue = variableResponse.value;
                             }
-                        } else {
-                            variableValue = variableResponse.value;
+
+                            return variableValue;
+                        };
+
+                        if (!currentResult) {
+                            try {
+                                const variableValue = await fetchValue();
+                                depsRegistry.set(derivedResult.depsKey, {
+                                    args: derivedResult.relevantValues,
+                                    result: variableValue,
+                                });
+                                return variableValue;
+                            } catch (error) {
+                                return throwError(error);
+                            }
                         }
 
-                        // Store the final result and arguments used
-                        depsRegistry.set(derivedResult.depsKey, {
-                            args: derivedResult.relevantValues,
-                            result: variableValue,
-                        });
-
-                        return variableValue;
+                        const runResult = currentResult;
+                        try {
+                            return await runPoll({
+                                cause: pollRequest ? 'poll' : 'dependency',
+                                inputKey,
+                                key: selectorKey,
+                                read: () => {
+                                    const saved = depsRegistry.get(runResult.depsKey);
+                                    return saved ? { found: true, value: saved.result } : { found: false };
+                                },
+                                signal: extras.signal ?? undefined,
+                                work: fetchValue,
+                                write: (variableValue) => {
+                                    depsRegistry.set(runResult.depsKey, {
+                                        args: runResult.relevantValues,
+                                        result: variableValue,
+                                    });
+                                },
+                            });
+                        } catch (error) {
+                            return throwError(error);
+                        }
                     },
                 key: nanoid(),
             })
@@ -852,7 +914,8 @@ export function preloadDerivedValue({
     variables,
     deps,
     triggerList,
-    triggers,
+    selfTriggers,
+    childTriggers,
     snapshot,
     params,
 }: {
@@ -860,7 +923,8 @@ export function preloadDerivedValue({
     variables: any[];
     deps: any[];
     triggerList: Array<TriggerInfo>;
-    triggers: TriggerIndexValue[];
+    selfTriggers: TriggerIndexValue[];
+    childTriggers: TriggerIndexValue[];
     snapshot: Snapshot;
     params: Params<string>;
 }): {
@@ -874,7 +938,8 @@ export function preloadDerivedValue({
         resolvedVariables: variables,
         resolutionStrategy: { name: 'static', snapshot, params },
         triggerList,
-        triggers,
+        selfTriggers,
+        childTriggers,
     });
 
     // otherwise we already have a valid entry, nothing to do here
@@ -895,16 +960,22 @@ export function preloadDerivedVariable(
 ): ReturnType<typeof preloadDerivedValue> {
     // assume no extras in top-level variables
     const key = getRegistryKey(variable, 'result-selector') + new RequestExtrasSerializable({}).toJSON();
+    const requestKey = getRegistryKey(variable, 'derived-selector') + new RequestExtrasSerializable({}).toJSON();
 
     // prepare trigger list as usual but use static resolution
-    const triggerList = [...buildTriggerList(variable.variables), { path: [], variable }];
-    const triggers = triggerList.map((ti) => resolveTriggerStatic(getOrRegisterTrigger(ti.variable), snapshot));
+    const triggerList = buildTriggerList(variable.variables);
+    const selfTriggers = [
+        resolveTriggerStatic(getOrRegisterTrigger(variable), snapshot),
+        resolveTriggerStatic(getOrRegisterPollingTrigger(requestKey), snapshot),
+    ];
+    const childTriggers = triggerList.map((ti) => resolveTriggerStatic(getOrRegisterTrigger(ti.variable), snapshot));
 
     return preloadDerivedValue({
         key,
         variables: variable.variables,
         deps: variable.deps,
-        triggers,
+        selfTriggers,
+        childTriggers,
         triggerList,
         snapshot,
         params,
@@ -919,36 +990,34 @@ export function preloadDerivedVariable(
  * @param taskContext global task context
  * @param search search query
  * @param extras request extras to be merged into the options
+ * @param pollScope render-local scope for requests started before commit
  */
 export function useDerivedVariable(
     variable: DerivedVariable,
     WsClient: WebSocketClientInterface,
     taskContext: GlobalTaskContext,
     extras: RequestExtras,
-    pollingInterval?: number
+    pollingInterval?: number,
+    pollScope?: PollScope
 ): RecoilValue<any> {
     const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, extras);
 
-    /**
-     * Workaround for forcing a re-calculation for derived variables by creating a triggerIndex atom and making it a dependency of
-     * the recoil selector. This way the selector can be re-run and derived variable can be re-fetched from the
-     * backend by just updating this atom.
-     */
-    const triggerIndex = useMemo(() => getOrRegisterTrigger(variable), []);
+    const pollingKey = getRegistryKey(variable, 'derived-selector') + new RequestExtrasSerializable(extras).toJSON();
+    usePollKey(pollScope, pollingKey);
+    const triggerIndex = useMemo(() => getOrRegisterPollingTrigger(pollingKey), [pollingKey]);
 
     // Creating a setter function for triggerIndex
     const triggerUpdates = useSetRecoilState(triggerIndex);
     const trigger = useCallback(
-        (force = true) =>
+        () =>
             triggerUpdates((val) => ({
-                force_key: force ? nanoid() : null,
+                force_key: createPollForceKey(),
                 inc: val.inc + 1,
             })),
         [triggerUpdates]
     );
 
-    // Using useInterval to poll, forcing recalculation everytime
-    useInterval(trigger, pollingInterval);
+    usePolling(pollingKey, pollingInterval, trigger);
 
     return dvSelector;
 }

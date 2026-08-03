@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { type Matcher, type MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
@@ -30,7 +31,7 @@ import { getIdentifier } from '../../js/shared/utils/normalization';
 import { Wrapper, server, wrappedRender } from './utils';
 import { mockLocalStorage } from './utils/mock-storage';
 import { mockActions } from './utils/test-server-handlers';
-import { importers } from './utils/wrapped-render';
+import { importers, wsClient } from './utils/wrapped-render';
 
 // Mock lodash debounce out so it doesn't cause timing issues in the tests
 vi.mock('lodash/debounce', () => ({ default: vi.fn((fn) => fn) }));
@@ -843,6 +844,538 @@ describe('useVariable', () => {
                 });
                 expect(result.current[1]).toBeInstanceOf(Function);
             });
+        });
+
+        it('keeps slow DerivedVariable polling at one request in flight and aborts on unmount', async () => {
+            vi.useFakeTimers();
+            let requestCount = 0;
+            let activeRequests = 0;
+            let peakRequests = 0;
+            let slowPollSignal: AbortSignal | undefined;
+
+            server.use(
+                http.post('/api/core/derived-variable/slow-polling-derived', async ({ request }) => {
+                    requestCount++;
+                    activeRequests++;
+                    peakRequests = Math.max(peakRequests, activeRequests);
+
+                    if (requestCount > 1) {
+                        slowPollSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+
+                    activeRequests--;
+                    return HttpResponse.json({
+                        cache_key: String(requestCount),
+                        value: requestCount,
+                    });
+                })
+            );
+
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                polling_interval: 1,
+                uid: 'slow-polling-derived',
+                variables: [],
+            };
+            const rendered = renderHook(() => useVariable<number>(variable), { wrapper: Wrapper });
+
+            await waitFor(() => expect(rendered.result.current[0]).toBe(1));
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => expect(requestCount).toBe(2));
+
+            act(() => vi.advanceTimersByTime(10_000));
+            expect(requestCount).toBe(2);
+            expect(peakRequests).toBe(1);
+
+            rendered.unmount();
+            act(() => vi.advanceTimersByTime(0));
+            expect(slowPollSignal?.aborted).toBe(true);
+        });
+
+        it('aborts the first DerivedVariable request when its suspended owner unmounts', async () => {
+            vi.useFakeTimers();
+            let firstSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/suspended-derived', async ({ request }) => {
+                    firstSignal = request.signal;
+                    await new Promise<void>((resolve) => {
+                        if (request.signal.aborted) {
+                            resolve();
+                        } else {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        }
+                    });
+                    return HttpResponse.json({ cache_key: 'aborted', value: 'old' });
+                })
+            );
+
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                polling_interval: 1,
+                uid: 'suspended-derived',
+                variables: [],
+            };
+            const rendered = renderHook(() => useVariable<string>(variable), { wrapper: Wrapper });
+
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(firstSignal).toBeDefined());
+            rendered.unmount();
+            act(() => vi.advanceTimersByTime(0));
+
+            expect(firstSignal?.aborted).toBe(true);
+        });
+
+        it('aborts a later mounted suspended request when its owner unmounts', async () => {
+            vi.useFakeTimers();
+            let finishRequest!: () => void;
+            const requestGate = new Promise<void>((resolve) => {
+                finishRequest = resolve;
+            });
+            let requestSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/later-suspended-derived', async ({ request }) => {
+                    requestSignal = request.signal;
+                    await requestGate;
+                    return HttpResponse.json({ cache_key: 'late', value: 'late' });
+                })
+            );
+
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'later-suspended-derived',
+                variables: [],
+            };
+
+            function Consumer(): JSX.Element {
+                const [value] = useVariable<string>(variable);
+                return <span>{value}</span>;
+            }
+
+            function Host(): JSX.Element {
+                const [shown, setShown] = useState(false);
+                return (
+                    <>
+                        <button onClick={() => setShown(true)} type="button">
+                            show
+                        </button>
+                        {shown && <Consumer />}
+                    </>
+                );
+            }
+
+            const rendered = render(<Host />, { wrapper: Wrapper });
+            fireEvent.click(rendered.getByText('show'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(requestSignal).toBeDefined());
+
+            rendered.unmount();
+            act(() => vi.advanceTimersByTime(0));
+            const aborted = requestSignal?.aborted;
+            finishRequest();
+
+            expect(aborted).toBe(true);
+        });
+
+        it('keeps a dependency request owned while Suspense hides its consumer', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'suspended-refresh-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                uid: 'suspended-refresh-derived',
+                variables: [dependency],
+            };
+            let finishRequest!: () => void;
+            const requestGate = new Promise<void>((resolve) => {
+                finishRequest = resolve;
+            });
+            let requestCount = 0;
+            let refreshSignal: AbortSignal | undefined;
+
+            server.use(
+                http.post('/api/core/derived-variable/suspended-refresh-derived', async ({ request }) => {
+                    requestCount++;
+                    if (requestCount === 2) {
+                        refreshSignal = request.signal;
+                        await requestGate;
+                    }
+                    return HttpResponse.json({
+                        cache_key: String(requestCount),
+                        value: requestCount,
+                    });
+                })
+            );
+
+            const rendered = renderHook(
+                () => {
+                    const [value] = useVariable<number>(variable);
+                    const [, setDependency] = useVariable<number>(dependency);
+                    return { setDependency, value };
+                },
+                { wrapper: Wrapper }
+            );
+
+            await waitFor(() => expect(rendered.result.current.value).toBe(1));
+            act(() => rendered.result.current.setDependency(2));
+            await vi.waitFor(() => expect(refreshSignal).toBeDefined());
+
+            act(() => vi.advanceTimersByTime(0));
+            expect(refreshSignal?.aborted).toBe(false);
+
+            finishRequest();
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe(2));
+        });
+
+        it('aborts a slow poll for a dependency change and does not publish its stale result', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'poll-freshness-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                polling_interval: 1,
+                uid: 'poll-freshness-derived',
+                variables: [dependency],
+            };
+
+            let requestCount = 0;
+            let stalePollSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/poll-freshness-derived', async ({ request }) => {
+                    requestCount++;
+                    if (requestCount === 2) {
+                        stalePollSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                        return HttpResponse.json({ cache_key: 'stale', value: 'stale-poll' });
+                    }
+                    return HttpResponse.json({
+                        cache_key: String(requestCount),
+                        value: requestCount === 1 ? 'initial' : 'fresh-dependency',
+                    });
+                })
+            );
+
+            const rendered = renderHook(
+                () => {
+                    const [value] = useVariable<string>(variable);
+                    const [, setDependency] = useVariable<number>(dependency);
+                    return { setDependency, value };
+                },
+                { wrapper: Wrapper }
+            );
+
+            await waitFor(() => expect(rendered.result.current.value).toBe('initial'));
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => expect(requestCount).toBe(2));
+
+            act(() => rendered.result.current.setDependency(2));
+            await vi.waitFor(() => expect(requestCount).toBe(3));
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe('fresh-dependency'));
+
+            expect(stalePollSignal?.aborted).toBe(true);
+            expect(rendered.result.current.value).not.toBe('stale-poll');
+        });
+
+        it('does not let a superseded debounced read handle the current task', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'debounced-task-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                uid: 'debounced-task-derived',
+                variables: [dependency],
+            };
+            let requestCount = 0;
+            let finishTask!: () => void;
+            const taskDone = new Promise<void>((resolve) => {
+                finishTask = resolve;
+            });
+            const waitForTask = vi.spyOn(wsClient, 'waitForTask').mockReturnValue(taskDone);
+            const cancelTask = vi.fn(() => new HttpResponse(null, { status: 200 }));
+
+            server.use(
+                http.post('/api/core/derived-variable/debounced-task-derived', () => {
+                    requestCount++;
+                    if (requestCount === 1) {
+                        return HttpResponse.json({ cache_key: 'initial', value: 'initial' });
+                    }
+                    if (requestCount === 2) {
+                        return HttpResponse.json({ cache_key: 'latest-task', task_id: 'latest-task' });
+                    }
+                    return HttpResponse.json({ cache_key: 'latest', value: 'latest' });
+                }),
+                http.delete('/api/core/tasks/latest-task', cancelTask),
+                http.get('/api/core/tasks/latest-task', () => HttpResponse.json('latest'))
+            );
+
+            const rendered = renderHook(
+                () => {
+                    const [value] = useVariable<string>(variable);
+                    const [, setDependency] = useVariable<number>(dependency);
+                    return { setDependency, value };
+                },
+                { wrapper: Wrapper }
+            );
+
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe('initial'));
+            act(() => rendered.result.current.setDependency(2));
+            await act(async () => Promise.resolve());
+            act(() => rendered.result.current.setDependency(3));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(waitForTask).toHaveBeenCalled());
+
+            expect(waitForTask).toHaveBeenCalledTimes(1);
+            expect(cancelTask).not.toHaveBeenCalled();
+
+            await act(async () => finishTask());
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe('latest'));
+
+            rendered.unmount();
+            await act(async () => vi.advanceTimersByTimeAsync(0));
+        });
+
+        it('deduplicates shared polling consumers within each RequestExtras identity', async () => {
+            vi.useFakeTimers();
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                polling_interval: 1,
+                uid: 'polling-extras-derived',
+                variables: [],
+            };
+            const requestsByExtras = new Map<string, number>();
+            server.use(
+                http.post('/api/core/derived-variable/polling-extras-derived', ({ request }) => {
+                    const extras = request.headers.get('X-Dara-Test')!;
+                    requestsByExtras.set(extras, (requestsByExtras.get(extras) ?? 0) + 1);
+                    return HttpResponse.json({
+                        cache_key: extras,
+                        value: requestsByExtras.get(extras),
+                    });
+                })
+            );
+
+            function Consumer({ testId }: { testId: string }): JSX.Element {
+                const [value] = useVariable<number>(variable);
+                return <span data-testid={testId}>{value}</span>;
+            }
+
+            wrappedRender(
+                <>
+                    <RequestExtrasProvider options={{ headers: { 'X-Dara-Test': 'shared' } }}>
+                        <Consumer testId="shared-a" />
+                        <Consumer testId="shared-b" />
+                    </RequestExtrasProvider>
+                    <RequestExtrasProvider options={{ headers: { 'X-Dara-Test': 'other' } }}>
+                        <Consumer testId="other" />
+                    </RequestExtrasProvider>
+                </>
+            );
+
+            await vi.waitFor(() => {
+                expect(requestsByExtras.get('shared')).toBe(1);
+                expect(requestsByExtras.get('other')).toBe(1);
+            });
+
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => {
+                expect(requestsByExtras.get('shared')).toBe(2);
+                expect(requestsByExtras.get('other')).toBe(2);
+            });
+        });
+
+        it('keeps requests with different external signals independent', async () => {
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'signal-scoped-derived',
+                variables: [],
+            };
+            const firstNavigation = new AbortController();
+            const secondNavigation = new AbortController();
+            const requestSignals: AbortSignal[] = [];
+            const releases: Array<() => void> = [];
+
+            server.use(
+                http.post('/api/core/derived-variable/signal-scoped-derived', async ({ request }) => {
+                    const requestNumber = requestSignals.push(request.signal);
+                    await new Promise<void>((resolve) => releases.push(resolve));
+                    return HttpResponse.json({
+                        cache_key: String(requestNumber),
+                        value: `value-${requestNumber}`,
+                    });
+                })
+            );
+
+            function Consumer({ testId }: { testId: string }): JSX.Element {
+                const [value] = useVariable<string>(variable);
+                return <span data-testid={testId}>{value}</span>;
+            }
+
+            function Consumers({ showFirst }: { showFirst: boolean }): JSX.Element {
+                return (
+                    <>
+                        {showFirst && (
+                            <RequestExtrasProvider options={{ signal: firstNavigation.signal }}>
+                                <Consumer testId="first" />
+                            </RequestExtrasProvider>
+                        )}
+                        <RequestExtrasProvider options={{ signal: secondNavigation.signal }}>
+                            <Consumer testId="second" />
+                        </RequestExtrasProvider>
+                    </>
+                );
+            }
+
+            const rendered = wrappedRender(<Consumers showFirst />);
+            await vi.waitFor(() => expect(requestSignals).toHaveLength(2));
+            act(() => {
+                firstNavigation.abort();
+                rendered.rerender(<Consumers showFirst={false} />);
+            });
+
+            await vi.waitFor(() => expect(requestSignals.filter((signal) => signal.aborted)).toHaveLength(1));
+            expect(requestSignals.filter((signal) => !signal.aborted)).toHaveLength(1);
+
+            await act(async () => {
+                for (const release of releases) {
+                    release();
+                }
+            });
+            await vi.waitFor(() => expect(rendered.getByTestId('second')).toHaveTextContent(/^value-/));
+        });
+
+        it('keeps a shared nested poll alive until its last consumer unmounts', async () => {
+            vi.useFakeTimers();
+            const firstView: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: ['first'],
+                polling_interval: 1,
+                uid: 'shared-nested-poll',
+                variables: [],
+            };
+            const secondView: DerivedVariable = {
+                ...firstView,
+                nested: ['second'],
+            };
+            let requestCount = 0;
+            let pollSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/shared-nested-poll', async ({ request }) => {
+                    requestCount++;
+                    if (requestCount === 2) {
+                        pollSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+                    return HttpResponse.json({
+                        cache_key: String(requestCount),
+                        value: {
+                            first: `first-${requestCount}`,
+                            second: `second-${requestCount}`,
+                        },
+                    });
+                })
+            );
+
+            function NestedConsumer({ testId, variable }: { testId: string; variable: DerivedVariable }): JSX.Element {
+                const [value] = useVariable<string>(variable);
+                return <span data-testid={testId}>{value}</span>;
+            }
+
+            function Consumers({ showFirst, showSecond }: { showFirst: boolean; showSecond: boolean }): JSX.Element {
+                return (
+                    <>
+                        {showFirst && <NestedConsumer testId="first" variable={firstView} />}
+                        {showSecond && <NestedConsumer testId="second" variable={secondView} />}
+                    </>
+                );
+            }
+
+            const rendered = wrappedRender(<Consumers showFirst showSecond />);
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(rendered.getByTestId('first')).toHaveTextContent('first-1'));
+            expect(rendered.getByTestId('second')).toHaveTextContent('second-1');
+
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => expect(pollSignal).toBeDefined());
+
+            rendered.rerender(<Consumers showFirst={false} showSecond />);
+            act(() => vi.advanceTimersByTime(0));
+            expect(pollSignal?.aborted).toBe(false);
+
+            rendered.rerender(<Consumers showFirst={false} showSecond={false} />);
+            act(() => vi.advanceTimersByTime(0));
+            expect(pollSignal?.aborted).toBe(true);
+        });
+
+        it('honors Retry-After returned by a DerivedVariable poll', async () => {
+            vi.useFakeTimers();
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                polling_interval: 1,
+                uid: 'retry-after-derived',
+                variables: [],
+            };
+            let requestCount = 0;
+            server.use(
+                http.post('/api/core/derived-variable/retry-after-derived', () => {
+                    requestCount++;
+                    if (requestCount === 2) {
+                        return new HttpResponse(null, {
+                            headers: { 'Retry-After': '5' },
+                            status: 503,
+                        });
+                    }
+                    return HttpResponse.json({ cache_key: String(requestCount), value: requestCount });
+                })
+            );
+
+            const rendered = renderHook(() => useVariable<number>(variable), { wrapper: Wrapper });
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(rendered.result.current[0]).toBe(1));
+
+            act(() => vi.advanceTimersByTime(1200));
+            await vi.waitFor(() => expect(requestCount).toBe(2));
+            await act(async () => vi.advanceTimersByTimeAsync(4800));
+            expect(requestCount).toBe(2);
+            await act(async () => vi.advanceTimersByTimeAsync(500));
+            await vi.waitFor(() => expect(requestCount).toBe(3));
         });
 
         it('should support SwitchVariable as polling_interval and stop polling when disabled', async () => {

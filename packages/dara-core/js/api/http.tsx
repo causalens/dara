@@ -3,6 +3,19 @@ import cloneDeep from 'lodash/cloneDeep';
 
 export type RequestExtras = RequestInit;
 
+const signalIds = new WeakMap<AbortSignal, number>();
+let nextSignalId = 1;
+
+function getSignalId(signal: AbortSignal): number {
+    let id = signalIds.get(signal);
+    if (id === undefined) {
+        id = nextSignalId;
+        nextSignalId += 1;
+        signalIds.set(signal, id);
+    }
+    return id;
+}
+
 /**
  * Serializable form of RequestExtras.
  * Required to use for e.g. recoil params as they need to be serializable.
@@ -46,6 +59,13 @@ export class RequestExtrasSerializable {
 
         if (!serializable) {
             return null;
+        }
+
+        if (this.extras.signal) {
+            return JSON.stringify({
+                ...serializable,
+                signal: getSignalId(this.extras.signal),
+            });
         }
 
         return JSON.stringify(serializable);
