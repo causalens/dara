@@ -39,7 +39,7 @@
     "@darajs/ui-icons": "1.29.7",
     "@darajs/ui-utils": "1.29.7",
     "lodash": "4.18.1",
-    "nanoid": "^3.3.8",
+    "nanoid": "^3.3.17",
     "react": "^18.0",
     "react-dom": "^18.0"
   },
