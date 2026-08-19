@@ -1,6 +1,6 @@
 {
   "npmClient": "pnpm",
-  "version": "1.29.7",
+  "version": "1.29.8",
   "packages": [
     "packages/*"
   ],

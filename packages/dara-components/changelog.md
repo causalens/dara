@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.8
 
 - Fixed `CodeEditor` crashing when its value contains CRLF line endings.
 

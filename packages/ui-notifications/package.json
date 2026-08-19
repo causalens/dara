@@ -1,6 +1,6 @@
 {
   "name": "@darajs/ui-notifications",
-  "version": "1.29.7",
+  "version": "1.29.8",
   "description": "Notification system for the Dara UI Framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -19,9 +19,9 @@
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@darajs/oxfmt-config": "1.29.7",
-    "@darajs/oxlint-config": "1.29.7",
-    "@darajs/stylelint-config": "1.29.7",
+    "@darajs/oxfmt-config": "1.29.8",
+    "@darajs/oxlint-config": "1.29.8",
+    "@darajs/stylelint-config": "1.29.8",
     "@storybook/react-vite": "^10.5.3",
     "@types/lodash": "^4.14.155",
     "@types/node": "^24.0.0",
@@ -39,9 +39,9 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.29.7",
-    "@darajs/ui-icons": "1.29.7",
-    "@darajs/ui-utils": "1.29.7",
+    "@darajs/styled-components": "1.29.8",
+    "@darajs/ui-icons": "1.29.8",
+    "@darajs/ui-utils": "1.29.8",
     "lodash": "4.18.1",
     "polished": "^4.1.1",
     "react": "^18.0",

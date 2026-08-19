@@ -1,6 +1,6 @@
 {
   "name": "@darajs/oxfmt-config",
-  "version": "1.29.7",
+  "version": "1.29.8",
   "description": "Dara Oxfmt configuration",
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",

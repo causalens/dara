@@ -1,6 +1,6 @@
 {
   "name": "@darajs/styled-components",
-  "version": "1.29.7",
+  "version": "1.29.8",
   "description": "CL wrapper around styled components so everything gets the same instance",
   "main": "dist/index.js",
   "license": "Apache-2.0",
@@ -13,9 +13,9 @@
     "lint:fix": "oxlint --type-aware --type-check --fix src && stylelint './src/**/*.tsx' --fix"
   },
   "devDependencies": {
-    "@darajs/oxfmt-config": "1.29.7",
-    "@darajs/oxlint-config": "1.29.7",
-    "@darajs/stylelint-config": "1.29.7",
+    "@darajs/oxfmt-config": "1.29.8",
+    "@darajs/oxlint-config": "1.29.8",
+    "@darajs/stylelint-config": "1.29.8",
     "@types/styled-components": "^5.1.26",
     "@typescript/native": "npm:typescript@^7.0.0",
     "oxfmt": "^0.60.0",

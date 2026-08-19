@@ -85,25 +85,25 @@ importers:
         specifier: ^6.0.0
         version: 6.34.1
       '@darajs/core':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../dara-core
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@darajs/ui-causal-graph-editor':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-causal-graph-editor
       '@darajs/ui-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-components
       '@darajs/ui-hierarchy-viewer':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-hierarchy-viewer
       '@darajs/ui-icons':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-utils
       '@lezer/highlight':
         specifier: ^1.2.1
@@ -164,13 +164,13 @@ importers:
         version: 3.17.5
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@types/lodash':
         specifier: ^4.14.155
@@ -230,16 +230,16 @@ importers:
   packages/dara-core:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-components
       '@darajs/ui-notifications':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-notifications
       '@darajs/ui-utils':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-utils
       '@fortawesome/fontawesome-free':
         specifier: ~6.4.0
@@ -330,13 +330,13 @@ importers:
         version: 3.25.76
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@testing-library/dom':
         specifier: ^10.4.1
@@ -484,7 +484,7 @@ importers:
         version: '@typescript/typescript6@6.0.2'
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       oxfmt:
         specifier: ^0.60.0
@@ -533,13 +533,13 @@ importers:
         version: 5.3.11(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@types/styled-components':
         specifier: ^5.1.26
@@ -590,22 +590,22 @@ importers:
   packages/ui-causal-graph-editor:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-components
       '@darajs/ui-icons':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-icons
       '@darajs/ui-notifications':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-notifications
       '@darajs/ui-utils':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-utils
       '@darajs/ui-widgets':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-widgets
       comlink:
         specifier: ^4.4.1
@@ -684,13 +684,13 @@ importers:
         version: 9.1.9(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)(keycharm@0.4.0)(uuid@11.1.0)(vis-data@7.1.9(uuid@11.1.0)(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1)))(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@1.3.1))
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^10.5.3
@@ -786,13 +786,13 @@ importers:
   packages/ui-components:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@darajs/ui-icons':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-utils
       '@floating-ui/react':
         specifier: ^0.26.12
@@ -877,13 +877,13 @@ importers:
         version: 4.0.0
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^10.5.3
@@ -973,10 +973,10 @@ importers:
   packages/ui-hierarchy-viewer:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@darajs/ui-utils':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-utils
       d3:
         specifier: 6.2.0
@@ -986,13 +986,13 @@ importers:
         version: 18.3.1
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@types/d3':
         specifier: ^6.2.0
@@ -1031,7 +1031,7 @@ importers:
   packages/ui-icons:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@fortawesome/fontawesome-svg-core':
         specifier: ~6.4.0
@@ -1059,13 +1059,13 @@ importers:
         version: 18.3.1
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@types/react':
         specifier: 18.2.60
@@ -1101,13 +1101,13 @@ importers:
   packages/ui-notifications:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@darajs/ui-icons':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-utils
       lodash:
         specifier: '>=4.18.1 <5'
@@ -1123,13 +1123,13 @@ importers:
         version: 7.8.1
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@storybook/react-vite':
         specifier: ^10.5.3
@@ -1199,13 +1199,13 @@ importers:
         version: 3.0.0(patch_hash=6855931e9590b29110de8402432514ff7aa294934a067557e96dc7eb46f365e3)
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@types/lodash':
         specifier: ^4.14.155
@@ -1241,16 +1241,16 @@ importers:
   packages/ui-widgets:
     dependencies:
       '@darajs/styled-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../styled-components
       '@darajs/ui-components':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-components
       '@darajs/ui-icons':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-icons
       '@darajs/ui-utils':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../ui-utils
       lodash:
         specifier: '>=4.18.1 <5'
@@ -1266,13 +1266,13 @@ importers:
         version: 18.3.1(react@18.3.1)
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../oxlint-config
       '@darajs/stylelint-config':
-        specifier: 1.29.7
+        specifier: 1.29.8
         version: link:../stylelint-config
       '@testing-library/dom':
         specifier: ^10.4.1
