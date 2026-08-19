@@ -12,6 +12,7 @@
     "format": "oxfmt js --write",
     "format:check": "oxfmt js --check",
     "lint:fix": "oxlint --type-aware --type-check --fix js && stylelint --fix './js/**/*.tsx'",
+    "test": "vitest --run",
     "package": "yarn build && yarn publish --no-git-tag-version",
     "test-watch": "vitest"
   },
