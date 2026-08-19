@@ -13,4 +13,4 @@ jobs:
     name: Validate
     runs-on: ubuntu-latest
     steps:
-      - uses: causalens/pr-policy-action@v1
+      - uses: causalens/pr-policy-action@f4bc8009cf525a6493bffda2b265d609a197f069 # v1.0.1
