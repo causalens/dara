@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed `CodeEditor` crashing when its value contains CRLF line endings.
+
 ## 1.29.3
 
 - Internal: Upgraded build tooling to Vite 8 for faster builds.
