@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Internal: Added an internal proposal for redesigning the Dara JS build pipeline around a Dara-managed Node and pnpm toolchain, a checked-in lockfile and a Vite plugin.
+- Internal: Added an internal proposal for redesigning the Dara JS build pipeline around a pinned Node and pnpm toolchain, a checked-in lockfile and a Vite plugin.
 
 ## 1.29.7
 
