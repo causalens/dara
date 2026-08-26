@@ -15,6 +15,7 @@ The model:
 - Missing lockfiles are created on first local run. `dara build` and CI install with a frozen lockfile and fail if anything is stale.
 - `dara eject` replaces `dara.config.json`, with a staged migration.
 - UMD / auto-JS mode goes away. Apps with and without custom JS build the same way.
+- The app root stays the project root. `.dara/`, `dist/` and `node_modules/` are generated or installed and never checked in.
 
 ## Problems today
 
@@ -23,15 +24,6 @@ The model:
 - Production and non-production builds take different paths because of the UMD / auto-JS split.
 - There is no lockfile for the transitive npm graph, so two builds of the same commit can resolve different packages.
 - Production builds use whatever Node happens to be on the machine.
-
-## Goals
-
-- Users do not install Node.
-- One build pipeline, no UMD / auto-JS mode.
-- Reproducible frontend dependencies through checked-in lockfiles.
-- The app root stays the project root.
-- An app with no custom JS needs no JS configuration.
-- Ownership is easy to explain. `package.json`, `pnpm-lock.yaml` and `dara.lock` are checked in. `.dara/`, `dist/` and `node_modules/` are generated or installed.
 
 ## Non-goals
 
@@ -56,14 +48,6 @@ The promise to users is "zero configuration": no files to write, no tools to ins
 ## Design
 
 ### 1. Managed Node and pnpm
-
-Dara is Node-first with one managed pnpm.
-
-This is a change from the earlier Bun option. Bun's single binary is attractive, but the size saving is not big enough to decide the architecture, and pnpm's shared store recovers most of the install-speed gap on repeat builds. The real reason to look at Bun was to avoid clashing with whatever Node the user has installed. A Dara-managed Node solves that directly and keeps us on the Node/Vite ecosystem everything else already targets.
-
-The cost is one more artifact to manage. That is fine, since it is Dara-managed state and not user setup.
-
-Even the no-custom-JS path needs a runtime, a package manager and a bundler, so a narrower helper would not do.
 
 Each `dara-core` release bakes in one exact Node version and one exact pnpm version. pnpm tracks the latest major at release time, v11 as of writing. pnpm 10 and later block dependency lifecycle scripts by default, which matters for a tool that runs installs unattended on developer machines. Exact pins, not ranges. A range would let two machines resolve different runtimes from the same `dara.lock`.
 
@@ -147,12 +131,7 @@ The lock policy:
 
 #### Managed mode
 
-In an app that has not ejected, Dara owns the Dara-managed entries in `package.json`, the whole `pnpm-lock.yaml`, the generated entrypoint and the bundler config. Users never run pnpm themselves:
-
-- `dara dev` works from a Python app with no JS files.
-- Missing lock state is created locally, and Dara prints the files to commit.
-- `dara lock` refreshes the three files.
-- `dara build` and CI fail with `run dara lock and commit package.json, pnpm-lock.yaml, and dara.lock` when they are missing or stale.
+In an app that has not ejected, Dara owns the Dara-managed entries in `package.json`, the whole `pnpm-lock.yaml`, the generated entrypoint and the bundler config. Users never run pnpm themselves. `dara dev` works from a Python app with no JS files, `dara lock` refreshes the three files, and the failure message from `dara build` is literally `run dara lock and commit package.json, pnpm-lock.yaml, and dara.lock`.
 
 #### Ejected mode
 
@@ -356,9 +335,9 @@ Enforce breaks downstream packages and any app still on `dara.config.json`, so i
 
 ## Alternative considered: Bun
 
-Bun stays the main alternative because one binary covers runtime, package manager and build.
+Bun was the earlier option. One binary covers runtime, package manager and bundler, and the main appeal was never clashing with whatever Node a user has installed.
 
-We stay Node-first because Bun is not smaller in a way that outweighs the compatibility risk, Node keeps the current Vite and plugin ecosystem working without changes, and a cached managed Node plus pnpm already gives reproducible builds independent of the machine. If the Node implementation turns out more awkward than expected, the same cache-and-resolve design can manage a Bun runtime instead.
+We stay on Node because a Dara-managed Node solves the clash just as well, the size saving from Bun is not big enough to decide the architecture, pnpm's shared store recovers most of the install-speed gap on repeat builds, and the current Vite and plugin ecosystem keeps working without changes. The cost is one extra artifact to manage, pnpm, and that is Dara-managed state rather than user setup. If the Node implementation turns out more awkward than expected, the same cache-and-resolve design can manage a Bun runtime instead.
 
 ## Open questions
 
