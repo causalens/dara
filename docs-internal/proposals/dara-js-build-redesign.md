@@ -30,7 +30,7 @@ The proposed model is:
 - Eliminate UMD / auto-JS mode and converge on one frontend build pipeline.
 - Make frontend dependency resolution reproducible through checked-in lockfiles.
 - Keep the app root as the user-facing project root.
-- Preserve a zero-setup path for apps with no custom JS.
+- Preserve a zero-config path for apps with no custom JS.
 - Keep the JS ownership model simple: `package.json`, `pnpm-lock.yaml`, and `dara.lock` are checked in at the root; `.dara/`, `dist/`, and `node_modules/` are generated or installed state.
 
 ## Non-Goals
@@ -39,6 +39,22 @@ The proposed model is:
 - Rework Dara's Python-side component/action registration APIs as part of this change.
 - Automatically prune unrelated user dependencies from `package.json`.
 - Support arbitrary package-manager lockfile formats in the new pipeline.
+- Keep a pip-only, no-download fallback for apps without custom JS. See the trade-off below.
+
+## Accepted Trade-off: Zero-Config, Not Zero-Download
+
+Today `dara start` with no flags serves pre-bundled UMDs shipped inside the Python wheels. That path needs no Node, no network beyond pip, and works on any OS. Removing it means the first run of any Dara app, including one with no custom JS, will:
+
+- download the Dara-managed Node runtime and pnpm binary into the global cache
+- run `pnpm install` against the npm registry for `@darajs/*`, Vite, React and their transitive dependencies
+
+Consequences we are accepting deliberately:
+
+- First run is slower and requires network access to Node, pnpm and npm artifact sources. Locked-down environments now need a Node/pnpm artifact mirror and an npm registry mirror in addition to a pip mirror. `DARA_NODE_DOWNLOAD_URL` / `DARA_PNPM_DOWNLOAD_URL` cover the first, a root `.npmrc` covers the second.
+- Platforms without a managed Node target lose support entirely, since there is no longer a runtime-free mode. `win-x64` is therefore included in the initial target set even though Windows is not exercised in CI.
+- Python wheels shrink materially: `dara-components` currently ships roughly 7.8 MB of UMD assets and `dara-core` roughly 1.4 MB, all of which go away.
+
+The user-facing promise becomes "zero configuration": no files to write, no tools to install. It does not become "zero download". We are not adding a prebuilt fallback bundle to soften this, because the point of the redesign is fewer code paths, not a different second path.
 
 ## Proposed Design
 
@@ -56,10 +72,12 @@ The key point is that Dara needs a full runtime/toolchain, not a narrower build 
 - a package manager
 - a bundler / dev-server path
 
-Dara should define one authoritative toolchain tuple:
+Dara should define one authoritative toolchain tuple, baked into each `dara-core` Python release:
 
-- a supported Node range for the current Dara Python package version
-- one pinned pnpm version
+- one exact Node version
+- one exact pnpm version, tracking the latest pnpm major at release time (v11 at the time of writing; v10+ blocks dependency lifecycle scripts by default, which matters for a tool that runs installs unattended on developer machines)
+
+Exact pins, not ranges. A range would make `dara.lock` non-reproducible because two machines could legitimately resolve different runtimes.
 
 Dara should always resolve and run the Dara-managed toolchain from the global cache. The resolution path should be:
 
@@ -72,18 +90,22 @@ Initial managed targets can stay narrow:
 - macOS x64
 - Linux x64 (glibc)
 - Linux arm64 (glibc)
+- Windows x64 (required because there is no longer a runtime-free mode; best-effort, not covered by CI)
 
 The global cache avoids multiple Dara environments carrying duplicate copies of the same runtime. A reasonable layout is:
 
 - `${XDG_CACHE_HOME:-~/.cache}/dara/node/<version>/<target>/...` on Linux/macOS
-- the equivalent local app cache location on Windows
+- `%LOCALAPPDATA%\dara\node\<version>\<target>\...` on Windows
 
 Dara should allow the cache root to be overridden with `DARA_TOOLCHAIN_CACHE_DIR`. This is useful for CI cache actions and for build images that preseed the Dara-managed toolchain cache, without making Dara depend on whatever `node` or `pnpm` happens to be on `PATH`.
 
-For pnpm, Dara should always invoke a Dara-managed install from the same cache. A simple implementation is:
+For pnpm, Dara should always invoke a Dara-managed binary from the same cache:
 
-- install pnpm into `${XDG_CACHE_HOME:-~/.cache}/dara/pnpm/<version>/...`
-- set `PNPM_HOME` to that Dara-managed location when running Dara JS commands
+- download the standalone pnpm executable for the target (`pnpm-linux-x64`, `pnpm-macos-arm64`, `pnpm-win-x64.exe`, ...) from the pnpm GitHub release into `${XDG_CACHE_HOME:-~/.cache}/dara/pnpm/<version>/<target>/`
+- do not install pnpm via `npm install -g pnpm` or corepack: those need Node first and cannot be pinned to a checksum the same way
+- set `PNPM_HOME` and the pnpm store dir to Dara-managed locations when running Dara JS commands, so nothing leaks into or depends on a user-level pnpm setup
+
+All toolchain and package-manager invocations must use `subprocess.run` with argument lists and an explicit environment, never `os.system` or shell strings, so paths with spaces and user-controlled values cannot be interpreted by a shell.
 
 That gives Dara:
 
@@ -94,20 +116,31 @@ That gives Dara:
 
 To keep builds reproducible without causing cross-platform lockfile churn, `dara.lock` should record platform-independent tool versions, not the developer machine's resolved runtime target. For example, it can record:
 
-- Node version
-- pnpm version
+- exact Node version
+- exact pnpm version
 - Dara version
 - supported target set for that Dara release
-- optional checksums or source URLs for each supported runtime target
+- SHA-256 of the artifact for each supported runtime target
 
 At runtime, Dara resolves the current platform to one of the supported targets and fetches the matching cached artifact. A macOS developer and Linux CI should be able to use the same `dara.lock` as long as they are using the same Dara-managed Node and pnpm versions.
+
+#### Download integrity
+
+The authority for versions and checksums is the installed `dara-core` Python package, not `dara.lock`. Checksums are captured at Dara release time from the official signed `SHASUMS256.txt` for Node and the release checksums for pnpm, and shipped as static metadata inside the wheel. `dara.lock` records a copy of them so drift is detectable, but a `dara.lock` that disagrees with the package metadata is an error to fix with `dara lock`, never a value to trust. This matters because `dara.lock` lives in the app repository: if it were authoritative, a pull request to the app could swap a checksum and pair it with a download URL override in CI configuration.
+
+Downloads must be verified and installed atomically:
+
+- download to a temporary file inside the cache root, verify the SHA-256, extract into a temporary directory, then rename into `<version>/<target>/` in one step
+- write a completion marker after the rename; a directory without a marker is treated as absent and re-fetched
+- hold a file lock on the target directory during fetch so two Dara processes starting at once (two apps, or `dara start` plus `dara dev`) do not race
+- respect standard proxy and CA environment variables (`HTTPS_PROXY`, `SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`), since the environments that need mirror overrides are also the ones with TLS-intercepting proxies
 
 The default download sources should be the public official Node and pnpm artifact locations. Dara should also expose narrow environment variable overrides for locked-down environments that mirror those artifacts internally:
 
 - `DARA_NODE_DOWNLOAD_URL`
 - `DARA_PNPM_DOWNLOAD_URL`
 
-These variables override where Dara downloads the expected artifact from. They do not override the expected toolchain version. Dara should still validate the downloaded artifact against the version and checksum recorded in Dara's toolchain metadata and `dara.lock`, and fail hard if the artifact does not match.
+Each is a URL template with `{version}` and `{target}` placeholders (a single fixed URL cannot serve a shared, platform-independent `dara.lock`). These variables override where Dara downloads the expected artifact from. They do not override the expected toolchain version or checksum, and a mirror that serves an artifact with a different hash fails hard.
 
 By default, Dara can download missing managed toolchain artifacts on demand in both local and CI environments. CI users should cache `DARA_TOOLCHAIN_CACHE_DIR` or the default Dara cache path to avoid repeated downloads. For stricter build environments, Dara should also support `DARA_DISABLE_TOOLCHAIN_DOWNLOAD=1`; when set, Dara may only use already-cached managed artifacts and must fail with clear remediation if the expected Node or pnpm artifact is missing.
 
@@ -205,9 +238,9 @@ Each app should check in:
 `dara.lock` should capture Dara's own view of the frontend build state, for example:
 
 - Dara version
-- Node version
-- pnpm version
-- supported runtime targets or target artifact metadata
+- exact Node version
+- exact pnpm version
+- supported runtime targets with artifact checksums
 - JS ownership mode, either managed or ejected
 - discovered Dara JS dependency projection
 - local entrypoint mode/path
@@ -223,6 +256,13 @@ The lock policy should be:
 - CI and `dara build`: frozen install only, fail if stale
 
 This keeps the local first-run experience smooth without weakening reproducibility for real builds. `dara build` and CI should always run `pnpm install --frozen-lockfile` against the checked-in root `pnpm-lock.yaml` and fail if `package.json`, `pnpm-lock.yaml`, or `dara.lock` are missing or stale.
+
+Checking these files in is what makes the pipeline reproducible. Today `@darajs/*` versions are derived from the installed Python packages, but the transitive npm graph is resolved fresh on every build with no lockfile at all. Any option that generates the JS surface on the fly from the Python environment keeps that hole open; the checked-in `pnpm-lock.yaml` with integrity hashes is the fix, and it is the only reason the JS files exist in the repository at all.
+
+Two practical consequences follow and should be documented for users:
+
+- Upgrading a `dara-*` Python package now requires running `dara lock` and committing the three files, in every app including ones with no custom JS. `dara dev` detects the mismatch and says exactly this; `dara build` and CI fail on it.
+- Dependency bots (Dependabot, Renovate) will discover the root `package.json` and try to bump `@darajs/*` independently of Python, which produces immediate drift failures. The `create-dara-app` template should ship bot configuration that ignores the `@darajs/*` and Dara-owned build-tool entries, and the docs should say that `dara lock` is the only supported writer of those entries.
 
 ### 5. One Build Pipeline
 
@@ -267,7 +307,7 @@ This keeps machine-owned internals separate from both user-owned project files a
 
 ### 7. Eject Uses a Stable Vite Plugin Boundary
 
-Before `dara eject`, Dara should own the default bundler configuration so the no-custom-JS path stays zero-setup.
+Before `dara eject`, Dara should own the default bundler configuration so the no-custom-JS path stays zero-config.
 
 `dara eject` should warn before making the JS surface user-owned. The warning should say that Dara will attempt to merge its required dependencies into the existing root `package.json`, preserve unrelated user fields where possible, and fail before writing if the merge would require an incompatible Dara-managed dependency version.
 
@@ -283,8 +323,11 @@ Dara should avoid making users manually copy framework-specific Vite configurati
 
 - importing generated Dara metadata
 - wiring the generated entry layer
-- enforcing required aliases or plugin ordering
+- the pieces of today's `vite.config.template.ts` that are framework contract rather than user preference: the `/__dara__/dev-server-info` middleware, the `renderBuiltUrl` hook that routes asset URLs through `window.__toDaraUrl`, the `/static/` dev `base`/`origin` handling, and `publicDir: false`
+- the classic JSX runtime requirement (`jsxRuntime: 'classic'`), which today is only implied by the docs telling users to import React in every file; the plugin should either configure it or fail loudly if the user's `react()` plugin disagrees
 - surfacing stale lock/generated-state errors with Dara-specific remediation
+
+The plugin should use `enforce: 'pre'` rather than relying on array position so the example config keeps working regardless of where users place `dara()`. `@darajs/vite-plugin` is versioned in lockstep with `@darajs/core` and is part of the Dara-owned dependency projection.
 
 An ejected `vite.config.ts` should be boring and stable, for example:
 
@@ -338,6 +381,35 @@ Existing app cases should be handled as follows:
 - no custom local JS: create or update the root `package.json`, root `pnpm-lock.yaml`, and `dara.lock`
 - root `package.json` already exists: preserve unrelated fields and merge only the Dara-owned projection
 - custom local JS already exists: run the eject flow, preserving the current source layout where practical or generating a standard entrypoint that re-exports from the old location
+- app directory nested inside an existing pnpm/yarn workspace: pnpm walks up to the nearest `pnpm-workspace.yaml`, so Dara must run its managed pnpm with `--ignore-workspace` (or the equivalent config) to keep the app's `node_modules` and lockfile at the app root. Participating in the outer workspace is a non-goal.
+
+### CLI and Environment Surface
+
+The user-facing surface today is a set of flags on `dara start` plus environment variables read in `BuildConfig.from_env` and `rebuild_js`. The build itself is a side effect of starting the server. The redesign separates building from serving, so every existing entry point needs an explicit fate:
+
+| Today | New model |
+| --- | --- |
+| `dara start` (no flags, auto-JS) | `dara start`: serves the bundle in `dist/`; if none exists locally, runs the managed build first (auto-bootstrap). Same pipeline as everything else. |
+| `dara start --production` | `dara build` then `dara start`. `--production` becomes a no-op with a deprecation warning during the compatibility window, since there is only one pipeline. |
+| `dara start --enable-hmr` + `dara dev` | Unchanged pairing: `dara start --enable-hmr` serves from the Vite dev server, `dara dev` runs it. Both validate the managed state instead of installing into `dist/`. |
+| `dara start --docker` | `dara start` in a container where `dist/` was produced by `dara build` at image build time. `--docker` becomes an alias for "never build, fail if `dist/` is missing", which is also the behaviour when `DARA_DISABLE_TOOLCHAIN_DOWNLOAD=1` and nothing is cached. |
+| `dara start --skip-jsbuild` / `SKIP_JSBUILD=TRUE` | Same meaning as `--docker`: serve what is there, never build. Fold the two into one flag. |
+| `dara start --rebuild` / `DARA_JS_REBUILD=TRUE` | `dara build --force`. |
+| `dara setup-custom-js` | Alias for `dara eject` during the compatibility window, then removed. |
+| `dist/_build.json` build cache | Replaced by `dara.lock` plus `.dara/generated/*`; `dist/` holds emitted assets only. |
+| `config.static_files_dir` | Still the emitted output directory (default `dist/`). `.dara/` is a fixed sibling of the app root, independent of this setting. |
+| `dist/tsconfig.json` copied from `statics/` | Generated into `.dara/generated/` in managed mode and referenced by the plugin; `dara eject` copies it to the app root as a user-owned file. |
+
+The `create-dara-app` template must be updated in the same release that ships `dara lock`: its `.gitignore` currently ignores `package-lock.json` and `yarn.lock` but neither `dist/` nor `.dara/`, and it needs to stop ignoring `pnpm-lock.yaml` if it ever did. The in-repo `packages/demo-app` already has a `dara.config.json` and a `js/` folder and is the dogfood target for the migration flow.
+
+### Removed Internal Surfaces
+
+Removing the auto-JS path also removes code that only that path consumed. None of it is documented for end users, but downstream Dara packages (`dara-components` and any other package publishing a `dara_assets` entrypoint) depend on it and must be updated in lockstep:
+
+- `ConfigurationBuilder.template_extra_js` and `add_package_tag_processor` / `package_tag_processors`: only feed `build_autojs_template`. Removed.
+- `AssetManifest.autojs_assets` and the `_assets/auto_js/` directory convention: removed; `common_assets` (for example vendored jQuery) stays because the Vite path still emits those tags.
+- `BuildMode.AUTO_JS`, `_entry_autojs.template.tsx`, and the `cp -R dist/umd/. dara/core/_assets/auto_js/` step in each package's JS build script: removed.
+- `BuildConfig.npm_registry` / `npm_token` and the `.npmrc` template that wrote `_authToken` in plaintext into `dist/.npmrc`: removed in favour of the user-owned root `.npmrc` described above. This also closes the case where a Docker image that copies `dist/` ships the token in a layer.
 
 ### Warn
 
@@ -349,7 +421,10 @@ Existing app cases should be handled as follows:
 
 - `dara.config.json` no longer participates in builds.
 - `dara build` requires checked-in `package.json`, `pnpm-lock.yaml`, and `dara.lock`.
-- the old UMD / auto-JS path is removed.
+- the old UMD / auto-JS path and the internal surfaces listed above are removed.
+- `--production`, `--skip-jsbuild`, `DARA_JS_REBUILD`, `SKIP_JSBUILD` and `dara setup-custom-js` are removed.
+
+The Enforce phase is a breaking change for downstream packages and for any app still on `dara.config.json`, so it should land in a major release. Compatibility and Warn can ship in minor releases before it.
 
 ## Alternative Considered: Bun
 
@@ -370,8 +445,8 @@ If the Node-based implementation proves more awkward than expected, Bun remains 
 
 ## Recommended First Implementation Slice
 
-1. Add Node resolution, version checks, and the global runtime cache.
-2. Add a Dara-managed pnpm install in the global cache, for example via a dedicated `PNPM_HOME`.
+1. Add Node resolution, exact version checks, checksum verification, atomic extraction with locking, and the global runtime cache.
+2. Add the Dara-managed standalone pnpm binary in the global cache with a dedicated `PNPM_HOME` and store dir; replace `os.system` calls with `subprocess.run`.
 3. Add `DARA_TOOLCHAIN_CACHE_DIR`, `DARA_DISABLE_TOOLCHAIN_DOWNLOAD`, `DARA_NODE_DOWNLOAD_URL`, and `DARA_PNPM_DOWNLOAD_URL` while keeping pinned version and checksum validation.
 4. Introduce platform-independent `dara.lock` with exact Node and pnpm versions plus target artifact metadata.
 5. Introduce root `package.json` / `pnpm-lock.yaml` generation through `dara lock`.
