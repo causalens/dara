@@ -191,9 +191,11 @@ The virtual entry, never written to disk:
 import daraCore from '@darajs/core';
 import * as core from '@darajs/core';
 import * as components from '@darajs/components';
-import * as LOCAL from '/abs/path/js/index.tsx';
+import * as LOCAL from '/js/index.tsx'; // manifest local.entry, resolved against the app root
 daraCore({ 'dara.core': core, 'dara.components': components, LOCAL });
 ```
+
+Paths exist only at build time, on the machine doing the build. The manifest stores `local.entry` app-root-relative, so the portable digest agrees between a laptop and CI; the plugin resolves it against Vite's `root`, and Rollup inlines the module into the chunks. `dist/` holds compiled JS, `index.html` and the marker, with no filesystem paths, so at runtime Python serves it without `js/`, `node_modules` or Node present. `static[].source` is the one absolute field: it is resolved by Python from installed packages, machine-specific by design, and excluded from the digest in favour of a content hash.
 
 Package imports are static because `run.tsx` already awaits every package before the first render; today's `() => import()` only adds a fetch-execute-fetch waterfall. `preloadComponents` / `preloadActions` go away. Splitting still happens inside packages (see code splitting).
 
@@ -226,6 +228,8 @@ The plugin writes `dist/.dara-build.json`: a digest of the portable manifest fie
 1. Create `js/index.tsx` and export components. Dara picks it up by convention; `Configuration.js_entry` names another directory. This is the `LOCAL` module.
 2. Add tooling to `package.json` like any JS project: `pnpm add -D typescript eslint prettier vitest`, `tsconfig.json`, `scripts`.
 3. `dara lock` after dependency changes, then commit.
+
+In production the entry is already bundled into `dist/`. A Dockerfile either builds in a stage that has Node and pnpm from `mise.toml` plus `js/`, `package.json` and `pnpm-lock.yaml`, then copies only `dist/` into the runtime image; or copies a CI-built `dist/` and starts with `--docker`. In both cases the startup freshness check compares the marker with a manifest regenerated from the installed configuration, so a `js_entry` or export change made after the build fails fast instead of serving a stale bundle.
 
 `dara setup-custom-js` scaffolds steps 1–2. The whole on-disk difference from a no-custom-JS app is the `js/` directory and the user's tooling entries. There is no user Vite config: replacing the bundler is not a use case, and every Vite setting Dara has needed is framework contract rather than preference.
 
