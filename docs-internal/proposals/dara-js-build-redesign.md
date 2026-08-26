@@ -402,14 +402,16 @@ The user-facing surface today is a set of flags on `dara start` plus environment
 
 The `create-dara-app` template must be updated in the same release that ships `dara lock`: its `.gitignore` currently ignores `package-lock.json` and `yarn.lock` but neither `dist/` nor `.dara/`, and it needs to stop ignoring `pnpm-lock.yaml` if it ever did. The in-repo `packages/demo-app` already has a `dara.config.json` and a `js/` folder and is the dogfood target for the migration flow.
 
-### Removed Internal Surfaces
+### Deprecated Internal Surfaces
 
-Removing the auto-JS path also removes code that only that path consumed. None of it is documented for end users, but downstream Dara packages (`dara-components` and any other package publishing a `dara_assets` entrypoint) depend on it and must be updated in lockstep:
+Removing the auto-JS path orphans code that only that path consumed. None of it is documented for end users, but downstream Dara packages (`dara-components` and any other package publishing a `dara_assets` entrypoint) depend on it. It follows the same Compatibility / Warn / Enforce staging as everything else: keep the fields so existing packages and apps keep loading, turn them into no-ops that emit a deprecation warning when set, and remove them at Enforce once downstream packages have shipped updates.
 
-- `ConfigurationBuilder.template_extra_js` and `add_package_tag_processor` / `package_tag_processors`: only feed `build_autojs_template`. Removed.
-- `AssetManifest.autojs_assets` and the `_assets/auto_js/` directory convention: removed; `common_assets` (for example vendored jQuery) stays because the Vite path still emits those tags.
-- `BuildMode.AUTO_JS`, `_entry_autojs.template.tsx`, and the `cp -R dist/umd/. dara/core/_assets/auto_js/` step in each package's JS build script: removed.
-- `BuildConfig.npm_registry` / `npm_token` and the `.npmrc` template that wrote `_authToken` in plaintext into `dist/.npmrc`: removed in favour of the user-owned root `.npmrc` described above. This also closes the case where a Docker image that copies `dist/` ships the token in a layer.
+| Surface | Compatibility / Warn | Enforce |
+| --- | --- | --- |
+| `ConfigurationBuilder.template_extra_js`, `add_package_tag_processor` / `package_tag_processors` | Kept. Only consumed by `build_autojs_template`, so once the auto-JS path is gone they have no effect; setting them logs a deprecation warning. | Removed. |
+| `AssetManifest.autojs_assets` and the `_assets/auto_js/` directory convention | Field stays optional and is ignored; packages may keep shipping the UMD files. `common_assets` (for example vendored jQuery) is not deprecated because the Vite path still emits those tags. | Field removed; downstream packages drop the `cp -R dist/umd/. dara/core/_assets/auto_js/` step from their JS build scripts and stop shipping the UMDs. |
+| `BuildMode.AUTO_JS`, `_entry_autojs.template.tsx` | Kept as long as legacy-only projects are still served by the old pipeline (see Warn). | Removed. |
+| `BuildConfig.npm_registry` / `npm_token` and the `.npmrc` template that wrote `_authToken` in plaintext into `dist/.npmrc` | Kept for the old pipeline; the new pipeline never reads them and never writes tokens into project files. Setting them while on the new pipeline warns and points at a root `.npmrc`. | Removed. This also closes the case where a Docker image that copies `dist/` ships the token in a layer. |
 
 ### Warn
 
@@ -421,7 +423,7 @@ Removing the auto-JS path also removes code that only that path consumed. None o
 
 - `dara.config.json` no longer participates in builds.
 - `dara build` requires checked-in `package.json`, `pnpm-lock.yaml`, and `dara.lock`.
-- the old UMD / auto-JS path and the internal surfaces listed above are removed.
+- the old UMD / auto-JS path and the deprecated internal surfaces listed above are removed.
 - `--production`, `--skip-jsbuild`, `DARA_JS_REBUILD`, `SKIP_JSBUILD` and `dara setup-custom-js` are removed.
 
 The Enforce phase is a breaking change for downstream packages and for any app still on `dara.config.json`, so it should land in a major release. Compatibility and Warn can ship in minor releases before it.
