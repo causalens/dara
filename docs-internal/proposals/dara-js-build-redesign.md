@@ -16,7 +16,6 @@ The model:
 - `dara.config.json` goes away, with a staged migration.
 - UMD / auto-JS mode goes away. Apps with and without custom JS build the same way.
 - Python writes one file, `node_modules/.dara/manifest.json`. `@darajs/vite-plugin` reads it and produces everything in `dist/`, including `index.html`. Python serves `dist/`. There is no generated entrypoint, no Vite config on disk and no `fastapi_vite_dara`.
-- The app root stays the project root. `dist/` and `node_modules/` are generated or installed and never checked in.
 
 ## Problems today
 
@@ -51,9 +50,11 @@ The promise to users is "zero configuration": no files to write, no tools to ins
 
 ### 1. Managed Node and pnpm
 
-Each `dara-core` release bakes in one exact Node version and one exact pnpm version. pnpm tracks the latest major at release time, v11 as of writing. pnpm 10 and later block dependency lifecycle scripts by default, which matters for a tool that runs installs unattended on developer machines. That default is not a blanket guarantee: the project's own scripts, a `.pnpmfile.cjs`, and anything a workspace lists under `allowBuilds` still run, and Dara treats those as trusted repository code rather than as something it protects against. Installs run with a minimal environment, and registry credentials are not passed into the Vite build process. Exact pins, not ranges. A range would let two machines resolve different runtimes from the same `dara-core` release.
+Each `dara-core` release bakes in one exact Node version and one exact pnpm version. Exact pins, not ranges: a range would let two machines resolve different runtimes from the same `dara-core` release. The pins depend on nothing but the installed `dara-core`, so an app's Python lockfile pins `dara-core`, which pins the toolchain, and a macOS developer and Linux CI run the same Node and pnpm from the same commit with no extra file.
 
-Dara resolves the toolchain from the global cache and downloads it on demand if missing. Initial targets:
+pnpm tracks the latest major at release time, v11 as of writing. pnpm 10 and later block dependency lifecycle scripts by default, which matters for a tool that runs installs unattended on developer machines. That default is not a blanket guarantee: the project's own scripts, a `.pnpmfile.cjs`, and anything a workspace lists under `allowBuilds` still run, and Dara treats those as trusted repository code rather than as something it protects against.
+
+At runtime Dara maps the current platform to a target, resolves the toolchain from the global cache and downloads it if missing. Initial targets:
 
 - macOS arm64
 - macOS x64
@@ -68,9 +69,7 @@ Cache layout:
 
 pnpm comes from the same cache. Dara downloads the standalone executable for the target (`pnpm-linux-x64`, `pnpm-macos-arm64`, `pnpm-win-x64.exe`) from the pnpm GitHub release into `.../dara/pnpm/<version>/<target>/`. Not `npm install -g pnpm`, not corepack. Both need Node first and neither can be pinned to a checksum the same way. Dara sets `PNPM_HOME` and the pnpm store directory to its own locations when it runs pnpm, so nothing depends on or leaks into a user-level pnpm setup.
 
-Every toolchain and package-manager call uses `subprocess.run` with an argument list and an explicit environment. No `os.system`, no shell strings.
-
-The pins are a function of the installed `dara-core` version and nothing else. An app's Python lockfile pins `dara-core`, which pins the toolchain, so a macOS developer and Linux CI run the same Node and pnpm from the same commit with no extra file. At runtime Dara maps the current platform to a target and fetches that artifact.
+Every toolchain and package-manager call uses `subprocess.run` with an argument list and a minimal explicit environment. No `os.system`, no shell strings.
 
 #### Download integrity
 
@@ -95,7 +94,7 @@ Dara does not add a registry or auth setting to replace `dara.config.json`. Regi
 //npm.pkg.github.com/:_authToken=${NPM_TOKEN}
 ```
 
-Users check in `.npmrc` files with registry routes and environment-variable placeholders. Tokens come from the shell, CI secrets or the user's home `.npmrc`. Dara never writes a token into a project file. Dara runs pnpm from the app root so `.npmrc` discovery works, and when an install fails on a missing or invalid token the error names the `.npmrc` entry and the environment variable involved.
+Users check in `.npmrc` files with registry routes and environment-variable placeholders. Tokens come from the shell, CI secrets or the user's home `.npmrc`. Dara never writes a token into a project file. Dara runs pnpm from the app root so `.npmrc` discovery works, and when an install fails on a missing or invalid token the error names the `.npmrc` entry and the environment variable involved. Credentials are passed to pnpm only; the Vite build process does not receive them.
 
 `@darajs/ai` and `@darajs/enterprise` live on a private registry, so any app using them needs registry auth for local development. Today auto-JS mode reads bundles from the wheels and needs none, so this is new. It is also a standard npm setup that organisations already have for other JS work, a `@darajs:registry=...` route and credential in the user-level `~/.npmrc` provisioned by whatever manages developer credentials. Dara's pnpm reads the user-level `.npmrc` like any other pnpm. The `create-dara-app` template ships the registry route line, never a token, so only the credential is left to the environment.
 
@@ -107,9 +106,7 @@ Checking these in is what locks dependency resolution. Today `@darajs/*` version
 
 Two consequences need documenting for users. Upgrading a `dara-*` Python package now means running `dara lock` and committing both files, in every app including ones with no custom JS. `dara dev` detects the mismatch and says so. `dara build` and CI fail on it. And dependency bots will find the root `package.json` and try to bump `@darajs/*` on their own, which produces immediate drift failures. The `create-dara-app` template ships Dependabot and Renovate configuration that ignores `@darajs/*` and the Dara-owned build tools, and the docs say `dara lock` is the only supported writer of those entries.
 
-In every app Dara owns the Dara-managed entries in `package.json`, the whole `pnpm-lock.yaml`, the entry and the bundler config. The last two are not files; the plugin provides them (section 4). Everything else in `package.json` belongs to the user. An app with no custom JS never needs to touch it and its users never run pnpm themselves. `dara dev` works from a Python app with no JS source files, `dara lock` refreshes both files, and the failure message from `dara build` is literally `run dara lock and commit package.json and pnpm-lock.yaml`.
-
-Whatever the app shape, Dara detects and explains: missing Dara-managed dependencies, incompatible versions, a Python `dara-*` version that disagrees with the `@darajs/*` entries, and drift between `package.json` and `pnpm-lock.yaml`. Every one of these names the command that fixes it.
+In every app Dara owns its entries in `package.json` (listed in section 5), the whole `pnpm-lock.yaml`, the entry and the bundler config. The last two are not files; the plugin provides them (section 4). Everything else in `package.json` belongs to the user. An app with no custom JS never needs to touch it and its users never run pnpm themselves. `dara dev` works from a Python app with no JS source files, `dara lock` refreshes both files, and the failure message from `dara build` is literally `run dara lock and commit package.json and pnpm-lock.yaml`.
 
 ### 4. One pipeline: Python writes a manifest, Vite does the rest
 
@@ -152,7 +149,7 @@ It is not checked in. It contains absolute site-packages paths and reflects the 
 
 `dara()` reads the manifest at config time and fails with `run dara lock` if the `@darajs/*` versions in `package.json` disagree with `packages`. Then, hook by hook:
 
-- `config`: `build.outDir` from the manifest, `publicDir: false`, `build.manifest: false` because nothing reads it anymore, `resolve.dedupe: ['react', 'react-dom']` in place of the `overrides` field Dara writes into `package.json` today, `experimental.renderBuiltUrl` routing asset URLs through `window.__toDaraUrl` because the base URL is a runtime setting, and in serve mode the `/static/` `base` and `server.origin` that today live in a `scripts.dev` field. `rollupOptions.input` is the virtual entry.
+- `config`: `build.outDir` from the manifest, the React plugin with `jsxRuntime: 'classic'` (today the docs only imply it by telling users to import React in every file), `publicDir: false`, `build.manifest: false` because nothing reads it anymore, `resolve.dedupe: ['react', 'react-dom']` in place of the `overrides` field Dara writes into `package.json` today, `experimental.renderBuiltUrl` routing asset URLs through `window.__toDaraUrl` because the base URL is a runtime setting, and in serve mode the `/static/` `base` and `server.origin` that today live in a `scripts.dev` field. `rollupOptions.input` is the virtual entry.
 - `resolveId` / `load` for the virtual entry: generated from `packages` and `local`, never written to disk.
 
   ```ts
@@ -169,6 +166,8 @@ It is not checked in. It contains absolute site-packages paths and reflects the 
 - `closeBundle`: copy `static[]` sources into `outDir/<dest>`, copy `favicon`, write `dist/.dara-build.json`. The plugin is the only thing that writes into `dist/`.
 - `configureServer`: the `/__dara__/dev-server-info` middleware, plus `/__dara__/index.html` serving the same template with the `@vite/client` script, the React refresh preamble and the virtual entry URL. The manifest is a watched file, so when Python rewrites it (a package installed, a component registered) the virtual entry is invalidated and the page reloads.
 
+The plugin is versioned in lockstep with `@darajs/core` and is one of the Dara-owned `package.json` entries. `dara build` and `dara dev` point Vite at the config shipped inside it; there is no Vite config in the app.
+
 #### What Python keeps
 
 - `write_manifest(config)`.
@@ -176,11 +175,11 @@ It is not checked in. It contains absolute site-packages paths and reflects the 
 - `check_fresh()`: the two staleness rules under build freshness below.
 - Serving: mount `dist/` at `/static/`, render `dist/index.html` through Jinja with `dara_data`, `base_url` and `static_url` on the catch-all route. Under `--enable-hmr` the template is fetched from the dev server's `/__dara__/index.html` instead of disk, and the error when the dev server is not up says `run dara dev`. Today HMR mode does not depend on the dev server being up; it emits tags that 404. The new behaviour is stricter and the message is clearer.
 
-Deleted from Python: `fastapi_vite_dara` as a dependency, `VITE_MANIFEST_PATH` and `VITE_STATIC_PATH`, `build_vite_template`, `build_common_tags`, `build_autojs_template`, `bundle_js`, `symlink_js`, `migrate_package_assets`, `migrate_static_assets`, `find_favicon`, the `scripts` and `overrides` fields of the generated `package.json`, `BuildCache` and `BuildCacheDiff`, both `_entry*.template.tsx`, `vite.config.template.ts`, `statics/tsconfig.json`, and `jinja/index.html` and `index_autojs.html`. The HTML template moves into the plugin package, which is versioned in lockstep with `@darajs/core`, so the one change in who edits what is harmless. The dev template and the production template are one string with two sets of tags, so they cannot drift.
+Deleted from Python: `fastapi_vite_dara` as a dependency, `VITE_MANIFEST_PATH` and `VITE_STATIC_PATH`, `build_vite_template`, `build_common_tags`, `build_autojs_template`, `bundle_js`, `symlink_js`, `migrate_package_assets`, `migrate_static_assets`, `find_favicon`, the `scripts` and `overrides` fields of the generated `package.json`, `BuildCache` and `BuildCacheDiff`, both `_entry*.template.tsx`, `vite.config.template.ts`, `statics/tsconfig.json`, and `jinja/index.html` and `index_autojs.html`. The HTML template moves into the plugin package. The dev template and the production template are one string with two sets of tags, so they cannot drift.
 
 #### On disk
 
-An app with no custom JS has `package.json` and `pnpm-lock.yaml`, and no JS source files. The lockfile is not optional: it is the whole supply-chain argument of section 3, and `dara build` installs with `--frozen-lockfile` against it. What disappears is the boilerplate around it. There is no `vite.config.ts` because `dara build` points Vite at the config shipped inside `@darajs/vite-plugin`, no entry file because the entry is virtual, no `tsconfig.json` because the plugin sets the JSX transform, and no generated code anywhere because the only generated artifact is the manifest in `node_modules/.dara/`.
+An app with no custom JS has `package.json` and `pnpm-lock.yaml` and no JS source files. There is no `vite.config.ts` because the plugin ships it, no entry file because the entry is virtual, no `tsconfig.json` because the plugin sets the JSX transform, and no generated code because the only generated artifact is the manifest in `node_modules/.dara/`.
 
 An app with custom JS adds a source directory, `js/` by default, and whatever tooling files its authors want (section 5). `dist/` and `node_modules/` are ignored in every app. Today `dist/` is a synthetic workspace and an output directory at the same time; here it is only output.
 
@@ -197,17 +196,17 @@ Static folders are copied at build time now, not at every startup as `migrate_st
 
 ### 5. Custom JS
 
-There is no eject. Today `setup-custom-js` exists because adding custom components meant taking over the build: your own `package.json`, `node_modules`, entry and Vite config. In the new model the app already has a checked-in `package.json` (section 3), the entry is virtual and the bundler config is the plugin's, so there is nothing to take over. Custom JS is a source directory plus whatever the app's authors want in their `package.json`.
+Custom JS does not get its own JS project. Today `setup-custom-js` creates one because adding components meant taking over the build: a separate `package.json`, `node_modules`, entry and Vite config. In the new model the app already has a checked-in `package.json` (section 3), the entry is virtual and the bundler config is the plugin's, so there is nothing to take over. Custom JS is a source directory plus whatever the app's authors add to their `package.json`.
 
 Adding custom components:
 
 1. Create `js/index.tsx` and export components from it. Dara picks it up by convention, or `Configuration.js_entry` names a different directory. This is the `LOCAL` module the virtual entry imports (section 4).
-2. Add tooling to `package.json` as in any JS project: `pnpm add -D typescript eslint prettier vitest`, a `tsconfig.json`, `scripts` for lint and test. The point of a real `package.json` is that a formatter, a linter and a test runner work; picking up components alone would not be enough. Dara owns only its own entries, listed below, and leaves the rest alone.
-3. Run `dara lock` after changing dependencies so the Dara-owned entries are re-checked and `pnpm-lock.yaml` is updated before `dara build` or CI. One explicit step, and still simpler than today's two-environment setup.
+2. Add tooling to `package.json` as in any JS project: `pnpm add -D typescript eslint prettier vitest`, a `tsconfig.json`, `scripts` for lint and test. Dara owns only its own entries, listed below, and leaves the rest alone.
+3. Run `dara lock` after changing dependencies so the Dara-owned entries are re-checked and `pnpm-lock.yaml` is updated before `dara build` or CI.
 
 `dara setup-custom-js` stays as the scaffold for step 1 and 2: it writes `js/index.tsx` with an empty export, a `tsconfig.json` with the classic JSX runtime for editor support, and runs `dara lock`. It stops creating `dara.config.json`.
 
-There is no user-owned Vite config. Nobody replaces the bundler in a Dara app, and every Vite setting Dara has ever needed is framework contract rather than preference, so `@darajs/vite-plugin` ships the whole config and `dara build` and `dara dev` point Vite at it. If a real need for app-level bundler settings appears later, the plugin can take options through the Python configuration and pass them through; that is additive and does not require a config file on disk. The `daraCore(...)` wiring and the Vite integration are never user code, so their shape is never a compatibility surface.
+There is no user-owned Vite config. Replacing the bundler is not a use case, and every Vite setting Dara has needed is framework contract rather than preference. If app-level bundler settings are needed later, the plugin can take options through the Python configuration; that is additive and needs no config file. The `daraCore(...)` wiring and the Vite integration are never user code, so their shape is never a compatibility surface.
 
 The Dara-owned entries in `package.json` stay small:
 
@@ -228,19 +227,13 @@ Merge rules, applied by `dara lock` in every app:
 The user's components import `react`, `react-dom` and `styled-components`, and they must get the same instance Dara's runtime uses or hooks and theming break. Today the generated `package.json` handles this with `overrides` on React. Two things replace that:
 
 - `@darajs/*` libraries declare `react`, `react-dom` and `styled-components` as `peerDependencies`. `@darajs/core` currently lists React as a plain dependency, and under pnpm's isolated `node_modules` that gives it its own copy whenever the app's version differs. As peers they resolve to the app's single copy and pnpm errors when the app is outside the range. This is a library-side change that ships with the redesign.
-- `react` and `react-dom` are Dara-owned entries in every app's `package.json`, pinned to the major Dara supports. A no-custom-JS app gets them from `dara lock` and never thinks about it. A custom-JS app on `react: ^19` gets the incompatible-version error from the merge rules instead of a runtime hook error. `resolve.dedupe` in the plugin is the backstop for a nested dependency that still bundles its own React.
+- `react` and `react-dom` are Dara-owned entries in every app's `package.json`, pinned to the major Dara supports. A no-custom-JS app gets them from `dara lock`. A custom-JS app on `react: ^19` gets the incompatible-version error from the merge rules instead of a runtime hook error. `resolve.dedupe` in the plugin is the backstop for a nested dependency that still bundles its own React.
 
 `@types/react` is the user's concern; `dara setup-custom-js` adds it to `devDependencies` because a TypeScript project with React components and no types is unusable. For an app that is also a published library, an existing `peerDependencies` entry satisfies a Dara-owned dependency, so `dara lock` does not add a second one under `dependencies`.
 
-#### The plugin
-
-`@darajs/vite-plugin` owns the framework integration described in section 4: the virtual entry, the `index.html` template, the `renderBuiltUrl` hook, the `/static/` dev `base` and `origin`, `publicDir: false`, React dedupe, the dev-server middleware, static asset copying, the build marker, component export validation, and the stale lock and manifest errors with the Dara command that fixes them. It also owns the React plugin with the classic JSX runtime (`jsxRuntime: 'classic'`), which today the docs only imply by telling users to import React in every file.
-
-It is versioned in lockstep with `@darajs/core` and is one of the Dara-owned entries. The manifest in `node_modules/.dara/` is an implementation detail between Python and the plugin; nothing else reads it.
-
 #### Apps that are also published libraries
 
-Some apps publish their custom JS as an npm package so a sibling Dara app can use the same components by `js_module`. Think of a monorepo where one package is both a Dara app and a published `@scope/ui` library. Its root already has a `package.json` with `files`, `main` and `types`, a `vite.config.ts` for the library build, and a `tsconfig.json` with `outDir: ./dist`. Dara never reads a root `vite.config.ts`, so the library build config is not in the way. Two things still are:
+Some apps publish their custom JS as an npm package so a sibling Dara app can use the same components by `js_module`. For example, a monorepo where one package is both a Dara app and a published `@scope/ui` library. Its root already has a `package.json` with `files`, `main` and `types`, a `vite.config.ts` for the library build, and a `tsconfig.json` with `outDir: ./dist`. Dara never reads a root `vite.config.ts`, so the library build config is not in the way. Two things still are:
 
 - `static_files_dir` should not be `dist/` when `dist/` is the library output. Dara warns when the configured output directory is also referenced by `files` or `main` in `package.json`, and the docs recommend a separate directory for this layout.
 - A sibling app in the same monorepo depends on the library with `workspace:*`, not a registry version that changes on every release.
@@ -255,7 +248,7 @@ Dara finds the workspace by walking up from the app root and then:
 
 - treats the workspace root `pnpm-lock.yaml` as the lockfile of record and writes no app-level one
 - runs pnpm from the app root with the workspace's own configuration, still with `--frozen-lockfile` in `dara build`
-- records the digest of the whole root `pnpm-lock.yaml` in the build marker, not just the app's `importers:` entry, since integrity records, snapshots, overrides, catalogs and patches live elsewhere in the file. Any dependency change anywhere in the workspace therefore makes `dist/` stale, which is correct.
+- records the digest of the whole root `pnpm-lock.yaml` in the build marker, not just the app's `importers:` entry, since integrity records, snapshots, overrides, catalogs and patches live elsewhere in the file. Any dependency change anywhere in the workspace therefore makes `dist/` stale.
 - owns only the app's own entries in `package.json`; the shared lockfile belongs to the workspace, so `dara lock` runs a filtered install for the app rather than claiming the whole file
 - keeps the emitted output at the app root and lets pnpm place `node_modules` as the workspace dictates
 
@@ -341,7 +334,7 @@ Today the user-facing interface is a set of flags on `dara start` plus environme
 | `dara start --docker` | Unchanged in meaning. It implies `--skip-jsbuild` and keeps its other effects, `DARA_REQUIRE_SSO` and hiding the API docs, which is why it is not folded into `--skip-jsbuild`. `dist/` comes from `dara build` at image build time. |
 | `dara start --rebuild` / `DARA_JS_REBUILD=TRUE` | `dara build --force`. |
 | `dist/_build.json` | Replaced by the manifest and the build marker `dist/.dara-build.json` described in section 4. |
-| `manifest.json` in `dist/`, `VITE_MANIFEST_PATH`, `fastapi_vite_dara` | Gone. The plugin emits `dist/index.html` with the script tags already in it; Python renders it as a Jinja template. |
+| `manifest.json` in `dist/`, `VITE_MANIFEST_PATH`, `fastapi_vite_dara` | Gone. The plugin emits `dist/index.html` with the script tags in it. |
 | `config.static_files_dir` | Still the output directory, default `dist/`. |
 | `dist/tsconfig.json` copied from `statics/` | Not needed by the build; the plugin sets the JSX transform. `dara setup-custom-js` writes one at the app root for editor support. |
 
@@ -406,7 +399,7 @@ This only becomes possible with the redesign. Under UMD a library-level `import(
 
 Start with the heaviest: the causal graph editor (Pixi), the plotting components (Plotly, Bokeh), the code and markdown editors, and the AI chat components. One thing to keep in mind: actions are resolved from the same modules as plain functions, not through `Suspense`, so a heavy dependency inside an action is split with an `await import()` in the action body rather than `React.lazy`.
 
-One loose end. `dara-core` ships `jquery.min.js` as a common asset and emits a `<script>` tag for it in `index.html`. Nothing in Dara's JS references it. It has been there since the initial commit and is believed to be an implicit BokehJS dependency. Whether current BokehJS still needs it gets checked in the spike, by loading a Bokeh figure and a `DataTable` with the tag removed, before the tag is dropped.
+`dara-core` ships `jquery.min.js` as a common asset and emits a `<script>` tag for it in `index.html`. Nothing in Dara's JS references it. It has been there since the initial commit and is believed to be an implicit BokehJS dependency. Whether current BokehJS still needs it gets checked in the spike, by loading a Bokeh figure and a `DataTable` with the tag removed, before the tag is dropped.
 
 ## Alternative considered: Bun
 
@@ -421,7 +414,7 @@ We stay on Node because a Dara-managed Node solves the clash just as well, the s
 - Does BokehJS still need the jQuery `<script>` tag?
 - Should the plugin's component export check be a hard error for `export *` libraries too, by following `exportedBindings` one level, or is a warning enough?
 
-## First implementation slice
+## Implementation slices
 
 Each slice is usable end to end before the next starts.
 
