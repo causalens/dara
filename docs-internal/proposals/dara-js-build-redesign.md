@@ -409,9 +409,23 @@ Removing the auto-JS path orphans code that only that path consumed. None of it 
 | Surface | Compatibility / Warn | Enforce |
 | --- | --- | --- |
 | `ConfigurationBuilder.template_extra_js`, `add_package_tag_processor` / `package_tag_processors` | Kept. Only consumed by `build_autojs_template`, so once the auto-JS path is gone they have no effect; setting them logs a deprecation warning. | Removed. |
-| `AssetManifest.autojs_assets` and the `_assets/auto_js/` directory convention | Field stays optional and is ignored; packages may keep shipping the UMD files. `common_assets` (for example vendored jQuery) is not deprecated because the Vite path still emits those tags. | Field removed; downstream packages drop the `cp -R dist/umd/. dara/core/_assets/auto_js/` step from their JS build scripts and stop shipping the UMDs. |
+| `AssetManifest` (`autojs_assets`, `common_assets`, `tag_order`, `depends_on`, topo sort) and the `_assets/auto_js/` directory convention | Fields stay optional and the auto-JS parts are ignored; packages may keep shipping the UMD files. `common_assets` keeps being copied to `/static/<pkg>/` so the runtime URL loaders in `dara-components` keep working. | `autojs_assets`, `tag_order`, `depends_on` and the tag-emitting code removed; downstream packages drop the `cp -R dist/umd/. dara/core/_assets/auto_js/` step from their JS build scripts and stop shipping the UMDs. The static-file half is replaced by the package static assets mechanism below. |
 | `BuildMode.AUTO_JS`, `_entry_autojs.template.tsx` | Kept as long as legacy-only projects are still served by the old pipeline (see Warn). | Removed. |
 | `BuildConfig.npm_registry` / `npm_token` and the `.npmrc` template that wrote `_authToken` in plaintext into `dist/.npmrc` | Kept for the old pipeline; the new pipeline never reads them and never writes tokens into project files. Setting them while on the new pipeline warns and points at a root `.npmrc`. | Removed. This also closes the case where a Docker image that copies `dist/` ships the token in a layer. |
+
+### Package Static Assets and Vendored Libraries
+
+The `dara_assets` manifest system exists because auto-JS mode could not bundle anything: every third-party library had to be a `<script>` tag or a file loaded by URL at runtime. Most of the machinery (`tag_order`, `depends_on`, topo sort, `build_common_tags`, `build_autojs_template`) only sequences script tags for a bundler-less page and goes away with the auto-JS path.
+
+What does not go away automatically is the set of vendored libraries in `dara-components/_assets/common/`: BokehJS (versioned to match the installed Python `bokeh`), Pixi and its plugins, and Plotly. They are loaded by URL from `/static/dara.components/...` at runtime (`plotting/bokeh/bokeh.tsx`, `plotting/plotly/plotly.tsx`) because bundling Pixi and Bokeh caused problems in the previous setup, not because URL loading was the preferred design. Together with the UMDs they account for most of the ~7.8 MB of assets in the `dara-components` wheel.
+
+The plan is:
+
+1. Attempt to bundle Bokeh, Pixi and Plotly as normal npm dependencies behind dynamic `import()` in the new Vite pipeline, so they become code-split chunks emitted by the same build as everything else. For Bokeh this means `dara lock` projects `@bokeh/bokehjs` at the installed Python `bokeh` version into `package.json`, using the same version-derivation used for `@darajs/*`. Test the result against the demo app's Bokeh, Plotly and causal graph pages. This is a spike with an uncertain outcome; the redesign does not depend on it succeeding.
+2. Regardless of the outcome, replace `AssetManifest` with a minimal mechanism for a package to contribute files to `/static/<pkg>/`: an entrypoint that returns a directory (or list of files) to copy into `static_files_dir` at build time, with no tag emission or ordering. This is the same capability `Configuration.static_folders` already gives apps, declared by a package instead. It stays as a permanent escape hatch for anything that genuinely cannot be bundled.
+3. Depending on 1): if bundling works, `dara-components` stops shipping the vendored files and the static mechanism is unused by Dara's own packages; if it does not, the vendored files move over to the static mechanism unchanged and the existing URL loaders keep working.
+
+Separately, `dara-core` ships `jquery.min.js` as a common asset and emits a `<script>` tag for it in `index.html`. Nothing in the Dara JS references it; it has been there since the initial commit and is believed to be an implicit dependency of BokehJS. Whether current BokehJS still needs it must be verified as part of the spike (load a Bokeh figure and a `DataTable` with the tag removed) before the tag is dropped.
 
 ### Warn
 
@@ -444,6 +458,8 @@ If the Node-based implementation proves more awkward than expected, Bun remains 
 
 - How long should the compatibility window for `dara.config.json` last?
 - Should ejected source/config files live directly at the app root by default, or should `dara eject` offer a configurable source directory while keeping `package.json` and `pnpm-lock.yaml` at the root?
+- Can Bokeh, Pixi and Plotly be bundled as npm dependencies behind dynamic imports in the new pipeline, or do they stay as vendored files served via the package static assets mechanism?
+- Is the jQuery `<script>` tag still required by BokehJS, or can it be dropped?
 
 ## Recommended First Implementation Slice
 
@@ -457,4 +473,5 @@ If the Node-based implementation proves more awkward than expected, Bun remains 
 8. Switch `dara build` and CI to frozen installs.
 9. Add `@darajs/vite-plugin`.
 10. Add `dara eject` and compatibility handling for `dara.config.json`.
-11. Remove the UMD / auto-JS path once the new pipeline is validated.
+11. Add the package static assets mechanism and spike bundling Bokeh/Pixi/Plotly via dynamic imports; verify whether the jQuery tag is still needed.
+12. Remove the UMD / auto-JS path and the deprecated `AssetManifest` fields once the new pipeline is validated.
