@@ -12,7 +12,7 @@ The model:
 - Every app checks in `package.json` and `pnpm-lock.yaml` at its root. Nothing Dara-specific is checked in.
 - Dara owns its own entries in those files and users refresh them with `dara lock`.
 - An app with custom JS adds a source directory and uses the same `package.json` for its own tooling. There is no eject and no user-owned Vite config; the checked-in `package.json` is already the user's JS project.
-- Missing lockfiles are created on first local run. `dara build` and CI install with a frozen lockfile and fail if anything is stale.
+- A local `dara start` or `dara dev` creates missing `package.json` and `pnpm-lock.yaml` and says what to commit. `dara build` and CI never generate; they install with a frozen lockfile and fail if anything is missing or stale.
 - `dara.config.json` goes away, with a staged migration.
 - UMD / auto-JS mode goes away. Apps with and without custom JS build the same way.
 - Python writes one file, `node_modules/.dara/manifest.json`. `@darajs/vite-plugin` reads it and produces everything in `dist/`, including `index.html`. Python serves `dist/`. There is no generated entrypoint, no Vite config on disk and no `fastapi_vite_dara`.
@@ -283,7 +283,7 @@ All of them accept `--config <module:config>`. They import the app config to dis
 | Command | What it does |
 | --- | --- |
 | `dara lock` | Discover the required Dara JS dependencies, write the manifest, apply the merge rules to `package.json`, install with the managed pnpm, write `pnpm-lock.yaml`. |
-| `dara dev` | Create missing lockfiles locally and print which files to commit. Validate toolchain and dependencies, write the manifest, run the dev server through the managed Node. Never rewrites the checked-in files except on that first local bootstrap. |
+| `dara dev` | Create missing `package.json` and `pnpm-lock.yaml` locally and print which files to commit. Validate toolchain and dependencies, write the manifest, run the dev server through the managed Node. Never rewrites the checked-in files except on that first local bootstrap. |
 | `dara build --output <dir>` | Require `package.json` and `pnpm-lock.yaml` that agree with the installed Python packages. Write the manifest. `pnpm install --frozen-lockfile`. Run Vite; the plugin copies static assets and writes `index.html` and the build marker. Leave a self-contained output directory with no `node_modules` and no credentials in it. Used by CI and by the release action. |
 | `dara setup-custom-js` | Section 5. Scaffold `js/index.tsx` and `tsconfig.json`, then `dara lock`. |
 
@@ -326,7 +326,7 @@ Today the user-facing interface is a set of flags on `dara start` plus environme
 
 | Today | New model |
 | --- | --- |
-| `dara start` (no flags, auto-JS) | `dara start` serves the bundle in `dist/`. Locally, if `dist/` is missing or its build marker does not match the manifest and lockfile, it runs the managed build first (see build freshness in section 4). If `package.json` is stale against the installed Python packages, it fails and says to run `dara lock`. |
+| `dara start` (no flags, auto-JS) | `dara start` serves the bundle in `dist/`. Locally, if `package.json` or `pnpm-lock.yaml` is missing it runs the `dara lock` logic first and prints which files to commit, the same bootstrap `dara dev` does. If `dist/` is missing or its build marker does not match the manifest and lockfile, it runs the managed build first (see build freshness in section 4). If `package.json` is stale against the installed Python packages, it fails and says to run `dara lock`. |
 | `dara start --production` | `dara build` then `dara start`. `--production` is a no-op with a deprecation warning during the compatibility window. There is only one pipeline. |
 | `DARA_PRODUCTION_MODE`, `DARA_HMR_MODE`, `DARA_DOCKER_MODE`, `SKIP_JSBUILD` set by the flags | Still set by the deprecated flags during the compatibility window. Downstream apps read them directly, for example to switch `static_files_dir` on `DARA_PRODUCTION_MODE` and serve assets packaged in a wheel. Programmatic callers such as `dara_cli.main([...])` get warnings, not errors. |
 | `dara start --enable-hmr` + `dara dev` | Same pairing. `dara start --enable-hmr` serves from the Vite dev server, `dara dev` runs it. Both validate managed state instead of installing into `dist/`. |
