@@ -42,21 +42,21 @@ Wheels shrink by the UMD bundles immediately, and by the vendored Bokeh / Pixi /
 
 ```mermaid
 flowchart LR
-    cfg[Configuration + installed dara-* packages]
-    subgraph Checked in
-        pkg[package.json]
-        pl[pnpm-lock.yaml]
+    cfg["Configuration + installed dara-* packages"]
+    subgraph checked["Checked in"]
+        pkg["package.json"]
+        pl["pnpm-lock.yaml"]
     end
-    manifest[node_modules/.dara/manifest.json]
-    nm[node_modules]
+    manifest["node_modules/.dara/manifest.json"]
+    nm["node_modules"]
     plugin["@darajs/vite-plugin"]
-    dist[dist/ incl. index.html + build marker]
+    dist["dist/ incl. index.html + build marker"]
+    serve["Python serves dist/"]
 
-    cfg -- dara lock --> pkg --> pl
-    pl -- pnpm install --frozen-lockfile --> nm
-    cfg -- every command --> manifest --> plugin
-    nm --> plugin --> dist
-    dist --> serve[Python serves dist/]
+    cfg -->|"dara lock"| pkg --> pl
+    pl -->|"pnpm install (frozen lockfile)"| nm
+    cfg -->|"every command"| manifest --> plugin
+    nm --> plugin --> dist --> serve
 ```
 
 Nothing else crosses between Python and Vite: Python writes the manifest and runs the toolchain, the plugin writes `dist/`, Python serves it.
