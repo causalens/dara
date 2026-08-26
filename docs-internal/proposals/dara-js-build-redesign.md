@@ -303,6 +303,16 @@ The plan:
 2. Either way, replace `AssetManifest` with a minimal way for a package to contribute files to `/static/<pkg>/`: an entrypoint returning a directory or file list to copy into `static_files_dir` at build time, with no tag emission or ordering. This is what `Configuration.static_folders` already gives apps, declared by a package instead. It stays as a permanent escape hatch for anything that cannot be bundled.
 3. Depending on step 1: if bundling works, `dara-components` stops shipping the vendored files and Dara's own packages do not use the static mechanism. If it does not, the vendored files move onto the static mechanism unchanged and the existing URL loaders keep working.
 
+#### Lazy loading heavy components
+
+Bundling Bokeh behind `import()` is one instance of something worth doing across the board. The generated entry already splits by package: `importers` maps each Python module to `() => import("@darajs/...")`, so a package's chunk is fetched the first time one of its components renders. Inside a package there is no splitting at all. `@darajs/components` re-exports everything from one `index.tsx`, so rendering a `Button` downloads the causal graph editor, the plotting wrappers and the code editor with it. Same for `@darajs/ai` and `@darajs/enterprise`.
+
+The fix is cheap and needs no app-side work. A library exports its heavy components as `React.lazy(() => import('./causal-graph'))` at the boundary where the heavy dependency starts. Rollup follows dynamic imports through ESM dependencies, so the app's Vite build emits those as separate chunks with no extra config. `DynamicComponent` already wraps every rendered component in `Suspense` with the app's configured fallback (`shared/dynamic-component/dynamic-component.tsx`), and resolves the component as a plain export from the module, so a lazy export is indistinguishable from a normal one until it renders. The user's `fallback=` and `suspend_render` settings apply to the chunk fetch for free.
+
+This only becomes possible with the redesign. Under UMD a library-level `import()` is inlined into the single bundle, which is why the runtime URL loaders exist. ESM-only libraries after the auto-JS removal keep `import()` intact through to the app build.
+
+Start with the heaviest: the causal graph editor (Pixi), the plotting components (Plotly, Bokeh), the code and markdown editors, and the AI chat components. Two things to keep in mind. Actions are resolved from the same modules as plain functions, not through `Suspense`, so a heavy dependency inside an action is split with an `await import()` in the action body rather than `React.lazy`. And the package entry chunk is still fetched up front by the module preload, which is fine once it is mostly re-exports of lazy wrappers.
+
 One loose end. `dara-core` ships `jquery.min.js` as a common asset and emits a `<script>` tag for it in `index.html`. Nothing in Dara's JS references it. It has been there since the initial commit and is believed to be an implicit BokehJS dependency. Whether current BokehJS still needs it gets checked in the spike, by loading a Bokeh figure and a `DataTable` with the tag removed, before the tag is dropped.
 
 ## Alternative considered: Bun
@@ -330,5 +340,5 @@ We stay on Node because a Dara-managed Node solves the clash just as well, the s
 8. Frozen installs in `dara build` and CI. Workspace mode. `dara build` as the production build entrypoint, `dara-enterprise` build commands deprecated, `dara-release-action` pointed at `dara build`.
 9. `@darajs/vite-plugin`.
 10. `dara eject` and `dara.config.json` compatibility.
-11. The package static assets mechanism, the Bokeh/Pixi/Plotly bundling spike, and the jQuery check.
+11. The package static assets mechanism, the Bokeh/Pixi/Plotly bundling spike, and the jQuery check. Then `React.lazy` boundaries around the heaviest components in `@darajs/components`, `@darajs/ai` and `@darajs/enterprise`.
 12. Remove the UMD / auto-JS path and the deprecated `AssetManifest` fields once the new pipeline is proven.
