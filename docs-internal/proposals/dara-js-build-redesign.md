@@ -226,8 +226,9 @@ Python derives a machine-specific manifest from the imported configuration and i
   ],
   "static": [
     {
-      "source": "/site-packages/dara/components/_assets/static",
-      "dest": "dara.components"
+      "package": "dara.components",
+      "source": "/site-packages/dara/components/_assets/common",
+      "target": "."
     }
   ],
   "favicon": "./static/favicon.ico",
@@ -397,9 +398,37 @@ An app that is also a published library keeps the Dara configs at `vite.config.t
 
 ## Static assets
 
-Packages can register files for `/static/<package>/`. Python resolves the installed paths into the manifest and the plugin copies them into the output. This replaces the file-serving part of `AssetManifest` for assets that cannot be bundled.
+Static assets are files that browser code fetches by URL instead of importing into the Vite bundle. Packages keep exposing an `AssetManifest` through the existing `dara_assets` Python entry point:
 
-The first migration keeps the vendored BokehJS, Pixi and Plotly files in `dara-components/_assets/common/` and serves them through this mechanism. Bundling them is follow-up work.
+```toml
+[tool.poetry.plugins."dara_assets"]
+dara-components = "dara.components._assets:asset_manifest"
+```
+
+The manifest gains `static_assets`, which maps a source file or directory under `base_path` to a target inside that package's URL namespace:
+
+```python
+from pathlib import Path
+
+from dara.core.base_definitions import AssetManifest, StaticAsset
+
+asset_manifest = AssetManifest(
+    base_path=Path(__file__).parent,
+    static_assets=[
+        StaticAsset(source='common', target='.'),
+    ],
+)
+```
+
+In this example, `common/bokeh-3.1.1.min.js` is available at `/static/dara.components/bokeh-3.1.1.min.js` when the app has no base URL. Dara applies the configured base URL before `/static` when it has one. A directory registration copies or serves its contents recursively and preserves paths below the source directory.
+
+Python loads the entry points for packages used by the app. It resolves each source against the installed package and writes the absolute source, package name and relative target to the build manifest. Absolute paths are build-machine data only. A source must exist and resolve inside its Python package. Targets must be relative and cannot escape `/static/<package>/`.
+
+During `dara dev`, the Vite plugin serves each source through middleware at its package URL and watches it for changes. During `dara build`, the plugin copies the same files to `<outDir>/static/<package>/`. Browser code therefore uses the same URL in development and production. The build marker records the copied files and their content hashes.
+
+Each Python package owns its namespace. Two registrations in that package cannot produce the same target path; the command fails and names both sources. Static registration does not add a script or stylesheet tag to `index.html`. The component that needs the file loads its URL explicitly. Files that can be imported as JavaScript, CSS or another Vite asset should use normal imports instead.
+
+During compatibility, Dara translates existing `common_assets` entries into these package-scoped registrations. The first migration therefore keeps the vendored BokehJS, Pixi and Plotly files in `dara-components/_assets/common/` without changing their browser URLs. Their current runtime loaders continue to fetch them. Bundling them is follow-up work.
 
 ## Migration
 
