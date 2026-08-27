@@ -6,14 +6,14 @@ Status: Draft
 
 Replace the UMD and Vite pipelines with one Vite build rooted in the app. The app keeps standard JS project files, while Dara owns only the entries needed to build its frontend.
 
-| Decision |
-| --- |
-| `package.json`, `pnpm-lock.yaml` and `vite.config.ts` live at the app root. A pnpm workspace uses its root lockfile. |
-| `dara lock` is the only command that updates dependency files. |
-| `dara dev` runs the development loop, `dara build` creates deployable output, and `dara start` only serves existing output. |
-| Node and pnpm come from `PATH`. Dara requires compatible versions through `package.json`; mise is the recommended version manager, not a requirement. |
-| Python writes a build manifest. `@darajs/vite-plugin` turns it into named imports, component and action maps, static assets, `index.html` and a build marker. |
-| Apps with and without custom JS use the same pipeline. |
+The proposal makes these decisions:
+
+- `package.json`, `pnpm-lock.yaml` and `vite.config.ts` live at the app root. A pnpm workspace uses its root lockfile.
+- `dara lock` is the only command that updates dependency files.
+- `dara dev` runs the frontend development loop, `dara build` creates deployable output, and `dara start` runs the Python server against either source.
+- Dara checks compatible Node and pnpm versions from `PATH`. mise is recommended but optional.
+- Python writes a build manifest. `@darajs/vite-plugin` turns it into named imports, component and action maps, static assets, `index.html` and a build marker.
+- Apps with and without custom JS use the same pipeline.
 
 This fixes five problems in the current system:
 
@@ -25,13 +25,109 @@ This fixes five problems in the current system:
 
 The Python component and action APIs remain unchanged. pnpm is the only supported package manager.
 
-## Accepted trade-off: build machines need Node and pnpm
+## Toolchain and prerequisites
 
 Developers and CI need Node and pnpm to run `dara lock`, `dara dev` or `dara build`. A runtime that only runs `dara start` needs neither because it serves the compiled `dist/` directory.
 
-`create-dara-app` includes a `mise.toml`, so a mise user can install the recommended versions with `mise install`. Other version managers work as long as `node` and `pnpm` on `PATH` satisfy the ranges in `package.json`.
+`dara lock` writes the supported ranges under `engines`:
+
+```json
+{
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11 <12"
+  }
+}
+```
+
+Dara checks `node --version` and `pnpm --version` before lock, development or build work. It updates these ranges when a Dara release needs a newer toolchain.
+
+`create-dara-app` includes a `mise.toml`, so a mise user can install the recommended versions with `mise install`. Other version managers work when `node` and `pnpm` on `PATH` satisfy the ranges. The app may add an exact `packageManager` field or pin exact versions in mise. Dara writes neither.
 
 The first `dara lock` needs registry access. Projects configure registry routing, credentials, proxies and certificate authorities through pnpm's normal `.npmrc` lookup.
+
+Dara invokes tools with argument lists and a restricted environment. Registry credentials are available to pnpm but not to Vite.
+
+## User workflows
+
+The commands describe operations rather than persistent modes. Development uses a Vite process alongside the Python server. Production uses an explicit build followed by the same serve-only `dara start` used in a runtime image.
+
+All examples accept `--config <module:config>`. Apps with namespaced packages must provide it instead of relying on auto-discovery.
+
+### Set up a new app
+
+`create-dara-app` creates `package.json`, `vite.config.ts` and the recommended `mise.toml`. After installing the Python environment:
+
+```sh
+mise install
+dara lock --config my_app.main:config
+```
+
+The mise step is optional for users who installed compatible Node and pnpm versions another way. Commit `package.json`, `pnpm-lock.yaml` and `vite.config.ts` after `dara lock` succeeds.
+
+### Migrate an existing app
+
+Run `dara lock` once against the existing configuration. It imports supported values from `dara.config.json`, creates missing standard files and prints the remaining migration steps. An app with a nonstandard `local_entry` first moves that value to `Configuration.js_entry`.
+
+Review and commit the generated files, then remove `dara.config.json`. Later commands do not keep merging it into the standard files.
+
+### Develop the app
+
+Run Vite and the Python server in separate terminals:
+
+```sh
+dara dev --config my_app.main:config
+```
+
+```sh
+dara start --enable-hmr --reload --config my_app.main:config
+```
+
+`dara dev` performs a frozen install, writes the build manifest and starts Vite. `--enable-hmr` tells the Python server to load the frontend from Vite. `--reload` is optional and restarts Python when Python files change; JavaScript HMR does not restart the backend.
+
+This path is the same with or without custom JS. Run `dara lock` and commit its changes after upgrading a `dara-*` Python package or changing JS dependencies.
+
+### Add custom JS
+
+Run `dara setup-custom-js`, export components from `js/index.tsx`, and register them from Python. Add any app-owned JS tools or dependencies to `package.json`, then run `dara lock` before returning to the development workflow.
+
+### Build and run production output
+
+CI or a developer with the JS toolchain creates the deployable output explicitly:
+
+```sh
+dara build --config my_app.main:config
+```
+
+The runtime then starts the Python app:
+
+```sh
+dara start --config my_app.main:config
+```
+
+`dara build` performs a frozen install and writes self-contained output without `node_modules` or credentials. A runtime image needs only the Python application and that output. `dara start` validates the build marker and serves it without invoking Node, pnpm or Vite.
+
+Outside HMR, a missing or stale build makes `dara start` fail with `run dara build`. It never rebuilds automatically. The compatibility mapping for the old `--production` flag is covered under migration.
+
+## Command reference
+
+| Command | Behaviour |
+| --- | --- |
+| `dara lock` | Imports the configuration, updates Dara-owned `package.json` entries, runs `pnpm install`, and writes the lockfile. It creates a standard `vite.config.ts` when absent. |
+| `dara dev` | Checks the project files, runs `pnpm install --frozen-lockfile`, writes the manifest, and starts Vite's development server. It does not write `dist/`. |
+| `dara build --output <dir>` | Performs the same frozen install and manifest generation, then runs the production Vite build. It never changes checked-in files. |
+| `dara start` | Runs the Python server. Normally it validates and serves an existing build without a JS toolchain. With `--enable-hmr`, it expects `dara dev` to supply the frontend. |
+| `dara setup-custom-js` | Creates `js/index.tsx` and the recommended TypeScript files, then tells the user to run `dara lock`. |
+
+Missing or inconsistent dependency files make `dara dev` and `dara build` fail with `run dara lock and commit the result`. No command repairs that state implicitly.
+
+The output directory follows this order:
+
+1. `dara build --output`
+2. `Configuration.static_files_dir`
+3. `dist/`
+
+The plugin receives the resolved directory. A conflicting `build.outDir` in `vite.config.ts` is an error because Python and Vite must agree on the directory Python serves.
 
 ## How it fits together
 
@@ -54,47 +150,6 @@ flowchart LR
 ```
 
 Python discovers what the app needs and writes the manifest. The Vite plugin produces the frontend. Python then serves the result without a JS toolchain.
-
-## Commands
-
-All commands accept `--config <module:config>`. Apps with namespaced packages cannot rely on auto-discovery.
-
-| Command | Behaviour |
-| --- | --- |
-| `dara lock` | Imports the configuration, updates Dara-owned `package.json` entries, runs `pnpm install`, and writes the lockfile. It creates a standard `vite.config.ts` when absent. |
-| `dara dev` | Checks the project files, runs `pnpm install --frozen-lockfile`, writes the manifest, and starts Vite's development server. It does not write `dist/`. |
-| `dara build --output <dir>` | Performs the same frozen install and manifest generation, then runs the production Vite build. It never changes checked-in files. Its output contains neither `node_modules` nor credentials. |
-| `dara start` | Validates and serves an existing build. It does not invoke Node, pnpm or Vite. |
-| `dara setup-custom-js` | Creates `js/index.tsx` and the recommended TypeScript files, then tells the user to run `dara lock`. |
-
-Missing or inconsistent dependency files make `dara dev` and `dara build` fail with `run dara lock and commit the result`. A missing or stale build makes `dara start` fail with `run dara build`. No command repairs either state implicitly.
-
-The output directory follows this order:
-
-1. `dara build --output`
-2. `Configuration.static_files_dir`
-3. `dist/`
-
-The plugin receives the resolved directory. A conflicting `build.outDir` in `vite.config.ts` is an error because Python and Vite must agree on the directory Python serves.
-
-## Toolchain
-
-`dara lock` writes compatibility ranges under `engines`, for example:
-
-```json
-{
-  "engines": {
-    "node": ">=22",
-    "pnpm": ">=11 <12"
-  }
-}
-```
-
-Dara checks `node --version` and `pnpm --version` before lock, development or build work. It updates its ranges when a Dara release needs a newer toolchain.
-
-The app may add an exact `packageManager` field or pin exact versions in mise. Dara does not write either. This lets repositories choose their own version manager while keeping Dara opinionated about compatible majors.
-
-Dara invokes tools with argument lists and a restricted environment. Registry credentials are available to pnpm but not to Vite.
 
 ## Project files and ownership
 
@@ -261,7 +316,7 @@ The plugin writes `.dara-build.json` into the output directory. It records:
 
 `dara build` writes to a temporary directory and replaces the old output only after a successful build.
 
-`dara start` derives the portable part of the manifest in memory and checks it and the emitted files against the marker. In a checkout where the lockfile and static sources are present, it compares those too. A runtime image may contain only the Python application and compiled output, so the absence of JS build files is not an error.
+When serving built output, `dara start` derives the portable part of the manifest in memory and checks it and the emitted files against the marker. In a checkout where the lockfile and static sources are present, it compares those too. A runtime image may contain only the Python application and compiled output, so the absence of JS build files is not an error.
 
 Any mismatch fails with `run dara build`. `dara start` never rebuilds. Custom JS development belongs in `dara dev`; producing a new deployable build always requires an explicit `dara build`.
 
