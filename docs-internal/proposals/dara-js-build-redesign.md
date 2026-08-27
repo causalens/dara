@@ -63,7 +63,23 @@ mise install
 dara lock --config my_app.main:config
 ```
 
-The mise step is optional for users who installed compatible Node and pnpm versions another way. Commit `package.json`, `pnpm-lock.yaml`, `vite.config.ts` and `tsconfig.json` after `dara lock` succeeds. Then choose one of the two paths below: run `dara build` followed by `dara start`, or run `dara start --enable-hmr` alongside `dara dev`.
+The mise step is optional for users who installed compatible Node and pnpm versions another way. Commit `package.json`, `pnpm-lock.yaml`, `vite.config.ts` and `tsconfig.json` after `dara lock` succeeds.
+
+At the end of a successful lock, Dara prints the two next-step paths using the resolved configuration reference:
+
+```text
+Dependencies locked. Commit package.json, pnpm-lock.yaml and any generated config files.
+
+Development, in separate terminals:
+  dara start --enable-hmr --reload --config my_app.main:config
+  dara dev --config my_app.main:config
+
+Build and serve:
+  dara build --config my_app.main:config
+  dara start --config my_app.main:config
+```
+
+These commands are guidance only. `dara lock` does not run either path.
 
 ### Migrate an existing app
 
@@ -115,7 +131,7 @@ Outside HMR, a missing or stale build makes `dara start` fail with `run dara bui
 
 | Command | Behaviour |
 | --- | --- |
-| `dara lock` | Imports the configuration, updates Dara-owned `package.json` entries, runs `pnpm install`, and writes the lockfile. It creates standard Vite and TypeScript configs when absent, but does not run Vite or create build output. |
+| `dara lock` | Imports the configuration, updates Dara-owned `package.json` entries, runs `pnpm install`, and writes the lockfile. It creates standard Vite and TypeScript configs when absent, then prints the development and build commands to run next. It does not run Vite or create build output. |
 | `dara dev` | Checks the project files, runs `pnpm install --frozen-lockfile`, waits for the development manifest, and starts Vite's development server. It does not write `dist/`. |
 | `dara build --output <dir>` | Performs the same frozen install and manifest generation, then runs the production Vite build. It never changes checked-in files. |
 | `dara start` | Runs the Python server. Normally it validates and serves an existing build without a JS toolchain. With `--enable-hmr`, it writes the development manifest and expects `dara dev` to supply the frontend. |
