@@ -296,17 +296,49 @@ The Dara plugin checks Vite's resolved configuration in `configResolved`. It rej
 
 ### TypeScript configuration
 
-Every app also has a root `tsconfig.json` because Vite and the editor must resolve workspace packages the same way:
+`dara lock` adds TypeScript as a Dara-owned development dependency:
+
+```json
+{
+  "devDependencies": {
+    "typescript": "^7.0.0"
+  }
+}
+```
+
+The range follows minor and patch releases within the latest stable major supported by Dara. Dara moves it to the next major after testing that release. Prereleases and the next untested major do not enter an app through `dara lock`.
+
+Every app also has a root `tsconfig.json`. The generated config starts strict and makes Vite and the editor resolve workspace packages the same way:
 
 ```json
 {
   "compilerOptions": {
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "customConditions": ["dara-source"],
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
     "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "module": "ESNext",
+    "moduleDetection": "force",
     "moduleResolution": "bundler",
     "noEmit": true,
-    "target": "ES2020"
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": false,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["vite/client"],
+    "useDefineForClassFields": true,
+    "verbatimModuleSyntax": true
   },
   "include": ["js"]
 }
@@ -316,7 +348,7 @@ Every app also has a root `tsconfig.json` because Vite and the editor must resol
 
 `jsx: "react-jsx"` selects React's automatic JSX runtime. App files do not need to import `React` only to use JSX.
 
-`dara lock` adds a compatible TypeScript dev dependency and creates this file when absent. For an existing config, it checks the effective `moduleResolution` and `customConditions` values. Missing or conflicting values fail with the settings to add; Dara does not rewrite the file. The app controls all other compiler options and may inherit them through `extends`. An app using `Configuration.js_entry` outside `js/` adds that directory to `include`.
+`dara lock` creates this file when absent. For an existing config, it checks the effective values of every option shown above. Scalar options must match; `customConditions`, `lib` and `types` may contain extra entries. Missing or conflicting values fail with the settings to add. Dara does not rewrite the file. The app may add other compiler options and may inherit its configuration through `extends`. An app using `Configuration.js_entry` outside `js/` adds that directory to `include`.
 
 ### Generated entry
 
@@ -583,7 +615,7 @@ The dependency merge and build-freshness checks are pure functions with table-dr
 
 Plugin fixtures exercise both development transforms and production builds. They cover a `react-jsx` custom entry with JSX but no `React` import, local and package registrations, side-effect module dependencies, `export *` resolution, static assets and missing or ambiguous exports.
 
-CLI integration tests cover lock guidance, separate backend and Vite startup in either order, the HTTP 503 guidance page while Vite is unavailable, per-app manifest locations in a workspace and serve-time marker errors. The implementation slices below add end-to-end app coverage on top of these focused tests.
+CLI integration tests cover the generated strict TypeScript config and effective settings inherited through `extends`. They also cover lock guidance, backend and Vite startup in either order, the HTTP 503 guidance page while Vite is unavailable, per-app manifest locations in a workspace and serve-time marker errors. The implementation slices below add end-to-end app coverage on top of these focused tests.
 
 ## Implementation slices
 
