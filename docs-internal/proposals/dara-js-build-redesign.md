@@ -398,14 +398,42 @@ An app that is also a published library keeps the Dara configs at `vite.config.t
 
 ## Static assets
 
-Static assets are files that browser code fetches by URL instead of importing into the Vite bundle. Packages keep exposing an `AssetManifest` through the existing `dara_assets` Python entry point:
+Static assets are files that browser code fetches by URL instead of importing into the Vite bundle.
+
+### Current `common_assets` behavior
+
+Packages currently expose an `AssetManifest` through the `dara_assets` Python entry point:
 
 ```toml
 [tool.poetry.plugins."dara_assets"]
 dara-components = "dara.components._assets:asset_manifest"
 ```
 
-The manifest gains `static_assets`, which maps a source file or directory under `base_path` to a target inside that package's URL namespace:
+For example, this is a shortened version of the Dara Components manifest:
+
+```python
+COMMON_ASSETS = [
+    './common/bokeh-3.1.1.min.js',
+    './common/pixi.min.js',
+    './common/plotly.min.js',
+]
+
+asset_manifest = AssetManifest(
+    base_path=Path(__file__).parent.absolute().as_posix(),
+    autojs_assets=AUTOJS_ASSETS,
+    common_assets=COMMON_ASSETS,
+    tag_order=AUTOJS_ASSETS,
+    depends_on=['dara.core'],
+)
+```
+
+Python loads this entry point, resolves each `common_assets` item against `base_path`, and copies the file to `static_files_dir/dara.components/<filename>`. The server exposes that directory at `/static/dara.components/`. The name means Dara copies these files in every build mode.
+
+`tag_order` is separate. It controls which registered files get script tags in the generated HTML. Dara Components excludes its common assets from `tag_order`, so Bokeh, Pixi and Plotly are not loaded on every page. The components that need them construct URLs such as `/static/dara.components/bokeh-3.1.1.min.js` and add script elements at runtime.
+
+### Proposed registration
+
+Packages keep the same entry point. `AssetManifest` gains `static_assets`, which maps a source file or directory under `base_path` to a target inside that package's URL namespace:
 
 ```python
 from pathlib import Path

@@ -2,10 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
-- Internal: Added an internal proposal for redesigning the Dara JS build pipeline around standard app-owned JS files, compatible Node and pnpm versions, and a visible Dara Vite plugin.
-
 ## 1.29.7
 
 - Added one-at-a-time polling for DerivedVariable and Python components. Polling now waits after each request, pauses in hidden tabs, spreads retries with jitter and backoff, honors Retry-After, aborts work on cleanup, and drops stale results.
