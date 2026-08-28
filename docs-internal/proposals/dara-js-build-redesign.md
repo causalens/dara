@@ -12,7 +12,7 @@ The proposal makes these decisions:
 - `dara lock` is the only command that updates dependency files.
 - `dara dev` runs the frontend development loop from the app root without importing the Python app, `dara build` creates deployable output, and `dara start` runs the Python server against either source.
 - Dara checks compatible Node and pnpm versions from `PATH`. mise is recommended but optional.
-- Python writes separate development and build manifests. `@darajs/vite-plugin` owns JS project validation and development-manifest state handling, then turns each manifest into named imports, component and action maps, static assets, `index.html` and a build marker.
+- Python writes separate development and build manifests. After Python bootstraps the JS dependencies, `@darajs/vite-plugin` initializes and validates the JS project, runs the frontend toolchain, and turns each manifest into named imports, component and action maps, static assets, `index.html` and a build marker.
 - Every app has the same fixed JS entry and uses the same pipeline.
 
 This fixes five problems in the current system:
@@ -56,14 +56,14 @@ Commands that import the app accept `--config <module:config>`. Apps with namesp
 
 ### Set up a new app
 
-`create-dara-app` creates `package.json`, `vite.config.ts`, `tsconfig.json`, an empty `js/index.tsx` and the recommended `mise.toml`. After installing the Python environment:
+`create-dara-app` creates the initial `package.json` and recommended `mise.toml`. After installing the Python environment:
 
 ```sh
 mise install
 dara lock --config my_app.main:config
 ```
 
-The mise step is optional for users who installed compatible Node and pnpm versions another way. Commit `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json` and `js/index.tsx` after `dara lock` succeeds.
+The mise step is optional for users who installed compatible Node and pnpm versions another way. The first lock installs `@darajs/vite-plugin`; its initialization mode then creates the missing `vite.config.ts`, `tsconfig.json` and empty `js/index.tsx`. Commit those files with `package.json` and `pnpm-lock.yaml` after `dara lock` succeeds.
 
 At the end of a successful lock, Dara prints the two next-step paths and uses the resolved configuration reference where a command needs it:
 
@@ -135,14 +135,14 @@ Outside HMR, a missing or stale build makes `dara start` fail with `run dara bui
 
 | Command | Behaviour |
 | --- | --- |
-| `dara lock` | Imports the configuration, updates Dara-owned `package.json` entries, runs `pnpm install`, and writes the lockfile. It creates the fixed entry and standard Vite and TypeScript configs when absent, then invokes the plugin package's internal project validator and prints the commands to run next. It does not run a development or production Vite build. |
+| `dara lock` | Imports the configuration, updates Dara-owned `package.json` entries, runs `pnpm install`, and writes the lockfile. It then invokes the plugin package's initialization mode, which creates missing standard JS project files and validates the result before printing the commands to run next. It does not run a development or production Vite build. |
 | `dara dev [--root <dir>]` | Resolves the app root from `--root` or the current directory, runs `pnpm install --frozen-lockfile`, and hands the app root to the plugin package's development runner. The runner validates the JS project, starts Vite, then waits for and validates `manifest.dev.json`. The command does not accept `--config`, import the app or write `dist/`. |
-| `dara build --output <dir>` | Imports the app once, writes `manifest.build.json`, performs a frozen install, and hands the app root to the plugin package's build runner. The runner validates the JS project and build manifest before starting the Vite build. The command never changes checked-in files. |
+| `dara build --output <dir>` | Imports the app once, writes `manifest.build.json`, performs a frozen install, and hands the app root to the plugin package's build runner. The runner validates the project, builds reachable workspace dependencies, runs Vite into staging, writes the marker and publishes the completed output. The command never changes checked-in files. |
 | `dara start` | Runs the Python server. Normally it validates and serves an existing build without a JS toolchain. With `--enable-hmr`, it writes `manifest.dev.json` and expects `dara dev` to supply the frontend. |
 
 An inconsistent `package.json` and lockfile makes the frozen install fail with `run dara lock and commit the result`. A later mismatch between the development manifest and `package.json` moves the plugin to its blocked state. No command repairs either state implicitly.
 
-The first `dara lock` must install `@darajs/vite-plugin` before its Node validator is available. Python therefore performs the dependency merge, installs the result, then invokes the validator. A pre-write merge conflict remains atomic and changes nothing. A later Vite or TypeScript configuration error leaves the valid dependency files and newly created standard files in place, exits nonzero and prints the edits required before rerunning `dara lock`.
+The first `dara lock` must install `@darajs/vite-plugin` before its initializer and validator are available. Python therefore performs the dependency merge, installs the result, then invokes initialization mode. A pre-write merge conflict remains atomic and changes nothing. A later Vite or TypeScript configuration error leaves the valid dependency files and newly created standard files in place, exits nonzero and prints the edits required before rerunning `dara lock`.
 
 The output directory follows this order:
 
@@ -193,9 +193,9 @@ A standalone app checks in `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `
 | Shared runtime dependencies and `engines` | Dara |
 | App dependencies, scripts, metadata and optional `packageManager` | User |
 | `pnpm-lock.yaml` | Generated by pnpm when `dara lock` runs |
-| `vite.config.ts` | User, with the Dara plugin required |
-| `tsconfig.json` | User, with Dara's module resolution settings required |
-| `js/index.tsx` | User, created with the app and never rewritten by Dara |
+| `vite.config.ts` | User, initialized by the plugin when missing, with the Dara plugin required |
+| `tsconfig.json` | User, initialized by the plugin when missing, with Dara's module resolution settings required |
+| `js/index.tsx` | User, initialized by the plugin when missing and never rewritten |
 
 ### Fixed application entry
 
@@ -211,7 +211,7 @@ An empty module has negligible runtime and bundle cost. Apps already require Nod
 
 This also makes a custom component an ordinary application change instead of a build-system task. A developer or coding agent can add a React component, export it from the existing entry and register it from Python without first discovering Dara-specific setup commands or creating configuration files. The fixed entry is a narrow guardrail: TypeScript checks the source, the plugin validates registered exports, and Vite supplies HMR. Small React and TypeScript components are well-bounded tasks for coding agents. Giving every app a prepared entry lets them work inside that boundary instead of first changing the project's build setup.
 
-`dara lock` creates the empty entry only when it is missing and never rewrites it. Development and production fail with a direct instruction to restore the file if it is later removed.
+The plugin's initialization mode creates the empty entry only when it is missing and never rewrites it. Development and production fail with a direct instruction to run `dara lock` if the file is later removed.
 
 ### Dependency merge
 
@@ -222,7 +222,7 @@ This also makes a custom component an ordinary application change instead of a b
 - It accepts `workspace:`, `link:` and `file:` specifiers as explicit exceptions after checking that the target is inside the repository or workspace, has the expected package name and declares a concrete version within Dara's required range.
 - It leaves user-owned entries in place.
 
-Python owns this merge because it must bootstrap `@darajs/vite-plugin`. Its checks answer whether Dara may write a dependency entry without replacing a user-owned value. After installation, the shared Node validator checks whether the complete JS project and resolved packages satisfy the resulting requirements. These are separate boundaries rather than two implementations of the same validation.
+Python owns this merge because it must bootstrap `@darajs/vite-plugin`. Its checks answer whether Dara may write a dependency entry without replacing a user-owned value. After installation, the shared Node project loader checks whether the complete JS project and resolved packages satisfy the resulting requirements. These are separate boundaries rather than two implementations of the same validation.
 
 Upgrading a `dara-*` Python package may require `dara lock` and a commit. Dependency bots must ignore Dara-owned entries and update them through the Python package upgrade instead. Dara documents this policy but does not add Dependabot or Renovate configuration to the app.
 
@@ -336,7 +336,7 @@ Python derives machine-specific manifests from the imported configuration and in
 }
 ```
 
-`configuration` records the resolved Python configuration reference for diagnostics. The Vite plugin never imports it. `packageRequirements` contains every Dara-owned package entry with its required section and exact generated specifier. The example shows representative entries. The shared validator compares the complete list with `package.json` and the installed packages when it receives a development or build manifest. The frozen install has already checked that the lockfile agrees with the checked-in project files.
+`configuration` records the resolved Python configuration reference for diagnostics. The Vite plugin never imports it. `packageRequirements` contains every Dara-owned package entry with its required section and exact generated specifier. The example shows representative entries. The shared project loader compares the complete list with `package.json` and the installed packages when it receives a development or build manifest. The frozen install has already checked that the lockfile agrees with the checked-in project files.
 
 Python resolves its module-to-package map before writing component and action entries. It carries `Configuration.module_dependencies` into `moduleDependencies` even when no component or action uses the package. This preserves `ConfigurationBuilder.add_module_dependency`, which plugins use to include a Python package's asset manifest and corresponding JS module when import discovery would otherwise miss both. In the UMD pipeline, including the manifest also made it participate in `depends_on` and tag ordering. The new pipeline removes that HTML ordering but keeps explicit package inclusion.
 
@@ -359,11 +359,13 @@ The development plugin holds one parsed state:
 
 Only `ready` exposes the virtual application entry. The other states return diagnostic HTML instead of allowing an unresolved module request to become a blank page or Vite overlay.
 
-### Shared JS project validator
+### Shared JS project loader
 
-`@darajs/vite-plugin` exposes one internal Node project loader and a thin executable with validation, development and build modes. `dara lock` invokes validation mode after installation. `dara dev` and `dara build` invoke the other modes, which validate the project and then call Vite's JavaScript API. This keeps the user-facing commands unchanged while giving the JS toolchain one entry point.
+`@darajs/vite-plugin` exposes one internal Node project loader and a thin executable with initialization, development and build modes. `dara lock` invokes initialization mode after installation. `dara dev` and `dara build` invoke the other modes. This keeps the user-facing commands unchanged while giving the JS toolchain one entry point.
 
-The validator parses the app root into one trusted project representation. It checks:
+Initialization mode creates `vite.config.ts`, `tsconfig.json` and `js/index.tsx` when they are missing, then validates the complete project. These canonical defaults live with the code that interprets them instead of in `dara-core`. Initialization never rewrites an existing file. Development and build are read-only with respect to checked-in files.
+
+The loader parses the app root into one trusted project representation. It checks:
 
 - the frontend manifest schema and Dara version when an operation supplies a manifest
 - `packageRequirements` against `package.json` and the packages pnpm resolved
@@ -372,9 +374,9 @@ The validator parses the app root into one trusted project representation. It ch
 - the Vite configuration resolved through Vite's API for both `serve` and `build`
 - workspace, `file:` and `link:` targets against their resolved package names and versions
 
-The loader returns the parsed project or structured diagnostics. The development and build runners pass that representation into the plugin hooks instead of repeating checks there. They resolve the visible Vite config, require exactly one Dara plugin, and only then start the requested Vite operation. Removing the plugin therefore produces Dara's diagnostic rather than an unrelated Vite page. The loader does not import the Python app, write project files, run pnpm or repair invalid state.
+The loader returns the parsed project or structured diagnostics. The development and build runners pass that representation into the plugin hooks instead of repeating checks there. They resolve the visible Vite config, require exactly one Dara plugin, and only then start the requested operation. Removing the plugin therefore produces Dara's diagnostic rather than an unrelated Vite page. The loader does not import the Python app or repair invalid state. Only initialization mode writes project files. No runner installs or updates dependencies; build mode may invoke declared workspace build scripts after Python completes the frozen install.
 
-Python passes the requirements derived from the imported configuration to validation mode over the child process's standard input; no extra manifest is written for lock. Development and build read the same requirements from their manifests. Project errors common to the three operations therefore produce the same diagnostics. Python does not maintain its own parser for `tsconfig.json`, load `vite.config.ts`, inspect installed JS packages or recheck manifest requirements.
+Python passes the requirements derived from the imported configuration and any legacy `local_entry` migration target to initialization mode over the child process's standard input; no extra manifest is written for lock. Development and build read the same requirements from their manifests. Project errors common to the three operations therefore produce the same diagnostics. Python does not maintain its own parser for `tsconfig.json`, load `vite.config.ts`, inspect installed JS packages or recheck manifest requirements.
 
 ### Visible Vite configuration
 
@@ -389,7 +391,7 @@ export default defineConfig({
 });
 ```
 
-`dara lock` creates this file when it is missing. After installation, the shared project loader resolves an existing config for both Vite commands. If it omits the Dara plugin, validation fails and prints the import and plugin entries to add. Dara never rewrites an existing Vite config.
+Initialization mode creates this file when it is missing. The shared project loader resolves an existing config for both Vite commands. If it omits the Dara plugin, validation fails and prints the import and plugin entries to add. Dara never rewrites an existing Vite config.
 
 `dara()` returns `@vitejs/plugin-react` together with Dara's own Vite plugins. Vite flattens that plugin array, so the app does not import or configure the React plugin separately. `@darajs/vite-plugin` owns the React plugin dependency and its version.
 
@@ -451,7 +453,7 @@ Every app also has a root `tsconfig.json`. The generated config starts strict an
 
 These settings are the generated default, not the full Dara contract. They keep application and workspace source strict while `skipLibCheck` avoids checking declarations inside third-party packages. Dara tests every `@darajs/*` package that exposes `dara-source` against this default.
 
-For an existing config, the shared Node validator uses the TypeScript compiler API to resolve JSONC, `extends` and effective compiler options. It requires only the settings needed by the pipeline:
+For an existing config, the shared Node project loader uses the TypeScript compiler API to resolve JSONC, `extends` and effective compiler options. It requires only the settings needed by the pipeline:
 
 - `moduleResolution` is `bundler`
 - `customConditions` contains `dara-source`
@@ -460,7 +462,7 @@ For an existing config, the shared Node validator uses the TypeScript compiler A
 - `isolatedModules` is `true`
 - `types` contains `vite/client`
 
-Missing or conflicting required values fail during lock, development and build with the settings to add. Dara does not rewrite the file or reject changes to the other generated defaults. The validator checks the configuration contract; it does not replace an app's separate lint or full-program type-check command.
+Missing or conflicting required values fail during lock, development and build with the settings to add. Dara does not rewrite the file or reject changes to the other generated defaults. The loader checks the configuration contract; it does not replace an app's separate lint or full-program type-check command.
 
 ### Generated entry
 
@@ -496,8 +498,9 @@ Passing ready-made maps removes the current package namespace cache and the `pre
 
 ### Other plugin responsibilities
 
-The plugin also:
+The plugin package also:
 
+- owns the standard Vite, TypeScript and fixed-entry defaults used by initialization mode
 - exposes the shared project loader and the runners used by lock, development and production builds
 - includes `@vitejs/plugin-react` for JSX transforms and Fast Refresh
 - deduplicates the shared dependencies
@@ -507,20 +510,24 @@ The plugin also:
 - starts in a waiting state when `manifest.dev.json` is absent
 - watches the manifest directory, parses atomic replacements and validates package requirements
 - serves development diagnostics for waiting and blocked states
+- builds reachable workspace dependencies before production Vite builds
 - writes the production build marker
+- stages, verifies and publishes production output
 
 Two static sources cannot write the same destination. The build fails and names both sources when a file or directory collides.
+
+The Jinja placeholders are intentional. Python embeds the compiled router, theme, authentication configuration, runtime URLs and other bootstrap data in the initial HTML response. This avoids a bootstrap request before the first render while leaving the stable document structure and asset references under Vite's control. Python must use script-safe JSON serialization for embedded data, including escaping `<` so a value cannot close its `<script>` element.
 
 ### Python responsibilities
 
 Python keeps four jobs:
 
 - derive frontend manifests from the imported app configuration
-- create and merge project files during lock, invoke pnpm, then hand JS validation and Vite execution to the plugin package
+- create and merge `package.json`, invoke pnpm installation, then hand the JS project to the plugin package
 - validate the production build marker
-- serve `index.html` and static output
+- render the plugin-emitted Jinja placeholders and serve `index.html` and static output
 
-Python stops generating build-time JS source, generated Vite workspaces and HTML tags. It also stops copying assets into `dist/`. During lock it creates missing standard project files, but never derives a Vite configuration from Python state. Apart from the checks required to merge `package.json` safely, Python delegates JS project parsing and validation to `@darajs/vite-plugin`.
+Python stops carrying templates for Vite, TypeScript and the fixed entry. It also stops generating build-time JS source, generated Vite workspaces and HTML tags, building workspace packages, copying assets into `dist/`, and manipulating Vite's output tree. Apart from the checks required to merge `package.json` safely, Python delegates JS project initialization, parsing, validation and execution to `@darajs/vite-plugin`.
 
 ## Build freshness
 
@@ -531,7 +538,9 @@ The plugin writes `.dara-build.json` into the output directory. It records:
 - the lockfile digest, using the whole root lockfile in a workspace
 - the Dara version and hashes of emitted files
 
-`dara build` writes to a temporary directory and replaces the old output only after a successful build.
+The build runner writes to a sibling staging directory. It builds workspace dependencies, runs Vite, hashes the emitted files and static assets, and writes `.dara-build.json` only after those checks succeed. The previous output remains in place until staging is complete.
+
+On the first build, one rename publishes staging into the absent output path. When output already exists, the runner moves it to a backup, moves staging into place, and restores the backup if the second move fails. A later build removes abandoned staging or backup directories after inspecting their markers. The guarantee is recoverable staged publication, not a false cross-platform promise that replacing a non-empty directory is one atomic operation.
 
 When serving built output, `dara start` derives the portable part of the manifest in memory and checks it and the emitted files against the marker. In a checkout where the lockfile and static sources are present, it compares those too. A runtime image may contain only the Python application and compiled output, so the absence of JS build files is not an error.
 
@@ -541,7 +550,7 @@ Because the marker records the whole workspace lockfile, even an unrelated works
 
 CI runs `dara build` on each deployment, so whole-lockfile invalidation mainly affects local workflows that reuse an older build.
 
-During development and build, the shared validator compares `package.json` and installed packages with `packageRequirements` from the selected manifest. `dara dev` does not import the app, and `dara build` does not repeat the comparison in Python. A mismatch blocks development or fails the build with `run dara lock and commit package.json and pnpm-lock.yaml`; development also tells the user to restart `dara dev` afterwards.
+During development and build, the shared project loader compares `package.json` and installed packages with `packageRequirements` from the selected manifest. `dara dev` does not import the app, and `dara build` does not repeat the comparison in Python. A mismatch blocks development or fails the build with `run dara lock and commit package.json and pnpm-lock.yaml`; development also tells the user to restart `dara dev` afterwards.
 
 ## Application JS
 
@@ -594,7 +603,7 @@ This opt-in removes the sibling library prebuild from Dara development and enabl
 
 `dara dev` does not build workspace libraries. A sibling library must expose `dara-source` or run its own build or watch command. If a package exposes neither source nor built output, `dara dev` fails and tells the user to build that package, start its watcher or add the source condition.
 
-Production takes the conservative path. `dara build` runs `pnpm --filter "<app>^..." run build` for all reachable workspace dependencies, including packages that expose `dara-source`, before it builds the app. `--no-deps-build` skips that step when the repository knows its source conditions or existing outputs are sufficient.
+Production takes the conservative path. The plugin's build runner invokes `pnpm --filter "<app>^..." run build` for all reachable workspace dependencies, including packages that expose `dara-source`, before it builds the app. `--no-deps-build` passes through to the runner and skips that step when the repository knows its source conditions or existing outputs are sufficient.
 
 An app that is also a published library keeps the Dara configs at `vite.config.ts` and `tsconfig.json`, with library-specific settings in `vite.lib.config.ts` and, when needed, `tsconfig.lib.json`. If both builds would write the same directory, configuration validation asks the project to choose separate outputs.
 
@@ -670,14 +679,14 @@ Migration support ships in a minor release. Removing the legacy pipeline require
 
 - `extra_dependencies` move into `package.json` under the normal ownership rules.
 - An existing default custom entry stays at `js/index.tsx`.
-- For a nonstandard `local_entry`, Dara creates `js/index.tsx` with a re-export of the old module. The existing source does not need to move.
+- For a nonstandard `local_entry`, initialization mode creates `js/index.tsx` with a re-export of the old module. The existing source does not need to move.
 - `dara lock` creates missing standard files and tells the user to remove `dara.config.json`.
 
 Once the standard files exist, Dara does not keep merging `dara.config.json` into them. Existing `npm` or `yarn` settings migrate to pnpm.
 
-During compatibility, `dara setup-custom-js` creates `js/index.tsx` only when it is missing and warns that every app now has the entry. The major release removes the command.
+During compatibility, `dara setup-custom-js` delegates to `dara lock` and warns that every app now has the entry. The major release removes the command.
 
-`create-dara-app` ships the standard files and `.gitignore` entries. `packages/demo-app` is the first migration test.
+`create-dara-app` ships the initial `package.json`, `mise.toml` and `.gitignore` entries. The first `dara lock` initializes the remaining standard files. `packages/demo-app` is the first migration test.
 
 ### Legacy flags
 
@@ -735,13 +744,13 @@ Bun would reduce the toolchain to one executable, but this redesign does not nee
 
 The dependency merge and build-freshness checks are pure functions with table-driven unit tests. Merge cases cover missing values, exact registry matches, overlapping-but-different ranges, a user peer beside a Dara-owned install entry, workspace targets and atomic failure without a partial write. Freshness cases cover manifest changes, emitted-file changes, static assets, missing build inputs and any root lockfile change.
 
-The shared Node validator has table-driven project fixtures for accepted and rejected states. They cover manifest parsing, required and installed package mismatches, JSONC and inherited TypeScript settings, command-dependent Vite configs, an omitted or duplicate Dara/React plugin, the fixed entry and workspace targets. Tests assert parsed outcomes and diagnostic behavior rather than version literals or generated config text.
+The shared Node loader has table-driven project fixtures for accepted and rejected states. They cover manifest parsing, required and installed package mismatches, JSONC and inherited TypeScript settings, command-dependent Vite configs, an omitted or duplicate Dara/React plugin, the fixed entry and workspace targets. Tests assert parsed outcomes and diagnostic behavior rather than version literals or generated config text.
 
 Plugin fixtures exercise both development transforms and production builds. They cover an empty fixed entry, app-level side effects, a `react-jsx` local component with JSX but no `React` import, local and package registrations, side-effect module dependencies, `export *` resolution, static assets and missing or ambiguous exports.
 
-CLI integration tests cover the first-lock bootstrap order, the generated strict TypeScript defaults and the smaller required contract inherited through `extends`. The same invalid fixture must produce consistent guidance from lock, development and build without a second Python implementation. Tests also cover fixed-entry creation without overwriting an existing file, nonstandard `local_entry` migration through a re-export, config-free `dara dev` root selection, backend and Vite startup in either order, the backend HTTP 503 while Vite is unavailable, separate per-app manifests in a workspace and serve-time marker errors. A running development server must ignore a concurrent production manifest write.
+CLI integration tests cover the first-lock bootstrap order, plugin-owned creation of missing project files, the generated strict TypeScript defaults and the smaller required contract inherited through `extends`. The same invalid fixture must produce consistent guidance from lock, development and build without a second Python implementation. Tests also cover initialization without overwriting existing files, nonstandard `local_entry` migration through a re-export, config-free `dara dev` root selection, backend and Vite startup in either order, the backend HTTP 503 while Vite is unavailable, script-safe embedding of bootstrap data, separate per-app manifests in a workspace and serve-time marker errors. A running development server must ignore a concurrent production manifest write.
 
-Plugin tests cover the development state transitions from waiting to ready and from ready to blocked. They verify `packageRequirements` without a second app import, the plugin's HTTP 503 pages, recovery when an atomic manifest replacement arrives, virtual-entry invalidation, full browser reload and rejection of a Vite server rooted in another app. The implementation slices below add end-to-end app coverage on top of these focused tests.
+Plugin tests cover the development state transitions from waiting to ready and from ready to blocked. They verify `packageRequirements` without a second app import, the plugin's HTTP 503 pages, recovery when an atomic manifest replacement arrives, virtual-entry invalidation, full browser reload and rejection of a Vite server rooted in another app. Build-runner tests cover reachable workspace packages with missing compiled entry points, `--no-deps-build`, marker-last staging, preservation of the previous output on build failure, successful publication and recovery from abandoned staging or backup directories. The implementation slices below add end-to-end app coverage on top of these focused tests.
 
 ## Implementation slices
 
@@ -749,8 +758,8 @@ Each slice is usable end to end before the next starts.
 
 | # | Outcome | Proven on |
 | --- | --- | --- |
-| 1 | A generated app with an empty fixed entry can install the plugin, validate through its Node library, then build and serve through the new manifest and marker path, including package static assets and the `common_assets` compatibility adapter. | `create-dara-app` output |
-| 2 | Backend manifest regeneration, `dara dev`, the shared validator, local JS, named imports and ready-made runtime maps work together. | `packages/demo-app` |
+| 1 | A generated app can install the plugin, initialize its missing JS project files, then build, publish and serve through the new manifest and marker path, including package static assets and the `common_assets` compatibility adapter. | `create-dara-app` output |
+| 2 | Backend manifest regeneration, `dara dev`, the shared project loader, local JS, named imports and ready-made runtime maps work together. | `packages/demo-app` |
 | 3 | A clean CI checkout builds deployable output and the release action calls `dara build`. | A downstream app whose fixed entry is empty |
 | 4 | Workspace lockfiles, source conditions, and separate app and library Vite and TypeScript configs work together. | A monorepo whose app also publishes a library |
 | 5 | The existing vendored visualization files work through package static assets. | Demo app visualization pages |
