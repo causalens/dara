@@ -61,14 +61,14 @@ Dara checks `pnpm --version` against the `engines` range before lock, developmen
 
 pnpm 12 is a standalone binary that installs without Node, and it provisions Node itself from `devEngines.runtime`: when `PATH` has no matching Node it downloads one and verifies stable releases against the Node release team's signatures before running it. Dara therefore never downloads or verifies Node. The remaining question is how much of pnpm itself Dara manages.
 
-The current leaning is the first row. The decision between the first three rows is still open; the first two share the same cache, override and checksum design and differ only in whether Node is included.
+The first row is the leaning and the rest of this section describes it. The choice between the first three rows is open; the first two share the same cache, override and checksum design and differ only in whether Node is included.
 
 | Option                                                   | What Dara does                                                                                                                                            | Trade                                                                                                                     |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | pnpm from `PATH`, cached fallback, Node via `devEngines` | Uses a compatible pnpm from `PATH`. Otherwise `dara lock` downloads the standalone pnpm binary into the user cache and verifies it. pnpm provisions Node. | Smallest download surface. Standard files hold the pins. Depends on pnpm's Node support.                                  |
 | Dara manages pnpm and Node                               | Downloads both into the user cache and verifies both.                                                                                                     | Full control and no dependence on pnpm's Node support. Dara owns Node verification and duplicates what pnpm already does. |
 | mise required                                            | Manages nothing. `dara lock` fails with `mise install` when tools are missing.                                                                            | Cleanest pins and one company standard. A second tool to learn for outside users, weaker on Windows.                      |
-| No managed toolchain                                     | Node and pnpm are prerequisites checked from `PATH`.                                                                                                      | The earlier draft's position, kept for the record. Pure Python apps need a JS toolchain installed by hand.                |
+| No managed toolchain                                     | Node and pnpm are prerequisites checked from `PATH`.                                                                                                      | Nothing to maintain. Every app installs a JS toolchain by hand, including pure Python apps that need none today.          |
 
 Under the leaning option, `dara lock` resolves pnpm in this order:
 
@@ -279,7 +279,7 @@ export {};
 
 The Vite plugin always imports this module for its side effects. It is the app's place for global styles and JS setup, and nothing else: components and actions never resolve from it.
 
-An empty module has negligible runtime and bundle cost. Every app already carries a JS project under this proposal, so the entry adds one checked-in source file. In return, Dara removes the custom-JS setup command, optional local-entry state, conditional TypeScript includes and several build branches. Every app uses the same entry in development and production.
+An empty module has negligible runtime and bundle cost. Every app carries a JS project in this design, so the entry adds one checked-in source file. In return, Dara removes the custom-JS setup command, optional local-entry state, conditional TypeScript includes and several build branches. Every app uses the same entry in development and production.
 
 The plugin's initialization mode creates the empty entry only when it is missing and never rewrites it. Development and production fail with a direct instruction to run `dara lock` if the file is later removed.
 
@@ -834,7 +834,7 @@ The old `dist/_build.json`, `dist/manifest.json`, `VITE_MANIFEST_PATH` and gener
 
 `dara-release-action` currently calls `dara-enterprise cache-build-config`, `collect-static` and `package`. The action ships first and detects the installed Dara major: for 1.x it keeps the current sequence, for 2.0 it calls `dara build --output <dir>` once, and `collect-static` becomes unnecessary because the output already contains application static folders. Downstream apps cannot take the major until that release of the action exists.
 
-The release action continues to own toolchain provisioning, bundle assembly, asset embedding, validation, hooks, prebuilt assets and the runtime image. This proposal does not change its Dockerfile.
+The release action continues to own toolchain provisioning, bundle assembly, asset embedding, validation, hooks, prebuilt assets and the runtime image. Its Dockerfile does not change.
 
 Registry credentials reach pnpm through `.npmrc` environment placeholders. Bundle validation continues to reject credentials and `.npmrc` files in the output.
 
@@ -860,9 +860,9 @@ Adding `exports` maps to `@darajs/*` packages for `dara-source` restricts deep i
 
 ## Alternatives considered
 
-### Dara-managed Node and pnpm
+### Node shipped as a Python wheel
 
-An earlier draft rejected any Dara-managed toolchain because a cross-platform installer would duplicate version managers and conflict with repositories that pin their own. Two things changed that assessment. pnpm 12 ships as a standalone binary and provisions Node itself from `devEngines.runtime`, so the only binary Dara might fetch is pnpm. And uv, Playwright and Reflex all install their runtimes into a user cache, so users accept the pattern. The options and the current leaning are laid out under [Managed toolchain](#managed-toolchain). Shipping Node as a Python wheel was also considered and rejected: it adds tens of megabytes to every install and couples Node upgrades to Python releases.
+Playwright and pyright install their runtimes through pip, and a `dara-core` extra could carry Node the same way. It adds tens of megabytes to every install and couples Node upgrades to Python releases. pnpm provisions Node from `devEngines.runtime` instead, and the remaining options are compared under [Managed toolchain](#managed-toolchain).
 
 ### Content-addressed build cache
 
@@ -882,15 +882,15 @@ Bun would reduce the toolchain to one executable, but this redesign does not nee
 
 ### Compatibility period
 
-An earlier draft shipped the new pipeline in a minor release and kept the UMD pipeline, a `dara.config.json` importer and the legacy flags until a later major. That would have meant maintaining two frontend pipelines, two `@darajs/core` entry contracts and UMD builds in every package for the duration. A single major with precise error messages costs one coordinated upgrade instead.
+Shipping the new pipeline in a minor release and keeping the UMD pipeline, a `dara.config.json` importer and the legacy flags until a later major would mean maintaining two frontend pipelines, two `@darajs/core` entry contracts and UMD builds in every package for the duration. A single major with precise error messages costs one coordinated upgrade instead.
 
 ### Two-origin development
 
-An earlier draft kept today's model, where the browser loads modules from Vite's own origin and Python checks Vite's identity on every page request. Proxying through Python costs roughly a hundred lines of development-only code and gains one URL across development and production, no CORS or identity handshake, and hosted environments that forward a single port. vite_ruby takes the same approach.
+Today the browser loads modules from Vite's own origin and Python checks Vite's identity on every page request. Keeping that model avoids a proxy but needs the `--dev-port` flag, the `VITE_SERVER_*` variables and the identity handshake. Proxying through Python costs roughly a hundred lines of development-only code and gains one URL across development and production, no CORS or identity handshake, and hosted environments that forward a single port. vite_ruby takes the same approach.
 
 ### Dara-owned entries inside package.json
 
-An earlier draft wrote Dara's versions straight into `package.json` and needed merge rules: exact specifier matching, a peer-dependency exception and a policy asking dependency bots to leave those entries alone. A named pnpm catalog makes ownership a matter of location and removes all three. It couples Dara to pnpm, which the proposal already requires.
+Writing Dara's versions straight into `package.json` needs merge rules: exact specifier matching, a peer-dependency exception and a policy asking dependency bots to leave those entries alone. A named pnpm catalog makes ownership a matter of location and removes all three. It couples Dara to pnpm, which the design already requires.
 
 ### Node supervising Python
 
