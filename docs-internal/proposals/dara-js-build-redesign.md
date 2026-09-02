@@ -17,7 +17,7 @@ The proposal makes these decisions:
 - Commands read the configuration reference from `[tool.dara]` in `pyproject.toml`; `--config` becomes an override.
 - Every app needs a JS toolchain to lock, develop or build, including apps without custom JS, because one pipeline for every app is worth the prerequisite. pnpm 12 is the only tool Dara looks for: it uses a compatible pnpm from `PATH` and otherwise installs one into a user cache, and pnpm provides Node from a pin that `dara lock` writes into `package.json`. The runtime image needs neither. The exact split of what Dara manages is still open and is laid out under [Managed toolchain](#managed-toolchain).
 - Python writes separate development and build manifests. After Python bootstraps the JS dependencies, `@darajs/vite-plugin` initializes and validates the project and runs the frontend toolchain. It generates named imports, component and action maps, static assets, `index.html` and a build marker from the manifests.
-- Every app has the same fixed JS entry and uses the same pipeline. A local component may also name its own file under `js/` through `js_source`, so the export name no longer has to match the Python class.
+- Every app has the same fixed JS entry and uses the same pipeline. The entry is only for setup and global styles. Every local component and action names its own file under `js/` through `js_source`, so there is no export-name convention and no `local=True` registration flag.
 - `dara check --json` ships in 2.0 as the structured diagnostics surface for CI and coding agents.
 
 This fixes seven problems in the current system:
@@ -161,16 +161,15 @@ This path is the same whether `js/index.tsx` is empty or contains app code, and 
 
 ### Add a custom component
 
-There are two ways to connect a React component to a Python class, and both are ordinary application changes.
-
-Export it from the existing `js/index.tsx` under the class name, or under the name set in `js_component`, and register the class from Python. Or give the class its own file:
+Write the React component in a file under `js/` with a default export, and point the Python class at it:
 
 ```python
 class MyChart(ComponentInstance):
     js_source = 'js/charts/my_chart.tsx'
+    title: str
 ```
 
-`js_source` is relative to the app root and must resolve under `js/`. The file default-exports the component, and the plugin validates that export at build time. `js/index.tsx` still runs for setup and global styles. Add any app-owned JS tools or dependencies to `package.json`, then run `dara lock` before returning to the development workflow.
+That is the whole change. `js_source` is relative to the app root and must resolve under `js/`. Import discovery registers the class like any package component, so no `add_component` call is needed, and the plugin validates the default export at build time. `js/index.tsx` is untouched; it exists for setup and global styles. Add any app-owned JS tools or dependencies to `package.json`, then run `dara lock` before returning to the development workflow.
 
 ### Build and run production output
 
@@ -277,28 +276,28 @@ Every new app has a `js/index.tsx`, initially containing only:
 export {};
 ```
 
-The Vite plugin always imports this module. It is the app's place for local component and action exports, global styles and JS setup. Source may live elsewhere; the fixed entry can re-export it with normal TypeScript imports.
+The Vite plugin always imports this module for its side effects. It is the app's place for global styles and JS setup, and nothing else: components and actions never resolve from it.
 
-An empty module has negligible runtime and bundle cost. Every app already carries a JS project under this proposal, so the entry adds one checked-in source file. In return, Dara removes the custom-JS setup command, optional local-entry state, a manifest field, conditional TypeScript includes and several build branches. Every app uses the same entry in development and production.
-
-This makes a custom component an ordinary application change instead of a build-system task. A developer or coding agent can add a React component, export it from the existing entry and register it from Python without running a setup command or adding configuration files. TypeScript checks the source, the plugin validates registered exports and Vite supplies HMR.
+An empty module has negligible runtime and bundle cost. Every app already carries a JS project under this proposal, so the entry adds one checked-in source file. In return, Dara removes the custom-JS setup command, optional local-entry state, conditional TypeScript includes and several build branches. Every app uses the same entry in development and production.
 
 The plugin's initialization mode creates the empty entry only when it is missing and never rewrites it. Development and production fail with a direct instruction to run `dara lock` if the file is later removed.
 
 #### Component source files
 
-A local component class may name its own module instead of relying on an export from the fixed entry:
+Every local component and action names its own module:
 
 ```python
 class MyChart(ComponentInstance):
     js_source = 'js/charts/my_chart.tsx'
 ```
 
-The path is relative to the app root and must resolve to an existing file under `js/`. The module default-exports the component, and the generated entry imports that default export directly, so the export name never has to match the Python class and `js_component` is ignored when `js_source` is set. Files outside `js/` are rejected: keeping every source under one directory means the root `tsconfig.json`, Vite's file allow list and the app's linter and formatter share a single root, and Python packaging never has to exclude TypeScript from a wheel. A component sets either `js_source` or relies on the fixed entry, never both.
+The path is relative to the app root and must resolve to an existing file under `js/`. The module default-exports the component, and the generated entry imports that default export directly, so there is no export-name convention and `js_component` has no meaning for local classes. Files outside `js/` are rejected: keeping every source under one directory means the root `tsconfig.json`, Vite's file allow list and the app's linter and formatter share a single root, and Python packaging never has to exclude TypeScript from a wheel.
 
-`js/index.tsx` still runs on every page for setup and global styles, and a component without `js_source` still resolves from it. The two mechanisms coexist because the fixed entry is the side-effect boundary, while `js_source` is the per-component import. Removing a referenced file fails development and production with the Python registration that requested it.
+A class declares exactly one of `js_module`, for a package export, or `js_source`, for a local file. Declaring both or neither fails at import time. Because `js_source` marks a class as local by construction, the `local=True` flag on `add_component` and `add_action` disappears, and import discovery registers local classes the same way it registers package ones. Today discovery skips any class without `js_module`, so local components are the only kind that need a manual registration call; that asymmetry goes.
 
-Application code may live outside `js/` when the root `tsconfig.json` includes it, but `js_source` paths may not. `js/index.tsx` remains the fixed import boundary and imports or re-exports that code. Apps add their own linting, test tools and other dependencies to `package.json`.
+This makes a custom component an ordinary application change instead of a build-system task. A developer or coding agent writes one TSX file and one Python class that points at it, without a setup command, a configuration file or a registration call. TypeScript checks the source, the plugin validates the default export, Vite supplies HMR, and the class states exactly where its JS lives. Removing a referenced file fails development and production with the Python class that requested it.
+
+Application code may live outside `js/` when the root `tsconfig.json` includes it, but `js_source` paths may not. Apps add their own linting, test tools and other dependencies to `package.json`.
 
 The root `vite.config.ts` and `tsconfig.json` describe the Dara app. An app that also publishes a JS library keeps separate library configuration as described under [Sibling libraries](#sibling-libraries).
 
@@ -441,11 +440,6 @@ Python derives machine-specific manifests from the imported configuration and in
       "export": "Button"
     },
     {
-      "python": "LOCAL.MyTable",
-      "package": "LOCAL",
-      "export": "MyTable"
-    },
-    {
       "python": "LOCAL.MyChart",
       "package": "LOCAL",
       "source": "js/charts/my_chart.tsx"
@@ -479,7 +473,7 @@ Python resolves its module-to-package map before writing component and action en
 
 The UMD pipeline also used explicit module dependencies to order script tags. Vite makes ordering irrelevant, but explicit inclusion still matters.
 
-The fixed local entry does not appear in the manifest. A component or action whose package is `LOCAL` carries either `export`, resolved from `<app-root>/js/index.tsx`, or `source`, a path relative to the app root whose default export is the component. An entry never carries both, and Python rejects a `js_source` outside `js/` before it writes the manifest.
+The fixed local entry does not appear in the manifest. A component or action whose package is `LOCAL` carries `source` instead of `export`: a path relative to the app root whose default export is the component. Python rejects a `js_source` outside `js/` before it writes the manifest.
 
 Each app has three derived files below `<app-root>/node_modules/.dara/`, including in a workspace:
 
@@ -617,8 +611,7 @@ import "@darajs/enterprise";
 import "/js/index.tsx";
 import { NavigateTo as action0 } from "@darajs/core";
 import { Button as component0 } from "@darajs/components";
-import { MyTable as component1 } from "/js/index.tsx";
-import component2 from "/js/charts/my_chart.tsx";
+import component1 from "/js/charts/my_chart.tsx";
 
 const actions = {
   "dara.core.NavigateTo": action0,
@@ -626,14 +619,13 @@ const actions = {
 
 const components = {
   "dara.components.Button": component0,
-  "LOCAL.MyTable": component1,
-  "LOCAL.MyChart": component2,
+  "LOCAL.MyChart": component1,
 };
 
 daraCore({ actions, components });
 ```
 
-The side-effect import runs app-level setup and includes global styles even when Python registers no local component or action. When registrations do exist, the named imports from the same module provide build-time export validation. JavaScript executes the module only once. A `source` entry becomes a default import of its file; a file without a default export fails the production build with the Python registration that requested it, and native module loading reports it in the browser during `dara dev`.
+The side-effect import of `js/index.tsx` runs app-level setup and includes global styles. Package entries become named imports, which give build-time export validation. A `source` entry becomes a default import of its file; a file without a default export fails the production build with the Python class that requested it, and native module loading reports it in the browser during `dara dev`.
 
 For an explicit module that contributes no named import, the plugin emits a side-effect import. This keeps the JS module in the Vite graph, while the Python module includes that package's registered static assets.
 
@@ -808,7 +800,8 @@ Dara 2.0 removes the legacy pipeline in the same release that introduces this on
 
 ### Project migration
 
-- `dara lock` refuses to run while `dara.config.json` exists and prints the manual steps: move `extra_dependencies` into `package.json`, keep `js/index.tsx` or re-export a nonstandard `local_entry` from it, switch any `npm` or `yarn` setup to pnpm 12, add the `[tool.dara]` entry to `pyproject.toml`, and delete the file. It does not parse the file. The next `dara lock` then writes the `dara` catalog and references.
+- `dara lock` refuses to run while `dara.config.json` exists and prints the manual steps: move `extra_dependencies` into `package.json`, keep `js/index.tsx` for setup and styles only, switch any `npm` or `yarn` setup to pnpm 12, add the `[tool.dara]` entry to `pyproject.toml`, and delete the file. It does not parse the file. The next `dara lock` then writes the `dara` catalog and references.
+- Each local component and action class gains `js_source` pointing at a file under `js/` that default-exports it, and the `add_component(..., local=True)` and `add_action(..., local=True)` calls are removed. A class registered with `local=True` fails at import time naming `js_source`. Re-exports from `js/index.tsx` are no longer read.
 - `dara setup-custom-js` is removed. Invoking it fails with a message that every app already has `js/index.tsx`.
 - `_assets/auto_js/` directories leave the wheels, and the `build` scripts of `@darajs/*` packages stop producing UMD bundles.
 
@@ -849,6 +842,7 @@ Downstream packages use several auto-JS internals. None of them have callers in 
 | `BuildConfig.npm_registry`, `BuildConfig.npm_token`                                                   | `.npmrc`                                                     |
 | `DevServerInfo`, `check_dev_server`, `dev_server_mismatch.html`, `VITE_DARA_DEV_SERVER_INFO`          | `dev-server.json` and the development proxy                  |
 | `@darajs/core` default export taking an importer map                                                  | The generated call with ready-made component and action maps |
+| `local=True` on `add_component` and `add_action`, `LOCAL` resolution from `js/index.tsx` exports      | `js_source` on the class, registered by import discovery     |
 
 Adding `exports` maps to `@darajs/*` packages for `dara-source` restricts deep imports for every consumer. That change is semver-visible and belongs in the same major.
 
@@ -913,7 +907,7 @@ Each slice is usable end to end before the next starts.
 | #   | Outcome                                                                                                                                                                                                                                                                                         | Proven on                                     |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | 1   | A generated app can resolve or install pnpm, install the plugin, initialize its missing JS project files, then build, publish and serve through the new manifest and marker path, including package static assets, application static folders and the updated `dara-components` asset manifest. | `create-dara-app` output                      |
-| 2   | Backend manifest regeneration, the `dara dev` supervisor with its single-origin proxy, the shared project loader, local JS through both the fixed entry and `js_source`, named imports and ready-made runtime maps work together.                                                               | `packages/demo-app`                           |
+| 2   | Backend manifest regeneration, the `dara dev` supervisor with its single-origin proxy, the shared project loader, local JS through `js_source` with discovery-based registration, named imports and ready-made runtime maps work together.                                                      | `packages/demo-app`                           |
 | 3   | A CI job runs `dara check --json` and builds deployable output from a clean checkout, and the release action detects the Dara major and calls `dara build`. Today's CI exercises only the UMD path.                                                                                             | A downstream app whose fixed entry is empty   |
 | 4   | Workspace lockfiles, source conditions, and separate app and library Vite and TypeScript configs work together.                                                                                                                                                                                 | A monorepo whose app also publishes a library |
 | 5   | The existing vendored visualization files work through package static assets.                                                                                                                                                                                                                   | Demo app visualization pages                  |
