@@ -114,10 +114,14 @@ describe('resolveLoginReferrer', () => {
 });
 
 describe('runLogout', () => {
-    it('owns auth navigation until final logout navigation starts', async () => {
+    it('owns auth navigation until final logout navigation completes', async () => {
         let finishRevocation = (): void => undefined;
         const revocation = new Promise<void>((resolve) => {
             finishRevocation = resolve;
+        });
+        let finishNavigation = (): void => undefined;
+        const navigation = new Promise<void>((resolve) => {
+            finishNavigation = resolve;
         });
         let navigationStarted = false;
 
@@ -126,14 +130,19 @@ describe('runLogout', () => {
             () => {
                 navigationStarted = true;
                 expect(isLoggingOut()).toBe(true);
+                return navigation;
             }
         );
 
         expect(isLoggingOut()).toBe(true);
         finishRevocation();
-        await logout;
+        await Promise.resolve();
 
         expect(navigationStarted).toBe(true);
+        expect(isLoggingOut()).toBe(true);
+        finishNavigation();
+        await logout;
+
         expect(isLoggingOut()).toBe(false);
     });
 });
@@ -281,20 +290,35 @@ describe('handleAuthErrors', () => {
         });
 
         let finishRevocation = (): void => undefined;
+        const revocation = new Promise<void>((resolve) => {
+            finishRevocation = resolve;
+        });
+        let finishNavigation = (): void => undefined;
+        const navigation = new Promise<void>((resolve) => {
+            finishNavigation = resolve;
+        });
+        let navigationStarted = false;
         const logout = runLogout(
-            () =>
-                new Promise<void>((resolve) => {
-                    finishRevocation = resolve;
-                }),
-            () => undefined
+            () => revocation,
+            () => {
+                navigationStarted = true;
+                return navigation;
+            }
         );
+        finishRevocation();
+        await Promise.resolve();
+
+        expect(navigationStarted).toBe(true);
+        expect(isLoggingOut()).toBe(true);
         const handled = await handleAuthError('expired', 401);
 
         expect(handled).toBe(true);
         expect(window.location.href).toBe('https://test.com/custom-auth/logOUT');
         expect(getSessionIdentifier()).toBe(null);
-        finishRevocation();
+        expect(isLoggingOut()).toBe(true);
+        finishNavigation();
         await logout;
+        expect(isLoggingOut()).toBe(false);
     });
 
     it('still redirects authorization failures during logout to the error page', async () => {

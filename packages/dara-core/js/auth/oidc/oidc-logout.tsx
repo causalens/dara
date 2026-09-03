@@ -20,7 +20,7 @@ function OIDCAuthLogout(): JSX.Element {
     const navigate = useNavigate();
 
     useEffect(() => {
-        void runLogout(revokeSession, (responseData) => {
+        void runLogout(revokeSession, async (responseData) => {
             // Check if we got a redirect URL (IDP supports RP-Initiated Logout)
             if (responseData && 'redirect_uri' in responseData) {
                 // Append the post_logout_redirect_uri to redirect back to /login after IDP logout
@@ -32,7 +32,7 @@ function OIDCAuthLogout(): JSX.Element {
             }
 
             // No redirect URL - IDP doesn't support logout, just go to login
-            void navigate('/login');
+            await navigate('/login');
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

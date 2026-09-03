@@ -92,15 +92,18 @@ export function notifySessionLoggedOut(): void {
  * Run a logout operation while preventing stale authentication errors from starting a competing login redirect.
  *
  * @param logout operation that revokes the current session
- * @param onLoggedOut callback that initiates the final navigation
+ * @param onLoggedOut callback that completes the final navigation
  */
-export async function runLogout<T>(logout: () => Promise<T>, onLoggedOut: (result: T) => void): Promise<void> {
+export async function runLogout<T>(
+    logout: () => Promise<T>,
+    onLoggedOut: (result: T) => void | Promise<void>
+): Promise<void> {
     activeLogoutTransitions += 1;
     notifySessionLoggedOut();
 
     try {
         const result = await logout();
-        onLoggedOut(result);
+        await onLoggedOut(result);
     } finally {
         activeLogoutTransitions = Math.max(0, activeLogoutTransitions - 1);
     }
