@@ -2,12 +2,13 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import {
-    getAppPathname,
     getSessionIdentifier,
     handleAuthErrors,
+    isLoggingOut,
     parseLoginReferrer,
     resolveLoginReferrer,
     resolveReferrer,
+    runLogout,
     setSessionIdentifier,
     verifySessionToken,
 } from '@/auth';
@@ -76,19 +77,6 @@ describe('resolve_referrer', () => {
 
         expect(resolveReferrer()).toBe('%2Froute');
     });
-
-    it('should resolve the app pathname relative to the configured base_url', () => {
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            enumerable: true,
-            value: new URL('https://test.com/app/logout'),
-        });
-        window.dara = {
-            base_url: 'https://test.com/app',
-        };
-
-        expect(getAppPathname()).toBe('/logout');
-    });
 });
 
 describe('parseLoginReferrer', () => {
@@ -123,15 +111,30 @@ describe('resolveLoginReferrer', () => {
 
         expect(resolveLoginReferrer()).toBe('%2Ffiles%2Ffoo%252Fbar%3Fx%3Da%252Fb');
     });
+});
 
-    it.each(['/login', '/logout', '/sso-callback'])('does not preserve %s as a login referrer', (referrer) => {
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            enumerable: true,
-            value: new URL(`https://test.com/login?referrer=${encodeURIComponent(referrer)}`),
+describe('runLogout', () => {
+    it('owns auth navigation until final logout navigation starts', async () => {
+        let finishRevocation = (): void => undefined;
+        const revocation = new Promise<void>((resolve) => {
+            finishRevocation = resolve;
         });
+        let navigationStarted = false;
 
-        expect(resolveLoginReferrer()).toBe('%2F');
+        const logout = runLogout(
+            () => revocation,
+            () => {
+                navigationStarted = true;
+                expect(isLoggingOut()).toBe(true);
+            }
+        );
+
+        expect(isLoggingOut()).toBe(true);
+        finishRevocation();
+        await logout;
+
+        expect(navigationStarted).toBe(true);
+        expect(isLoggingOut()).toBe(false);
     });
 });
 
@@ -270,50 +273,53 @@ describe('handleAuthErrors', () => {
         expect(getSessionIdentifier()).toBe(null);
     });
 
-    it('handles authentication failures on logout without interrupting logout navigation', async () => {
+    it('handles authentication failures during logout without interrupting logout navigation', async () => {
         Object.defineProperty(window, 'location', {
             configurable: true,
             enumerable: true,
-            value: new URL('https://test.com/logout'),
+            value: new URL('https://test.com/custom-auth/logOUT'),
         });
 
+        let finishRevocation = (): void => undefined;
+        const logout = runLogout(
+            () =>
+                new Promise<void>((resolve) => {
+                    finishRevocation = resolve;
+                }),
+            () => undefined
+        );
         const handled = await handleAuthError('expired', 401);
 
         expect(handled).toBe(true);
-        expect(window.location.href).toBe('https://test.com/logout');
+        expect(window.location.href).toBe('https://test.com/custom-auth/logOUT');
         expect(getSessionIdentifier()).toBe(null);
+        finishRevocation();
+        await logout;
     });
 
-    it('handles authentication failures on logout under a configured base_url without navigating', async () => {
+    it('still redirects authorization failures during logout to the error page', async () => {
         Object.defineProperty(window, 'location', {
             configurable: true,
             enumerable: true,
-            value: new URL('https://test.com/app/logout'),
-        });
-        window.dara = {
-            base_url: 'https://test.com/app',
-        };
-
-        const handled = await handleAuthError('expired', 401);
-
-        expect(handled).toBe(true);
-        expect(window.location.href).toBe('https://test.com/app/logout');
-        expect(getSessionIdentifier()).toBe(null);
-    });
-
-    it('still redirects authorization failures on logout to the error page', async () => {
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            enumerable: true,
-            value: new URL('https://test.com/logout'),
+            value: new URL('https://test.com/custom-auth/logOUT'),
         });
 
+        let finishRevocation = (): void => undefined;
+        const logout = runLogout(
+            () =>
+                new Promise<void>((resolve) => {
+                    finishRevocation = resolve;
+                }),
+            () => undefined
+        );
         const handled = await handleAuthError('unauthorized', 403);
 
         expect(handled).toBe(true);
         expect(window.location.pathname).toBe('/error');
         expect(window.location.search).toBe('?code=403');
-        expect(getSessionIdentifier()).toBe('session-id');
+        expect(getSessionIdentifier()).toBe(null);
+        finishRevocation();
+        await logout;
     });
 
     it('preserves an existing encoded login referrer when redirecting back to login', async () => {

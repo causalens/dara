@@ -7,7 +7,7 @@ import { request } from '@/api/http';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { type User, type UserData } from '@/types';
 
-import { notifySessionLoggedOut, setSessionIdentifier } from './session-state';
+import { isLoggingOut, notifySessionLoggedOut, setSessionIdentifier } from './session-state';
 
 export enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
@@ -103,8 +103,6 @@ interface SuccessResponse {
     success: boolean;
 }
 
-const NON_RETURNABLE_AUTH_ROUTES = new Set(['/login', '/logout', '/sso-callback']);
-
 /**
  * Revoke the current session
  */
@@ -129,7 +127,7 @@ export async function revokeSession(): Promise<RedirectResponse | SuccessRespons
 /**
  * Resolve the current pathname relative to Dara's configured base path.
  */
-export function getAppPathname(): string {
+function getAppPathname(): string {
     const { pathname } = window.location;
 
     if (!window.dara.base_url) {
@@ -145,17 +143,12 @@ export function getAppPathname(): string {
     return pathname;
 }
 
-function getReturnableReferrer(referrer: string): string {
-    const { pathname } = new URL(referrer, window.location.origin);
-    return NON_RETURNABLE_AUTH_ROUTES.has(pathname) ? '/' : referrer;
-}
-
 /**
  * Resolve the encoded referrer url to be passed back to login, adjusted for the base path.
  */
 export function resolveReferrer(): string {
     const referrer = getAppPathname() + window.location.search;
-    return encodeURIComponent(getReturnableReferrer(referrer));
+    return encodeURIComponent(referrer);
 }
 
 /**
@@ -174,7 +167,7 @@ export function resolveLoginReferrer(): string {
     const existingReferrer = queryParams.get('referrer');
 
     if (existingReferrer !== null) {
-        return encodeURIComponent(getReturnableReferrer(existingReferrer));
+        return encodeURIComponent(existingReferrer);
     }
 
     return resolveReferrer();
@@ -206,8 +199,8 @@ export async function handleAuthErrors(res: Response, options: HandleAuthErrorsO
             notifySessionLoggedOut();
 
             // Requests started before session revocation can return authentication errors while logout is running.
-            // The logout flow owns navigation from this route.
-            if (getAppPathname() === '/logout') {
+            // The active logout operation owns navigation until it initiates the final redirect.
+            if (isLoggingOut()) {
                 return true;
             }
         }
