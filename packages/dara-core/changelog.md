@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed stale authentication requests interrupting logout and sending users back through a login/logout loop.
+
 ## 1.28.7
 
 - Extended metrics to include HTTP request stats
