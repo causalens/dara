@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import SectionedList, { ListItem, SectionedListProps } from './sectioned-list';
+import SectionedList, { type ListItem, type SectionedListProps } from './sectioned-list';
 
 const sampleListItems = (header: string): Array<ListItem> => [
     {
@@ -77,7 +77,7 @@ describe('Sectioned List', () => {
     });
 
     it('should listen to changes to selected items', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
         const sampleItems = sampleListItems('');
         const { getByRole } = render(<RenderSectionedList items={sampleItems} onSelect={onSelectStub} />);
         const select = getByRole('combobox', { hidden: true });
@@ -103,7 +103,7 @@ describe('Sectioned List', () => {
         const input = container.querySelector('[id$=-input]');
 
         // Wait for SectionedList to be responsive
-        userEvent.type(input, '3', { delay: 5 });
+        await userEvent.type(input!, '3', { delay: 5 });
         await new Promise<void>((r) => setTimeout(() => r(), 100));
 
         for (let idx = 0; idx < options.childElementCount; idx++) {

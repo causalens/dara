@@ -56,7 +56,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
     const onChange = useCallback(
         (values: UIRadioItem) => {
             setValue(values.value);
-            onChangeAction(values.value);
+            void onChangeAction(values.value);
             formCtx.updateForm(values.value);
         },
         [setValue]
@@ -72,7 +72,6 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
             items={items}
             onChange={onChange}
             style={style}
-            // @ts-expect-error incorrect type in ui-components
             value={items.find((item) => item.value === value) ?? null}
         />
     );

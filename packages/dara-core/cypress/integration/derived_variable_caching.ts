@@ -37,10 +37,10 @@ describe('Derived Variable Caching', () => {
             cy.contains('div', noneScenarioText).next().as('noneEl');
 
             // Store the html in variables
-            let defaultValueWith2;
-            let globalValueWith2;
-            let sessionValueWith2;
-            let noneValueWith2;
+            let defaultValueWith2: string | null = null;
+            let globalValueWith2: string | null = null;
+            let sessionValueWith2: string | null = null;
+            let noneValueWith2: string | null = null;
 
             cy.get('@defaultEl')
                 .invoke('html')

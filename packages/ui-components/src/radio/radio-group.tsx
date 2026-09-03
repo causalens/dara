@@ -46,11 +46,10 @@ const RadioWrapper = styled.label<RadioWrapperProps>`
     width: ${(props) => (props.isListStyle ? 'auto' : 'fit-content')};
     height: 2.5rem;
     padding: 0 0.5rem;
-
-    color: ${(props) => (props['aria-disabled'] ? props.theme.colors.grey3 : props.theme.colors.text)};
-
     border: none;
     border-radius: 0.25rem;
+
+    color: ${(props) => (props['aria-disabled'] ? props.theme.colors.grey3 : props.theme.colors.text)};
 
     /* sets checkmark indicator */
     span::after {
@@ -59,9 +58,9 @@ const RadioWrapper = styled.label<RadioWrapperProps>`
 
         width: 0.5rem;
         height: 0.5rem;
+        border-radius: 50%;
 
         background-color: ${(props) => (props['aria-disabled'] ? props.theme.colors.grey3 : props.theme.colors.grey5)};
-        border-radius: 50%;
     }
 
     /* Show the checkmark when checked */
@@ -117,7 +116,7 @@ const RadioButton = styled.input`
 `;
 
 interface StyledCheckmarkProps {
-    disabled: boolean;
+    disabled?: boolean;
 }
 
 // customdot/circle for the radio button
@@ -128,10 +127,10 @@ const StyledCheckmark = styled.span<StyledCheckmarkProps>`
 
     width: 1rem;
     height: 1rem;
-
-    background-color: ${(props) => (props.disabled ? props.theme.colors.grey1 : props.theme.colors.blue1)};
     border: 1px solid ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.grey3)};
     border-radius: 50%;
+
+    background-color: ${(props) => (props.disabled ? props.theme.colors.grey1 : props.theme.colors.blue1)};
 
     ::after {
         content: '';
@@ -145,7 +144,7 @@ export interface RadioItem {
     label: React.ReactNode;
 }
 
-export interface RadioGroupProps extends InteractiveComponentProps<RadioItem> {
+export interface RadioGroupProps extends Omit<InteractiveComponentProps<RadioItem>, 'initialValue' | 'value'> {
     /** An optional id for the component */
     id?: string;
     /** An optional value which determines the direction of the radio group components by default is vertical */
@@ -154,8 +153,12 @@ export interface RadioGroupProps extends InteractiveComponentProps<RadioItem> {
     isListStyle?: boolean;
     /** The items to pick from the list. Each should have a label and a value */
     items: Array<RadioItem>;
+    /** The value of the initially selected item */
+    initialValue?: RadioItem['value'];
     /** An optional onChange handler, will be called whenever the state of the checkbox changes */
     onChange?: (value: RadioItem, e?: React.FormEvent<HTMLInputElement>) => void | Promise<void>;
+    /** The selected item in controlled mode, or null when no item is selected */
+    value?: RadioItem | null;
 }
 
 /**
@@ -182,11 +185,11 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
 
         if (isControlled) {
             // controlled mode - only call onChange, don't update internal state
-            props.onChange?.(props.items[chosenIndex], event);
+            void props.onChange?.(props.items[chosenIndex], event);
         } else {
             // uncontrolled mode - update internal state and call onChange
             setCurrentSelected(chosenIndex);
-            props.onChange?.(props.items[chosenIndex], event);
+            void props.onChange?.(props.items[chosenIndex], event);
         }
     };
 
@@ -205,8 +208,16 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
             id={props.id}
         >
             {props.items.map((item, index) => {
+                // An empty label has historically displayed the item's value.
+                // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                const label = item.label || item.value;
+
                 return (
-                    <RadioWrapper aria-disabled={props.disabled} isListStyle={props.isListStyle} key={`item-${index}`}>
+                    <RadioWrapper
+                        aria-disabled={props.disabled}
+                        isListStyle={props.isListStyle as boolean}
+                        key={`item-${index}`}
+                    >
                         <RadioButton
                             checked={isControlled ? isEqual(props.value?.value, item.value) : currentSelected === index}
                             disabled={props.disabled}
@@ -216,7 +227,7 @@ function RadioGroup(props: RadioGroupProps): JSX.Element {
                             value={index}
                         />
                         <StyledCheckmark disabled={props.disabled} />
-                        {item.label ? item.label : item.value}
+                        {label}
                     </RadioWrapper>
                 );
             })}

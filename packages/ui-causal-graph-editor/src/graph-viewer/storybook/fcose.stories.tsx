@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react-vite';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 import Graph from 'graphology';
 import clusters from 'graphology-generators/random/clusters';
 import deepCopy from 'lodash/cloneDeep';
@@ -35,7 +35,7 @@ export default {
 } as Meta;
 
 // Real world example graph to test layouts
-export const Fcose = Template.bind({});
+export const Fcose: typeof Template = Template.bind({});
 Fcose.args = {
     editable: true,
     graphData: SHIPPED_UNITS,
@@ -43,7 +43,7 @@ Fcose.args = {
     graphLayout: FcoseLayout.Builder.build(),
 };
 
-export const FcoseTiers = Template.bind({});
+export const FcoseTiers: typeof Template = Template.bind({});
 
 const layout = FcoseLayout.Builder.build();
 layout.tiers = { group: 'meta.group', rank: ['a', 'b', 'c', 'd', 'e'] };
@@ -72,7 +72,7 @@ FcoseTiers.args = {
     graphLayout: layout,
 };
 
-export const FcoseGrouping = Template.bind({});
+export const FcoseGrouping: typeof Template = Template.bind({});
 
 const groupingLayout = FcoseLayout.Builder.build();
 // groupingLayout.group = 'meta.group';
@@ -202,7 +202,7 @@ Object.entries(predefinedLayout.layout).forEach(([nodeKey, position]) => {
     set(PredefinedGraph.nodes[nodeKey], 'meta.rendering_properties.y', position.y);
 });
 
-export const PredefinedPositions = Template.bind({});
+export const PredefinedPositions: typeof Template = Template.bind({});
 PredefinedPositions.args = {
     editable: true,
     graphData: PredefinedGraph,
@@ -210,32 +210,37 @@ PredefinedPositions.args = {
 };
 
 function graphToCausalGraph(graph: Graph): CausalGraph {
+    const nodes = graph.reduceNodes<CausalGraph['nodes']>((acc, nodeKey) => {
+        acc[nodeKey] = {
+            identifier: nodeKey,
+            meta: {},
+            variable_type: VariableType.UNSPECIFIED,
+        };
+
+        return acc;
+    }, {});
+
     return {
-        edges: graph.reduceEdges((acc, edge, attrs, source, target) => {
+        edges: graph.reduceEdges<CausalGraph['edges']>((acc, edge, attrs, source, target) => {
             if (!(source in acc)) {
                 acc[source] = {};
             }
 
             acc[source][target] = {
+                destination: nodes[target],
                 edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {},
+                source: nodes[source],
             };
 
             return acc;
         }, {}),
-        nodes: graph.reduceNodes((acc, nodeKey) => {
-            acc[nodeKey] = {
-                meta: {},
-                variable_type: VariableType.UNSPECIFIED,
-            };
-
-            return acc;
-        }, {}),
+        nodes,
         version: '2.0',
     };
 }
 
-export const RandomClusters = (args: CausalGraphEditorProps): JSX.Element => {
+export const RandomClusters: StoryFn<CausalGraphEditorProps> = (args) => {
     const [numClusters, setNumClusters] = useState(2);
     const [numEdges, setNumEdges] = useState(1600);
     const [numNodes, setNumNodes] = useState(800);

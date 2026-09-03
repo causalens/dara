@@ -39,9 +39,9 @@ const ResizerGrabArea = styled.button`
     width: 24px;
     height: 100%;
     padding: 0;
+    border: 0;
 
     background-color: transparent;
-    border: 0;
 `;
 
 interface ResizerProps {

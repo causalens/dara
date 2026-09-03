@@ -34,13 +34,13 @@ const PrimaryInput = styled.input<PrimaryInputProps>`
     width: 100%;
     height: 100%;
     padding: 0 1rem;
+    border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey1)};
+    border-radius: 0.25rem;
 
     font-size: 1rem;
     color: ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.text)};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: 1px solid ${(props) => (props.isErrored ? props.theme.colors.error : props.theme.colors.grey1)};
-    border-radius: 0.25rem;
     outline: 0;
 
     :active:not(:disabled),
@@ -74,7 +74,8 @@ export const ErrorMessage = styled.span`
 `;
 
 export interface InputProps
-    extends InteractiveComponentProps<string>,
+    extends
+        InteractiveComponentProps<string>,
         // `value` and `onChange` have a different signature compared to the standard input element
         Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
     /** An optional keydown event filter, that can filter out invalid chars from an input. Should return true to let
@@ -120,7 +121,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         const handleChange = (e: React.SyntheticEvent<HTMLInputElement>): void => {
             const target = e.target as HTMLInputElement;
             if (onChange) {
-                onChange(target.value, e);
+                void onChange(target.value, e);
             }
         };
 
@@ -133,7 +134,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                 e.preventDefault();
             }
             if (e.key === Key.ENTER && onComplete) {
-                onComplete();
+                void onComplete();
             }
         };
 

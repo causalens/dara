@@ -48,6 +48,8 @@ class BaseBasicAuthConfig(BaseAuthConfig):
     specified and checked against when requesting auth
     """
 
+    telemetry_system: ClassVar[str] = 'basic'
+
     component_config: ClassVar[AuthComponentConfig] = AuthComponentConfig(
         login=BasicAuthLogin,
         logout=BasicAuthLogout,
@@ -114,6 +116,8 @@ class DefaultAuthConfig(BaseAuthConfig):
     """
     Default no-auth auth config, useful for local development
     """
+
+    telemetry_system: ClassVar[str] = 'none'
 
     component_config: ClassVar[AuthComponentConfig] = AuthComponentConfig(
         login=DefaultAuthLogin,

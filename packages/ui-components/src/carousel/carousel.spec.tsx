@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-/* eslint-disable jest/no-disabled-tests */
+/* eslint-disable @vitest/no-disabled-tests */
 import { fireEvent, render } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Carousel, { CarouselProps } from './carousel';
+import Carousel, { type CarouselProps } from './carousel';
 
 function RenderCarousel(props: CarouselProps): JSX.Element {
     return (
@@ -46,7 +46,7 @@ describe('Carousel', () => {
     });
 
     it('onChange should be called when clicking buttons in controlled mode', () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const { getByTestId } = render(<RenderCarousel items={mockPanels} onChange={onChange} value={1} />);
 
         const leftArrow = getByTestId('carousel-left-button');
@@ -60,7 +60,7 @@ describe('Carousel', () => {
     });
 
     it('Check that carousel loops at both ends', () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const { getByTestId, rerender } = render(<RenderCarousel items={mockPanels} onChange={onChange} value={2} />);
 
         expect(onChange).toHaveBeenCalledTimes(0);

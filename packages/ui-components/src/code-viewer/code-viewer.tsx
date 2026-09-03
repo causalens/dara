@@ -38,11 +38,11 @@ const TopBar = styled.div<{ $isLightTheme?: boolean }>`
     justify-content: space-between;
 
     padding: 0.5rem 1rem;
+    border-radius: 0.25rem 0.25rem 0 0;
 
     font-size: 0.875rem;
 
     background-color: ${(props) => (props.$isLightTheme ? theme.colors.blue2 : darkTheme.colors.blue2)} !important;
-    border-radius: 0.25rem 0.25rem 0 0;
 `;
 
 const CopyToClipboardContainer = styled.span`
@@ -74,9 +74,9 @@ const StyledPre = styled.pre<{ $isLightTheme?: boolean }>`
 
     margin: 0;
     padding: 1rem;
+    border-radius: 0 0 0.25rem 0.25rem;
 
     background-color: ${(props) => (props.$isLightTheme ? theme.colors.blue1 : darkTheme.colors.blue1)} !important;
-    border-radius: 0 0 0.25rem 0.25rem;
 `;
 
 function CodeViewer(props: CodeViewerProps): JSX.Element {
@@ -126,20 +126,22 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
         >
             <TopBar $isLightTheme={props.codeTheme !== 'dark'}>
                 <span>{props.language}</span>
-                {isCopied ?
+                {isCopied ? (
                     <CopyToClipboardContainer>
                         <Check /> Copied!
                     </CopyToClipboardContainer>
-                :   <CopyToClipboardContainer
+                ) : (
+                    <CopyToClipboardContainer
+                        tabIndex={0}
                         style={{ cursor: 'pointer' }}
-                        onClick={() => copyCodeToClipboard(props.value)}
+                        onClick={() => copyCodeToClipboard(props.value!)}
                         role="button"
                     >
                         <Copy /> Copy code
                     </CopyToClipboardContainer>
-                }
+                )}
             </TopBar>
-            <Highlight {...defaultProps} code={props.value} language={props.language} theme={viewerTheme}>
+            <Highlight {...defaultProps} code={props.value!} language={props.language} theme={viewerTheme}>
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <StyledPre
                         className={className}
@@ -149,9 +151,9 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                         }}
                     >
                         {tokens.map((line, i) => (
-                            <div {...getLineProps({ key: i, line })} key={i}>
+                            <div key={i} {...getLineProps({ key: i, line })}>
                                 {line.map((token, key) => (
-                                    <code {...getTokenProps({ key, token })} key={key} />
+                                    <code key={key} {...getTokenProps({ key, token })} />
                                 ))}
                             </div>
                         ))}

@@ -1,7 +1,7 @@
 import Graph from 'graphology';
 
 import { GraphActionCreators, GraphReducer } from '../src/shared/causal-graph-store';
-import type { GraphState, SimulationEdge, SimulationNode} from '../src/types';
+import type { GraphState, SimulationAttributes, SimulationEdge, SimulationNode } from '../src/types';
 import { EdgeType, EditorMode, VariableType } from '../src/types';
 
 const DEFAULT_EDGE: SimulationEdge = { edge_type: EdgeType.DIRECTED_EDGE, originalMeta: {} };
@@ -19,7 +19,8 @@ const DEFAULT_LATENT_NODE = (id: string): SimulationNode => ({
 
 const initialState = (): GraphState => ({
     editorMode: EditorMode.DEFAULT,
-    graph: new Graph<SimulationNode, SimulationEdge>().import({
+    graph: new Graph<SimulationNode, SimulationEdge, SimulationAttributes>().import({
+        attributes: { version: 'test' },
         edges: [],
         nodes: [
             { attributes: DEFAULT_NODE('node1'), key: 'node1' },
@@ -30,7 +31,8 @@ const initialState = (): GraphState => ({
 
 const dagInitialState = (): GraphState => ({
     editorMode: EditorMode.DEFAULT,
-    graph: new Graph<SimulationNode, SimulationEdge>().import({
+    graph: new Graph<SimulationNode, SimulationEdge, SimulationAttributes>().import({
+        attributes: { version: 'test' },
         edges: [
             {
                 attributes: {
@@ -68,7 +70,8 @@ const dagInitialState = (): GraphState => ({
 
 const linkedState = (): GraphState => ({
     editorMode: EditorMode.DEFAULT,
-    graph: new Graph<SimulationNode, SimulationEdge>().import({
+    graph: new Graph<SimulationNode, SimulationEdge, SimulationAttributes>().import({
+        attributes: { version: 'test' },
         edges: [
             {
                 attributes: {

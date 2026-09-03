@@ -2,6 +2,14 @@
 title: Changelog
 ---
 
+## 1.29.8
+
+- Fixed `CodeEditor` crashing when its value contains CRLF line endings.
+
+## 1.29.3
+
+- Internal: Upgraded build tooling to Vite 8 for faster builds.
+
 ## 1.26.12
 
 - Internal: Hardened JavaScript dependency versions and removed unused build and test tooling dependencies.
@@ -84,28 +92,24 @@ This is equivalent to `Button(..., onclick=my_action, loading=my_action.loading)
 - Add flag `suppress_click_events_for_selection` and `onselect_row` event to the table which makes sure that selection can work along with onClickRow even if they do something different, i.e.
 
  ```python
-
-# If suppress_click_events_for_selection is true,
-# ctx.input will be an array of 1 item(only the clicked one)
-# If False, then ctx.input will be an array of all the selected rows
-@action
-async def onclick_row(ctx: ActionCtx):
-    print("This will only run if the row is click, and not selected via the checkbox")
-
-# This will only run if the selection happens via the checkbox
-# ctx.input will be an array of all the selected rows
-@action
-async def onselect_row(ctx: ActionCtx):
-    print("This will run if selection is clicked via the checkbox")
+ # If suppress_click_events_for_selection is true,
+ # ctx.input will be an array of 1 item(only the clicked one)
+ # If False, then ctx.input will be an array of all the selected rows
+ @action
+ async def onclick_row(ctx: ActionCtx):
+     print('This will only run if the row is click, and not selected via the checkbox')
 
 
-return Table(
-    columns=...,
-    data=...,
-    onclick_row=onclick_row,
-    onselect_row=onselect_row,
-    suppress_click_events_for_selection=True
-)
+ # This will only run if the selection happens via the checkbox
+ # ctx.input will be an array of all the selected rows
+ @action
+ async def onselect_row(ctx: ActionCtx):
+     print('This will run if selection is clicked via the checkbox')
+
+
+ return Table(
+     columns=..., data=..., onclick_row=onclick_row, onselect_row=onselect_row, suppress_click_events_for_selection=True
+ )
  ```
 
 ## 1.20.0-alpha.1
@@ -282,6 +286,7 @@ from dara.components.smart.chat import NewMessageBody, ChatConfig
 def example_callback(payload: NewMessageBody):
     print('New message received!')
     print(payload)
+
 
 config = ConfigurationBuilder()
 config.add_configuration(ChatConfig(on_new_message=example_callback))

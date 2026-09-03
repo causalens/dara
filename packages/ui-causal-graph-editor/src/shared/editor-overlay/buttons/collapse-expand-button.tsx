@@ -29,7 +29,7 @@ interface CollapseExpandGroupButtonProps extends ComponentProps<typeof FloatingB
 }
 
 function CollapseExpandGroupButton(props: CollapseExpandGroupButtonProps): JSX.Element {
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
     const buttonText = props.showExpandAll ? 'Collapse All' : 'Expand All';
     const { onCollapseAll, onExpandAll, showExpandAll, ...rest } = props;
 
@@ -43,9 +43,7 @@ function CollapseExpandGroupButton(props: CollapseExpandGroupButtonProps): JSX.E
                 style={{ padding: '0 0.75rem' }}
                 {...rest}
             >
-                {props.showExpandAll ?
-                    <DownLeftAndUpRightToCenter />
-                :   <UpRightAndDownLeftFromCenter />}
+                {props.showExpandAll ? <DownLeftAndUpRightToCenter /> : <UpRightAndDownLeftFromCenter />}
             </FloatingButton>
         </Tooltip>
     );

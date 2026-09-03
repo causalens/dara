@@ -54,7 +54,7 @@ export class LayoutWorker extends EventEmitter<LayoutEvents> {
 
     async invokeCallback<CbName extends keyof LayoutComputationCallbacks>(
         cbName: CbName,
-        ...args: Parameters<LayoutComputationCallbacks[CbName]>
+        ...args: Parameters<NonNullable<LayoutComputationCallbacks[CbName]>>
     ): Promise<void> {
         // @ts-expect-error The type might not be quite correct
         return this.remoteApi.invokeCallback(cbName, ...args);

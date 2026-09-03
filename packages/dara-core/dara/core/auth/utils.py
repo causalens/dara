@@ -34,6 +34,7 @@ from dara.core.auth.definitions import (
 )
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
+from dara.core.telemetry import annotate_auth_observation, observe_auth
 
 AUTH_COOKIE_EXPIRATION_GRACE_SECONDS = 60
 RefreshInput = TypeVar('RefreshInput')
@@ -270,24 +271,38 @@ async def cached_refresh_token(
     """
     cache_key = refresh_token
 
-    # check for cache hit
-    cached_result, found = token_refresh_cache.get_cached_value(cache_key)
+    # Check for a cache hit without exposing the refresh token used as the key.
+    with observe_auth('refresh.cache_lookup') as cache_observation:
+        cached_result, found = token_refresh_cache.get_cached_value(cache_key)
+        annotate_auth_observation(
+            cache_observation,
+            attributes={'dara.auth.refresh.cache.result': 'hit' if found else 'miss'},
+        )
     if found:
         return cached_result
 
     # cache miss, acquire lock so only one call for given refresh_token is allowed
     lock = await token_refresh_cache._get_or_create_lock(cache_key)
-
-    async with lock:
+    with observe_auth('refresh.lock_wait'):
+        await lock.acquire()
+    try:
         # check cache again in case another call already refreshed the token while we were waiting
-        cached_result, found = token_refresh_cache.get_cached_value(cache_key)
+        with observe_auth('refresh.cache_lookup') as cache_observation:
+            cached_result, found = token_refresh_cache.get_cached_value(cache_key)
+            annotate_auth_observation(
+                cache_observation,
+                attributes={'dara.auth.refresh.cache.result': 'hit_after_wait' if found else 'miss'},
+            )
         if found:
             return cached_result
 
         # Run the refresh function
-        result = await do_refresh_token(refresh_input, refresh_token)
+        with observe_auth('refresh.provider'):
+            result = await do_refresh_token(refresh_input, refresh_token)
 
         # update cache
         token_refresh_cache.set_cached_value(cache_key, result)
 
         return result
+    finally:
+        lock.release()

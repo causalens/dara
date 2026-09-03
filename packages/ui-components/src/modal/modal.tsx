@@ -56,11 +56,11 @@ const ModalWrapper = styled.div<RenderProp>`
     max-height: 80vh;
     margin-top: ${(props) => (props.render ? 0 : '-50px')};
     padding: 1.75rem;
+    border-radius: 0.25rem;
 
     font-size: ${(props) => props.theme.font.size};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border-radius: 0.25rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
     transition: margin-top ease-in 0.1s;
@@ -78,11 +78,18 @@ interface ModalHeaderProps {
     flexDirection?: string;
 }
 
+function getFlexDirection(flexDirection?: string): string {
+    if (flexDirection) {
+        return flexDirection;
+    }
+    return 'column';
+}
+
 /** Arranges the modal header and adds some space below it */
 const ModalHeader = styled.div<ModalHeaderProps>`
     display: flex;
     flex: 0 0 auto;
-    flex-direction: ${(props) => props.flexDirection || 'column'};
+    flex-direction: ${(props) => getFlexDirection(props.flexDirection)};
     justify-content: space-between;
 
     margin-bottom: 1rem;
@@ -114,7 +121,7 @@ export interface ModalProps {
  *
  * @param {ModalProps} props - the component props
  */
-function Modal(props: ModalProps): JSX.Element {
+function Modal(props: ModalProps): JSX.Element | null {
     const [mounted, setMounted] = useState(false);
     const [renderModal, setRenderModal] = useState(false);
 
@@ -128,7 +135,7 @@ function Modal(props: ModalProps): JSX.Element {
         if (renderModal) {
             const keyHandler = (e: KeyboardEvent): void => {
                 if (e.key === Key.ESCAPE && props.onAttemptClose) {
-                    props.onAttemptClose();
+                    void props.onAttemptClose();
                 }
             };
             document.addEventListener('keydown', keyHandler);
@@ -146,7 +153,7 @@ function Modal(props: ModalProps): JSX.Element {
     const onTransitionEnd = (): void => {
         setMounted(props.render);
         if (!props.render && props.onClosed) {
-            props.onClosed();
+            void props.onClosed();
         }
     };
 

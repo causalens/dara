@@ -1,6 +1,7 @@
 import asyncio
+import contextlib
 import signal
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from typing import Any
 
 from dara.core.logging import dev_logger
@@ -49,7 +50,7 @@ def setup_signal_handlers():
         signal.signal(signal.SIGTERM, _chained_signal_handler)
 
 
-def track_stream(func: Callable[[], AsyncIterator[Any]]):
+def track_stream(func: Callable[[], AsyncGenerator[Any, None]]):
     """
     Decorator to track active streaming connections.
     Keeps track of the current task in active_connections while it's live.
@@ -61,8 +62,12 @@ def track_stream(func: Callable[[], AsyncIterator[Any]]):
         _active_connections.add(current_task)
 
         try:
-            async for item in func():
-                yield item
+            # The tracked wrapper is the iterator consumed by StreamingResponse.
+            # Own the wrapped generator explicitly so closing the HTTP-facing
+            # iterator while suspended at yield propagates teardown immediately.
+            async with contextlib.aclosing(func()) as stream:
+                async for item in stream:
+                    yield item
         finally:
             _active_connections.discard(current_task)
 

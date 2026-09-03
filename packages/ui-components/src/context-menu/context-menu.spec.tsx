@@ -19,10 +19,10 @@ import React from 'react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import ContextMenu, { ContextMenuProps, MenuAction } from './context-menu';
+import ContextMenu, { type ContextMenuProps, type MenuAction } from './context-menu';
 
 const TestAction: MenuAction = {
-    action: jest.fn(),
+    action: vi.fn(),
     label: 'TestAction',
 };
 

@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 // Create two separate configs - one for the library and one for the trace viewer
 export default defineConfig({
@@ -8,12 +8,10 @@ export default defineConfig({
             jsxRuntime: 'automatic',
         }),
     ],
-    optimizeDeps: {
-        esbuildOptions: {
-            target: 'esnext',
-            supported: {
-                bigint: true
-            },
-        },
+    test: {
+        clearMocks: true,
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: ['./src/vitest-setup.ts'],
     },
 });

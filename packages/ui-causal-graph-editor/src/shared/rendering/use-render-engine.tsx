@@ -38,13 +38,13 @@ interface UseRenderEngineApi {
      *
      * @param path selected edge
      */
-    onEdgeSelected: (path: [string, string]) => void;
+    onEdgeSelected: (path: [string, string] | null) => void;
     /**
      * Should be called whenever node selection should change
      *
      * @param node selected node
      */
-    onNodeSelected: (node: string) => void;
+    onNodeSelected: (node: string | null | undefined) => void;
     /**
      * Should be called wheneve search results change
      *
@@ -124,38 +124,39 @@ export function useRenderEngine({
     errorHandler?: (error: NotificationPayload) => void;
     graph: SimulationGraph;
     layout: GraphLayout;
-    parentRef: React.MutableRefObject<HTMLElement>;
+    parentRef: React.RefObject<HTMLElement>;
     processEdgeStyle?: (edge: PixiEdgeStyle, attributes: SimulationEdge) => PixiEdgeStyle;
     requireFocusToZoom?: boolean;
     zoomThresholds?: ZoomThresholds;
 }): UseRenderEngineApi {
     const theme = useTheme();
-    const engine = React.useRef<Engine>(null);
+    const engine = React.useRef<Engine | null>(null);
     const listeners = React.useRef<Partial<EngineEvents>>({});
 
-    if (!engine.current) {
-        engine.current = new Engine(
-            graph,
-            layout,
-            editable,
-            editorMode,
-            theme,
-            constraints,
-            zoomThresholds,
-            errorHandler,
-            processEdgeStyle,
-            requireFocusToZoom
-        );
-    }
-
+    engine.current ??= new Engine(
+        graph,
+        layout,
+        editable,
+        editorMode,
+        theme,
+        constraints,
+        zoomThresholds,
+        errorHandler,
+        processEdgeStyle,
+        requireFocusToZoom
+    );
     // Start engine after first render, stop it on destroy
     React.useEffect(() => {
         if (parentRef.current) {
-            engine.current.start(parentRef.current).then(() => {
+            void engine.current!.start(parentRef.current).then(() => {
                 // Attach listeners for each event type
                 ENGINE_EVENTS.forEach((eventName) => {
-                    engine.current.addListener(eventName, (...args) => {
-                        listeners.current[eventName]?.apply(null, args);
+                    engine.current!.addListener(eventName, (...args) => {
+                        // eslint-disable-next-line prefer-spread
+                        (listeners.current[eventName] as ((...eventArgs: typeof args) => void) | undefined)?.apply(
+                            null,
+                            args
+                        );
                     });
                 });
             });
@@ -169,8 +170,8 @@ export function useRenderEngine({
 
     // update engine theme
     React.useEffect(() => {
-        if (engine.current.initialized) {
-            engine.current.setTheme(theme);
+        if (engine.current!.initialized) {
+            engine.current!.setTheme(theme);
         }
     }, [theme]);
 
@@ -184,61 +185,61 @@ export function useRenderEngine({
 
     return {
         getCenterPosition: (): PIXI.PointData => {
-            return engine.current.getCenterPosition();
+            return engine.current!.getCenterPosition();
         },
-        onEdgeSelected: (path: [string, string]) => {
-            if (engine.current.initialized) {
-                engine.current.selectEdge(path);
+        onEdgeSelected: (path: [string, string] | null) => {
+            if (engine.current!.initialized) {
+                engine.current!.selectEdge(path as [string, string]);
             }
         },
-        onNodeSelected: (node: string) => {
-            if (engine.current.initialized) {
-                engine.current.selectNode(node);
+        onNodeSelected: (node: string | null | undefined) => {
+            if (engine.current!.initialized) {
+                engine.current!.selectNode(node as string);
             }
         },
         onSearchResults: (nodes: string[]) => {
-            if (engine.current.initialized) {
-                engine.current.searchNodes(nodes);
+            if (engine.current!.initialized) {
+                engine.current!.searchNodes(nodes);
             }
         },
         onSetDragMode: (dragMode: DragMode | null) => {
-            engine.current.setDragMode(dragMode);
+            engine.current!.setDragMode(dragMode);
         },
         onSetFocus: (isFocused: boolean) => {
-            if (engine.current.initialized) {
-                engine.current.setFocus(isFocused);
+            if (engine.current!.initialized) {
+                engine.current!.setFocus(isFocused);
             }
         },
         onUpdateConstraints: (newConstraints: EdgeConstraint[]) => {
-            if (engine.current.initialized) {
-                engine.current.updateConstraints(newConstraints);
+            if (engine.current!.initialized) {
+                engine.current!.updateConstraints(newConstraints);
             }
         },
         resetLayout: () => {
-            if (engine.current.initialized) {
-                engine.current.debouncedUpdateLayout();
+            if (engine.current!.initialized) {
+                void engine.current!.debouncedUpdateLayout();
             }
         },
         resetViewport: () => {
-            if (engine.current.initialized) {
-                engine.current.resetViewport();
+            if (engine.current!.initialized) {
+                engine.current!.resetViewport();
             }
         },
         collapseGroups: () => {
-            if (engine.current.initialized) {
-                engine.current.collapseAllGroups();
+            if (engine.current!.initialized) {
+                engine.current!.collapseAllGroups();
             }
         },
         expandGroups: () => {
-            if (engine.current.initialized) {
-                engine.current.expandAllGroups();
+            if (engine.current!.initialized) {
+                engine.current!.expandAllGroups();
             }
         },
-        extractImage: () => {
-            if (engine.current.initialized) {
-                return engine.current.extractImage();
+        extractImage: (() => {
+            if (engine.current!.initialized) {
+                return engine.current!.extractImage();
             }
-        },
+        }) as () => Promise<string | undefined>,
         useEngineEvent,
     };
 }

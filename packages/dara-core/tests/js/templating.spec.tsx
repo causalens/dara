@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import type { Mock } from 'vitest';
 
 import type { ComponentInstance, DerivedVariable, LoopVariable } from '@/types/core';
 
@@ -214,7 +215,7 @@ describe('templating utilities', () => {
 
     describe('applyMarkers', () => {
         beforeEach(() => {
-            (nanoid as vi.Mock).mockReturnValue('mock-nanoid-123');
+            (nanoid as Mock).mockReturnValue('mock-nanoid-123');
         });
 
         it('should return original renderer when no markers provided', () => {
@@ -255,7 +256,14 @@ describe('templating utilities', () => {
             ];
 
             const loopValue = { name: 'John Doe', age: 30 };
-            const result = applyMarkers({ renderer, markers, loopValue, itemKey: 'item-1', index: 0, itemsLength: 1 });
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue,
+                itemKey: 'item-1',
+                index: 0,
+                itemsLength: 1,
+            });
 
             expect(result.props.user).toBe('John Doe');
             expect(result.props.title).toBe('Hello');
@@ -465,7 +473,14 @@ describe('templating utilities', () => {
                 user: { profile: { email: 'jane@example.com' } },
             };
 
-            const result = applyMarkers({ renderer, markers, loopValue, itemKey: 'item-2', index: 0, itemsLength: 1 });
+            const result = applyMarkers({
+                renderer,
+                markers,
+                loopValue,
+                itemKey: 'item-2',
+                index: 0,
+                itemsLength: 1,
+            });
 
             expect(result.props.user).toBe('Jane Doe');
             expect(result.props.computed.loop_instance_uid).toBe('loop-uid-123:item-2');

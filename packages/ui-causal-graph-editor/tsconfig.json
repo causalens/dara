@@ -1,24 +1,14 @@
 {
-  "extends": "../../tsconfig.json",
-  "exclude": ["tests/**", "**/*.spec.tsx", "**/*.stories.tsx", "dist/**", "**/src/packages/ui-causal-graph/graph-viewer/utils/stories-utils.tsx"],
-  "include": ["./src"],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "rootDir": "./src",
-    "esModuleInterop": true,
-    "paths": {
-      "@shared/*": ["./src/shared/*"],
-      "@types": ["./src/types"]
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.build.json"
     },
-    // enables support for e.g. worker API
-    "types": ["vite/client"],
-    // treat modules as isolated ESM
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    // output only types since we are using Vite for building
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "outDir": "./dist/types"
-  }
+    {
+      "path": "./tsconfig.spec.json"
+    },
+    {
+      "path": "./tsconfig.stories.json"
+    }
+  ]
 }

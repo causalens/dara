@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Switch, { SwitchProps } from './switch';
+import Switch, { type SwitchProps } from './switch';
 
 function RenderSwitch(props: SwitchProps): JSX.Element {
     return (
@@ -42,7 +42,7 @@ describe('Switch Test', () => {
     });
 
     it('should call onChange in controlled mode', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByTestId, rerender } = render(
             <RenderSwitch labels={{ off: 'disabled', on: 'enabled' }} onChange={onChangeStub} value />
         );

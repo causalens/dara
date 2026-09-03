@@ -1,4 +1,4 @@
-import path from 'node:path';
+import { URL, fileURLToPath } from 'node:url';
 import type { StorybookConfig } from '@storybook/react-vite';
 
 const config: StorybookConfig = {
@@ -12,15 +12,12 @@ const config: StorybookConfig = {
         // Ensure we can resolve the same modules as the main app
         config.resolve = config.resolve || {};
         config.resolve.alias = {
-            // ...config.resolve.alias,
-            '@types': path.resolve(__dirname, '../src/types.tsx'),
-            '@shared': path.resolve(__dirname, '../src/shared')
+            '@types': fileURLToPath(new URL('../src/types.tsx', import.meta.url)),
+            '@shared': fileURLToPath(new URL('../src/shared', import.meta.url)),
         };
-    console.log('resolved', config.resolve.alias);
 
         return config;
     },
 };
 
 export default config;
-

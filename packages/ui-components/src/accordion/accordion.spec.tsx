@@ -19,8 +19,8 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import Badge from '../badge/badge';
-import { AccordionItemType } from '../types';
-import Accordion, { AccordionProps } from './accordion';
+import type { AccordionItemType } from '../types';
+import Accordion, { type AccordionProps } from './accordion';
 
 function RenderAccordion(props: AccordionProps): JSX.Element {
     return (
@@ -82,13 +82,13 @@ describe('Accordion Component', () => {
             return (
                 <div>
                     <span>{item.label}</span>
-                    {item.badge && <Badge color={item.badge.color}>{item.badge.label}</Badge>}
+                    {item.badge && <Badge color={item.badge.color!}>{item.badge.label}</Badge>}
                 </div>
             );
         };
         const { getByText } = render(<RenderAccordion headerRenderer={headerRenderer} items={mockItems} />);
-        expect(getByText('Badge1')).toHaveStyle('background-color: red');
-        expect(getByText('Badge2')).toHaveStyle('background-color: green');
+        expect(getByText('Badge1')).toHaveStyle('background-color: rgb(255, 0, 0)');
+        expect(getByText('Badge2')).toHaveStyle('background-color: rgb(0, 128, 0)');
     });
 
     it('should use inner render correctly', () => {
@@ -99,8 +99,8 @@ describe('Accordion Component', () => {
             return <span style={{ color: 'blue', fontSize: '2rem' }}>{item.content}</span>;
         };
         const { getByText } = render(<RenderAccordion innerRenderer={innerRenderer} items={mockItems} />);
-        expect(getByText('value0')).toHaveStyle('background-color: red');
-        expect(getByText('value4')).toHaveStyle('color: blue');
+        expect(getByText('value0')).toHaveStyle('background-color: rgb(255, 0, 0)');
+        expect(getByText('value4')).toHaveStyle('color: rgb(0, 0, 255)');
         expect(getByText('value4')).toHaveStyle('font-size: 2rem');
     });
 
@@ -138,7 +138,7 @@ describe('Accordion Component', () => {
     });
 
     it('should test controlled state', async () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const { getByText } = render(<RenderAccordion items={mockItems} onChange={onChange} value={1} />);
 
         // checkes initial value is open

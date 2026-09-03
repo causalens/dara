@@ -1,7 +1,6 @@
 import * as d3 from 'd3';
-import type { SimulationLinkDatum } from 'd3';
 
-import type { SimulationGraph, SimulationNodeWithCategory } from '../../../types';
+import type { D3SimulationEdge, SimulationGraph, SimulationNodeWithCategory } from '../../../types';
 import { getD3Data, nodesToLayout } from '../../parsers';
 import type { LayoutComputationResult } from '../common';
 import type { MarketingLayoutParams } from '../marketing-layout';
@@ -12,13 +11,13 @@ export default function compute(layoutParams: MarketingLayoutParams, graph: Simu
 
     // Add some code in here to move the root of the graph up when there are no secondary nodes.
     const simulation = d3
-        .forceSimulation(nodes)
+        .forceSimulation<SimulationNodeWithCategory, D3SimulationEdge>(nodes)
         .alphaMin(0.001)
         // The link force pulls linked nodes together so they try to be a given distance apart
         .force(
             'link',
             d3
-                .forceLink<SimulationNodeWithCategory, SimulationLinkDatum<SimulationNodeWithCategory>>(edges)
+                .forceLink<SimulationNodeWithCategory, D3SimulationEdge>(edges)
                 .id((d) => d.id)
                 .distance(() => layoutParams.nodeSize * 3)
                 .strength(layoutParams.targetLocation === 'center' ? 0.7 : 0.1)

@@ -29,6 +29,7 @@ from pydantic import BaseModel
 
 from dara.core.base_definitions import AssetManifest
 from dara.core.configuration import Configuration
+from dara.core.internal.runtime_env import is_docker_mode, is_hmr_enabled, is_production_mode
 from dara.core.internal.settings import get_settings
 from dara.core.logging import dev_logger
 
@@ -89,9 +90,9 @@ class BuildConfig(BaseModel):
     @staticmethod
     def from_env():
         # Production mode - if --enable-hmr or --production or --docker is set
-        is_production = os.environ.get('DARA_PRODUCTION_MODE', 'FALSE') == 'TRUE'
-        is_hmr = os.environ.get('DARA_HMR_MODE', 'FALSE') == 'TRUE'
-        is_docker = os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE'
+        is_production = is_production_mode()
+        is_hmr = is_hmr_enabled()
+        is_docker = is_docker_mode()
 
         if is_hmr or is_production or is_docker:
             js_config = JsConfig.from_file()
@@ -346,8 +347,7 @@ class BuildCache(BaseModel):
             'private': True,
             'version': '0.0.1',
             'main': 'dist/index.js',
-            # --base needs to be set here due to the changes in how static urls are resolved
-            'scripts': {'dev': 'vite --base=http://localhost:3000/static/', 'build': 'vite build'},
+            'scripts': {'dev': 'vite', 'build': 'vite build'},
             'overrides': {'react': '^18.2.0', 'react-dom': '^18.2.0'},
         }
 
@@ -368,8 +368,8 @@ class BuildCache(BaseModel):
         # Append core deps required for building/dev mode
         pkg_json['dependencies'] = {
             **deps,
-            '@vitejs/plugin-react': '4.6.0',
-            'vite': '7.3.2',
+            '@vitejs/plugin-react': '6.0.4',
+            'vite': '8.1.5',
         }
 
         return pkg_json
@@ -497,7 +497,7 @@ def rebuild_js(build_cache: BuildCache, build_diff: BuildCacheDiff | None = None
         build_diff = BuildCacheDiff.full_diff()
 
     # If we are in docker mode, skip the JS build
-    if os.environ.get('DARA_DOCKER_MODE', 'FALSE') == 'TRUE':
+    if is_docker_mode():
         dev_logger.debug('Docker mode, skipping JS build')
         return
 

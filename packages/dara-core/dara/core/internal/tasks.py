@@ -33,6 +33,7 @@ from anyio import (
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectSendStream
 from exceptiongroup import ExceptionGroup, catch
+from opentelemetry.context import Context
 from pydantic import ConfigDict
 
 from dara.core.base_definitions import (
@@ -50,9 +51,25 @@ from dara.core.internal.devtools import get_error_for_channel
 from dara.core.internal.pandas_utils import remove_index
 from dara.core.internal.pool import TaskPool
 from dara.core.internal.utils import exception_group_contains, run_user_handler
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import DaraServerMessage, TaskNotificationMessagePayload, WebsocketManager
 from dara.core.logging import dev_logger, eng_logger
-from dara.core.metrics import RUNTIME_METRICS_TRACKER
+from dara.core.telemetry import (
+    _OperationObservation,
+    capture_telemetry_context,
+    observe_task,
+    observe_task_operation,
+    use_telemetry_context,
+)
+
+
+def _task_notification_message(payload: dict[str, Any]) -> DaraServerMessage:
+    """Create a self-discriminating task notification message."""
+    return DaraServerMessage.create('TaskNotificationMessage', payload)
+
+
+def _server_error_message(payload: dict[str, Any]) -> DaraServerMessage:
+    """Create a self-discriminating server error message."""
+    return DaraServerMessage.create('ServerErrorMessage', payload)
 
 
 class Task(BaseTask):
@@ -75,6 +92,8 @@ class Task(BaseTask):
         cache_key: str | None = None,
         task_id: str | None = None,
         on_progress: Callable[[TaskProgressUpdate], None | Awaitable[None]] | None = None,
+        telemetry_origin_kind: str | None = None,
+        telemetry_origin_name: str | None = None,
     ):
         """
         :param func: The function to execute within the process
@@ -85,6 +104,8 @@ class Task(BaseTask):
                                 completion
         :param cache_key: Optional cache key if there is a PendingTask in the store associated with this task
         :param task_id: Optional task_id to set for the task - otherwise the task generates its id automatically
+        :param telemetry_origin_kind: bounded subsystem that scheduled the task
+        :param telemetry_origin_name: stable callable name that scheduled the task
         """
         self._func_name = self._verify_function(func)
         self._args = args if args is not None else []
@@ -93,6 +114,8 @@ class Task(BaseTask):
         self.cache_key = cache_key
         self.reg_entry = reg_entry
         self.on_progress = on_progress
+        self.telemetry_origin_kind = telemetry_origin_kind
+        self.telemetry_origin_name = telemetry_origin_name
 
         super().__init__(task_id)
 
@@ -128,57 +151,50 @@ class Task(BaseTask):
 
         :param send_stream: The stream to send messages to the task manager on
         """
-        # Get a histogram for given task to track its runtime
-        # If task_id has underscores, strip the last part of it as it's in the format of {var_name}_TaskType_{uid}
-        clean_task_name = '_'.join(self.task_id.split('_')[:-1]) if '_' in self.task_id else self.task_id
-        histogram = RUNTIME_METRICS_TRACKER.get_task_histogram(clean_task_name)
-
         from dara.core.internal.registries import utils_registry
 
         pool: TaskPool = utils_registry.get('TaskPool')
 
-        with histogram.time():
+        async def on_progress(progress: float, msg: str):
+            if send_stream is not None:
+                with contextlib.suppress(ClosedResourceError):
+                    await send_stream.send(TaskProgressUpdate(task_id=self.task_id, progress=progress, message=msg))
 
-            async def on_progress(progress: float, msg: str):
-                if send_stream is not None:
-                    with contextlib.suppress(ClosedResourceError):
-                        await send_stream.send(TaskProgressUpdate(task_id=self.task_id, progress=progress, message=msg))
-
-            async def on_result(result: Any):
-                if send_stream is not None:
-                    with contextlib.suppress(ClosedResourceError):
-                        await send_stream.send(
-                            TaskResult(
-                                task_id=self.task_id,
-                                result=result,
-                                cache_key=self.cache_key,
-                                reg_entry=self.reg_entry,
-                            )
+        async def on_result(result: Any):
+            if send_stream is not None:
+                with contextlib.suppress(ClosedResourceError):
+                    await send_stream.send(
+                        TaskResult(
+                            task_id=self.task_id,
+                            result=result,
+                            cache_key=self.cache_key,
+                            reg_entry=self.reg_entry,
                         )
+                    )
 
-            async def on_error(exc: BaseException):
-                if send_stream is not None:
-                    with contextlib.suppress(ClosedResourceError):
-                        await send_stream.send(
-                            TaskError(
-                                task_id=self.task_id, error=exc, cache_key=self.cache_key, reg_entry=self.reg_entry
-                            )
-                        )
+        async def on_error(exc: BaseException):
+            if send_stream is not None:
+                with contextlib.suppress(ClosedResourceError):
+                    await send_stream.send(
+                        TaskError(task_id=self.task_id, error=exc, cache_key=self.cache_key, reg_entry=self.reg_entry)
+                    )
 
-            with pool.on_progress(self.task_id, on_progress):
+        with pool.on_progress(self.task_id, on_progress):
+            with observe_task_operation('dispatch', 'process'):
                 pool_task_def = pool.submit(self.task_id, self._func_name, args=tuple(self._args), kwargs=self._kwargs)
 
-                try:
+            try:
+                with observe_task_operation('wait', 'process'):
                     result = await pool_task_def
-                except BaseException as e:
-                    # Task returned an exception
-                    await on_error(e)
-                    raise
+            except BaseException as e:
+                # Task returned an exception
+                await on_error(e)
+                raise
 
-                # Send result up
-                await on_result(result)
+            # Send result up
+            await on_result(result)
 
-                return result
+            return result
 
     async def cancel(self):
         """
@@ -207,6 +223,8 @@ class MetaTask(BaseTask):
         process_as_task: bool = False,
         cache_key: str | None = None,
         task_id: str | None = None,
+        telemetry_origin_kind: str | None = None,
+        telemetry_origin_name: str | None = None,
     ):
         """
         :param process result: A function to process the result of the other tasks
@@ -218,6 +236,8 @@ class MetaTask(BaseTask):
         :param process_as_task: Whether to run the process_result function as a task or not, defaults to False
         :param cache_key: Optional cache key if there is a registry entry to store results for the task in
         :param task_id: Optional task_id to set for the task - otherwise the task generates its id automatically
+        :param telemetry_origin_kind: bounded subsystem that scheduled the task
+        :param telemetry_origin_name: stable callable name that scheduled the task
         """
         self.args = args if args is not None else []
         self.process_result = process_result
@@ -227,6 +247,8 @@ class MetaTask(BaseTask):
         self.cancel_scope: CancelScope | None = None
         self.cache_key = cache_key
         self.reg_entry = reg_entry
+        self.telemetry_origin_kind = telemetry_origin_kind
+        self.telemetry_origin_name = telemetry_origin_name
 
         super().__init__(task_id)
 
@@ -366,6 +388,34 @@ class TaskManagerError(ValueError):
     pass
 
 
+def _task_telemetry_identity(task: BaseTask) -> tuple[str, str]:
+    """
+    Return a stable callable name and bounded kind for task telemetry.
+
+    :param task: task definition to describe
+    """
+    if isinstance(task, PendingTask):
+        return _task_telemetry_identity(task.task_def)
+    if isinstance(task, Task):
+        return task._func_name, 'process'
+    if isinstance(task, MetaTask):
+        handler = task.process_result
+        name = f'{getattr(handler, "__module__", "unknown")}.{getattr(handler, "__qualname__", type(handler).__name__)}'
+        return name, 'meta'
+    return type(task).__name__, 'unknown'
+
+
+def _task_telemetry_origin(task: BaseTask) -> tuple[str | None, str | None]:
+    """
+    Return the semantic operation that scheduled a task, if one was recorded.
+
+    :param task: task definition to describe
+    """
+    if isinstance(task, PendingTask):
+        return _task_telemetry_origin(task.task_def)
+    return task.telemetry_origin_kind, task.telemetry_origin_name
+
+
 class TaskManager:
     """
     TaskManager is responsible for running tasks and managing their pending state. It is also responsible for
@@ -386,6 +436,7 @@ class TaskManager:
         self.task_group = task_group
         self.ws_manager = ws_manager
         self.store = store
+        self._telemetry_observations: dict[str, _OperationObservation] = {}
 
     def register_task(self, task: BaseTask) -> PendingTask:
         """
@@ -433,8 +484,11 @@ class TaskManager:
         if ws_channel is not None:
             pending_task.notify_channels.append(ws_channel)
 
-        # Run the task in the background
-        self.task_group.start_soon(self._run_task_and_notify, task)
+        # Run the task in the background under the context that scheduled it.
+        _task_name, task_kind = _task_telemetry_identity(task)
+        with observe_task_operation('schedule', task_kind):
+            telemetry_context = capture_telemetry_context()
+            self.task_group.start_soon(self._run_task_and_notify, task, telemetry_context)
 
         return pending_task
 
@@ -455,10 +509,17 @@ class TaskManager:
                     if notify:
                         await self._send_notification_for_task(
                             task=pending_task,
-                            messages=[{'status': 'CANCELED', 'task_id': task_id_to_cancel}],
+                            messages=[
+                                _task_notification_message(
+                                    {'status': 'CANCELED', 'task_id': task_id_to_cancel},
+                                )
+                            ],
                         )
 
                     if not pending_task.event.is_set():
+                        if observation := self._telemetry_observations.get(task_id_to_cancel):
+                            observation.set_outcome('cancelled')
+
                         # Cancel the actual task
                         await pending_task.cancel()
 
@@ -484,6 +545,18 @@ class TaskManager:
         await self._cancel_tasks(list(all_task_ids), notify)
 
     async def cancel_task(self, task_id: str, notify: bool = True):
+        """
+        Trace and cancel a running task by its identifier.
+
+        :param task_id: identifier of the task to cancel
+        :param notify: whether to notify subscribed clients
+        """
+        task = self.tasks.get(task_id)
+        task_kind = _task_telemetry_identity(task)[1] if task is not None else 'unknown'
+        with observe_task_operation('cancel', task_kind):
+            return await self._cancel_task(task_id, notify)
+
+    async def _cancel_task(self, task_id: str, notify: bool = True):
         """
         Cancel a running task by its id. If the task has child tasks (MetaTask),
         all child tasks will also be cancelled.
@@ -524,9 +597,10 @@ class TaskManager:
 
         :param task_id: the id of the task to fetch
         """
-        # the result is not deleted, the results are kept in an LRU cache
-        # which will clean up older entries
-        return await self.store.get(TaskResultEntry, key=task_id, raise_for_missing=True)
+        with observe_task_operation('wait', 'result'):
+            # the result is not deleted, the results are kept in an LRU cache
+            # which will clean up older entries
+            return await self.store.get(TaskResultEntry, key=task_id, raise_for_missing=True)
 
     async def set_result(self, task_id: str, value: Any):
         """
@@ -556,7 +630,12 @@ class TaskManager:
 
         return task_ids
 
-    async def _multicast_notification(self, task_id: str, messages: list[dict], variable_task_id: bool = True):
+    async def _multicast_notification(
+        self,
+        task_id: str,
+        messages: list[DaraServerMessage],
+        variable_task_id: bool = True,
+    ):
         """
         Send notifications to all task IDs that are related to a given task
 
@@ -585,7 +664,12 @@ class TaskManager:
                         pending_task = self.tasks[pending_task_id]
                         task_tg.start_soon(self._send_notification_for_task, pending_task, messages, variable_task_id)
 
-    async def _send_notification_for_task(self, task: BaseTask, messages: list[dict], variable_task_id: bool = True):
+    async def _send_notification_for_task(
+        self,
+        task: BaseTask,
+        messages: list[DaraServerMessage],
+        variable_task_id: bool = True,
+    ):
         """
         Send notifications for a specific PendingTask
 
@@ -605,9 +689,10 @@ class TaskManager:
         async def _send_to_channel(channel: str):
             async with create_task_group() as channel_tg:
                 for message in messages:
-                    if variable_task_id:
-                        # Create message with this Task's task_id (if message has task_id)
-                        message_for_task = {**message, 'task_id': task.task_id} if 'task_id' in message else message
+                    if variable_task_id and isinstance(message.message, TaskNotificationMessagePayload):
+                        payload = message.message.model_dump()
+                        payload['task_id'] = task.task_id
+                        message_for_task = _task_notification_message(payload)
                     else:
                         message_for_task = message
                     channel_tg.start_soon(self.ws_manager.send_message, channel, message_for_task)
@@ -616,7 +701,31 @@ class TaskManager:
             for channel in channels_to_notify:
                 channel_tg.start_soon(_send_to_channel, channel)
 
-    async def _run_task_and_notify(self, task: BaseTask):
+    async def _run_task_and_notify(self, task: BaseTask, telemetry_context: Context | None = None):
+        """
+        Restore scheduling context and trace a task through notification completion.
+
+        :param task: task to run
+        :param telemetry_context: OTEL context captured while scheduling
+        """
+        task_name, task_kind = _task_telemetry_identity(task)
+        origin_kind, origin_name = _task_telemetry_origin(task)
+        with (
+            use_telemetry_context(telemetry_context),
+            observe_task(
+                task_name,
+                task_kind,
+                origin_kind,
+                origin_name,
+            ) as observation,
+        ):
+            self._telemetry_observations[task.task_id] = observation
+            try:
+                await self._run_task_and_notify_impl(task, observation)
+            finally:
+                self._telemetry_observations.pop(task.task_id, None)
+
+    async def _run_task_and_notify_impl(self, task: BaseTask, observation: _OperationObservation):
         """
         Run the task to completion and notify the client of progress and completion
 
@@ -630,7 +739,7 @@ class TaskManager:
         pending_task.cancel_scope = cancel_scope
 
         with cancel_scope:
-            eng_logger.info(f'TaskManager running task {task.task_id}')
+            eng_logger.info(f'TaskManager running task {task.task_id}', event_name='task.started')
 
             # Create a memory object stream to capture messages from the tasks
             send_stream, receive_stream = create_memory_object_stream[TaskMessage](math.inf)
@@ -643,13 +752,15 @@ class TaskManager:
                             await self._multicast_notification(
                                 task_id=message.task_id,
                                 messages=[
-                                    {
-                                        # Will be updated per task ID in multicast
-                                        'task_id': message.task_id,
-                                        'status': 'PROGRESS',
-                                        'progress': message.progress,
-                                        'message': message.message,
-                                    }
+                                    _task_notification_message(
+                                        {
+                                            # Will be updated per task ID in multicast
+                                            'task_id': message.task_id,
+                                            'status': 'PROGRESS',
+                                            'progress': message.progress,
+                                            'message': message.message,
+                                        }
+                                    )
                                 ],
                             )
                             if isinstance(task, Task) and task.on_progress:
@@ -674,7 +785,13 @@ class TaskManager:
                             await self._multicast_notification(
                                 task_id=message.task_id,
                                 messages=[
-                                    {'result': message.result, 'status': 'COMPLETE', 'task_id': message.task_id},
+                                    _task_notification_message(
+                                        {
+                                            'result': message.result,
+                                            'status': 'COMPLETE',
+                                            'task_id': message.task_id,
+                                        }
+                                    ),
                                 ],
                                 variable_task_id=False,
                             )
@@ -688,6 +805,8 @@ class TaskManager:
                             # Remove the task from the registered tasks - it finished running
                             self.tasks.pop(message.task_id, None)
                         elif isinstance(message, TaskError):
+                            observation.record_exception(message.error)
+
                             # Fail the pending task related to the error
                             if message.task_id in self.tasks:
                                 self.tasks[message.task_id].fail(message.error)
@@ -706,8 +825,14 @@ class TaskManager:
                             await self._multicast_notification(
                                 task_id=message.task_id,
                                 messages=[
-                                    {'status': 'ERROR', 'task_id': message.task_id, 'error': error['error']},
-                                    error,
+                                    _task_notification_message(
+                                        {
+                                            'status': 'ERROR',
+                                            'task_id': message.task_id,
+                                            'error': error['error'],
+                                        }
+                                    ),
+                                    _server_error_message(error),
                                 ],
                             )
 
@@ -743,7 +868,11 @@ class TaskManager:
                                     reg_entry=task.reg_entry,
                                 )
                             )
-                            eng_logger.info(f'TaskManager finished task {task.task_id}', {'result': result})
+                            eng_logger.info(
+                                f'TaskManager finished task {task.task_id}',
+                                {'result': result},
+                                event_name='task.finished',
+                            )
             finally:
                 with CancelScope(shield=True):
                     # cast explicitly as otherwise pyright thinks it's always None here
@@ -766,24 +895,38 @@ class TaskManager:
 
                         # If this is a cancellation, ensure all tasks in the hierarchy are cancelled
                         if exception_group_contains(err_type=get_cancelled_exc_class(), group=err):
-                            dev_logger.info('Task cancelled', {'task_id': task.task_id})
+                            observation.set_outcome('cancelled')
+                            dev_logger.info(
+                                'Task cancelled',
+                                {'task_id': task.task_id},
+                                event_name='task.cancelled',
+                            )
 
                             # Cancel any remaining tasks in the hierarchy that might still be running
                             await self._cancel_task_hierarchy(task, notify=True)
                         else:
-                            dev_logger.error('Task failed', err, {'task_id': task.task_id})
+                            observation.record_exception(err)
+                            dev_logger.error(
+                                'Task failed',
+                                err,
+                                {'task_id': task.task_id},
+                                event_name='task.failed',
+                            )
 
                             error = get_error_for_channel(err)
                             message = {'status': 'ERROR', 'task_id': task.task_id, 'error': error['error']}
                             # Notify about this task failing, and a server broadcast error
                             await self._send_notification_for_task(
                                 task=pending_task,
-                                messages=[message, error],
+                                messages=[
+                                    _task_notification_message(message),
+                                    _server_error_message(error),
+                                ],
                             )
                             # notify related tasks
                             await self._multicast_notification(
                                 task_id=task.task_id,
-                                messages=[message],
+                                messages=[_task_notification_message(message)],
                             )
 
                     # Remove the task from the running tasks

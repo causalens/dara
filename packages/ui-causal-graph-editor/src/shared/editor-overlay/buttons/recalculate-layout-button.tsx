@@ -29,7 +29,7 @@ interface RecalculateLayoutButtonProps {
 }
 
 function RecalculateLayoutButton(props: RecalculateLayoutButtonProps): JSX.Element {
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
 
     return (
         <Tooltip content="Recalculate Layout" placement="bottom">

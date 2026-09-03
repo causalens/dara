@@ -1,12 +1,20 @@
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { URL, fileURLToPath } from 'url';
-import { defineConfig } from 'vite';
+import { esmExternalRequirePlugin } from 'vite';
+import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
-    plugins: [react()],
+const externalDependencies = ['react', 'react-dom', 'styled-components', '@tanstack/react-query'];
+
+export default defineConfig(({ mode }) => ({
+    plugins: [
+        esmExternalRequirePlugin({
+            external: externalDependencies,
+        }),
+        react(),
+    ],
     define: {
-        'process.env.NODE_ENV': '"production"',
+        'process.env.NODE_ENV': mode === 'test' ? '"test"' : '"production"',
     },
     build: {
         lib: {
@@ -14,10 +22,10 @@ export default defineConfig({
             name: 'UiCausalGraphEditor',
             fileName: 'index',
         },
-        rollupOptions: {
-            external: ['react', 'react-dom', 'styled-components', '@tanstack/react-query'],
+        rolldownOptions: {
             output: {
                 exports: 'named',
+                strict: true,
                 globals: {
                     react: 'React',
                     'react-dom': 'ReactDOM',
@@ -36,4 +44,10 @@ export default defineConfig({
     worker: {
         format: 'es',
     },
-});
+    test: {
+        clearMocks: true,
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: ['./src/vitest-setup.ts'],
+    },
+}));

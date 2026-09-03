@@ -10,7 +10,7 @@ import { notifySessionLoggedOut } from '../session-state';
  */
 function BasicAuthLogout(): React.ReactNode {
     useEffect(() => {
-        revokeSession().then(() => {
+        void revokeSession().then(() => {
             notifySessionLoggedOut();
             window.location.href = `${window.dara.base_url}/login`;
         });

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { RenderResult, fireEvent, render, waitFor } from '@testing-library/react';
+import { type RenderResult, fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Checkbox, { CheckboxProps } from './checkbox';
+import Checkbox, { type CheckboxProps } from './checkbox';
 
 function renderCheckbox(props: CheckboxProps = {}): RenderResult {
     return render(
@@ -37,7 +37,7 @@ describe('Checkbox', () => {
     });
 
     it('should enter controlled mode when selected prop is passed', async () => {
-        const onClickStub = jest.fn();
+        const onClickStub = vi.fn();
         const { getByRole } = renderCheckbox({ onChange: onClickStub, selected: true });
 
         // Should be checked initially
@@ -55,7 +55,7 @@ describe('Checkbox', () => {
     });
 
     it('should support the disabled prop', async () => {
-        const onClickStub = jest.fn();
+        const onClickStub = vi.fn();
         const { container, getByRole, rerender } = renderCheckbox({
             disabled: true,
             onChange: onClickStub,

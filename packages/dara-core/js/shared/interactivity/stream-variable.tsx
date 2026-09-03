@@ -34,7 +34,7 @@ import { HTTP_METHOD } from '@darajs/ui-utils';
 import { type WebSocketClientInterface } from '@/api';
 import { type RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
 import { handleAuthErrors } from '@/auth/auth';
-import { type GlobalTaskContext, type StreamVariable, isVariable } from '@/types';
+import { type GlobalTaskContext, type StreamVariable, UserError, isVariable } from '@/types';
 
 import { getUniqueIdentifier } from '../utils/hashing';
 import { normalizeRequest } from '../utils/normalization';
@@ -73,6 +73,52 @@ export type StreamEventType =
 export interface StreamEvent {
     type: StreamEventType;
     data: unknown;
+}
+
+const STREAM_EVENT_TYPES = new Set<StreamEventType>([
+    'add',
+    'remove',
+    'clear',
+    'replace',
+    'json_snapshot',
+    'json_patch',
+    'reconnect',
+    'error',
+]);
+
+/**
+ * Parse an SSE message into a supported StreamEvent.
+ *
+ * Comment-only SSE frames are delivered by fetch-event-source as messages with
+ * empty data. They are transport heartbeats rather than application events.
+ */
+function parseStreamEventMessage(message: EventSourceMessage): StreamEvent | null {
+    if (message.data.trim() === '') {
+        return null;
+    }
+
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(message.data);
+    } catch (parseError) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to parse SSE event:', parseError, message.data);
+        return null;
+    }
+
+    if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        !('type' in parsed) ||
+        typeof parsed.type !== 'string' ||
+        !STREAM_EVENT_TYPES.has(parsed.type as StreamEventType)
+    ) {
+        // eslint-disable-next-line no-console
+        console.error('Unsupported SSE event:', parsed);
+        return null;
+    }
+
+    return parsed as StreamEvent;
 }
 
 /**
@@ -303,6 +349,10 @@ export function applyStreamEvent(
  * @returns The value to expose to components
  */
 export function getStreamValue(state: StreamState, keyAccessor: string | null): unknown {
+    if (state.status === 'error') {
+        throw new UserError(state.error ?? 'Stream failed');
+    }
+
     if (keyAccessor !== null && state.data !== null && typeof state.data === 'object' && !Array.isArray(state.data)) {
         // Keyed mode: expose as array
         return Object.values(state.data as Record<string, unknown>);
@@ -313,6 +363,12 @@ export function getStreamValue(state: StreamState, keyAccessor: string | null): 
 const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
+
+/** Error that should stop the SSE connection rather than be retried. */
+class FatalStreamError extends Error {}
+
+/** Error that should be handled by the SSE retry policy. */
+class RetriableStreamError extends Error {}
 
 /**
  * Calculate exponential backoff delay.
@@ -360,7 +416,7 @@ interface StreamConnectionCallbacks {
     onFirstData: (state: StreamState) => void;
     /** Called for subsequent data updates */
     onUpdate: (state: StreamState) => void;
-    /** Called on error after max retries */
+    /** Called when the stream reaches a terminal error */
     onError: (error: string) => void;
 }
 
@@ -380,11 +436,24 @@ function startStreamConnection(
     let retryCount = 0;
     let isFirstMessage = true;
     let currentState: StreamState = INITIAL_CONNECTED_STATE;
+    let terminalErrorReported = false;
 
     // Normalize values for the request
     const normalizedValues = normalizeRequest(params.resolvedValues, params.variables as any[]);
 
-    fetchEventSource(`/api/core/stream/${params.uid}`, {
+    const reportTerminalError = (error: unknown): void => {
+        if (terminalErrorReported) {
+            return;
+        }
+        terminalErrorReported = true;
+        callbacks.onError(error instanceof Error ? error.message : String(error));
+    };
+
+    void fetchEventSource(`/api/core/stream/${params.uid}`, {
+        // Request extras may customize headers, credentials, and other fetch
+        // behavior, but the StreamVariable module owns its method, body, and
+        // cancellation lifecycle.
+        ...params.extras,
         method: HTTP_METHOD.POST,
         body: JSON.stringify({ values: normalizedValues }),
         signal: controller.signal,
@@ -392,7 +461,6 @@ function startStreamConnection(
         // eslint-disable-next-line @typescript-eslint/require-await
         onopen: async (response) => {
             if (response.ok) {
-                retryCount = 0; // Reset retry count on successful connection
                 return;
             }
 
@@ -406,25 +474,30 @@ function startStreamConnection(
         },
 
         onmessage: (msg: EventSourceMessage) => {
-            let event: StreamEvent;
-            try {
-                event = JSON.parse(msg.data) as StreamEvent;
-            } catch (parseError) {
-                // eslint-disable-next-line no-console
-                console.error('Failed to parse SSE event:', parseError, msg.data);
+            const event = parseStreamEventMessage(msg);
+            if (event === null) {
                 return;
             }
 
-            // Handle reconnect event - throw to trigger retry logic
             if (event.type === 'reconnect') {
                 // eslint-disable-next-line no-console
                 console.info('StreamVariable: Server requested reconnect, reconnecting...');
-                throw new Error('Server requested reconnect');
+                throw new RetriableStreamError('Server requested reconnect');
             }
 
-            // Apply event to current state (accumulate)
-            currentState = applyStreamEvent(currentState, event, params.keyAccessor);
+            if (event.type === 'error') {
+                const message = typeof event.data === 'string' ? event.data : 'Unknown error';
+                throw new FatalStreamError(message);
+            }
 
+            const nextState = applyStreamEvent(currentState, event, params.keyAccessor);
+            if (nextState === currentState || nextState.status === 'error') {
+                throw new FatalStreamError(nextState.error ?? `Stream event "${event.type}" could not be applied`);
+            }
+
+            // Only successfully applied application data proves recovery.
+            retryCount = 0;
+            currentState = nextState;
             if (isFirstMessage) {
                 isFirstMessage = false;
                 callbacks.onFirstData(currentState);
@@ -435,18 +508,22 @@ function startStreamConnection(
 
         onerror: (err) => {
             if (controller.signal.aborted) {
-                // Connection was intentionally aborted, don't retry
-                return;
+                // An intentional cleanup must terminate fetch-event-source's
+                // retry loop even if abort is reported through onerror.
+                throw err;
+            }
+
+            if (err instanceof FatalStreamError) {
+                reportTerminalError(err);
+                throw err;
             }
 
             retryCount++;
             if (retryCount > MAX_RETRIES) {
-                callbacks.onError(err instanceof Error ? err.message : String(err));
-                // Return undefined to stop retrying
-                return;
+                reportTerminalError(err);
+                throw err;
             }
 
-            // Return delay to retry
             const delay = getBackoffDelay(retryCount - 1);
             // eslint-disable-next-line no-console
             console.warn(`Stream connection failed, retrying in ${delay}ms (attempt ${retryCount}/${MAX_RETRIES})...`);
@@ -454,18 +531,22 @@ function startStreamConnection(
         },
 
         onclose: () => {
-            // Stream closed normally - could be server shutting down
-            // The library will attempt to reconnect
+            // StreamVariables are long-lived: a clean transport EOF without an
+            // explicit server event is still unexpected and must use the same
+            // bounded retry policy as other transient failures.
+            throw new RetriableStreamError('Stream closed unexpectedly');
         },
 
         // Use our request wrapper for auth headers
         // @ts-expect-error - fetch signature differs slightly but works
         fetch: request,
 
-        // Pass through extras (headers, etc.)
-        ...params.extras,
         // @ts-expect-error - Headers type doesn't match exactly
         headers: params.extras.headers,
+    }).catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+            reportTerminalError(error);
+        }
     });
 
     // Return cleanup function and controller
@@ -490,14 +571,12 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
         // Deserialize params from atom key
         const params = deserializeAtomParams(atomKey);
 
-        // Create a Promise that resolves when first data arrives.
+        // Create a Promise that resolves when the stream produces its initial data or terminal error state.
         // Following recoil-sync pattern: setSelf(promise) enables native Suspense.
         let resolveInitialData: ((state: StreamState) => void) | null = null;
-        let rejectInitialData: ((error: Error) => void) | null = null;
 
-        const initialDataPromise = new Promise<StreamState>((resolve, reject) => {
+        const initialDataPromise = new Promise<StreamState>((resolve) => {
             resolveInitialData = resolve;
-            rejectInitialData = reject;
         });
 
         // Set atom to the Promise - Recoil will handle Suspense natively
@@ -511,7 +590,6 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
                     if (resolveInitialData) {
                         resolveInitialData(state);
                         resolveInitialData = null;
-                        rejectInitialData = null;
                     }
                     // Also explicitly set the atom value to ensure Recoil sees the update
                     setSelf(state);
@@ -521,19 +599,20 @@ function streamConnectionEffect(atomKey: string): AtomEffect<StreamState> {
                     setSelf(state);
                 },
                 onError: (error) => {
-                    if (rejectInitialData) {
-                        // If we haven't received first data yet, reject the Promise
-                        rejectInitialData(new Error(error));
+                    const errorState: StreamState = {
+                        data: undefined,
+                        status: 'error',
+                        error,
+                    };
+
+                    if (resolveInitialData) {
+                        // Resolve Suspense with an explicit error state. The value selector
+                        // throws UserError without creating an unhandled rejected Promise.
+                        resolveInitialData(errorState);
                         resolveInitialData = null;
-                        rejectInitialData = null;
-                    } else {
-                        // Otherwise update the state with error
-                        setSelf({
-                            data: undefined,
-                            status: 'error',
-                            error,
-                        });
                     }
+
+                    setSelf(errorState);
                 },
             });
         };
@@ -734,9 +813,9 @@ export function getOrRegisterStreamVariable(
                         const value = get(valueSelector);
 
                         // Unwrap nested if needed
-                        return 'nested' in variable ?
-                                resolveNested(value as Record<string, unknown>, variable.nested)
-                            :   value;
+                        return 'nested' in variable
+                            ? resolveNested(value as Record<string, unknown>, variable.nested)
+                            : value;
                     },
             }) as SelectorFamily
         );

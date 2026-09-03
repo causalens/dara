@@ -45,7 +45,7 @@ function dagGraphParser(graph: SimulationGraph, tiers?: GraphTiers): MutGraph<Da
 
     const nodes: DagNodeData[] = graph.mapNodes((id: string, attributes: SimulationNode) => {
         const parentIds = graph.inboundNeighbors(id);
-        let nodeType = 'latent';
+        let nodeType: string | undefined = 'latent';
         let nodeOrder;
         let nodeRank;
 
@@ -59,7 +59,7 @@ function dagGraphParser(graph: SimulationGraph, tiers?: GraphTiers): MutGraph<Da
 
         return {
             ...attributes,
-            group: nodeType,
+            group: nodeType as string,
             ord: nodeOrder,
             parentIds,
             rank: nodeRank,
@@ -102,7 +102,7 @@ function customDecross(layers: SugiNode<{ ord?: number }, unknown>[][]): void {
             vals.set(node, val);
         });
 
-        layer.sort((a, b) => vals.get(a) - vals.get(b));
+        layer.sort((a, b) => vals.get(a)! - vals.get(b)!);
     });
 }
 
@@ -131,20 +131,20 @@ export default function compute(
 
     try {
         function groupAccessor(node: GraphNode<DagNodeData, any>): string {
-            return node.data.group;
+            return node.data.group!;
         }
 
         function rankAccessor(node: GraphNode<DagNodeData, any>): number {
-            return node.data.rank;
+            return node.data.rank!;
         }
 
         newDagLayout = sugiyama()
             .nodeSize(() => [layoutParams.nodeSize * 3, layoutParams.nodeSize * 6])
             .coord(coordQuad())
             .layering(
-                layoutParams.tiers ?
-                    layeringSimplex().group(groupAccessor).rank(rankAccessor)
-                :   getLayeringAlgorithm(layoutParams.layeringAlgorithm)
+                layoutParams.tiers
+                    ? layeringSimplex().group(groupAccessor).rank(rankAccessor)
+                    : getLayeringAlgorithm(layoutParams.layeringAlgorithm)
             )
             .decross(layoutParams.tiers ? customDecross : decrossTwoLayer());
 

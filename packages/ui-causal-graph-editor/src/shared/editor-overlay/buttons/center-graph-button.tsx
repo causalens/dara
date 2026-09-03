@@ -28,7 +28,7 @@ interface CenterGraphButtonProps {
 }
 
 function CenterGraphButton(props: CenterGraphButtonProps): JSX.Element {
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
     const theme = useTheme();
 
     return (

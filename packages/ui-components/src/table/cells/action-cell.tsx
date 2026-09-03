@@ -98,13 +98,13 @@ interface ActionCellProps {
  *
  * @param {ActionCellProps} props see interface for details
  */
-export function ActionCell(props: ActionCellProps): JSX.Element {
+export function ActionCell(props: ActionCellProps): JSX.Element | null | undefined {
     if (!props.column.actions) {
         throw new Error('Must pass an array of actions to the column def when using the ActionCell');
     }
     const onClick = (e: React.SyntheticEvent, actionId: string): void => {
         e.stopPropagation();
-        props.onAction?.(actionId, props.row.original);
+        void props.onAction?.(actionId, props.row.original);
     };
 
     // A single action cell should have the functionality of the action cell wherever you click on the cell

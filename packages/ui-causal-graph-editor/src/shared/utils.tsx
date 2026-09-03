@@ -65,10 +65,10 @@ export function willCreateCycle(graphOriginal: SimulationGraph, edge: [string, s
             return true;
         }
 
-        checkedNodes.add(currentNode);
+        checkedNodes.add(currentNode as string);
 
         // eslint-disable-next-line no-loop-func
-        graph.forEachEdge(currentNode, (_, edgeAttrs, source, target) => {
+        graph.forEachEdge(currentNode as string, (_, edgeAttrs, source, target) => {
             // only if it's an inbound directed edge, check the source node
             if (target === currentNode && edgeAttrs.edge_type === EdgeType.DIRECTED_EDGE) {
                 nodesToCheck.push(source);
@@ -224,7 +224,7 @@ export function getGroupToNodesMap(nodes: string[], group: string, graph: Simula
 
         // If it is not undefined at this point i.e. node group was found
         if (nodeGroup !== undefined) {
-            const groupKey = String(nodeGroup);
+            const groupKey = String(nodeGroup as unknown as string | number | boolean);
             // if group is not in tieredNodes add it, if it is add node to that tier
             if (groupKey in groupAccumulator) {
                 groupAccumulator[groupKey].push(node);
@@ -253,7 +253,7 @@ export function getNodeToGroupMap(nodes: string[], group: string, graph: Simulat
 
         // If the node group is found, map the node to its group
         if (nodeGroup !== undefined) {
-            const groupKey = String(nodeGroup);
+            const groupKey = String(nodeGroup as unknown as string | number | boolean);
             nodeToGroupMap[node] = groupKey;
         }
         return nodeToGroupMap;
@@ -277,7 +277,7 @@ export function getNodeOrder(nodes: string[], orderPath: string, graph: Simulati
 
         // If it is not undefined at this point i.e. node order was found
         if (nodeOrder !== undefined) {
-            const order = String(nodeOrder);
+            const order = String(nodeOrder as unknown as string | number | boolean);
             groupAccumulator[node] = order;
         }
         return groupAccumulator;

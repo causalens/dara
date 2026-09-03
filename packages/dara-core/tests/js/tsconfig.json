@@ -1,15 +1,19 @@
 {
   "extends": "../../tsconfig.json",
   "include": [
+    "../../dara/core/js_tooling/templates/vite.config.template.ts",
+    "../../js/**/*",
+    "./**/*.ts",
     "./**/*.tsx"
   ],
-  "exclude": [],
+  "exclude": ["../../dist/**", "../../js/**/*.template.tsx"],
   "compilerOptions": {
+    "composite": true,
+    "noEmit": true,
+    "preserveSymlinks": false,
     "rootDir": "../../",
-    "types": [
-      "vitest/globals",
-      "@testing-library/jest-dom"
-    ],
+    "tsBuildInfoFile": "../../../../node_modules/.cache/tsgo/dara-core-spec.tsbuildinfo",
+    "types": ["node", "vitest/globals", "@testing-library/jest-dom/vitest"],
     "skipLibCheck": true
   }
 }

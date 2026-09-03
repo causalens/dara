@@ -26,14 +26,14 @@ interface LayoutImpl {
     ): Promise<LayoutComputationResult> | LayoutComputationResult;
 }
 
-const IMPL_MAP: Record<string, LayoutImpl> = {
+const IMPL_MAP = {
     PlanarLayout: computePlanarLayout,
     FcoseLayout: computeFcoseLayout,
     ForceAtlasLayout: computeForceAtlasLayout,
     CircularLayout: computeCircularLayout,
     MarketingLayout: computeMarketingLayout,
     SpringLayout: computeSpringLayout,
-};
+} as const;
 
 /**
  * Callbacks returned by the layout computation to be invoked by requests
@@ -56,7 +56,7 @@ export async function applyLayout<TParams extends BaseLayoutParams>(
     const graph = new DirectedGraph<SimulationNode, SimulationEdge, SimulationAttributes>();
     graph.import(serializedGraph);
 
-    const impl = IMPL_MAP[layoutParams.layoutName];
+    const impl = (IMPL_MAP as unknown as Record<string, LayoutImpl>)[layoutParams.layoutName];
 
     if (!impl) {
         throw new Error(`Unknown layout: ${layoutParams.layoutName}`);
@@ -90,7 +90,7 @@ export async function applyLayout<TParams extends BaseLayoutParams>(
  */
 export async function invokeCallback<CbName extends keyof LayoutComputationCallbacks>(
     cbName: CbName,
-    ...args: Parameters<LayoutComputationCallbacks[CbName]>
+    ...args: Parameters<NonNullable<LayoutComputationCallbacks[CbName]>>
 ): Promise<void> {
     const cb = LAYOUT_CALLBACKS[cbName];
 

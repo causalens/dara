@@ -57,8 +57,8 @@ export interface AccordionProps {
 }
 
 function getInitialOpen(
-    initialItems: Array<number> | number,
-    value: Array<number> | number,
+    initialItems: Array<number> | number | undefined,
+    value: Array<number> | number | undefined,
     itemsArray: Array<AccordionItemType>
 ): Array<boolean> {
     if (value !== undefined) {
@@ -73,7 +73,7 @@ function getInitialOpen(
             return initialOpen.includes(index);
         });
     }
-    return new Array(itemsArray.length).fill(false);
+    return Array.from({ length: itemsArray.length }, () => false);
 }
 
 /**
@@ -95,7 +95,7 @@ function Accordion({
     value,
     id,
 }: AccordionProps): JSX.Element {
-    const [openItems, setOpenItems] = useState<boolean[]>(getInitialOpen(initialOpenItems, value, items));
+    const [openItems, setOpenItems] = useState<boolean[]>(getInitialOpen(initialOpenItems, value, items!));
 
     const onClick = useCallback(
         (index: number): void => {
@@ -117,7 +117,7 @@ function Accordion({
                 }
                 return acc;
             }, [] as number[]);
-            onChange?.([...chosenItems]);
+            void onChange?.([...chosenItems]);
             // uncontrolled component
             if (value === undefined) {
                 setOpenItems([...newOpenItems]);
@@ -127,13 +127,13 @@ function Accordion({
     );
 
     useEffect(() => {
-        setOpenItems(getInitialOpen(initialOpenItems, value, items));
+        setOpenItems(getInitialOpen(initialOpenItems, value, items!));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
     return (
         <AccordionWrapper className={className} id={id} style={style}>
-            {items.map((item, index) => (
+            {items!.map((item, index) => (
                 <AccordionItem
                     backgroundColor={backgroundColor}
                     headerRenderer={headerRenderer}

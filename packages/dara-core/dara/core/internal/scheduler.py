@@ -16,14 +16,30 @@ limitations under the License.
 """
 
 import time
+from collections.abc import Callable
 from datetime import datetime
 from multiprocessing import get_context
 from multiprocessing.process import BaseProcess
 from pickle import PicklingError
 from typing import Any, cast
+from weakref import WeakKeyDictionary
 
 from croniter import croniter
 from pydantic import BaseModel, field_validator
+
+from dara.core.telemetry import (
+    capture_telemetry_carrier,
+    initialize_process_telemetry,
+    observe_scheduled_job,
+    shutdown_telemetry,
+)
+
+_PROCESS_STOP_EVENTS: WeakKeyDictionary[BaseProcess, Any] = WeakKeyDictionary()
+
+
+def _callable_name(func: Callable) -> str:
+    """Return a stable module-qualified callable name."""
+    return f'{getattr(func, "__module__", "unknown")}.{getattr(func, "__qualname__", type(func).__name__)}'
 
 
 class ScheduledJob(BaseModel):
@@ -41,7 +57,7 @@ class ScheduledJob(BaseModel):
         """
         super().__init__(interval=interval, run_once=run_once, **kwargs)
 
-    def do(self, func, args=None) -> BaseProcess:
+    def do(self, func, args=None, *, _telemetry_name: str | None = None) -> BaseProcess:
         """
         Starts the scheduled job process and returns it to the caller. Process is daemonized,
         this ensures that it will be terminated by the parent process on parent exit.
@@ -53,8 +69,20 @@ class ScheduledJob(BaseModel):
             args = []
         try:
             ctx = get_context('spawn')
-            job_process = ctx.Process(target=self._refresh_timer, args=(func, args), daemon=True)
+            stop_event = ctx.Event()
+            job_process = ctx.Process(
+                target=self._refresh_timer,
+                args=(
+                    func,
+                    args,
+                    stop_event,
+                    capture_telemetry_carrier(),
+                    _telemetry_name or _callable_name(func),
+                ),
+                daemon=True,
+            )
             job_process.start()
+            _PROCESS_STOP_EVENTS[job_process] = stop_event
             return job_process
         except PicklingError as err:
             raise PicklingError(
@@ -65,20 +93,52 @@ class ScheduledJob(BaseModel):
             """
             ) from err
 
-    def _refresh_timer(self, func, args):
-        while self.continue_running and not (self.run_once and not self.first_execution):
-            interval: int
-            # If there's more than one interval to wait, i.e. this is a weekday process
-            if isinstance(self.interval, list):
-                # Wait the first interval if this is the first execution of the job
-                interval = self.interval[0] if self.first_execution else self.interval[1]
-            else:
-                interval = self.interval
+    def _refresh_timer(
+        self,
+        func,
+        args,
+        stop_event,
+        telemetry_context: dict[str, str] | None,
+        job_name: str,
+    ):
+        initialize_process_telemetry('scheduled_job')
+        try:
+            while (
+                not stop_event.is_set() and self.continue_running and not (self.run_once and not self.first_execution)
+            ):
+                interval: int
+                # If there's more than one interval to wait, i.e. this is a weekday process
+                if isinstance(self.interval, list):
+                    # Wait the first interval if this is the first execution of the job
+                    interval = self.interval[0] if self.first_execution else self.interval[1]
+                else:
+                    interval = self.interval
 
-            self.first_execution = False
-            # Wait the interval and then run the job
-            time.sleep(cast(int, interval))
-            func(*args)
+                self.first_execution = False
+                # Event-based waiting lets the application stop the daemon
+                # process cleanly and flush its telemetry.
+                if stop_event.wait(cast(int, interval)):
+                    break
+                with observe_scheduled_job(job_name, telemetry_context):
+                    func(*args)
+        finally:
+            shutdown_telemetry()
+
+
+def stop_scheduled_process(process: BaseProcess, timeout: float = 5) -> None:
+    """
+    Request graceful scheduled-process shutdown, then force termination on timeout.
+
+    :param process: process returned by :meth:`ScheduledJob.do`
+    :param timeout: maximum seconds to wait before terminating the process
+    """
+    stop_event = _PROCESS_STOP_EVENTS.pop(process, None)
+    if stop_event is not None:
+        stop_event.set()
+    process.join(timeout)
+    if process.is_alive():
+        process.terminate()
+        process.join(timeout)
 
 
 class CronScheduledJob(ScheduledJob):
@@ -94,7 +154,7 @@ class CronScheduledJob(ScheduledJob):
             raise ValueError('Must provide a valid cron schedule expression.')
         super().__init__(interval=0, run_once=False, crondef=crondef)
 
-    def do(self, func, args=None) -> BaseProcess:
+    def do(self, func, args=None, *, _telemetry_name: str | None = None) -> BaseProcess:
         """
         Starts the scheduled job process and returns it to the caller. Process is daemonized,
         this ensures that it will be terminated by the parent process on parent exit.
@@ -105,7 +165,11 @@ class CronScheduledJob(ScheduledJob):
         if args is None:
             args = []
         self._set_new_interval()
-        return super().do(self._execute_job_at_time, args=[func, args])
+        return super().do(
+            self._execute_job_at_time,
+            args=[func, args],
+            _telemetry_name=_telemetry_name or _callable_name(func),
+        )
 
     def _set_new_interval(self):
         cron = croniter(self.crondef)
@@ -135,7 +199,7 @@ class TimeScheduledJob(ScheduledJob):
         """
         super().__init__(interval=interval, job_time=datetime.strptime(job_time, '%H:%M'))
 
-    def do(self, func, args=None) -> BaseProcess:
+    def do(self, func, args=None, *, _telemetry_name: str | None = None) -> BaseProcess:
         """
         Starts the scheduled job process and returns it to the caller. Process is daemonized,
         this ensures that it will be terminated by the parent process on parent exit.
@@ -145,7 +209,11 @@ class TimeScheduledJob(ScheduledJob):
         """
         if args is None:
             args = []
-        return super().do(self._execute_job_at_time, args=[func, args])
+        return super().do(
+            self._execute_job_at_time,
+            args=[func, args],
+            _telemetry_name=_telemetry_name or _callable_name(func),
+        )
 
     def _execute_job_at_time(self, func, args):
         job_executed = False

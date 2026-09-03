@@ -38,7 +38,7 @@ interface ListSpanProps {
     isSelected?: boolean;
 }
 
-const getTextColor = (heading: boolean, isSelected: boolean, theme: DefaultTheme): string => {
+const getTextColor = (heading: boolean | undefined, isSelected: boolean | undefined, theme: DefaultTheme): string => {
     if (heading) {
         return theme.colors.text;
     }
@@ -59,9 +59,9 @@ const ListItemSpan = styled(StyledListItem)<ListSpanProps>`
     padding: ${(props) => (props?.heading || !props.section ? '0 0.7rem' : '0 1.5rem')};
     padding-right: 0.7rem;
 
+    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
     font-weight: ${(props) => (props?.heading ? 'bold' : 'normal')};
     color: ${(props) => getTextColor(props?.heading, props.isSelected, props.theme)};
-    font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
 
     ${(props) => {
         if (props.heading) {
@@ -111,7 +111,7 @@ export interface SectionedListProps extends InteractiveComponentProps<Item> {
     /** An optional onSelect handler for listening to changes in the selected item */
     onSelect?: (item: ListItem) => void | Promise<void>;
     /** Put the component in controlled mode and pass in the selectedItem */
-    selectedItem?: ListItem | Item;
+    selectedItem?: ListItem | Item | null;
     /** An optional placeholder for the input field to display when nothing is selected, defaults to '' */
     placeholder?: string;
     /** Pass through of style property to the root element */
@@ -142,6 +142,9 @@ const SectionedListItem = ({
     if (item.heading) {
         delete itemProps.onClick;
     }
+    // Empty CSS values have historically selected the theme default.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    const badgeColor = item.badge?.color || theme.colors.primary;
 
     return (
         <ListItemSpan
@@ -156,7 +159,7 @@ const SectionedListItem = ({
             isHighlighted={isHighlighted}
         >
             {item.label || item.section}
-            {item.badge && <Badge color={item.badge.color || theme.colors.primary}>{item.badge.label}</Badge>}
+            {item.badge && <Badge color={badgeColor}>{item.badge.label}</Badge>}
         </ListItemSpan>
     );
 };
@@ -170,12 +173,12 @@ const SectionedListItem = ({
 function SectionedList(props: SectionedListProps): JSX.Element {
     const unpackedItems = useMemo(() => unpackSectionedList(props.items), [props.items]);
 
-    const [pendingHighlight, setPendingHighlight] = useState(null);
+    const [pendingHighlight, setPendingHighlight] = useState<number | null>(null);
     const [items, setItems] = useState(unpackedItems);
     const [inputValue, setInputValue] = useState(
-        props.selectedItem?.label && props.selectedItem.label !== 'null' ?
-            props.selectedItem.label
-        :   props.placeholder ?? ''
+        props.selectedItem?.label && props.selectedItem.label !== 'null'
+            ? props.selectedItem.label
+            : (props.placeholder ?? '')
     );
 
     const [kbdHighlightIdx, setKbdHighlightIdx] = React.useState<number | undefined>();
@@ -187,10 +190,10 @@ function SectionedList(props: SectionedListProps): JSX.Element {
         getToggleButtonProps,
         getItemProps,
         setHighlightedIndex,
-    } = useCombobox<Item>({
+    } = useCombobox<ListItem>({
         initialIsOpen: false,
         initialSelectedItem: props.initialValue ?? props.selectedItem,
-        itemToString: (item: Item) => (item ? item.label : ''),
+        itemToString: (item) => (item ? item.label : ''),
         items,
         onInputValueChange: (change) => {
             const shouldUpdateInput = (
@@ -198,7 +201,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ).includes(change.type);
 
             if (shouldUpdateInput) {
-                setInputValue(change.inputValue);
+                setInputValue(change.inputValue as string);
             }
 
             if (!change.inputValue) {
@@ -208,7 +211,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
 
             const counts: { [k: string]: number } = {};
             const filteredItems = unpackedItems.filter((item: ListItem) => {
-                const lowercaseInput = change.inputValue.toLowerCase();
+                const lowercaseInput = change.inputValue!.toLowerCase();
                 const lowercaseLabel = item.label.toLowerCase();
 
                 // Check if search input matches section item
@@ -219,7 +222,7 @@ function SectionedList(props: SectionedListProps): JSX.Element {
 
                 if (item.heading) {
                     // search for section headers that contain an item that matches the input
-                    const listSections = props.items.filter((propItem: ListSection) =>
+                    const listSections = (props.items as ListSection[]).filter((propItem) =>
                         propItem.items.find((subItem) => subItem.label.toLowerCase().includes(lowercaseInput))
                     );
 
@@ -243,12 +246,12 @@ function SectionedList(props: SectionedListProps): JSX.Element {
                     (props.selectedItem && changes.selectedItem?.value !== props.selectedItem?.value) ||
                     !props.selectedItem
                 ) {
-                    props.onSelect(changes.selectedItem);
+                    void props.onSelect(changes.selectedItem as ListItem);
                 }
             }
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
-        stateReducer: (state, { changes, type }): Partial<UseComboboxState<Item>> => {
+        stateReducer: (state, { changes, type }): Partial<UseComboboxState<ListItem>> => {
             // When props is forcefully updated then clear the input as well
             if (type === stateChangeTypes.ControlledPropUpdatedSelectedItem) {
                 return {
@@ -264,9 +267,9 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ) {
                 // This is a hack to change the highlight in the next render cycle so filteredItems had time to update
                 setPendingHighlight(
-                    changes.selectedItem ?
-                        props.items.findIndex((i: ListItem) => i.value === changes.selectedItem.value)
-                    :   0
+                    changes.selectedItem
+                        ? (props.items as ListItem[]).findIndex((i) => i.value === changes.selectedItem!.value)
+                        : 0
                 );
                 return {
                     ...changes,
@@ -288,21 +291,22 @@ function SectionedList(props: SectionedListProps): JSX.Element {
             ) {
                 return {
                     ...changes,
-                    inputValue: changes.selectedItem?.label || '',
+                    inputValue: changes.selectedItem?.label ?? '',
                 };
             }
             // jump section headings when navigating with keys
-            if (type === stateChangeTypes.InputKeyDownArrowUp && items[changes.highlightedIndex]?.heading) {
+            if (type === stateChangeTypes.InputKeyDownArrowUp && items[changes.highlightedIndex!]?.heading) {
                 return {
                     ...changes,
                     highlightedIndex:
-                        changes.highlightedIndex - 1 < 0 ? items.length - 1 : changes.highlightedIndex - 1,
+                        changes.highlightedIndex! - 1 < 0 ? items.length - 1 : changes.highlightedIndex! - 1,
                 };
             }
-            if (type === stateChangeTypes.InputKeyDownArrowDown && items[changes.highlightedIndex]?.heading) {
+            if (type === stateChangeTypes.InputKeyDownArrowDown && items[changes.highlightedIndex!]?.heading) {
                 return {
                     ...changes,
-                    highlightedIndex: changes.highlightedIndex + 1 === items.length ? 0 : changes.highlightedIndex + 1,
+                    highlightedIndex:
+                        changes.highlightedIndex! + 1 === items.length ? 0 : changes.highlightedIndex! + 1,
                 };
             }
             return changes;
@@ -360,15 +364,19 @@ function SectionedList(props: SectionedListProps): JSX.Element {
     return (
         <Wrapper
             className={props.className}
-            isDisabled={props.disabled}
+            isDisabled={props.disabled as boolean}
             isErrored={false}
             isOpen={isOpen}
             style={props.style}
             id={props.id}
         >
-            <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
+            <InputWrapper disabled={props.disabled as boolean} isOpen={isOpen} ref={refs.setReference}>
                 <Input {...getInputProps({ value: inputValue })} {...getReferenceProps()} size={props.size} />
-                <ChevronButton disabled={props.disabled} isOpen={isOpen} getToggleButtonProps={getToggleButtonProps} />
+                <ChevronButton
+                    disabled={props.disabled as boolean}
+                    isOpen={isOpen}
+                    getToggleButtonProps={getToggleButtonProps}
+                />
             </InputWrapper>
             {ReactDOM.createPortal(
                 <DropdownList

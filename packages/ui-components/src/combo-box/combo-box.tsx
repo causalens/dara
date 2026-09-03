@@ -43,7 +43,6 @@ export const Wrapper = styled.div<WrapperProps>`
     width: 100%;
     min-width: 4rem;
     height: 2.5rem;
-
     border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0px 0px' : '0.25rem')};
 
     ${(props) => {
@@ -85,12 +84,12 @@ export const InputWrapper = styled.div<InputWrapperProps>`
     width: calc(100% - 1rem);
     height: 100%;
     padding: 0 0.25rem 0 1rem;
+    border: none;
+    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0px 0px' : '0.25rem')};
 
     color: ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.text)};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: none;
-    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0px 0px' : '0.25rem')};
 
     :hover {
         background-color: ${(props) => (props.disabled ? props.theme.colors.grey1 : props.theme.colors.grey2)};
@@ -108,6 +107,7 @@ export const Input = styled.input<{ size?: number }>`
     height: 100%;
     margin-right: 0.5rem;
     padding: 0;
+    border: none;
 
     font-size: ${(props) => (props.size ? `${props.size}rem` : props.theme.font.size)};
     font-weight: 300;
@@ -117,7 +117,6 @@ export const Input = styled.input<{ size?: number }>`
     white-space: nowrap;
 
     background-color: transparent;
-    border: none;
     outline: 0;
 
     :disabled {
@@ -138,7 +137,7 @@ export interface ComboBoxProps extends InteractiveComponentProps<Item> {
     /** An optional placeholder for the input field to display when nothing is selected, defaults to '' */
     placeholder?: string;
     /** Set the selected value to a specific value, will put the component in controlled mode. Set to `null` to reset the value. */
-    selectedItem?: Item;
+    selectedItem?: Item | null;
     /** Font size in rem to show in the Select */
     size?: number;
     /** Pass through of style property to the root element */
@@ -153,7 +152,7 @@ export interface ComboBoxProps extends InteractiveComponentProps<Item> {
  */
 function ComboBox(props: ComboBoxProps): JSX.Element {
     const [inputValue, setInputValue] = useState(props.initialValue?.label ?? props.selectedItem?.label ?? '');
-    const [pendingHighlight, setPendingHighlight] = useState(null);
+    const [pendingHighlight, setPendingHighlight] = useState<number | null>(null);
 
     const filteredItems = useMemo(
         () =>
@@ -178,7 +177,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
         itemToString: (item) => (item ? item.label : ''),
         items: filteredItems,
         onInputValueChange: (change) => {
-            setInputValue(change.inputValue);
+            setInputValue(change.inputValue as string);
         },
         onSelectedItemChange: (changes) => {
             if (props.onSelect) {
@@ -186,7 +185,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                     (props.selectedItem && changes.selectedItem?.value !== props.selectedItem?.value) ||
                     !props.selectedItem
                 ) {
-                    props.onSelect(changes.selectedItem);
+                    void props.onSelect(changes.selectedItem as Item);
                 }
             }
         },
@@ -200,7 +199,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
             ) {
                 // This is a hack to change the highlight in the next render cycle so filteredItems had time to update
                 setPendingHighlight(
-                    changes.selectedItem ? props.items.findIndex((i) => i.value === changes.selectedItem.value) : 0
+                    changes.selectedItem ? props.items.findIndex((i) => i.value === changes.selectedItem!.value) : 0
                 );
                 return {
                     ...changes,
@@ -221,7 +220,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
             ) {
                 return {
                     ...changes,
-                    inputValue: changes.selectedItem?.label || '',
+                    inputValue: changes.selectedItem?.label ?? '',
                 };
             }
 
@@ -277,13 +276,13 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
             <Wrapper
                 className={props.className}
-                isDisabled={props.disabled}
+                isDisabled={props.disabled as boolean}
                 isErrored={!!props.errorMsg}
                 isOpen={isOpen}
                 style={props.style}
                 id={props.id}
             >
-                <InputWrapper disabled={props.disabled} isOpen={isOpen} ref={refs.setReference}>
+                <InputWrapper disabled={props.disabled as boolean} isOpen={isOpen} ref={refs.setReference}>
                     <Input
                         {...inputProps}
                         {...inputHandlers}
@@ -293,7 +292,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                         size={props.size}
                     />
                     <ChevronButton
-                        disabled={props.disabled}
+                        disabled={props.disabled as boolean}
                         isOpen={isOpen}
                         getToggleButtonProps={getToggleButtonProps}
                     />
@@ -308,7 +307,7 @@ function ComboBox(props: ComboBoxProps): JSX.Element {
                         getMenuProps={getMenuProps}
                         size={props.size}
                         ref={refs.setFloating}
-                        selectedItem={selectedItem}
+                        selectedItem={selectedItem as Item}
                         kbdHighlightIdx={kbdHighlightIdx}
                     />,
                     document.body

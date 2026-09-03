@@ -4,6 +4,7 @@ export default defineConfig({
     video: false,
     screenshotOnRunFailure: false,
     defaultCommandTimeout: 20000,
+    allowCypressEnv: false,
     e2e: {
         baseUrl: 'http://localhost:8000',
         specPattern: 'cypress/integration/**/*.ts',

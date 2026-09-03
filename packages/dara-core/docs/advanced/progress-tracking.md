@@ -17,6 +17,7 @@ First, wrap your task in the `@track_progress` decorator:
 ```python title=my_app/tasks.py
 from dara.core.visual.progress_updater import ProgressUpdater, track_progress
 
+
 # track_progress decorator injects the ProgressUpdater class instance into the task parameters
 # so you must add this to the end of your argument list
 @track_progress
@@ -43,18 +44,17 @@ from my_app.tasks import task_function
 var = Variable(5)
 calculation = DerivedVariable(func=task_function, variables=[var], run_as_task=True)
 
+
 # Specify that the placeholder component for the py_component should be ProgressTracker
 @py_component(track_progress=True)
 def show_computation_result(some_value):
     return Text(some_value)
 
+
 # Show a simple page that let's you run the computation and show the result
 config.router.add_page(
     path='track-computation',
-    content=Stack(
-        Button("Compute", onclick=calculation.trigger()),
-        show_computation_result(calculation)
-    )
+    content=Stack(Button('Compute', onclick=calculation.trigger()), show_computation_result(calculation)),
 )
 
 config.task_module = 'my_app.tasks'
@@ -73,10 +73,7 @@ calculation = DerivedVariable(func=task_function, variables=[var], run_as_task=T
 # Show a simple page that let's you run the computation and show the result
 config.router.add_page(
     path='track-computation',
-    content=Stack(
-        Button("Compute", onclick=calculation.trigger()),
-        Text(calculation, track_progress=True)
-    )
+    content=Stack(Button('Compute', onclick=calculation.trigger()), Text(calculation, track_progress=True)),
 )
 
 config.task_module = 'my_app.tasks'
@@ -101,6 +98,7 @@ If another progress update is sent after the faking process began, the faking pr
 ```python title=my_app/tasks.py
 from dara.core.visual.progress_updater import ProgressUpdater, track_progress
 
+
 @track_progress
 def task_function(some_argument: int, updater: ProgressUpdater):
     result = 0
@@ -113,11 +111,7 @@ def task_function(some_argument: int, updater: ProgressUpdater):
 
     # Fake progress from current progress until 80%, estimating it will take 5 seconds
     # In the meantime, show provided message
-    updater.fake_progress(
-        progress_end=80,
-        message='Running third party computation',
-        estimated_time=5000
-    )
+    updater.fake_progress(progress_end=80, message='Running third party computation', estimated_time=5000)
 
     # Some third party computation
     result = third_party_library.compute(result)
@@ -146,6 +140,7 @@ from .tasks import task_function
 # variable displaying the current status of the task
 status = Variable('Not started')
 
+
 @action
 async def run_my_task(ctx: ActionCtx):
     # whenever a status update is sent from the task, update the status message
@@ -161,6 +156,7 @@ async def run_my_task(ctx: ActionCtx):
         await ctx.update(status, f'Result: {result}')
     except Exception as e:
         await ctx.update(status, f'Error: {e}')
+
 
 Button('Run Task', onclick=run_my_task())
 ```

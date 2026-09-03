@@ -23,23 +23,23 @@ export const CardDiv = injectCss(styled.div<BaseCardProps>`
 
     width: 100%;
     padding: 1.5rem;
+    border-radius: 1rem;
 
     color: ${(props) => props.theme.colors.text};
 
     background: ${(props) =>
-        props.accent ?
-            `radial-gradient(circle closest-corner at 50% 40%, ${transparentize(
-                0.9,
-                props.theme.colors.background
-            )} 0%, ${transparentize(
-                0.8,
-                props.theme.colors.blue4
-            )} 70%),radial-gradient(circle closest-corner at 20% 150%, ${transparentize(
-                0.8,
-                props.theme.colors.error
-            )} 0%, ${transparentize(0.2, props.theme.colors.blue4)} 230%)`
-        :   props.theme.colors.blue1};
-    border-radius: 1rem;
+        props.accent
+            ? `radial-gradient(circle closest-corner at 50% 40%, ${transparentize(
+                  0.9,
+                  props.theme.colors.background
+              )} 0%, ${transparentize(
+                  0.8,
+                  props.theme.colors.blue4
+              )} 70%),radial-gradient(circle closest-corner at 20% 150%, ${transparentize(
+                  0.8,
+                  props.theme.colors.error
+              )} 0%, ${transparentize(0.2, props.theme.colors.blue4)} 230%)`
+            : props.theme.colors.blue1};
     box-shadow: ${(props) => props.theme.shadow.medium};
 `);
 

@@ -41,4 +41,4 @@ for symbol in list(globals().values()):
     except Exception as e:
         from dara.core.logging import dev_logger
 
-        dev_logger.warning(f'Error rebuilding model "{symbol}": {e}')
+        dev_logger.warning('Error rebuilding model', {'symbol': symbol, 'error_type': type(e).__name__})

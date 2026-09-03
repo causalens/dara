@@ -163,7 +163,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         }
 
         // Handle dash styles in resolver modes
-        let dash: number = null;
+        let dash: number | null = null;
         let gapScale = 1;
 
         if (EditorMode.RESOLVER === edgeStyle.editorMode) {
@@ -190,7 +190,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
 
         // Get/create edge line texture
         const edgeLineTexture = textureCache.get(
-            createKey(EDGE_LINE_SPRITE, dash, gapScale),
+            createKey(EDGE_LINE_SPRITE, dash as number, gapScale),
             () => {
                 const gfx = new PIXI.Graphics();
 
@@ -222,7 +222,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
             edgeLineSprite.height = edgeGfx.height;
         }
 
-        [edgeLineSprite.tint] = colorToPixi(edgeStyle.color);
+        [edgeLineSprite.tint] = colorToPixi(edgeStyle.color!);
 
         // Add opacity in default state
         if (edgeStyle.state.hover || edgeStyle.state.selected) {
@@ -270,10 +270,17 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         // Top
         const edgeTopSymbol = edgeSymbolsGfx.getChildByName(EDGE_TOP_SYMBOL) as PIXI.Sprite;
 
-        const [tint] = colorToPixi(edgeStyle.color);
+        const [tint] = colorToPixi(edgeStyle.color!);
         const [bgTint] = colorToPixi(edgeStyle.theme.colors.blue1);
         const topSymbolTexture = textureCache.get(
-            createKey(EDGE_TOP_SYMBOL, edgeStyle.editorMode, edgeStyle.type, tint, bgTint, edgeStyle.constraint?.type),
+            createKey(
+                EDGE_TOP_SYMBOL,
+                edgeStyle.editorMode,
+                edgeStyle.type,
+                tint,
+                bgTint,
+                edgeStyle.constraint?.type as string
+            ),
             () => createSideSymbol(edgeStyle, 'top', tint, bgTint),
             1
         );
@@ -286,11 +293,11 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         const edgeCenterSymbol = edgeSymbolsGfx.getChildByName(EDGE_CENTER_SYMBOL) as PIXI.Sprite;
 
         const centerSymbolTexture = textureCache.get(
-            createKey(EDGE_CENTER_SYMBOL, edgeStyle.editorMode, edgeStyle.type, edgeStyle.constraint?.type),
+            createKey(EDGE_CENTER_SYMBOL, edgeStyle.editorMode, edgeStyle.type, edgeStyle.constraint?.type as string),
             () => createCenterSymbol(edgeStyle)
         );
         edgeCenterSymbol.texture = centerSymbolTexture;
-        [edgeCenterSymbol.tint] = colorToPixi(edgeStyle.color);
+        [edgeCenterSymbol.tint] = colorToPixi(edgeStyle.color!);
         edgeCenterSymbol.alpha = 1;
 
         // Question mark should be un-rotated (always vertical)
@@ -308,7 +315,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
                 edgeStyle.type,
                 tint,
                 bgTint,
-                edgeStyle.constraint?.type
+                edgeStyle.constraint?.type as string
             ),
             () => createSideSymbol(edgeStyle, 'bottom', tint, bgTint),
             1
@@ -320,18 +327,19 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         // Strength symbols
         const edgeStrengthSymbol = edgeSymbolsGfx.getChildByName(EDGE_STRENGTH_SYMBOL) as PIXI.Sprite;
 
-        const strengthSymbolTexture = textureCache.get(createKey(EDGE_STRENGTH_SYMBOL, edgeStyle.strength?.dots), () =>
-            createStrengthSymbol(edgeStyle.strength?.dots)
+        const strengthSymbolTexture = textureCache.get(
+            createKey(EDGE_STRENGTH_SYMBOL, edgeStyle.strength?.dots as number),
+            () => createStrengthSymbol(edgeStyle.strength?.dots as number)
         );
         edgeStrengthSymbol.texture = strengthSymbolTexture;
         edgeStrengthSymbol.position.y = edgeTopSymbol.position.y - 5; // leave gap from arrow
-        [edgeStrengthSymbol.tint] = colorToPixi(edgeStyle.color);
+        [edgeStrengthSymbol.tint] = colorToPixi(edgeStyle.color!);
         edgeStrengthSymbol.alpha = 1;
 
         // Number symbols
         const edgeNumberSymbol = edgeSymbolsGfx.getChildByName(EDGE_NUMBER_SYMBOL) as PIXI.Sprite;
         const numberSymbolTexture = textureCache.get(
-            createKey(EDGE_NUMBER_SYMBOL, edgeStyle.collapsedEdgesCount),
+            createKey(EDGE_NUMBER_SYMBOL, edgeStyle.collapsedEdgesCount as number),
             () => {
                 if (edgeStyle.collapsedEdgesCount === undefined) {
                     return new PIXI.Graphics();
@@ -340,7 +348,7 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
                 const textStyle = new PIXI.TextStyle({
                     fontFamily: 'Manrope',
                     fontSize: 18,
-                    fill: colorToPixi(edgeStyle.color),
+                    fill: colorToPixi(edgeStyle.color!),
                 });
                 const text = new PIXI.Text({ text: edgeStyle.collapsedEdgesCount, style: textStyle });
                 return text;
@@ -351,13 +359,11 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         edgeNumberSymbol.position.y = edgeTopSymbol.position.y - 30;
         // Depending on the edge rotation, we need to rotate the number symbol so that they appear upright to the user
         edgeNumberSymbol.rotation =
-            (
-                (edgeGfx.rotation <= Math.PI / 2 && edgeGfx.rotation > 0) ||
-                (edgeGfx.rotation >= (-3 * Math.PI) / 2 && edgeGfx.rotation < -Math.PI)
-            ) ?
-                -Math.PI / 2
-            :   Math.PI / 2;
-        [edgeStrengthSymbol.tint] = colorToPixi(edgeStyle.color);
+            (edgeGfx.rotation <= Math.PI / 2 && edgeGfx.rotation > 0) ||
+            (edgeGfx.rotation >= (-3 * Math.PI) / 2 && edgeGfx.rotation < -Math.PI)
+                ? -Math.PI / 2
+                : Math.PI / 2;
+        [edgeStrengthSymbol.tint] = colorToPixi(edgeStyle.color!);
         edgeNumberSymbol.alpha = 1;
 
         // If selection is active but the edge itself is not selected, adjust opacity
@@ -393,10 +399,9 @@ export class EdgeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
             [shadowFilter.color, shadowFilter.alpha] = colorToPixi('rgba(0, 0, 0, 0.5)');
             edgeGfx.filters = [shadowFilter];
         }
-        const dropShadow =
-            Array.isArray(edgeGfx.filters) ?
-                (edgeGfx.filters[0] as PIXI.filters.DropShadowFilter)
-            :   (edgeGfx.filters as PIXI.filters.DropShadowFilter);
+        const dropShadow = Array.isArray(edgeGfx.filters)
+            ? (edgeGfx.filters[0] as PIXI.filters.DropShadowFilter)
+            : (edgeGfx.filters as PIXI.filters.DropShadowFilter);
 
         // Only show at high zoom and when hovered
         dropShadow.enabled = state.hover && zoomState.shadow;

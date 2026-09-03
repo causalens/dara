@@ -353,6 +353,8 @@ You can read more about virtual environments [on the `venv` package documentatio
 :::tip
 The `--reload` flag here will cause it to automatically reload the backend and UI whenever any changes are made and saved.
 
+When authentication is enabled, `--reload` also uses file-backed auth sessions by default so code reloads do not force you to log in again during local development. See [Auth Session Storage](../advanced/authentication#auth-session-storage) for details.
+
 By default it will infer and watch the parent directory of the module containing your `config` variable.
 This can be overriden using the `--reload-dir` flag which can be used multiple times to watch multiple specified directories
 instead of the default one.

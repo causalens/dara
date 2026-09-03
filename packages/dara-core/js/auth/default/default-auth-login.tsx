@@ -22,18 +22,18 @@ function DefaultAuthLogin(): JSX.Element {
         const sessionCreated = await requestSessionToken({});
         // in default auth this always succeeds
         if (sessionCreated) {
-            navigate(previousLocation);
+            void navigate(previousLocation);
         }
     }
 
     useEffect(() => {
         // If we landed on this page with a valid session already, redirect.
         // Otherwise, request a new session token.
-        verifySessionToken().then((verificationResult) => {
+        void verifySessionToken().then((verificationResult) => {
             if (verificationResult === 'verified') {
-                navigate(previousLocation, { replace: true });
+                void navigate(previousLocation, { replace: true });
             } else if (verificationResult === 'login_required') {
-                getNewToken();
+                void getNewToken();
             }
         });
     }, []);

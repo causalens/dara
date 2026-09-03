@@ -2,7 +2,6 @@ import { loginBeforeRoute } from '../support/utils';
 
 function visitViaSidebar(page: string): void {
     cy.contains('a', page).click();
-    cy.waitFor('url:changed');
     cy.url().should((url) => expect(url).to.contain(page));
 }
 

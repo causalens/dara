@@ -29,14 +29,14 @@ import { FloatingButton } from '../floating-elements';
 
 interface DragModeButtonProps {
     /** Current drag mode */
-    dragMode: DragMode;
+    dragMode: DragMode | null;
     /** Handler to update drag mode */
-    setDragMode: Dispatch<SetStateAction<DragMode>>;
+    setDragMode: Dispatch<SetStateAction<DragMode | null>>;
 }
 
 function DragModeButton(props: DragModeButtonProps): JSX.Element {
     const { editable, disableEdgeAdd, allowNodeDrag } = useSettings();
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
     const theme = useTheme();
 
     const isMoveNode = props.dragMode === 'move_node';

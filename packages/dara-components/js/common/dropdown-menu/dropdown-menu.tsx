@@ -61,7 +61,7 @@ function DropdownMenu(props: DropdownMenuProps): JSX.Element {
         (_item: MenuItem, index: [number, number]) => {
             // look up the server-side item and call the action, we don't want to send the react components
             const serverItem = serverMenuItems[index[0]]![index[1]];
-            onClickAction(serverItem);
+            void onClickAction(serverItem);
         },
         [onClickAction, serverMenuItems]
     );

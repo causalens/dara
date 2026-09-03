@@ -27,7 +27,7 @@ export interface DimensionObject {
     y: number;
 }
 
-export type UseDimensionsHook<T extends HTMLElement> = [(node: T) => void, { [k: string]: number }, T];
+export type UseDimensionsHook<T extends HTMLElement> = [(node: T | null) => void, { [k: string]: number }, T | null];
 
 /**
  * The useDimensions hook allows for a component to track the dimensions of a given element by passing the returned ref
@@ -37,9 +37,9 @@ export type UseDimensionsHook<T extends HTMLElement> = [(node: T) => void, { [k:
  */
 function useDimensions<T extends HTMLElement>(liveMeasure = true): UseDimensionsHook<T> {
     const [dimensions, setDimensions] = useState({});
-    const [node, setNode] = useState<T>(null);
+    const [node, setNode] = useState<T | null>(null);
 
-    const ref = useCallback((_node: T) => {
+    const ref = useCallback((_node: T | null) => {
         setNode(_node);
     }, []);
 

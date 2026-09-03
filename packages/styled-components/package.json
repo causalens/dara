@@ -1,28 +1,29 @@
 {
   "name": "@darajs/styled-components",
-  "version": "1.28.6",
+  "version": "1.29.8",
   "description": "CL wrapper around styled components so everything gets the same instance",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
     "prepare-dev": "tsc",
-    "lint": "eslint src --ext .tsx --max-warnings 0 && stylelint './src/**/*.tsx'",
-    "format": "prettier src --write",
-    "format:check": "prettier src --check",
-    "lint:fix": "eslint src --ext .tsx --max-warnings 0 --fix && stylelint './src/**/*.tsx' --fix"
+    "lint": "oxlint --type-aware --type-check src && stylelint './src/**/*.tsx'",
+    "format": "oxfmt src --write",
+    "format:check": "oxfmt src --check",
+    "lint:fix": "oxlint --type-aware --type-check --fix src && stylelint './src/**/*.tsx' --fix"
   },
-  "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@darajs/eslint-config": "1.28.6",
-    "@darajs/prettier-config": "1.28.6",
-    "@darajs/stylelint-config": "1.28.6",
+    "@darajs/oxfmt-config": "1.29.8",
+    "@darajs/oxlint-config": "1.29.8",
+    "@darajs/stylelint-config": "1.29.8",
     "@types/styled-components": "^5.1.26",
-    "eslint": "^8.57.1",
-    "prettier": "^3.0.0",
+    "@typescript/native": "npm:typescript@^7.0.0",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "rimraf": "^3.0.2",
-    "stylelint": "^15.0.0",
-    "typescript": "^5.8.2"
+    "stylelint": "^17.14.1",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "dependencies": {
     "polished": "^4.1.1",
@@ -32,7 +33,8 @@
     "dist"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "timeout": 60000
   },
   "repository": {
     "type": "git",

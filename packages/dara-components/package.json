@@ -1,6 +1,6 @@
 {
   "name": "@darajs/components",
-  "version": "1.28.6",
+  "version": "1.29.8",
   "description": "Components for the Dara framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -8,12 +8,13 @@
   "scripts": {
     "build": "rimraf dist && vite build && tsc && cp js/index.css dist/ && cp -R dist/umd/. dara/components/_assets/auto_js/",
     "prepare-dev": "tsc && cp js/index.css dist/",
-    "lint": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 && stylelint './js/**/*.tsx'",
-    "format": "prettier js --write --list-different",
-    "format:check": "prettier js --check",
-    "lint:fix": "tsc --noemit && eslint js --ext .tsx --max-warnings 0 --fix && stylelint --fix './js/**/*.tsx'",
+    "lint": "oxlint --type-aware --type-check js && stylelint './js/**/*.tsx'",
+    "format": "oxfmt js --write",
+    "format:check": "oxfmt js --check",
+    "lint:fix": "oxlint --type-aware --type-check --fix js && stylelint --fix './js/**/*.tsx'",
+    "test": "vitest --run",
     "package": "yarn build && yarn publish --no-git-tag-version",
-    "test-watch": "jest --watch"
+    "test-watch": "vitest"
   },
   "author": "Sam Smith <sam@causalens.com>",
   "homepage": "https://dara.causalens.com/",
@@ -27,24 +28,28 @@
     "Krzysztof Bielikowicz <krzysztof@causalens.com>"
   ],
   "license": "Apache-2.0",
-  "prettier": "@darajs/prettier-config",
   "devDependencies": {
-    "@darajs/eslint-config": "1.28.6",
-    "@darajs/prettier-config": "1.28.6",
-    "@darajs/stylelint-config": "1.28.6",
+    "@darajs/oxfmt-config": "1.29.8",
+    "@darajs/oxlint-config": "1.29.8",
+    "@darajs/stylelint-config": "1.29.8",
     "@types/lodash": "^4.14.155",
+    "@types/node": "^24.0.0",
     "@types/prop-types": "^15.7.15",
     "@types/react": "18.2.60",
     "@types/react-dom": "^18.2.4",
     "@types/react-plotly.js": "~2.6.0",
     "@types/react-virtualized-auto-sizer": "1.0.4",
     "@types/styled-components": "^5.1.0",
-    "@vitejs/plugin-react": "4.6.0",
-    "prettier": "^3.0.0",
+    "@typescript/native": "npm:typescript@^7.0.0",
+    "@vitejs/plugin-react": "6.0.4",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "rimraf": "^3.0.2",
-    "stylelint": "^15.0.0",
-    "typescript": "^5.0.4",
-    "vite": "7.3.2"
+    "stylelint": "^17.14.1",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vite": "8.1.5",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@bokeh/bokehjs": "~3.1.1",
@@ -60,13 +65,13 @@
     "@codemirror/state": "^6.0.0",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.0.0",
-    "@darajs/core": "1.28.6",
-    "@darajs/styled-components": "1.28.6",
-    "@darajs/ui-causal-graph-editor": "1.28.6",
-    "@darajs/ui-components": "1.28.6",
-    "@darajs/ui-hierarchy-viewer": "1.28.6",
-    "@darajs/ui-icons": "1.28.6",
-    "@darajs/ui-utils": "1.28.6",
+    "@darajs/core": "1.29.8",
+    "@darajs/styled-components": "1.29.8",
+    "@darajs/ui-causal-graph-editor": "1.29.8",
+    "@darajs/ui-components": "1.29.8",
+    "@darajs/ui-hierarchy-viewer": "1.29.8",
+    "@darajs/ui-icons": "1.29.8",
+    "@darajs/ui-utils": "1.29.8",
     "@lezer/highlight": "^1.2.1",
     "@lezer/json": "^1.0.3",
     "@lezer/lr": "^1.4.2",
@@ -75,7 +80,7 @@
     "date-fns": "2.30.0",
     "immer": "^10.0.0",
     "lodash": "^4.18.1",
-    "nanoid": "^3.3.8",
+    "nanoid": "^3.3.18",
     "polished": "^4.2.2",
     "prism-react-renderer": "^1.2.0",
     "react": "^18.2.0",
@@ -91,6 +96,7 @@
     "dist"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "timeout": 60000
   }
 }

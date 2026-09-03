@@ -68,7 +68,7 @@ function Slider(props: SliderProps): JSX.Element {
 
             debouncedSetValue(serialisedValues);
             debouncedUpdateForm(serialisedValues);
-            debouncedOnTrack?.(serialisedValues);
+            void debouncedOnTrack?.(serialisedValues);
         },
         [isOutputNumber, debouncedSetValue, debouncedUpdateForm, debouncedOnTrack]
     );

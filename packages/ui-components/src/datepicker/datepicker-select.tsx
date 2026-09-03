@@ -88,10 +88,10 @@ const SelectButton = styled.button`
     width: 100%;
     height: 100%;
     padding: 0 0.5rem 0 1rem;
+    border: none;
 
     font-size: ${(props) => props.theme.font.size};
 
-    border: none;
     outline: 0;
 
     :not(:enabled) {
@@ -104,12 +104,12 @@ const SelectButtonPrimary = styled(SelectButton)`
 
     width: 100%;
     padding: 0 0.25rem;
+    border-radius: 0.25rem;
 
     font-size: 0.875rem;
     color: ${(props) => props.theme.colors.text};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border-radius: 0.25rem;
 
     :hover:enabled {
         background-color: ${(props) => props.theme.colors.grey2};
@@ -147,6 +147,7 @@ const StyledDatepickerListItem = styled.span<DatepickerListItemStyleProps>`
     width: 100%;
     min-height: 2rem;
     padding: 0.25rem 1.5rem;
+    border-radius: 0.25rem;
 
     font-size: 0.75rem;
     font-weight: 300;
@@ -163,7 +164,6 @@ const StyledDatepickerListItem = styled.span<DatepickerListItemStyleProps>`
         }
         return props.theme.colors.grey1;
     }};
-    border-radius: 0.25rem;
 
     :hover {
         background-color: ${(props) => (props.isSelected ? props.theme.colors.primary : props.theme.colors.grey2)};
@@ -208,7 +208,13 @@ const DatepickerListItem = React.memo(
 );
 
 interface DropdownListProps {
-    displacement: number;
+    displacement?: number;
+}
+
+function getMaxItems(maxItems?: number): number {
+    // Zero and NaN have historically selected the default list size.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+    return maxItems || 5;
 }
 
 const StyledDropdownList = React.memo(styled(DropdownList)<DropdownListProps>`
@@ -219,12 +225,13 @@ const StyledDropdownList = React.memo(styled(DropdownList)<DropdownListProps>`
 
     width: 16.25rem;
     max-height: calc(
-        ${(props) => (props.maxItems || 5) * 2}em + 2px + (${(props) => (props.maxItems || 5) - 1}) * 0.125em
+        ${(props) => getMaxItems(props.maxItems) * 2}em + 2px + (${(props) => getMaxItems(props.maxItems) - 1}) *
+            0.125em
     );
     margin-left: ${(props) => props.displacement}rem;
+    border: none;
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: none;
     box-shadow: none;
 `);
 
@@ -238,10 +245,10 @@ const DatepickerSelectButtonPrimary = React.memo(
         isOpen,
         selectedItem,
     }: {
-        disabled: boolean;
-        size: number;
+        disabled?: boolean;
+        size?: number;
         isOpen: boolean;
-        selectedItem: Item;
+        selectedItem?: Item | null;
         getToggleButtonProps: (
             options?: UseSelectGetToggleButtonPropsOptions,
             otherOptions?: GetPropsCommonOptions
@@ -277,7 +284,7 @@ export interface SelectProps extends InteractiveComponentProps<Item> {
     /** Specify a specific placement for the list */
     placement?: Placement;
     /** Set the selected value to a specific value, will put the component in controlled mode */
-    selectedItem?: Item;
+    selectedItem?: Item | null;
     /** Font size in rem to show in the Select */
     size?: number;
 }
@@ -292,12 +299,12 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
     const [kbdHighlightIdx, setKbdHighlightIdx] = React.useState<number | undefined>();
     const { isOpen, selectedItem, getToggleButtonProps, getMenuProps, getItemProps } = useSelect<Item>({
         initialSelectedItem: props.initialValue,
-        itemToString: (item) => item.label,
+        itemToString: (item) => item!.label,
         items: props.items,
         onSelectedItemChange: (changes) => {
             const selected = changes.selectedItem;
             if (props.onSelect) {
-                props.onSelect(selected);
+                void props.onSelect(selected as Item);
             }
         },
         ...syncKbdHighlightIdx(setKbdHighlightIdx),
@@ -307,7 +314,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
             if (type === stateChangeTypes.ToggleButtonClick && changes?.isOpen && props.selectedItem) {
                 return {
                     ...changes,
-                    highlightedIndex: props.items.findIndex((i) => i.value === changes.selectedItem.value),
+                    highlightedIndex: props.items.findIndex((i) => i.value === changes.selectedItem!.value),
                 };
             }
 
@@ -319,6 +326,8 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
 
     const { refs, floatingStyles, context } = useFloating<HTMLElement>({
         open: isOpen,
+        // Empty placement strings have historically selected the default.
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing
         placement: props.placement || 'bottom-start',
         middleware: [offset(8), flip(), shift()],
         whileElementsMounted: isOpen ? autoUpdate : undefined,
@@ -356,7 +365,7 @@ function DatepickerSelect(props: SelectProps): JSX.Element {
         <Tooltip content={props.errorMsg} disabled={!props.errorMsg} styling="error">
             <Wrapper
                 className={props.className}
-                isDisabled={props.disabled}
+                isDisabled={props.disabled as boolean}
                 isErrored={!!props.errorMsg}
                 onClick={props.onClick}
                 style={props.style}

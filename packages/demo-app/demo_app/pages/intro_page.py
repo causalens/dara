@@ -40,7 +40,7 @@ def italic_text(text: str):
 
 def intro_page():
     return Stack(
-        Heading('Table Sorting Test (Case Insensitive)'),
+        Heading('Table Sorting Test (Case Insensitive)!'),
         Text(
             'Sort by Name column: "aardvark" should come before "apple", '
             '"Banana" before "cherry", etc. regardless of case.'

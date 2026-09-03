@@ -18,8 +18,24 @@ prepare-docs:
 	tooling/scripts/prepare_docs.sh
 
 # Run lint / static testing
+JS_SOURCE_DIRS := \
+	'packages/{dara-components,dara-core}/js/' \
+	'packages/dara-core/{tests,cypress}/' \
+	'packages/ui-causal-graph-editor/tests/' \
+	'packages/{styled-components,ui-*}/src/'
+
+JS_SOURCE_FILES := \
+	'packages/{dara-components,dara-core}/js/**/*.{ts,tsx}' \
+	'packages/{styled-components,ui-*}/src/**/*.{ts,tsx}'
+
+JS_BIN := $(CURDIR)/node_modules/.bin
+
+lint-js:
+	$(JS_BIN)/glob -A -c $(JS_BIN)/oxlint $(JS_SOURCE_DIRS)
+	$(JS_BIN)/stylelint $(JS_SOURCE_FILES) --cache --cache-strategy content
+
 lint:
-	poetry anthology run lint && pnpm lerna run lint
+	poetry anthology run lint && $(MAKE) lint-js
 
 format:
 	poetry anthology run format && pnpm lerna run format
@@ -75,18 +91,19 @@ run:
 	poetry anthology run $(script)
 
 
-# Publish all the packages to the appropriate repositories, creating a version bump commit
-# Before committing, revert changes to readmes they are only for PyPi
-publish:
+# Publish Python packages to PyPI, skipping artifacts that were already uploaded
+# by a previous release attempt.
+publish-python:
 	poetry config pypi-token.pypi $${PYPI_TOKEN}
 	poetry anthology run publish
 
-	git checkout -- **/README.md
+# Publish JavaScript packages to npm, skipping packages whose version is already
+# present in the registry.
+publish-npm:
 	rm -f .npmrc
-	git add .
-	git commit -m "Version bump to $${VERSION_TAG} [skip ci]"
+	pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --concurrency 1 --throttle-size 1 --throttle-delay 5
 
-	pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --force-publish
+publish: publish-python publish-npm
 
 publish-docs:
 	poetry source add --priority=supplemental causalens https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple
@@ -102,6 +119,8 @@ update-ui-deps:
 	pnpm --recursive --latest update\
 		@darajs/styled-components\
 		@darajs/eslint-config\
+		@darajs/oxfmt-config\
+		@darajs/oxlint-config\
 		@darajs/prettier-config\
 		@darajs/stylelint-config\
 		@darajs/ui-causal-graph-editor\

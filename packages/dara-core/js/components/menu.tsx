@@ -22,13 +22,12 @@ const MenuItem = styled(NavLink)<MenuItemProps>`
     width: ${(props) => (props.direction === 'row' ? '10rem' : '100%')};
     height: 3rem;
     padding: 0 1rem;
+    border-radius: 1rem;
 
     font-size: 0.875rem;
     font-weight: 700;
     color: ${(props) => props.theme.colors.secondary};
     text-decoration: none;
-
-    border-radius: 1rem;
 
     :hover {
         background: ${(props) => transparentize(0.9, props.theme.colors.secondary)};

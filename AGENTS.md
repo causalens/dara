@@ -1,3 +1,9 @@
+## Repo Basics
+
+- This is a Python 3.11 monorepo managed by Poetry + Anthology.
+- Dependencies should be added to the respective package's `pyproject.toml`, do not ever edit top-level `pyproject.toml` manually.
+- If dependencies change, run `poetry antho install` from repo root which will install collect all dependencies into top-level `pyproject.toml`, installs them and symlinks each package's `.venv` to the top-level `.venv`
+
 ## Changelog
 
 Before submitting a PR, make sure to update the `changelog.md` file for the relevant package.
@@ -18,8 +24,10 @@ For `dara-core` backend tests, run from the package directory so test env secret
 
 ```bash
 cd packages/dara-core
-DARA_TEST_FLAG=True poetry run pytest <args>
+DARA_TEST_FLAG=True poetry run pytest <args> -n auto
 ```
+
+Prefer running with parallelism with `-n` to save time.
 
 Running from repo root can miss `packages/dara-core/.env.test` and cause auth token mismatch failures.
 
@@ -35,6 +43,6 @@ cd packages/dara-core
 DARA_TEST_FLAG=True poetry run pytest <args>
 ```
 
-- JS changes: run `pnpm lerna run lint` and `pnpm lerna run format:check` from the repo root.
-- If your change is broad or cross-cutting, prefer the same aggregate commands CI uses: `poetry anthology run test`, `pnpm lerna run lint`, and `pnpm lerna run format:check`.
+- JS changes: run `make lint-js` and `pnpm lerna run format:check` from the repo root.
+- If your change is broad or cross-cutting, prefer the same aggregate commands CI uses: `poetry anthology run test`, `make lint-js`, and `pnpm lerna run format:check`.
 - PR body linting is enforced by `.github/prace.yml`; when using the PR template, make sure all required checkboxes are checked before opening or updating the PR.

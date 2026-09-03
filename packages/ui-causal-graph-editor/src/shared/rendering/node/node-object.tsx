@@ -143,10 +143,9 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         if (!nodeGfx.filters || (Array.isArray(nodeGfx.filters) && nodeGfx.filters.length === 0)) {
             nodeGfx.filters = [new PIXI.filters.DropShadowFilter({ offset: { x: 0, y: 0 } })];
         }
-        const dropShadow =
-            Array.isArray(nodeGfx.filters) ?
-                (nodeGfx.filters[0] as PIXI.filters.DropShadowFilter)
-            :   (nodeGfx.filters as PIXI.filters.DropShadowFilter);
+        const dropShadow = Array.isArray(nodeGfx.filters)
+            ? (nodeGfx.filters[0] as PIXI.filters.DropShadowFilter)
+            : (nodeGfx.filters as PIXI.filters.DropShadowFilter);
 
         const nodeTextureKey = nodeStyle.isGroupNode ? NODE_SQUARE : NODE_CIRCLE;
         const nodeBorderTextureKey = nodeStyle.isGroupNode ? NODE_SQUARE_BORDER : NODE_BORDER;
@@ -166,7 +165,7 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         // Set the node texture and adjust its styles
         const nodeBody = nodeGfx.getChildByName(nodeTextureKey) as PIXI.Sprite;
         nodeBody.texture = nodeTexture;
-        [nodeBody.tint, nodeBody.alpha] = colorToPixi(nodeStyle.color);
+        [nodeBody.tint, nodeBody.alpha] = colorToPixi(nodeStyle.color!);
 
         // Get/create border texture
         const borderTexture = textureCache.get(
@@ -186,7 +185,7 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         // Set the border texture and adjust its styles
         const border = nodeGfx.getChildByName(nodeBorderTextureKey) as PIXI.Sprite;
         border.texture = borderTexture;
-        [border.tint, border.alpha] = colorToPixi(nodeStyle.highlight_color);
+        [border.tint, border.alpha] = colorToPixi(nodeStyle.highlight_color!);
 
         // Adjust the filter style based on state
         const themeShadows = SHADOWS[nodeStyle.theme.themeType];
@@ -194,7 +193,7 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
         let blur = 2;
 
         if (nodeStyle.state.selected) {
-            shadowColor = nodeStyle.highlight_color;
+            shadowColor = nodeStyle.highlight_color!;
             blur = 4;
         } else if (nodeStyle.state.hover || nodeStyle.isSourceOfNewEdge) {
             shadowColor = themeShadows.shadowHover;
@@ -238,7 +237,7 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
                 const nodeSize = nodeRadius * 2;
                 const maxSize = nodeSize - 10; // leave space on sides
 
-                const textStyle = getTextStyle(nodeStyle.label_size);
+                const textStyle = getTextStyle(nodeStyle.label_size!);
                 const trimmedText = trimToFit(nodeStyle.label, maxSize, textStyle);
 
                 const txt = new PIXI.Text({ text: trimmedText, style: textStyle });
@@ -250,7 +249,7 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
 
         const nodeLabel = nodeLabelGfx.getChildByName(NODE_LABEL) as PIXI.Sprite;
         nodeLabel.texture = labelTexture;
-        [nodeLabel.tint, nodeLabel.alpha] = colorToPixi(nodeStyle.label_color);
+        [nodeLabel.tint, nodeLabel.alpha] = colorToPixi(nodeStyle.label_color!);
 
         // If selection is active but the node itself is not selected, adjust opacity
         if (
@@ -271,10 +270,9 @@ export class NodeObject extends EventEmitter<(typeof MOUSE_EVENTS)[number]> {
      * @param zoomStep zoom step
      */
     static updateNodeVisibility(nodeGfx: PIXI.Container, zoomState: ZoomState, state: NodeState): void {
-        const shadow =
-            Array.isArray(nodeGfx.filters) ?
-                (nodeGfx.filters[0] as PIXI.filters.DropShadowFilter)
-            :   (nodeGfx.filters as PIXI.filters.DropShadowFilter);
+        const shadow = Array.isArray(nodeGfx.filters)
+            ? (nodeGfx.filters[0] as PIXI.filters.DropShadowFilter)
+            : (nodeGfx.filters as PIXI.filters.DropShadowFilter);
 
         // keep shadow if node is selected
         shadow.enabled = zoomState.shadow || state.selected;

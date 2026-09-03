@@ -23,6 +23,7 @@ export const StyledListItem = styled.span<ListItemProps>`
     width: 100%;
     min-height: 2rem;
     padding: 0.25rem 1rem;
+    border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
 
     font-size: ${(props) => (props.size ? `${props.size}rem` : '1rem')};
     font-weight: 300;
@@ -39,7 +40,6 @@ export const StyledListItem = styled.span<ListItemProps>`
         }
         return props.theme.colors.blue1;
     }};
-    border-bottom: 1px solid ${(props) => props.theme.colors.grey3};
 
     :hover {
         background-color: ${(props) => props.theme.colors.grey2};

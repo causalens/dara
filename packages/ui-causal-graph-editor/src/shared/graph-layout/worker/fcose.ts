@@ -28,7 +28,7 @@ function assignParents(elements: cytoscape.ElementDefinition[], relationships: R
 
     // Populate the lookup table
     elements.forEach((element) => {
-        elementLookup[element.data.id] = element;
+        elementLookup[element.data.id!] = element;
     });
 
     // Iterate over each parent in the relationships object
@@ -67,8 +67,8 @@ function createPositionedArray(
         const orderA = nodesOrder[a];
         const orderB = nodesOrder[b];
 
-        const parsedA = parseInt(orderA);
-        const parsedB = parseInt(orderB);
+        const parsedA = parseInt(orderA, 10);
+        const parsedB = parseInt(orderB, 10);
 
         if (Number.isNaN(parsedA) || Number.isNaN(parsedB)) {
             throw new Error(`Non-numeric order value encountered for nodes`);
@@ -124,9 +124,9 @@ function getRelativeTieredArrayPlacement(
         // Place onde node from the first tier to the left/top of the first node of the next tier
         // That way we have one node from each tier defining the position of the tier relative to the other tiers
         const placement =
-            orientation === 'horizontal' ?
-                { gap: tierSeparation, left: firstElement, right: nextTierFirstElement }
-            :   { bottom: nextTierFirstElement, gap: tierSeparation, top: firstElement };
+            orientation === 'horizontal'
+                ? { gap: tierSeparation, left: firstElement, right: nextTierFirstElement }
+                : { bottom: nextTierFirstElement, gap: tierSeparation, top: firstElement };
         relativePlacements.push(placement);
     });
 
@@ -146,7 +146,7 @@ export function getTieredLayoutProperties(
     tierSeparation: number
 ): TiersProperties {
     let tiersArray = getTiersArray(tiers, graph);
-    let nodesOrder: Record<string, string>;
+    let nodesOrder: Record<string, string> | undefined;
     const nodes = graph.nodes();
 
     if (!Array.isArray(tiers)) {
@@ -181,22 +181,21 @@ export default function compute(
         }
 
         const hasPositions = graph.getNodeAttribute(graph.nodes()[0], 'x');
-        const size = graph.getAttribute('size');
-        const tiersPlacement =
-            layoutParams.tiers ?
-                getTieredLayoutProperties(
-                    graph,
-                    layoutParams.tiers,
-                    layoutParams.orientation,
-                    layoutParams.tierSeparation
-                )
-            :   { alignmentConstraint: undefined, relativePlacementConstraint: undefined };
+        const size = graph.getAttribute('size')!;
+        const tiersPlacement = layoutParams.tiers
+            ? getTieredLayoutProperties(
+                  graph,
+                  layoutParams.tiers,
+                  layoutParams.orientation!,
+                  layoutParams.tierSeparation
+              )
+            : { alignmentConstraint: undefined, relativePlacementConstraint: undefined };
 
         const elements = [
             ...graph.mapNodes<ElementDefinition>((id, attrs) => ({
                 data: { ...attrs, height: size, width: size },
                 group: 'nodes',
-                position: { x: attrs.x, y: attrs.y },
+                position: { x: attrs.x!, y: attrs.y! },
             })),
             ...graph.mapEdges<ElementDefinition>((id, attrs, source, target) => ({
                 data: { ...attrs, source, target },

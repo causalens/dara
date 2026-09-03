@@ -67,11 +67,13 @@ Larger reusable pieces of code can be distributed as Dara plugins. They are simp
 # in a custom package
 from dara.core import ConfigurationBuilder
 
+
 def my_custom_plugin(config: ConfigurationBuilder):
     """A custom plugin which enhances the configuration"""
     config.add_endpoint(my_custom_endpoint)
     config.add_configuration(CustomEndpointConfig(...))
     config.on_startup(my_custom_startup_hook)
+
 
 # In your app
 from dara.core import ConfigurationBuilder
@@ -92,6 +94,7 @@ from dara.core import ConfigurationBuilder
 
 config = ConfigurationBuilder()
 
+
 # As a decorator
 @config.on_startup
 def setup_database():
@@ -103,8 +106,10 @@ def setup_database():
 
     return cleanup
 
+
 # As a method call
 config.on_startup(my_startup_function)
+
 
 # Async startup with async cleanup
 @config.on_startup

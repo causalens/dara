@@ -69,7 +69,6 @@ const HorizontalLine = styled.hr`
 
     width: 1.75rem;
     margin: 0;
-
     border-top: 2px solid ${(props) => props.theme.colors.text};
 `;
 

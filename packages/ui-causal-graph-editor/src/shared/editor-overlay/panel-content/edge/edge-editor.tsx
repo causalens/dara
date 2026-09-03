@@ -24,7 +24,7 @@ import EncoderEditor from './encoder-editor';
 import PagEditor from './pag-editor';
 import ResolverEditor from './resolver-editor';
 
-const EditorComponentMap: Record<EditorMode, (props: EdgeEditorProps) => JSX.Element> = {
+const EditorComponentMap: Record<EditorMode, ((props: EdgeEditorProps) => JSX.Element) | null> = {
     [EditorMode.DEFAULT]: null,
     [EditorMode.EDGE_ENCODER]: EncoderEditor,
     [EditorMode.RESOLVER]: ResolverEditor,
@@ -38,7 +38,7 @@ const EditorComponentMap: Record<EditorMode, (props: EdgeEditorProps) => JSX.Ele
 function EdgeEditor(props: EdgeEditorProps): JSX.Element {
     const { editorMode } = useSettings();
 
-    const EditorComponent = EditorComponentMap[editorMode];
+    const EditorComponent = EditorComponentMap[editorMode!];
 
     return <ColumnWrapper>{EditorComponent && <EditorComponent {...props} />}</ColumnWrapper>;
 }

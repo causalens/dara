@@ -158,6 +158,31 @@ describe('useVariable - SwitchVariable', () => {
                 expect(result.current[0]).toBe('full_access');
             });
         });
+
+        it('should work with Variable as default', async () => {
+            const defaultVariable: Variable<string> = {
+                __typename: 'Variable',
+                uid: 'default-var',
+                default: 'variable_fallback',
+                nested: [],
+            };
+
+            const switchVariable: SwitchVariable<string> = {
+                __typename: 'SwitchVariable',
+                uid: 'switch-with-default-var',
+                value: 'missing' as any,
+                value_map: { existing: 'mapped' },
+                default: defaultVariable,
+            };
+
+            const { result } = renderHook(() => useVariable(switchVariable), {
+                wrapper: Wrapper,
+            });
+
+            await waitFor(() => {
+                expect(result.current[0]).toBe('variable_fallback');
+            });
+        });
     });
 
     describe('Edge Cases', () => {
@@ -241,7 +266,7 @@ describe('useVariable - SwitchVariable', () => {
             expect(result.current[1]).toBeInstanceOf(Function);
 
             // Test that calling the update function logs a warning
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
             act(() => {
                 result.current[1]('new_value');
             });

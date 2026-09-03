@@ -101,8 +101,8 @@ export interface ConstraintEditorProps {
  */
 function ConstraintEditor(props: ConstraintEditorProps): JSX.Element {
     function updateConstraintType(constraintType: EdgeConstraintItem['type']): void {
-        props.onUpdate({
-            id: props.edgeConstraint.id,
+        void props.onUpdate({
+            id: props.edgeConstraint!.id,
             source: props.source,
             target: props.target,
             type: constraintType,
@@ -113,9 +113,9 @@ function ConstraintEditor(props: ConstraintEditorProps): JSX.Element {
         <ColumnWrapper>
             <SectionTitle>Connection</SectionTitle>
             <ButtonBar
-                initialValue={constraintItems.find((i) => i.value === props.edgeConstraint.type) as Item}
+                initialValue={constraintItems.find((i) => i.value === props.edgeConstraint!.type) as Item}
                 items={constraintItems as any}
-                key={props.edgeConstraint.id}
+                key={props.edgeConstraint!.id}
                 onSelect={(e) => updateConstraintType(e.value)}
                 styling="secondary"
             />

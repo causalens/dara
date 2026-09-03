@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import type { StoryFn } from '@storybook/react-vite';
+
 import { NotificationWrapper, useNotifications } from '@darajs/ui-notifications';
 
-import type { CausalGraph } from '../../types';
+import type { CausalGraph, CausalGraphEdge, CausalGraphNode } from '../../types';
 import { EdgeType, VariableType } from '../../types';
 import type { CausalGraphEditorProps } from '../causal-graph-editor';
 import { default as CausalGraphViewerComponent } from '../causal-graph-editor';
 
-export const Template = (args: CausalGraphEditorProps): JSX.Element => {
+export const Template: StoryFn<CausalGraphEditorProps> = (args) => {
     const { pushNotification } = useNotifications();
 
     return (
@@ -259,7 +261,22 @@ export const nodeTiersCausalGraph = {
 
 export const nodeTiersList = [['input1', 'input2'], ['input3', 'input4'], ['target']];
 
-export const timeSeriesCausalGraph = {
+interface TimeSeriesNode extends CausalGraphNode {
+    time_lag: number;
+    variable_name: string;
+}
+
+interface TimeSeriesEdge extends Omit<CausalGraphEdge, 'destination' | 'source'> {
+    destination: TimeSeriesNode;
+    source: TimeSeriesNode;
+}
+
+interface TimeSeriesCausalGraph extends Omit<CausalGraph, 'edges' | 'nodes'> {
+    edges: Record<string, Record<string, TimeSeriesEdge>>;
+    nodes: Record<string, TimeSeriesNode>;
+}
+
+export const timeSeriesCausalGraph: TimeSeriesCausalGraph = {
     edges: {
         X1: {
             X3: {
@@ -274,7 +291,7 @@ export const timeSeriesCausalGraph = {
                     variable_name: 'X3',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {},
                 source: {
                     identifier: 'X1',
@@ -302,7 +319,7 @@ export const timeSeriesCausalGraph = {
                     variable_name: 'X1',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {},
                 source: {
                     identifier: 'X1 lag(n=1)',
@@ -330,7 +347,7 @@ export const timeSeriesCausalGraph = {
                     variable_name: 'X1',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {},
                 source: {
                     identifier: 'X1 lag(n=2)',
@@ -358,7 +375,7 @@ export const timeSeriesCausalGraph = {
                     variable_name: 'X3',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {},
                 source: {
                     identifier: 'X2',
@@ -386,7 +403,7 @@ export const timeSeriesCausalGraph = {
                     variable_name: 'X2',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {},
                 source: {
                     identifier: 'X2 lag(n=1)',
@@ -473,7 +490,7 @@ export const timeSeriesCausalGraph = {
     version: '0.3.14',
 };
 
-export const planarLayoutCausalGraph = {
+export const planarLayoutCausalGraph: CausalGraph = {
     edges: {
         '0': {
             '16': {
@@ -487,7 +504,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -515,7 +532,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -543,7 +560,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -571,7 +588,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -597,7 +614,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -625,7 +642,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -653,7 +670,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -681,7 +698,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -709,7 +726,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -735,7 +752,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -763,7 +780,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -791,7 +808,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -819,7 +836,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -847,7 +864,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -875,7 +892,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -901,7 +918,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -927,7 +944,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -955,7 +972,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -983,7 +1000,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -1009,7 +1026,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -1037,7 +1054,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -1063,7 +1080,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -1091,7 +1108,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },
@@ -1117,7 +1134,7 @@ export const planarLayoutCausalGraph = {
                     node_class: 'Node',
                     variable_type: 'unspecified',
                 },
-                edge_type: '->',
+                edge_type: EdgeType.DIRECTED_EDGE,
                 meta: {
                     rendering_properties: {},
                 },

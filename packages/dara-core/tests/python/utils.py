@@ -22,7 +22,7 @@ from pydantic import ValidationError
 from typing_extensions import TypedDict
 
 from dara.core.auth.definitions import JWT_ALGO, SESSION_TOKEN_COOKIE_NAME, TokenData
-from dara.core.auth.session_store import auth_session_store
+from dara.core.auth.session_store import get_auth_session_backend
 from dara.core.base_definitions import AnnotatedAction
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.interactivity import AnyVariable, DerivedVariable
@@ -78,7 +78,7 @@ async def _get_auth_session_token(token: str = TEST_TOKEN) -> str:
     except (jwt.PyJWTError, ValidationError):
         return token
 
-    return await auth_session_store.create(token, token_data)
+    return await get_auth_session_backend().create(token, token_data)
 
 
 async def _get_auth_headers(token: str = TEST_TOKEN) -> dict[str, str]:

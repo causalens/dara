@@ -39,9 +39,9 @@ const LegendWrapper = styled.div`
     gap: 2rem;
 
     padding: 1.5rem;
+    border-radius: 4px;
 
     background-color: ${({ theme }) => theme.colors.background};
-    border-radius: 4px;
     box-shadow: ${({ theme }) => theme.shadow.light};
 
     transition:
@@ -62,9 +62,9 @@ export interface LegendProps {
     listItems: LegendListProps['listItems'];
 }
 
-function Legend(props: LegendProps): JSX.Element {
+function Legend(props: LegendProps): JSX.Element | null {
     const [showLegend, setShowLegend] = useState(false);
-    const { disablePointerEvents } = useContext(PointerContext);
+    const { disablePointerEvents } = useContext(PointerContext)!;
 
     const panelRef = useRef<HTMLDivElement>(null);
     useOnClickOutside(panelRef.current, () => setShowLegend(false));

@@ -24,5 +24,5 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 Cypress.Commands.add('cardContent', (title: string) => {
-    return cy.contains('span', title).siblings().find('[data-type="children-wrapper"]');
+    return cy.contains('span', title).siblings('[data-type="children-wrapper"]');
 });

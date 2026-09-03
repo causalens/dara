@@ -1,11 +1,12 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 
 import { renderHook } from '@testing-library/react';
 
-import { type DerivedVariable, type StateVariable } from '@/types/core';
 import { useVariable } from '@/shared/interactivity/use-variable';
+import { type DerivedVariable, type StateVariable } from '@/types/core';
+
 import { Wrapper } from './utils';
 
 // Mock the API calls
@@ -27,7 +28,10 @@ describe('useVariable with StateVariable', () => {
         cache: null,
     });
 
-    const createStateVariable = (parentVariable: DerivedVariable, propertyName: 'loading' | 'error' | 'hasValue'): StateVariable => ({
+    const createStateVariable = (
+        parentVariable: DerivedVariable,
+        propertyName: 'loading' | 'error' | 'hasValue'
+    ): StateVariable => ({
         __typename: 'StateVariable',
         uid: `${parentVariable.uid}-${propertyName}`,
         parent_variable: parentVariable,
@@ -83,7 +87,7 @@ describe('useVariable with StateVariable', () => {
         const derivedVar = createDerivedVariable();
         const loadingStateVar = createStateVariable(derivedVar, 'loading');
 
-        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
         const { result } = renderHook(() => useVariable(loadingStateVar), {
             wrapper: Wrapper,

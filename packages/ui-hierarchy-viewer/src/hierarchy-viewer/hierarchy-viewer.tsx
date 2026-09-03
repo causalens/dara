@@ -55,7 +55,16 @@ interface HierarchyViewerProps {
 function HierarchyViewer(props: HierarchyViewerProps): JSX.Element {
     const [ref, dimensions] = useDimensions<HTMLDivElement>();
     return (
-        <Wrapper className={props.className} id={props.id || 'hierarchy-viewer-root'} ref={ref} style={props.style}>
+        <Wrapper
+            className={props.className}
+            id={
+                // An empty id has historically selected the component's default id.
+                // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                props.id || 'hierarchy-viewer-root'
+            }
+            ref={ref}
+            style={props.style}
+        >
             <Treemap
                 allowLeafClick={props.allowLeafClick}
                 allowParentClick={props.allowParentClick}

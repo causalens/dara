@@ -23,6 +23,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import contextmanager
 from contextvars import ContextVar
+from dataclasses import dataclass
 from typing import Any
 
 import anyio
@@ -35,8 +36,9 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.interactivity.condition import Condition, Operator
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
-from dara.core.internal.websocket import WS_CHANNEL, WebsocketManager
+from dara.core.internal.websocket import WS_CHANNEL, DaraServerMessage, WebsocketManager
 from dara.core.logging import dev_logger
+from dara.core.telemetry import observe_internal_operation
 
 NOT_REGISTERED = '__NOT_REGISTERED__'
 
@@ -44,6 +46,19 @@ GET_VALUE_OVERRIDE = ContextVar[Callable[[dict], Any] | None]('GET_VALUE_OVERRID
 """
 Optional context variable which can be used to override the default behaviour of `get_current_value()`.
 """
+
+
+@dataclass
+class _ClientVariableResolutionStats:
+    """Bounded diagnostics collected across one client-variable resolution."""
+
+    outcome: str = 'success'
+    session_count: int = 0
+    channel_count: int = 0
+    attempt_count: int = 0
+    timeout_count: int = 0
+    not_registered_count: int = 0
+    error_count: int = 0
 
 
 async def get_current_value(variable: dict, timeout: float = 3, raw: bool = False) -> Any:
@@ -58,8 +73,36 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
     :param timeout: time to wait for a value before raising a TimeoutError
     :param raw: whether to return the raw result
     """
+    variable_kind = str(variable.get('__typename', 'unknown'))
+    stats = _ClientVariableResolutionStats()
+    with observe_internal_operation('client_variable', 'resolve', name=variable_kind) as observation:
+        try:
+            return await _get_current_value(variable, timeout, raw, stats)
+        finally:
+            observation.set_outcome(stats.outcome)
+            if observation.span is not None and observation.span.is_recording():
+                observation.span.set_attribute('dara.client_variable.kind', variable_kind)
+                observation.span.set_attribute('dara.client_variable.session.count', stats.session_count)
+                observation.span.set_attribute('dara.client_variable.channel.count', stats.channel_count)
+                observation.span.set_attribute('dara.client_variable.attempt.count', stats.attempt_count)
+                observation.span.set_attribute('dara.client_variable.timeout.count', stats.timeout_count)
+                observation.span.set_attribute(
+                    'dara.client_variable.not_registered.count',
+                    stats.not_registered_count,
+                )
+                observation.span.set_attribute('dara.client_variable.error.count', stats.error_count)
+
+
+async def _get_current_value(
+    variable: dict,
+    timeout: float,
+    raw: bool,
+    stats: _ClientVariableResolutionStats,
+) -> Any:
+    """Resolve a client-owned value while collecting bounded operation diagnostics."""
     getter_override = GET_VALUE_OVERRIDE.get()
     if getter_override is not None:
+        stats.outcome = 'override'
         result = getter_override(variable)
 
         if inspect.iscoroutine(result):
@@ -106,6 +149,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         # If still couldn't find user, warn and return
         if user_identity is None:
+            stats.outcome = 'no_user'
             dev_logger.warning(
                 f'No value available for {variable["__typename"]} {variable["uid"]} because currently logged in user '
                 'could not be determined. This might mean that `get_current_value()` was executed outside of user-specific context. '
@@ -117,11 +161,13 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
         try:
             session_ids = sessions_registry.get(user_identity)
         except KeyError:
+            stats.outcome = 'no_session'
             dev_logger.warning(
                 f'No value available for {variable["__typename"]} {variable["uid"]} because no active session was found for user {user_identity}'
             )
             return None
 
+        stats.session_count = len(session_ids)
         session_channels: dict[str, set[str]] = {}
         saved_ws_channel = WS_CHANNEL.get()
 
@@ -136,11 +182,13 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                     session_channels[sid] = ws_channels
 
         if len(session_channels) == 0:
+            stats.outcome = 'no_channel'
             dev_logger.warning(
                 f'No value available for {variable["__typename"]} {variable["uid"]} because no active session was found for user {user_identity}'
             )
             return None
 
+        stats.channel_count = sum(len(channels) for channels in session_channels.values())
         raw_results: dict[str, Any] = {}
         registered_value_found = False
 
@@ -155,7 +203,11 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
                 # Try once
                 with anyio.move_on_after(timeout):
-                    raw_result = await ws_mgr.send_and_wait(channel, {'variable': variable})
+                    stats.attempt_count += 1
+                    raw_result = await ws_mgr.send_and_wait(
+                        channel,
+                        DaraServerMessage.create('VariableRequestMessage', {'variable': variable}),
+                    )
 
                     if is_valid(raw_result):
                         registered_value_found = True
@@ -169,7 +221,11 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
                     # Attempt to retrieve the value
                     with anyio.move_on_after(timeout):
-                        raw_result = await ws_mgr.send_and_wait(channel, {'variable': variable})
+                        stats.attempt_count += 1
+                        raw_result = await ws_mgr.send_and_wait(
+                            channel,
+                            DaraServerMessage.create('VariableRequestMessage', {'variable': variable}),
+                        )
 
                         if is_valid(raw_result):
                             registered_value_found = True
@@ -185,6 +241,15 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
             for channels in session_channels.values():
                 for chan in channels:
                     tg.start_soon(retrieve_value, chan)
+
+        stats.timeout_count = sum(isinstance(result, TimeoutError) for result in raw_results.values())
+        stats.not_registered_count = sum(
+            isinstance(result, str) and result == NOT_REGISTERED for result in raw_results.values()
+        )
+        stats.error_count = sum(
+            isinstance(result, BaseException) and not isinstance(result, TimeoutError)
+            for result in raw_results.values()
+        )
 
         results = {}
 
@@ -215,10 +280,19 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
 
         # In most cases, there should be one value only
         if len(results) == 1:
+            stats.outcome = 'found'
             return list(results.values())[0]
 
         # No results - just return None instead of empty dict
         if len(results) == 0:
+            if stats.timeout_count > 0:
+                stats.outcome = 'timeout'
+            elif stats.error_count > 0:
+                stats.outcome = 'error'
+            elif stats.not_registered_count > 0:
+                stats.outcome = 'not_registered'
+            else:
+                stats.outcome = 'no_result'
             return None
 
         # If we're returning multiple values, in Jupyter environments print an explainer
@@ -254,6 +328,7 @@ async def get_current_value(variable: dict, timeout: float = 3, raw: bool = Fals
                     """
                     )
                 )
+        stats.outcome = 'found'
         return results
 
 

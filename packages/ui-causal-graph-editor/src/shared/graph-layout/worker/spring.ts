@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import type { Simulation, SimulationLinkDatum } from 'd3';
+import type { Simulation } from 'd3';
 import { DirectedGraph } from 'graphology';
 import type { LayoutMapping, XYPosition } from 'graphology-layout/utils';
 import debounce from 'lodash/debounce';
@@ -31,7 +31,7 @@ import type { SpringLayoutParams } from '../spring-layout';
  * @param nodesMap a map of node name to node object
  */
 function applyOrderNodesForce(
-    simulation: d3.Simulation<SimulationNode, D3SimulationEdge>,
+    simulation: d3.Simulation<SimulationNodeWithCategory, D3SimulationEdge>,
     tiers: GraphTiers,
     graph: SimulationGraph,
     orientation: DirectionType,
@@ -56,10 +56,10 @@ function applyOrderNodesForce(
                         if (targetedNode) {
                             if (orientation === 'horizontal') {
                                 // Apply a nudge towards the target y position
-                                targetedNode.vy += (targetPosition - targetedNode.y) * alpha;
+                                targetedNode.vy! += (targetPosition - targetedNode.y!) * alpha;
                             } else {
                                 // Apply a nudge towards the target x position
-                                targetedNode.vx += (targetPosition - targetedNode.x) * alpha;
+                                targetedNode.vx! += (targetPosition - targetedNode.x!) * alpha;
                             }
                         }
                     });
@@ -85,7 +85,7 @@ function applyOrderNodesForce(
  * @param orientation the orientation of the layout
  */
 export function applyTierForces(
-    simulation: d3.Simulation<SimulationNode, D3SimulationEdge>,
+    simulation: d3.Simulation<SimulationNodeWithCategory, D3SimulationEdge>,
     graph: SimulationGraph,
     nodes: SimulationNodeWithCategory[],
     tiers: GraphTiers,
@@ -108,10 +108,10 @@ export function applyTierForces(
                     if (targetedNode) {
                         if (orientation === 'horizontal') {
                             // Directly set the x position
-                            targetedNode.x = targetPosition + (targetedNode.x - targetPosition) * alpha;
+                            targetedNode.x = targetPosition + (targetedNode.x! - targetPosition) * alpha;
                         } else {
                             // Directly set the y position
-                            targetedNode.y = targetPosition + (targetedNode.y - targetPosition) * alpha;
+                            targetedNode.y = targetPosition + (targetedNode.y! - targetPosition) * alpha;
                         }
                     }
                 });
@@ -155,7 +155,9 @@ function createEdgesWithinAllGroups(
 
     Object.keys(groupsToNodes).forEach((groupName) => {
         const nodeStringsList = groupsToNodes[groupName];
-        const nodeList = nodeStringsList.map((nodeString) => nodes.find((node) => node.id === nodeString));
+        const nodeList = nodeStringsList.map((nodeString) =>
+            nodes.find((node) => node.id === nodeString)
+        ) as SimulationNodeWithCategory[];
         const groupEdges = createGroupEdges(nodeList);
         edges.push(...groupEdges);
     });
@@ -166,7 +168,7 @@ function createEdgesWithinAllGroups(
 /**
  * Latest computed simulation for the current graph.
  */
-let simulation: Simulation<SimulationNode, D3SimulationEdge>;
+let simulation: Simulation<SimulationNodeWithCategory, D3SimulationEdge>;
 
 export default function compute(
     layoutParams: SpringLayoutParams,
@@ -205,8 +207,8 @@ export default function compute(
                     const groupBSize = groupsToNodes[groupB].length;
 
                     // Distance calculation
-                    const dx = nodeA.x - nodeB.x;
-                    const dy = nodeA.y - nodeB.y;
+                    const dx = nodeA.x! - nodeB.x!;
+                    const dy = nodeA.y! - nodeB.y!;
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
                     if (distance > 3000) {
@@ -222,26 +224,26 @@ export default function compute(
                         continue; // Skip weak forces
                     }
 
-                    nodeA.vx += nodeA.x * strength;
-                    nodeA.vy += nodeA.y * strength;
-                    nodeB.vx -= nodeB.x * strength;
-                    nodeB.vy -= nodeB.y * strength;
+                    nodeA.vx! += nodeA.x! * strength;
+                    nodeA.vy! += nodeA.y! * strength;
+                    nodeB.vx! -= nodeB.x! * strength;
+                    nodeB.vy! -= nodeB.y! * strength;
                 }
             }
         }
 
         // We create fake edges between nodes in the same group so that they stay together
-        const groupEdges = createEdgesWithinAllGroups(layoutParams.group, graph, nodes);
+        const groupEdges = createEdgesWithinAllGroups(layoutParams.group!, graph, nodes);
 
         simulation = d3
-            .forceSimulation(nodes)
+            .forceSimulation<SimulationNodeWithCategory, D3SimulationEdge>(nodes)
             // Apply the force that repels groups from each other
             .force('clusterRepel', clusterRepelForce)
             // Apply the force that keeps nodes within a group together
             .force(
                 'groupLinks',
                 d3
-                    .forceLink<SimulationNode, D3SimulationEdge>(groupEdges)
+                    .forceLink<SimulationNodeWithCategory, D3SimulationEdge>(groupEdges)
                     .id((d) => d.id)
                     .distance(() => layoutParams.nodeSize * layoutParams.linkForce)
             )
@@ -252,12 +254,12 @@ export default function compute(
             .stop(); // don't start just yet
     } else {
         simulation = d3
-            .forceSimulation(nodes)
+            .forceSimulation<SimulationNodeWithCategory, D3SimulationEdge>(nodes)
             // The link force pulls linked nodes together so they try to be a given distance apart
             .force(
                 'links',
                 d3
-                    .forceLink<SimulationNode, SimulationLinkDatum<SimulationNode>>(edges)
+                    .forceLink<SimulationNodeWithCategory, D3SimulationEdge>(edges)
                     .id((d) => d.id)
                     .distance(() => layoutParams.nodeSize * layoutParams.linkForce)
             )
@@ -306,7 +308,7 @@ export default function compute(
             .force(
                 'links',
                 d3
-                    .forceLink<SimulationNode, SimulationLinkDatum<SimulationNode>>(edges)
+                    .forceLink<SimulationNodeWithCategory, D3SimulationEdge>(edges)
                     .id((d) => d.id)
                     .distance(() => layoutParams.nodeSize * layoutParams.linkForce)
             )

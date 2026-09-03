@@ -34,7 +34,6 @@ const StepperWrapper = styled.div<StepperWrapperProps>`
 
     box-sizing: border-box;
     padding: 0.25rem 0;
-
     border-radius: 0 0.25rem 0.25rem 0;
 `;
 

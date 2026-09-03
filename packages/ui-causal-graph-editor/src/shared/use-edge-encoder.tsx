@@ -106,7 +106,7 @@ export function useEdgeConstraintEncoder(
     );
 
     useUpdateEffect(() => {
-        onUpdate?.(parseConstraintItems(constraints));
+        void onUpdate?.(parseConstraintItems(constraints));
     }, [constraints]);
 
     function updateConstraint(edgeConstraint: EdgeConstraintItem): void {
@@ -120,8 +120,8 @@ export function useEdgeConstraintEncoder(
         setConstraints((draft) => {
             draft.push({
                 id: nanoid(),
-                source: source ?? null,
-                target: target ?? null,
+                source: (source ?? null) as string,
+                target: (target ?? null) as string,
                 type: EdgeConstraintType.UNDIRECTED,
             });
         });

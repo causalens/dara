@@ -15,15 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from dara.core.metrics.cache import CACHE_METRICS_TRACKER
-from dara.core.metrics.http import HTTP_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_TOTAL
-from dara.core.metrics.runtime import RUNTIME_METRICS_TRACKER
+from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 from dara.core.metrics.utils import total_size
 
 __all__ = [
-    'CACHE_METRICS_TRACKER',
-    'HTTP_REQUEST_DURATION_SECONDS',
-    'HTTP_REQUESTS_TOTAL',
-    'RUNTIME_METRICS_TRACKER',
+    'DARA_METRICS_REGISTRY',
     'total_size',
 ]

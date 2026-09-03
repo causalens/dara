@@ -6,6 +6,7 @@ from dara.core.base_definitions import Cache, CachedRegistryEntry
 from dara.core.internal.cache_store.cache_store import CacheStore
 from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.ttl import TTLCache
+from dara.core.metrics import total_size
 
 pytestmark = pytest.mark.anyio
 
@@ -180,6 +181,26 @@ async def test_cache_store_global_api():
     # Empty store
     await store.clear()
     assert await store.get(reg_entry, key='test_key') is None
+
+
+async def test_cache_store_measurements_follow_lru_and_ttl_eviction():
+    lru_store = CacheStore()
+    lru_entry = CachedRegistryEntry(uid='lru', cache=Cache.Policy.LRU(max_size=1))
+    await lru_store.set(lru_entry, key='first', value='first-value')
+    await lru_store.set(lru_entry, key='second', value='second-value')
+
+    assert lru_store._size == total_size('second-value')
+    assert len(lru_store.registry_stores[lru_entry.to_store_key()]) == 1
+
+    ttl_store = CacheStore()
+    ttl_entry = CachedRegistryEntry(uid='ttl', cache=Cache.Policy.TTL(ttl=2))
+    with freeze_time('2023-01-01 12:00:00'):
+        await ttl_store.set(ttl_entry, key='expiring', value='expired-value')
+    with freeze_time('2023-01-01 12:00:03'):
+        assert await ttl_store.get(ttl_entry, key='expiring') is None
+
+    assert ttl_store._size == 0
+    assert len(ttl_store.registry_stores[ttl_entry.to_store_key()]) == 0
 
 
 async def test_cache_store_session_api():

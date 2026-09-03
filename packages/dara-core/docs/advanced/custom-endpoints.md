@@ -11,6 +11,7 @@ To add a custom endpoint to your app you must create a handler function. A simpl
 ```python
 from dara.core.http import get
 
+
 @get('custom/')
 def custom_handler():
     return 'Hello World'
@@ -49,6 +50,7 @@ def upload(...):
 ```python
 from dara.core.endpoints import upload
 
+
 class UploadDropzone(ComponentInstance):
     required_routes = [upload]
 ```
@@ -75,6 +77,7 @@ There are times where the endpoint you create needs to access some values config
 ```python
 from dara.core.definitions import EndpointConfiguration
 
+
 class GreetingsConfiguration(EndpointConfiguration):
     country: str
 
@@ -91,6 +94,7 @@ from dara.core import ConfigurationBuilder
 from dara.core.http import get
 
 config = ConfigurationBuilder()
+
 
 @get('/greetings')
 def greetings_handler(config: GreetingsConfiguration):
@@ -109,9 +113,11 @@ from dara.core.http import get
 
 config = ConfigurationBuilder()
 
+
 @get('/greetings')
 def greetings_handler(config: GreetingsConfiguration):
     return f'Hello from {config.country}'
+
 
 config.add_configuration(GreetingsConfiguration(country='USA'))
 config.add_endpoint(greetings_handler)
@@ -128,6 +134,7 @@ If an endpoint is authenticated, it is possible to access current user or sessio
 ```python
 from dara.core.auth import USER, SESSION
 from dara.core.http import get
+
 
 @get('/custom')
 def custom_handler():

@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import WS from 'vitest-websocket-mock';
 
 import { WebSocketClient } from '@/api';
+import { firstPartyServerMessageSchema, ServerMessageTypename, TaskStatus } from '@/api/websocket';
 
 /**
  * Helper function to convert a json message to a string for the server to send
@@ -43,6 +44,55 @@ describe('WebsocketClient', () => {
         vi.restoreAllMocks();
     });
 
+    it.each([
+        {
+            __typename: ServerMessageTypename.ACTION,
+            message: { action: null, uid: 'action-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.BACKEND_STORE,
+            message: { sequence_number: 1, store_uid: 'store-id', value: 'value' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.BACKEND_STORE_PATCH,
+            message: { patches: [], sequence_number: 1, store_uid: 'store-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.SERVER_ERROR,
+            message: { error: 'error', time: 'timestamp' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.SERVER_VARIABLE,
+            message: { __type: 'ServerVariable', sequence_number: 1, uid: 'variable-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.TASK_NOTIFICATION,
+            message: { status: TaskStatus.COMPLETE, task_id: 'task-id' },
+            type: 'message',
+        },
+        {
+            __typename: ServerMessageTypename.VARIABLE_REQUEST,
+            message: { __rchan: 'return-channel', variable: { __typename: 'Variable', uid: 'variable-id' } },
+            type: 'message',
+        },
+    ])('parses the $__typename protocol message', (message) => {
+        expect(firstPartyServerMessageSchema.safeParse(message).success).toBe(true);
+    });
+
+    it('rejects an untagged first-party message', () => {
+        expect(
+            firstPartyServerMessageSchema.safeParse({
+                message: { action: null, uid: 'action-id' },
+                type: 'message',
+            }).success
+        ).toBe(false);
+    });
+
     it('should initialize the websocket connection when the client is instantiated', async () => {
         const client = (await initialize())[1];
 
@@ -74,7 +124,7 @@ describe('WebsocketClient', () => {
         client.sendMessage({ message: 'test' }, 'channel');
 
         // Check that the message was received
-        await expect(server).toReceiveMessage(
+        expect(await server.nextMessage).toBe(
             '{"channel":"channel","chunk_count":null,"message":{"message":"test"},"type":"message"}'
         );
     });
@@ -85,10 +135,10 @@ describe('WebsocketClient', () => {
         // Wait for the client to connect fully
         await client.channel;
 
-        client.sendCustomMessage('test_custom', { message: 'test' });
+        void client.sendCustomMessage('test_custom', { message: 'test' });
 
         // Check that the message was received
-        await expect(server).toReceiveMessage(
+        expect(await server.nextMessage).toBe(
             '{"message":{"data":{"message":"test"},"kind":"test_custom"},"type":"custom"}'
         );
     });
@@ -119,7 +169,11 @@ describe('WebsocketClient', () => {
 
         const response = await result;
         expect(response).toEqual({
-            message: { data: { foo: 'bar' }, __response_for: receivedMessage.message.__rchan, kind: 'test_custom' },
+            message: {
+                data: { foo: 'bar' },
+                __response_for: receivedMessage.message.__rchan,
+                kind: 'test_custom',
+            },
             type: 'custom',
         });
     });

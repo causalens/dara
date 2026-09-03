@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.29.3
+
+- Internal: Upgraded build tooling to Vite 8 for faster builds.
+
 ## 1.26.12
 
 - Internal: Removed unused build and test tooling dependencies.

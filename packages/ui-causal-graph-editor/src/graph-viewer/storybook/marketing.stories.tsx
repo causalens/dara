@@ -25,7 +25,7 @@ export default {
     title: 'CausalGraphEditor/GraphEditor/Marketing',
 } as Meta;
 
-export const MarketingBottom = Template.bind({});
+export const MarketingBottom: typeof Template = Template.bind({});
 MarketingBottom.args = {
     additionalLegends: [
         {
@@ -40,11 +40,9 @@ MarketingBottom.args = {
             type: 'node',
         },
         {
+            color: 'red',
+            highlight_color: 'green',
             label: 'another node',
-            symbol: {
-                color: 'red',
-                highlight_color: 'green',
-            },
             type: 'node',
         },
     ],
@@ -59,14 +57,14 @@ MarketingBottom.args = {
     },
 };
 
-export const MarketingCenter = Template.bind({});
+export const MarketingCenter: typeof Template = Template.bind({});
 MarketingCenter.args = {
     editable: true,
     graphData: causalGraph,
     graphLayout: MarketingLayout.Builder.targetLocation('center').build(),
 };
 
-export const MarketingTiers = Template.bind({});
+export const MarketingTiers: typeof Template = Template.bind({});
 const marketingLayout = MarketingLayout.Builder.build();
 marketingLayout.tiers = nodeTiersList;
 

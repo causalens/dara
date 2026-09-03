@@ -6,6 +6,37 @@ title: Changelog
 
 - Fixed stale authentication requests interrupting logout and sending users back through a login/logout loop.
 
+## 1.29.7
+
+- Added one-at-a-time polling for DerivedVariable and Python components. Polling now waits after each request, pauses in hidden tabs, spreads retries with jitter and backoff, honors Retry-After, aborts work on cleanup, and drops stale results.
+- Fixed rapid navigation after early route chunks raising `Deferred already resolved` and leaving the NDJSON body open.
+- Fixed StreamVariable clean connection closures not reconnecting and fatal stream errors silently leaving stale values visible, and added configurable SSE keepalive comments with robust parsing and cleanup across the full stream lifecycle.
+- Fixed FastAPI telemetry cleanup errors when application construction fails by attaching instrumentation only after
+  the application has been built successfully.
+
+## 1.29.6
+
+- Added a development-only server handshake that reports mismatched projects and supports overriding Vite's port with `dara start --dev-port` and `dara dev --port`.
+- Fixed `dara dev` to use the application's configured static files directory instead of always assuming `dist`.
+- Added opt-in, vendor-neutral OpenTelemetry traces, logs, and metrics through Pydantic Logfire, covering HTTP,
+  application startup and shutdown, authentication and OIDC, actions, WebSockets, internal operations, tasks, workers,
+  scheduled jobs, cross-process W3C propagation, bounded privacy-aware attributes, and process identity while
+  preserving the existing Prometheus endpoint.
+
+## 1.29.4
+
+- Isolated Dara's Prometheus collectors from the process-wide default registry so applications can register their own metrics without name collisions.
+
+## 1.29.3
+
+- Internal: Upgraded build tooling to Vite 8 for faster builds.
+
+## 1.29.0
+
+- `dara start --reload` now preserves browser auth sessions across backend reloads via a local file-backed session store. Normal runtime, Docker, and production keep in-memory auth sessions by default, so existing deployments are unchanged unless they configure another backend.
+- Added configurable auth session storage via `config.auth_session_backend`, with `InMemoryAuthSessionBackend` and `FileAuthSessionBackend` built in. The file backend persists one session per file with a bounded in-process cache, and supports `path` / `DARA_AUTH_SESSION_FILE_PATH` and `cache_size` options.
+- Local `JWT_SECRET` handling now reuses a generated development signing key from the user cache when no secret is set, so reloads no longer invalidate local sessions. Production and Docker should still set `JWT_SECRET`; if missing, Dara keeps the compatibility fallback and logs a warning.
+
 ## 1.28.7
 
 - Extended metrics to include HTTP request stats
@@ -750,6 +781,7 @@ from dara.components import Select, Item
 some_variable = Variable(1)
 other_variable = Variable(2)
 
+
 @action
 async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     # Value coming from the component, in this case the selected item
@@ -760,10 +792,7 @@ async def my_action(ctx: action.Ctx, arg_1: int, arg_2: int):
     await ctx.update(variable=some_variable, value=value * arg_1 * arg_2)
 
 
-Select(
-    items=[Item(label='item1', value=1), Item(label='item2', value=2)],
-    onchange=my_action(2, other_variable)
-)
+Select(items=[Item(label='item1', value=1), Item(label='item2', value=2)], onchange=my_action(2, other_variable))
 ```
 
 - Added more shortcut actions for common operations, similar to existing `DerivedVariable.trigger()` - `AnyVariable.reset()`, `Variable.sync()`, `Variable.toggle()`, `Variable.update()`. See the updated `actions` documentation page for a full list of available actions.
@@ -807,28 +836,28 @@ from dara.core import ConfigurationBuilder, Cache, Variable, DerivedVariable
 
 config = ConfigurationBuilder()
 
+
 # Assume we have a handler function that fetches data from a remote API
 def fetch_weather_data(args):
     city, country_code = args
-    response = requests.get(f"https://some-weather-api.example/weather?q={city},{country_code}")
+    response = requests.get(f'https://some-weather-api.example/weather?q={city},{country_code}')
     return response.json()
 
+
 # Define the arguments as Variables
-city = Variable(default="London")
-country_code = Variable(default="GB")
+city = Variable(default='London')
+country_code = Variable(default='GB')
 
 # Use case: The weather data is likely to change every minute, so we set a TTL of 60 seconds
 # This means that the weather data will be fetched from the remote API at most once every 60 seconds for a given city/country_code pair
-dv_ttl = DerivedVariable(
-    fetch_weather_data,
-    variables=[city, country_code],
-    cache=Cache.Policy.TTL(ttl=60)
-)
+dv_ttl = DerivedVariable(fetch_weather_data, variables=[city, country_code], cache=Cache.Policy.TTL(ttl=60))
+
 
 # Assume we have a handler that takes a while to run and outputs a large amount of data
 def expensive_computation(args):
     data = [i for i in range(1e10)]
     return data
+
 
 # Defining input variables
 input_var = Variable(default=1)
@@ -836,9 +865,7 @@ input_var = Variable(default=1)
 # Use case: The data is large, so we want to keep most relevant results in cache and evict least relevant ones, so we use LRU cache
 # Only the 5 most recently accessed results (for each user!) will be kept in the cache to save space
 expensive_dv = DerivedVariable(
-    handler=expensive_computation,
-    variables=[input_var],
-    cache=Cache.Policy.LRU(max_size=5, cache_type=Cache.Type.USER)
+    handler=expensive_computation, variables=[input_var], cache=Cache.Policy.LRU(max_size=5, cache_type=Cache.Type.USER)
 )
 
 # Backwards compatible - just specifying cache type using the enum or string will default to LRU with max_size=10
@@ -908,6 +935,7 @@ from dara.core import ConfigurationBuilder
 config = ConfigurationBuilder()
 
 config.add_ws_handler(kind='my_custom_type', handler=my_custom_handler)
+
 
 # This will be called whenever a message of type 'my_custom_type' is received
 def my_custom_handler(channel: str, message: Any):

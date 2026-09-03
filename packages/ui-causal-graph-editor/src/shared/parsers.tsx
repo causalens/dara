@@ -70,8 +70,8 @@ export function getD3Data(graph: SimulationGraph): [edges: D3SimulationEdge[], n
 export function nodesToLayout(nodes: SimulationNode[]): LayoutMapping<XYPosition> {
     return nodes.reduce((acc, node) => {
         acc[node.id] = {
-            x: node.x,
-            y: node.y,
+            x: node.x!,
+            y: node.y!,
         };
 
         return acc;
@@ -106,9 +106,9 @@ export function parseGraphNode(
     // Everything that's not an available input or an output is latent
     // If available inputs is not provided, nothing is latent
     const isLatent =
-        availableInputs && Array.isArray(availableInputs) ?
-            !availableInputs.includes(nodeKey) && Object.keys(data.edges).includes(nodeKey)
-        :   false;
+        availableInputs && Array.isArray(availableInputs)
+            ? !availableInputs.includes(nodeKey) && Object.keys(data.edges).includes(nodeKey)
+            : false;
 
     const originalEntries = Object.entries(nodeData.meta?.rendering_properties ?? {}) as Entries<FlatNodeRenderingMeta>;
 
@@ -179,7 +179,7 @@ export function parseGraphEdge(edgeData: CausalGraphEdge): SimulationEdge {
 }
 
 type Entries<T> = {
-    [K in keyof T]: [K, T[K]];
+    [K in keyof T]-?: [K, T[K]];
 }[keyof T][];
 
 /**
@@ -217,7 +217,7 @@ export function updateNodesForTimeSeries(graph: SimulationGraph): void {
         if (group.length > 1) {
             group.forEach((nodeId) => {
                 const attributes = graph.getNodeAttributes(nodeId);
-                attributes.extras.time_series_variable = variableName;
+                attributes.extras!.time_series_variable = variableName;
                 graph.updateNode(nodeId, () => attributes);
             });
         }
@@ -306,7 +306,7 @@ export function causalGraphParser(
     try {
         const existingGraphAttributes = resultGraph.getAttributes();
         const { extras } = existingGraphAttributes;
-        if (Object.keys(extras).length === 0) {
+        if (Object.keys(extras!).length === 0) {
             resultGraph.updateAttribute('extras', () => getExtraGraphFields(data));
         }
     } catch {

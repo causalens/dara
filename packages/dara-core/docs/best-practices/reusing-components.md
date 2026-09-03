@@ -11,13 +11,13 @@ An example of a very simple reusable component would be:
 ```python
 from dara.components import Text
 
+
 def BoldText(text: str, **kwargs) -> Text:
     """
     Displays text in bold
     """
     kwargs['bold'] = True
     return Text(text, **kwargs)
-
 ```
 
 This is a purely visual component, but you could also reuse components with business logic like plotting.
@@ -25,6 +25,7 @@ This is a purely visual component, but you could also reuse components with busi
 ```python
 from bokeh.plotting import figure
 from dara.components import Bokeh
+
 
 def LinePlot(x: list, y: list, **kwargs) -> Bokeh:
     """
@@ -34,7 +35,7 @@ def LinePlot(x: list, y: list, **kwargs) -> Bokeh:
     p.line(x, y, line_width=2)
 
     p.toolbar_location = 'above'
-    p.tools = "zoom,save"
+    p.tools = 'zoom,save'
     return Bokeh(p)
 ```
 

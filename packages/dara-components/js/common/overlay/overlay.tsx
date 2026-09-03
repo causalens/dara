@@ -16,6 +16,13 @@ interface RenderProp {
     render: boolean;
 }
 
+function getPadding(padding?: string): string {
+    if (padding) {
+        return padding;
+    }
+    return '1rem';
+}
+
 const OverlayWrapper = injectCss(styled.div<RenderProp>`
     position: absolute;
     z-index: 2000;
@@ -30,7 +37,7 @@ const OverlayWrapper = injectCss(styled.div<RenderProp>`
     max-width: 100%;
     max-height: 100%;
     margin: ${(props) => props.margin};
-    padding: ${(props) => (props.padding ? props.padding : '1rem')};
+    padding: ${(props) => getPadding(props.padding)};
 `);
 
 interface OverlayProps extends StyledComponentProps {

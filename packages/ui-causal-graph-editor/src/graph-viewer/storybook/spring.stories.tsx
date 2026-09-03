@@ -26,14 +26,14 @@ export default {
     title: 'CausalGraphEditor/GraphEditor/Spring',
 } as Meta;
 
-export const Spring = Template.bind({});
+export const Spring: typeof Template = Template.bind({});
 Spring.args = {
     editable: true,
     graphData: causalGraph,
     graphLayout: SpringLayout.Builder.build(),
 };
 
-export const SpringTiersArray = Template.bind({});
+export const SpringTiersArray: typeof Template = Template.bind({});
 const springArrayLayout = SpringLayout.Builder.build();
 springArrayLayout.tiers = nodeTiersList;
 
@@ -43,9 +43,13 @@ SpringTiersArray.args = {
     graphLayout: springArrayLayout,
 };
 
-export const SpringTiers = Template.bind({});
+export const SpringTiers: typeof Template = Template.bind({});
 const springLayout = SpringLayout.Builder.build();
-springLayout.tiers = { group: 'meta.group', order_nodes_by: 'meta.order', rank: ['a', 'b', 'c', 'd', 'e'] };
+springLayout.tiers = {
+    group: 'meta.group',
+    order_nodes_by: 'meta.order',
+    rank: ['a', 'b', 'c', 'd', 'e'],
+};
 springLayout.tierSeparation = 300;
 
 SpringTiers.args = {
@@ -54,7 +58,7 @@ SpringTiers.args = {
     graphLayout: springLayout,
 };
 
-export const SpringGroupingLarge = Template.bind({});
+export const SpringGroupingLarge: typeof Template = Template.bind({});
 
 const groupingLayoutLarge = SpringLayout.Builder.build();
 groupingLayoutLarge.group = 'meta.group';
@@ -65,7 +69,7 @@ SpringGroupingLarge.args = {
     editable: true,
 };
 
-export const SpringGroupingSmall = Template.bind({});
+export const SpringGroupingSmall: typeof Template = Template.bind({});
 
 const groupingLayout = SpringLayout.Builder.build();
 groupingLayout.group = 'meta.test';

@@ -16,7 +16,7 @@ import { preloadComponents } from '@/shared/dynamic-component/dynamic-component'
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import type { PyComponentInstance } from '@/types';
 
-import { TaskStatus } from '../../js/api/websocket';
+import { ServerMessageTypename, TaskStatus } from '../../js/api/websocket';
 import { DefaultFallback, ProgressTracker } from '../../js/components';
 import { DynamicComponent, WebSocketCtx, clearCaches_TEST } from '../../js/shared';
 import { GlobalTaskProvider, useTaskContext } from '../../js/shared/context';
@@ -54,6 +54,7 @@ const ProgressTrackerWrapper = (): JSX.Element => {
                 data-testid="progress-button"
                 onClick={() => {
                     wsClient.receiveMessage({
+                        __typename: ServerMessageTypename.TASK_NOTIFICATION,
                         message: {
                             message: `Step ${step}`,
                             progress: step * 25,
@@ -74,6 +75,7 @@ const ProgressTrackerWrapper = (): JSX.Element => {
 
                     // send cancellation message
                     wsClient.receiveMessage({
+                        __typename: ServerMessageTypename.TASK_NOTIFICATION,
                         message: {
                             status: TaskStatus.CANCELED,
                             task_id: tuid,
@@ -91,6 +93,7 @@ const ProgressTrackerWrapper = (): JSX.Element => {
                 data-testid="fake-button"
                 onClick={() => {
                     wsClient.receiveMessage({
+                        __typename: ServerMessageTypename.TASK_NOTIFICATION,
                         message: {
                             message: 'FAKE_PROGRESS__0__Faking progress',
                             progress: fakeUntil,
@@ -105,6 +108,7 @@ const ProgressTrackerWrapper = (): JSX.Element => {
                 data-testid="stop-fake-button"
                 onClick={() => {
                     wsClient.receiveMessage({
+                        __typename: ServerMessageTypename.TASK_NOTIFICATION,
                         message: {
                             message: `Step ${step}`,
                             progress: 99,
@@ -234,7 +238,7 @@ describe('ProgressTracker', () => {
             fireEvent.click(fakeButton);
         });
 
-        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]);
+        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]!);
         let currentProgress = getProgress();
 
         // Start from current progress - 50
@@ -310,7 +314,7 @@ describe('ProgressTracker', () => {
 
         await waitFor(() => expect(getByText('Faking progress')).toBeInTheDocument());
 
-        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]);
+        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]!);
         let currentProgress = getProgress();
 
         // advance the timer a couple times to see it increasing automatically, without new messages coming in
@@ -381,7 +385,7 @@ describe('ProgressTracker', () => {
 
         await waitFor(() => expect(getByText('Faking progress')).toBeInTheDocument());
 
-        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]);
+        const getProgress = (): number => parseFloat(getByText(/%/).innerHTML.split('%')[0]!);
         let currentProgress = getProgress();
 
         // advance the timer a couple times to see it increasing automatically, without new messages coming in
@@ -589,6 +593,7 @@ describe('ProgressTracker', () => {
 
         act(() => {
             client.receiveMessage({
+                __typename: ServerMessageTypename.TASK_NOTIFICATION,
                 message: {
                     status: TaskStatus.COMPLETE,
                     task_id: tuid,

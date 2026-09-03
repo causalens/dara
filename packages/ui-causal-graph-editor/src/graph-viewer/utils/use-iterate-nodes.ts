@@ -31,8 +31,8 @@ type UseIterateNodes = {
  * @param state graph viewer state
  */
 const useIterateNodes = (
-    selectedNode: string,
-    setSelectedNode: React.Dispatch<React.SetStateAction<string>>,
+    selectedNode: string | null,
+    setSelectedNode: React.Dispatch<React.SetStateAction<string | null>>,
     state: GraphState
 ): UseIterateNodes => {
     const nextNode = (): void => {

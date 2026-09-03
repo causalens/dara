@@ -182,7 +182,9 @@ function getCellRenderer(formatter: { [k: string]: any }): any {
 function mapColumns(columns: Array<ColumnProps>): any {
     if (columns) {
         return columns.map((column: ColumnProps) => ({
-            Header: column.label ? column.label : column.col_id,
+            // An empty label has historically displayed the column identifier.
+            // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+            Header: column.label || column.col_id,
             accessor: column.col_id,
             ...(column.align && { align: column.align }),
             ...(column.filter && { filter: column.filter }),
@@ -314,7 +316,10 @@ function filtersToFilterQuery(filters: Filter[]): FilterQuery | null {
 function getDatetimeColumns(columns: ColumnProps[]): [id: string, type: string | undefined][] {
     return columns
         .filter(
-            (col) => col?.formatter?.type === 'datetime' || col?.type?.includes('datetime') || col.filter === 'datetime'
+            (col) =>
+                col?.formatter?.type === 'datetime' ||
+                Boolean(col?.type?.includes('datetime')) ||
+                col.filter === 'datetime'
         )
         .map((c) => [c.col_id, c.type]);
 }
@@ -426,15 +431,14 @@ function resolveColumns(
     includeIndex?: boolean
 ): ColumnProps[] {
     const columns = Object.keys(dataRow);
-    const fieldTypes =
-        schema ?
-            Object.fromEntries(
-                schema.fields.flatMap((field) => {
-                    const key = Array.isArray(field.name) ? field.name.join('_') : field.name;
-                    return [[key, { type: field.type }]];
-                })
-            )
-        :   null;
+    const fieldTypes = schema
+        ? Object.fromEntries(
+              schema.fields.flatMap((field) => {
+                  const key = Array.isArray(field.name) ? field.name.join('_') : field.name;
+                  return [[key, { type: field.type }]];
+              })
+          )
+        : null;
 
     const columnsWithoutGeneratedIndex = columns.filter((col) => col !== INDEX_COL);
     let processedColumns: ColumnProps[];
@@ -507,7 +511,7 @@ function Table(props: TableProps): JSX.Element {
                 {
                     index,
                     limit: stopIndex !== undefined && startIndex !== undefined ? stopIndex - startIndex : undefined,
-                    offset: startIndex !== undefined ? startIndex : undefined,
+                    offset: startIndex ?? undefined,
                     sort: sortingRules[0],
                 },
                 columnHints
@@ -653,17 +657,17 @@ function Table(props: TableProps): JSX.Element {
                 selectedRows = cleanIndex(await Promise.all(newSelectedIndices.map((idx) => getRowByIndex(idx))));
             }
             if (isCheckboxSelect) {
-                onSelectRow(selectedRows || []);
+                void onSelectRow(selectedRows ?? []);
             }
 
             // If we don't want to suppress click events for selection, we want to trigger the click event as is before
             if (!props.suppress_click_events_for_selection) {
-                onClickRow(selectedRows);
+                void onClickRow(selectedRows);
             }
 
             // If suppression is enabled, we want to trigger the click event and return the whole row
             else if (!isCheckboxSelect) {
-                onClickRow(cleanIndex([row]));
+                void onClickRow(cleanIndex([row]));
             }
         },
         [
@@ -682,13 +686,13 @@ function Table(props: TableProps): JSX.Element {
     const onAction = useCallback(
         (actionId: string, row: any): void => {
             if (actionId === UiTable.Actions.SELECT.id) {
-                onSelect(row, true);
+                void onSelect(row, true);
             }
 
             // Call the on_action handler, if it doesn't exist, it is a no-op anyways
             // Preserve original data column names on action
             // Limitation: If there are columns with duplicate names, data from only one of them will be returned
-            onActionRaw({
+            void onActionRaw({
                 action_id: actionId,
                 data: mapKeys(row, (_, key) => extractColumnLabel(key, key.startsWith(INDEX_COL))),
             });
@@ -713,16 +717,16 @@ function Table(props: TableProps): JSX.Element {
 
         // Construct filter query
         const newSearchQuery: ClauseQuery | null =
-            searchTermClean.length > 0 ?
-                ({
-                    clauses: searchColumns.map((col) => ({
-                        column: col,
-                        operator: 'CONTAINS',
-                        value: searchTermClean,
-                    })),
-                    combinator: 'OR',
-                } satisfies ClauseQuery)
-            :   null;
+            searchTermClean.length > 0
+                ? ({
+                      clauses: searchColumns.map((col) => ({
+                          column: col,
+                          operator: 'CONTAINS',
+                          value: searchTermClean,
+                      })),
+                      combinator: 'OR',
+                  } satisfies ClauseQuery)
+                : null;
 
         debouncedSetSearchQuery(newSearchQuery);
     };

@@ -38,7 +38,6 @@ const ThreadWrapper = styled.div`
     bottom: -0.1rem;
 
     margin: 1rem;
-
     border-radius: 0.4rem;
 `;
 
@@ -50,12 +49,12 @@ const ChatButton = styled.button`
     width: 32px;
     height: 32px;
     padding: 7px 6px;
+    border: none;
+    border-radius: 2rem;
 
     color: ${(props) => props.theme.colors.background};
 
     background-color: ${(props) => props.theme.colors.primary};
-    border: none;
-    border-radius: 2rem;
 
     :hover {
         background-color: ${(props) => props.theme.colors.primaryHover};
@@ -144,7 +143,7 @@ function getHighestZIndex(selector: string): number {
     const elements = document.querySelectorAll(selector);
     let highest = 998; // Start with 998
     elements.forEach((element) => {
-        const zIndex = parseInt(window.getComputedStyle(element as HTMLElement).zIndex);
+        const zIndex = parseInt(window.getComputedStyle(element as HTMLElement).zIndex, 10);
         if (zIndex > highest) {
             highest = zIndex;
         }
@@ -182,7 +181,7 @@ function Chat(props: ChatProps): JSX.Element {
                 users,
                 content: newMessage,
             };
-            sendNewMessage(notificationPayload, extras);
+            void sendNewMessage(notificationPayload, extras);
         }
         setValue(newValue);
     };

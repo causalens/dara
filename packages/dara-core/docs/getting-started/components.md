@@ -39,9 +39,7 @@ A `dara.components.common.heading.Heading` component is the basic component for 
 ```python
 from dara.components import Heading
 
-Heading(
-     heading='This is the heading text'
-)
+Heading(heading='This is the heading text')
 ```
 
 ![Heading](../assets/getting_started/components/heading.png)
@@ -53,16 +51,9 @@ A `dara.components.common.stack.Stack` component is the core component for layin
 ```python
 from dara.components import Stack
 
-Stack(
-    Text('This text will appear above'),
-    Text('this text.')
-)
+Stack(Text('This text will appear above'), Text('this text.'))
 
-Stack(
-    Text('This text will appear next to'),
-    Text('this text.'),
-    direction='horizontal'
-)
+Stack(Text('This text will appear next to'), Text('this text.'), direction='horizontal')
 ```
 
 ![Stack](../assets/getting_started/components/stack.png)
@@ -117,40 +108,15 @@ from dara.core.visual.themes import Light
 
 Grid(
     Grid.Row(
-        Grid.Column(
-            Text('Row 1 Column 1'),
-            background=Light.colors.blue2,
-            justify='center',
-            span=8
-        ),
-        Grid.Column(
-            Text('Row 1 Column 2'),
-            background=Light.colors.blue3,
-            justify='center',
-            span=4
-        ),
-        padding='10px'
+        Grid.Column(Text('Row 1 Column 1'), background=Light.colors.blue2, justify='center', span=8),
+        Grid.Column(Text('Row 1 Column 2'), background=Light.colors.blue3, justify='center', span=4),
+        padding='10px',
     ),
     Grid.Row(
-        Grid.Column(
-            Text('Row 2 Column 1'),
-            background=Light.colors.blue2,
-            justify='center',
-            span=5
-        ),
-        Grid.Column(
-            Text('Row 2 Column 2'),
-            background=Light.colors.blue3,
-            justify='center',
-            span=4
-        ),
-        Grid.Column(
-            Text('Row 2 Column 3'),
-            background=Light.colors.blue4,
-            justify='center',
-            span=3
-        ),
-        padding='10px'
+        Grid.Column(Text('Row 2 Column 1'), background=Light.colors.blue2, justify='center', span=5),
+        Grid.Column(Text('Row 2 Column 2'), background=Light.colors.blue3, justify='center', span=4),
+        Grid.Column(Text('Row 2 Column 3'), background=Light.colors.blue4, justify='center', span=3),
+        padding='10px',
     ),
 )
 ```
@@ -230,7 +196,7 @@ Stack(
     Stack(
         Text('Second stack'),
         background=Light.colors.blue4,
-    )
+    ),
 )
 ```
 
@@ -275,10 +241,7 @@ from dara.components import Heading, Text, Card
 config = ConfigurationBuilder()
 
 # Register pages
-card = Card(
-    Text('My new page.'),
-    title='My New Page\'s Card'
-)
+card = Card(Text('My new page.'), title="My New Page's Card")
 
 config.router.add_page(path='hello-world', content=card)
 ```

@@ -1,26 +1,21 @@
 /* eslint-disable import/prefer-default-export */
 
 type InterceptRequestMatcher = Parameters<Cypress.Chainable['intercept']>[0];
-type InterceptResponse = Parameters<CyHttpMessages.IncomingHttpRequest['reply']>[0];
 
 /**
  * Helper method to intercept a specific API call and return a callback to send a response at a specific point.
  * Useful for testing loading states.
  *
  * @param requestMatcher matcher for the request
- * @param response optional specific response to send
  */
-export function interceptIndefinitely(
-    requestMatcher: InterceptRequestMatcher,
-    response?: InterceptResponse
-): { sendResponse: () => void } {
+export function interceptIndefinitely(requestMatcher: InterceptRequestMatcher): { sendResponse: () => void } {
     let sendResponse: (() => void) | undefined;
     const trigger = new Promise<void>((resolve) => {
         sendResponse = resolve;
     });
     cy.intercept(requestMatcher, (request) => {
         return trigger.then(() => {
-            request.reply(response);
+            request.reply();
         });
     });
     return {
@@ -52,11 +47,25 @@ export function type(alias: string, string: string, checkLoading: () => void = (
 
 const firstPage = '/a_home';
 
+/**
+ * Restore the shared default-auth browser session, then navigate to a test route.
+ *
+ * The session is cached across specs because the E2E server and its in-memory
+ * auth session backend remain alive for the full Cypress run.
+ *
+ * @param path route to visit after restoring authentication
+ */
 export const loginBeforeRoute = (path: string) => () => {
-    cy.visit('/login');
-    cy.location('pathname').should((url) => {
-        expect(url.includes(firstPage) || url.includes(path)).eq(true);
-    });
+    cy.session(
+        'default-auth',
+        () => {
+            cy.visit('/login');
+            cy.location('pathname').should('contain', firstPage);
+        },
+        {
+            cacheAcrossSpecs: true,
+        }
+    );
     cy.visit(path);
     cy.location('pathname').should('contain', path);
 };

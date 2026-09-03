@@ -56,22 +56,20 @@ const LabelStaticDisplay = styled.div<{ $viewOnly: boolean }>`
     overflow: hidden;
     display: box; /* stylelint-disable-line declaration-property-value-no-unknown */
     box-orient: vertical; /* stylelint-disable-line property-no-unknown */
+    -webkit-line-clamp: 3;
 
     width: 20ch;
     max-width: 100%;
     margin: 0;
     padding: 0.5rem calc(0.5rem + 1px); /* so its aligned with the input having 1px border */
+    border-radius: 4px;
 
     font-size: 1rem;
     color: ${(props) => props.theme.colors.grey4};
 
-    border-radius: 4px;
-
     box-align: center; /* stylelint-disable-line property-no-unknown */
 
     box-pack: center; /* stylelint-disable-line property-no-unknown */
-
-    -webkit-line-clamp: 3;
 
     ${(props) =>
         !props.$viewOnly &&
@@ -97,9 +95,9 @@ const LabelEditorWrapper = styled.div`
  */
 function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
     const [editEnabled, setEditEnabled] = useState(false);
-    const [label, setLabel] = useState(null);
+    const [label, setLabel] = useState<string | null>(null);
 
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
     useOnClickOutside(ref.current, () => setEditEnabled(false));
 
     const debouncedUpdateLabel = useMemo(() => debounce(props.onChange, 300), [props.onChange]);
@@ -121,15 +119,16 @@ function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
 
     return (
         <LabelEditorWrapper ref={ref}>
-            {editEnabled ?
+            {editEnabled ? (
                 <StyledInput
                     autoFocus
                     onChange={onLabelChange}
                     onComplete={() => setEditEnabled(false)}
                     value={labelToDisplay}
                 />
-            :   <LabelStaticDisplay
-                    $viewOnly={props.viewOnly}
+            ) : (
+                <LabelStaticDisplay
+                    $viewOnly={props.viewOnly as boolean}
                     onClick={() => onEnableEditing()}
                     onKeyDown={(k) => k.key === 'Enter' && onEnableEditing()}
                     role="button"
@@ -137,7 +136,7 @@ function LayerLabelEditor(props: LayerLabelEditorProps): JSX.Element {
                 >
                     <span>{labelToDisplay}</span>
                 </LabelStaticDisplay>
-            }
+            )}
         </LabelEditorWrapper>
     );
 }

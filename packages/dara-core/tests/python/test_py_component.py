@@ -921,7 +921,11 @@ async def test_chain_derived_var_with_run_as_task_flag():
         updates = await get_ws_messages(websocket)
 
         # Last should be the py_component task completing
-        assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in updates
+        assert {
+            '__typename': 'TaskNotificationMessage',
+            'message': {'status': 'COMPLETE', 'task_id': task_id},
+            'type': 'message',
+        } in updates
 
         # Try to fetch the result via the rest api
         result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())
@@ -981,6 +985,7 @@ async def test_single_dv_track_progress():
         for i in range(1, 6):
             progress_update = await websocket.receive_json()
             assert progress_update == {
+                '__typename': 'TaskNotificationMessage',
                 'message': {
                     'progress': (i / 5) * 100,
                     'message': f'Track1 step {i}',
@@ -995,7 +1000,11 @@ async def test_single_dv_track_progress():
         # All of them should be completions at this point
         assert all([m['message']['status'] == 'COMPLETE' for m in complete_messages])
         # One of them should be the py_component task completing
-        assert {'message': {'status': 'COMPLETE', 'task_id': task_id}, 'type': 'message'} in complete_messages
+        assert {
+            '__typename': 'TaskNotificationMessage',
+            'message': {'status': 'COMPLETE', 'task_id': task_id},
+            'type': 'message',
+        } in complete_messages
 
         # Try to fetch the result via the rest api
         result = await client.get(f'/api/core/tasks/{task_id}', headers=await _get_auth_headers())

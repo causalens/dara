@@ -61,7 +61,7 @@ interface HierarchySelectorProps {
  */
 function HierarchySelector(props: HierarchySelectorProps): JSX.Element {
     const theme = useTheme();
-    const [rootOpen, setRootOpen] = useState(props.rootOpen || false);
+    const [rootOpen, setRootOpen] = useState(props.rootOpen ?? false);
     const [selectedNodeId, setSelectedNodeId] = useState(props.selected);
 
     useEffect(() => {
@@ -76,7 +76,7 @@ function HierarchySelector(props: HierarchySelectorProps): JSX.Element {
 
     const selectNode = (nodeId: string): void => {
         setSelectedNodeId(nodeId);
-        props.onSelect?.(nodeId);
+        void props.onSelect?.(nodeId);
     };
 
     const { label, id, children } = props.rootNode;

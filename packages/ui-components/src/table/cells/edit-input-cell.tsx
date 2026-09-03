@@ -51,9 +51,9 @@ function EditInputCell(): (props: EditCellProps<string>) => JSX.Element {
         if (isEqual(props.currentEditCell, [props.rowIdx, props.column.id])) {
             const onComplete = (): void => {
                 if (props.onChange && value !== props.value) {
-                    props.onChange(value, props.rowIdx, props.column.id);
+                    void props.onChange(value, props.rowIdx, props.column.id);
                 }
-                props.onStopEdit();
+                void props.onStopEdit();
             };
 
             const onChange = (val: string): void => {

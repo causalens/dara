@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from collections.abc import Callable
+from functools import wraps
 from inspect import isawaitable
 from typing import Annotated, Any
 from urllib.parse import parse_qs, urlparse
@@ -53,8 +55,75 @@ from dara.core.auth.session import (
     verify_auth_token,
     verify_raw_auth_token,
 )
+from dara.core.telemetry import annotate_auth_observation, observe_auth
 
 auth_router = APIRouter()
+
+
+def _auth_failure_reason(error: HTTPException) -> str:
+    """Return a bounded diagnostic classification for a handled auth rejection."""
+    if error.detail == EXPIRED_TOKEN_ERROR:
+        return 'token_expired'
+    if error.detail == INVALID_TOKEN_ERROR:
+        return 'invalid_token'
+    if error.status_code == 403:
+        return 'access_denied'
+    if error.status_code == 401:
+        return 'credentials_rejected'
+    if error.status_code == 400:
+        return 'invalid_request'
+    return 'internal_error'
+
+
+def _observe_auth_route(operation: str):
+    """Trace an auth route or dependency while preserving its FastAPI signature."""
+
+    def _decorator(func: Callable):
+        @wraps(func)
+        async def _wrapper(*args, **kwargs):
+            from dara.core.internal.registries import auth_registry
+
+            auth_config: BaseAuthConfig = auth_registry.get('auth_config')
+            request = next((arg for arg in args if isinstance(arg, Request)), None)
+            if request is None:
+                request = kwargs.get('req') or kwargs.get('request')
+
+            credential_source = 'none'
+            if isinstance(request, Request):
+                authorization = request.headers.get('Authorization')
+                session_cookie = request.cookies.get(SESSION_TOKEN_COOKIE_NAME)
+                if session_cookie is not None and authorization in (None, f'Bearer {session_cookie}'):
+                    credential_source = 'cookie'
+                elif authorization is not None:
+                    credential_source = 'header'
+
+            with observe_auth(
+                operation,
+                system=auth_config.telemetry_system,
+                attributes={'dara.auth.credential.source': credential_source},
+            ) as observation:
+                try:
+                    result = await func(*args, **kwargs)
+                    if isinstance(result, Response) and result.status_code >= 400:
+                        annotate_auth_observation(
+                            observation,
+                            outcome='denied' if result.status_code < 500 else 'error',
+                            failure_reason='request_rejected',
+                            attributes={'http.response.status_code': result.status_code},
+                        )
+                    return result
+                except HTTPException as error:
+                    annotate_auth_observation(
+                        observation,
+                        outcome='denied' if error.status_code < 500 else 'error',
+                        failure_reason=_auth_failure_reason(error),
+                        attributes={'http.response.status_code': error.status_code},
+                    )
+                    raise
+
+        return _wrapper
+
+    return _decorator
 
 
 def _cache_session_auth_token(token_data: TokenData):
@@ -269,6 +338,7 @@ async def handle_verify_session(
         return JSONResponse(status_code=err.status_code, content={'detail': err.detail})
 
 
+@_observe_auth_route('session.verify')
 async def verify_session(
     req: Request,
     dara_session_token: Annotated[str | None, Cookie(alias=SESSION_TOKEN_COOKIE_NAME)] = None,
@@ -376,6 +446,7 @@ async def verify_session(
 
 
 @auth_router.post('/revoke-session')
+@_observe_auth_route('session.revoke')
 async def _revoke_session(
     request: Request,
     response: Response,
@@ -432,6 +503,7 @@ async def _revoke_session(
 
 # Request to retrieve a session token from the backend. The app does this on startup.
 @auth_router.post('/session')
+@_observe_auth_route('login.initiate')
 async def _get_session(body: SessionRequestBody, request: Request):
     try:
         from dara.core.auth.oidc.definitions import OIDC_LOGIN_SESSION_COOKIE_NAME

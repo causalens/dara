@@ -34,11 +34,11 @@ const Wrapper = styled.div<WrapperProps>`
     max-height: 100%;
     margin: 2rem;
     padding: 1rem;
+    border-radius: 0.25rem;
 
     color: ${(props) => props.theme.colors.text};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border-radius: 0.25rem;
 `;
 
 interface selectedProp {
@@ -57,12 +57,12 @@ const Card = styled.div<selectedProp>`
 
     margin: 1rem;
     padding: 1rem;
+    border: ${(props) => `2px solid ${props.selected ? props.theme.colors.primary : 'transparent'}`};
+    border-radius: 0.25rem;
 
     text-align: center;
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border: ${(props) => `2px solid ${props.selected ? props.theme.colors.primary : 'transparent'}`};
-    border-radius: 0.25rem;
 
     :hover {
         border: ${(props) => `2px solid ${props.selected ? props.theme.colors.primary : props.theme.colors.grey3}`};
@@ -115,7 +115,7 @@ function getSelectedIndex(selectedItems: Array<string>, item: ComponentSelectIte
 function updateSelectedItems(
     prevSelections: Array<string>,
     item: ComponentSelectItem,
-    multiSelect: boolean
+    multiSelect?: boolean
 ): Array<string> {
     const selectedIndex = getSelectedIndex(prevSelections, item);
     // Remove from selections if item is already selected
@@ -167,7 +167,7 @@ function ComponentSelectList(props: ComponentSelectListProps): JSX.Element {
         (index: number) => {
             const updatedSelectedCards = updateSelectedItems(selectedCards, props.items[index], props.multiSelect);
             setSelectedCards(updatedSelectedCards);
-            props.onSelect?.(updatedSelectedCards);
+            void props.onSelect?.(updatedSelectedCards);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [props.items, props.multiSelect, selectedCards, setSelectedCards]

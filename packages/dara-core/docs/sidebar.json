@@ -46,6 +46,7 @@
         "docs/advanced/progress-tracking",
         "docs/advanced/custom-endpoints",
         "docs/advanced/custom-middlewares",
+        "docs/advanced/observability",
         "docs/advanced/data-utils"
       ]
     },

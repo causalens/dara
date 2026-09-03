@@ -75,6 +75,8 @@ function Button(
 
     // Extract icon and grab color from first child if it has it
     const Icon = icon ? getIcon(icon) : null;
+    // Empty CSS values have historically inherited the surrounding color.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
     const iconColor = Array.isArray(children) ? children?.[0]?.props?.color || 'inherit' : 'inherit';
 
     return (
@@ -89,7 +91,7 @@ function Button(
                 if (props.stop_click_propagation !== false) {
                     e.stopPropagation();
                 }
-                onClick(null);
+                void onClick(null);
             }}
             outline={outline}
             style={{
@@ -109,9 +111,9 @@ function Button(
                 />
             )}
             <DisplayCtx.Provider value={{ component: ComponentType.BUTTON, direction: 'horizontal' }}>
-                {typeof children === 'string' ?
-                    children
-                :   children.map((child) => <DynamicComponent component={child} key={`button-${child.uid}`} />)}
+                {typeof children === 'string'
+                    ? children
+                    : children.map((child) => <DynamicComponent component={child} key={`button-${child.uid}`} />)}
             </DisplayCtx.Provider>
         </StyledButton>
     );

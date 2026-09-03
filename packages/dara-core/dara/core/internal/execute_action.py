@@ -18,6 +18,7 @@ limitations under the License.
 from __future__ import annotations
 
 import asyncio
+import inspect
 from collections.abc import Callable, Mapping
 from contextvars import ContextVar
 from functools import partial
@@ -39,14 +40,25 @@ from dara.core.internal.dependency_resolution import resolve_dependency
 from dara.core.internal.encoder_registry import deserialize
 from dara.core.internal.tasks import MetaTask, TaskManager
 from dara.core.internal.utils import run_user_handler
-from dara.core.internal.websocket import WebsocketManager
+from dara.core.internal.websocket import DaraServerMessage, WebsocketManager
 from dara.core.logging import dev_logger
+from dara.core.telemetry import _OperationObservation, observe_action, observe_action_phase
 
 CURRENT_ACTION_ID = ContextVar('current_action_id', default='')
+CURRENT_ACTION_DEFINITION_ID = ContextVar('current_action_definition_id', default='')
+
+
+def _callable_name(handler: Callable) -> str:
+    """Return a stable module-qualified callable name for telemetry."""
+    return f'{getattr(handler, "__module__", "unknown")}.{getattr(handler, "__qualname__", type(handler).__name__)}'
 
 
 async def _execute_action(
-    handler: Callable, ctx: ActionCtx, values: Mapping[str, Any], _on_error: Literal['raise', 'notify'] = 'notify'
+    handler: Callable,
+    ctx: ActionCtx,
+    values: Mapping[str, Any],
+    _on_error: Literal['raise', 'notify'] = 'notify',
+    _observation: _OperationObservation | None = None,
 ):
     """
     Execute the action handler within the given action context, handling any exceptions that occur.
@@ -77,10 +89,12 @@ async def _execute_action(
     try:
         return await run_user_handler(handler, args=args, kwargs=parsed_values)
     except Exception as e:
+        if _observation is not None:
+            _observation.record_exception(e)
         if _on_error == 'raise':
             raise
         elif _on_error == 'notify':
-            dev_logger.error('Error executing action', e)
+            dev_logger.error('Error executing action', e, event_name='action.execution.error')
             await ctx.notify('An error occurred while executing the action', 'Error', 'ERROR')
     finally:
         await ctx._end_execution()
@@ -118,18 +132,36 @@ async def _stream_action(
     :param batch: whether to emit batch framing markers (default True)
     :param values: the resolved values to pass to the handler
     """
-    try:
-        if batch:
-            await ctx._on_action(BatchStart())
-        async with anyio.create_task_group() as tg:
-            # Execute the handler and a stream consumer in parallel
-            tg.start_soon(partial(_execute_action, _on_error=_on_error), handler, ctx, values)
-            tg.start_soon(ctx._handle_results)
-    finally:
-        if batch:
-            await ctx._on_action(BatchEnd())
-        # None is treated as a sentinel value to stop waiting for new actions to come in on the client
-        await ctx._on_action(None)
+    action_name = _callable_name(handler)
+    function_name = getattr(handler, '__name__', type(handler).__name__)
+    delivery = 'stream' if batch else 'request'
+    handler_type = 'async' if inspect.iscoroutinefunction(handler) else 'sync'
+
+    with observe_action(
+        action_name,
+        delivery,
+        handler_type,
+        definition_id=CURRENT_ACTION_DEFINITION_ID.get() or None,
+        instance_id=CURRENT_ACTION_ID.get() or None,
+        function_name=function_name,
+    ) as observation:
+        try:
+            if batch:
+                await ctx._on_action(BatchStart())
+            async with anyio.create_task_group() as tg:
+                # Execute the handler and a stream consumer in parallel
+                tg.start_soon(
+                    partial(_execute_action, _on_error=_on_error, _observation=observation),
+                    handler,
+                    ctx,
+                    values,
+                )
+                tg.start_soon(ctx._handle_results)
+        finally:
+            if batch:
+                await ctx._on_action(BatchEnd())
+            # None is treated as a sentinel value to stop waiting for new actions to come in on the client
+            await ctx._on_action(None)
 
 
 async def execute_action_sync(
@@ -153,6 +185,9 @@ async def execute_action_sync(
     """
     action = action_def.resolver
     assert action is not None, 'Action resolver must be defined'
+    action_name = _callable_name(action)
+    function_name = getattr(action, '__name__', type(action).__name__)
+    CURRENT_ACTION_DEFINITION_ID.set(action_def.uid)
 
     results = []
 
@@ -166,17 +201,24 @@ async def execute_action_sync(
 
     resolved_kwargs = {}
 
-    if values is not None:
-        annotations = action.__annotations__
+    with observe_action_phase(
+        'dependencies',
+        action_name,
+        definition_id=action_def.uid,
+        instance_id=CURRENT_ACTION_ID.get() or None,
+        function_name=function_name,
+    ):
+        if values is not None:
+            annotations = action.__annotations__
 
-        async def _resolve_kwarg(val: Any, key: str):
-            typ = annotations.get(key)
-            val = await resolve_dependency(val, store, task_mgr)
-            resolved_kwargs[key] = deserialize(val, typ)
+            async def _resolve_kwarg(val: Any, key: str):
+                typ = annotations.get(key)
+                val = await resolve_dependency(val, store, task_mgr)
+                resolved_kwargs[key] = deserialize(val, typ)
 
-        async with anyio.create_task_group() as tg:
-            for key, value in values.items():
-                tg.start_soon(_resolve_kwarg, value, key)
+            async with anyio.create_task_group() as tg:
+                for key, value in values.items():
+                    tg.start_soon(_resolve_kwarg, value, key)
 
     # Merge resolved dynamic kwargs with static kwargs received
     resolved_kwargs = {**resolved_kwargs, **static_kwargs}
@@ -225,27 +267,43 @@ async def execute_action(
 
     action = action_def.resolver
     assert action is not None, 'Action resolver must be defined'
+    action_name = _callable_name(action)
+    function_name = getattr(action, '__name__', type(action).__name__)
+    CURRENT_ACTION_DEFINITION_ID.set(action_def.uid)
 
     # Construct a context which handles action messages by sending them to the frontend
     async def handle_action(act_impl: ActionImpl | None):
-        await ws_mgr.send_message(ws_channel, {'action': act_impl, 'uid': execution_id})
+        await ws_mgr.send_message(
+            ws_channel,
+            DaraServerMessage.create(
+                'ActionMessage',
+                {'action': act_impl, 'uid': execution_id},
+            ),
+        )
 
     ctx = ActionCtx(inp, handle_action)
     ACTION_CONTEXT.set(ctx)
 
     resolved_kwargs = {}
 
-    if values is not None:
-        annotations = action.__annotations__
+    with observe_action_phase(
+        'dependencies',
+        action_name,
+        definition_id=action_def.uid,
+        instance_id=CURRENT_ACTION_ID.get() or None,
+        function_name=function_name,
+    ):
+        if values is not None:
+            annotations = action.__annotations__
 
-        async def _resolve_kwarg(val: Any, key: str):
-            typ = annotations.get(key)
-            val = await resolve_dependency(val, store, task_mgr)
-            resolved_kwargs[key] = deserialize(val, typ)
+            async def _resolve_kwarg(val: Any, key: str):
+                typ = annotations.get(key)
+                val = await resolve_dependency(val, store, task_mgr)
+                resolved_kwargs[key] = deserialize(val, typ)
 
-        async with anyio.create_task_group() as tg:
-            for key, value in values.items():
-                tg.start_soon(_resolve_kwarg, value, key)
+            async with anyio.create_task_group() as tg:
+                for key, value in values.items():
+                    tg.start_soon(_resolve_kwarg, value, key)
 
     # Merge resolved dynamic kwargs with static kwargs received
     resolved_kwargs = {**resolved_kwargs, **static_kwargs}
@@ -258,7 +316,7 @@ async def execute_action(
             set(
                 [
                     channel
-                    for extra in resolved_kwargs
+                    for extra in resolved_kwargs.values()
                     if isinstance(extra, BaseTask)
                     for channel in extra.notify_channels
                 ]
@@ -271,7 +329,12 @@ async def execute_action(
         # Note: no associated registry entry, the result are not persisted in cache
         # Return a metatask which, when all dependencies are ready, will stream the action results to the frontend
         meta_task = MetaTask(
-            process_result=_stream_action, args=[action, ctx], kwargs=resolved_kwargs, notify_channels=notify_channels
+            process_result=_stream_action,
+            args=[action, ctx],
+            kwargs=resolved_kwargs,
+            notify_channels=notify_channels,
+            telemetry_origin_kind='action',
+            telemetry_origin_name=action_name,
         )
         task_mgr.register_task(meta_task)
         return meta_task

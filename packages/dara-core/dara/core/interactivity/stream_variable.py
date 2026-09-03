@@ -21,8 +21,10 @@ import asyncio
 import contextlib
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, Generic, Literal
 
+import anyio
 from pydantic import ConfigDict, Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 from typing_extensions import TypeVar
 
@@ -42,6 +44,12 @@ from dara.core.interactivity.stream_event import ReconnectException, StreamEvent
 from dara.core.internal.cache_store import CacheStore
 from dara.core.internal.tasks import TaskManager
 from dara.core.logging import dev_logger
+from dara.core.telemetry import (
+    _OperationObservation,
+    observe_stream,
+    record_stream_event,
+    record_stream_progress,
+)
 
 VariableType = TypeVar('VariableType', default=Any)
 
@@ -314,14 +322,208 @@ def _validate_event_mode(event: StreamEvent, key_accessor: str | None) -> None:
         )
 
 
+@dataclass(frozen=True)
+class _StreamChunk:
+    """A serialized SSE chunk produced by the stream lifecycle."""
+
+    value: str
+
+
+@dataclass(frozen=True)
+class _StreamFinished:
+    """Signal that the stream lifecycle completed normally."""
+
+
+@dataclass(frozen=True)
+class _StreamFailed:
+    """Signal that the stream lifecycle failed outside its normal error handling."""
+
+    error: BaseException
+
+
+_StreamQueueItem = _StreamChunk | _StreamFinished | _StreamFailed
+
+
+async def _cancel_and_wait_for_task(task: asyncio.Task[Any]) -> asyncio.CancelledError | None:
+    """
+    Cancel and await an owned child without forwarding parent cancellation.
+
+    ``asyncio`` normally propagates cancellation from a task awaiting another
+    task. During stream teardown that can cancel the producer a second time
+    while it is already inside an awaited user-generator ``aclose()``. Wait
+    indirectly until the child's cleanup finishes, but remember a new parent
+    cancellation so it can be re-raised after all teardown completes.
+
+    :param task: child task whose termination and cleanup must be awaited
+    :return: cancellation received by the waiting parent, if any
+    """
+    deferred_cancellation: asyncio.CancelledError | None = None
+
+    if not task.done():
+        task.cancel()
+
+    while not task.done():
+        try:
+            # Unlike directly awaiting a task (even through shield()),
+            # cancelling this waiter never forwards cancellation to ``task``.
+            await asyncio.wait((task,))
+        except asyncio.CancelledError as error:
+            deferred_cancellation = error
+
+    if not task.cancelled():
+        task.result()
+
+    return deferred_cancellation
+
+
 async def run_stream(
     entry: StreamVariableRegistryEntry,
     disconnect_event: asyncio.Event,
     values: list[Any],
     store: CacheStore,
     task_mgr: TaskManager,
+    keepalive_interval_seconds: float | None = None,
 ):
-    """Run a StreamVariable."""
+    """
+    Run a StreamVariable under one lifecycle span.
+
+    Stream events and optional SSE keepalive comments are intentionally not
+    traced individually.
+
+    :param entry: registered StreamVariable definition
+    :param disconnect_event: signal set when the browser connection closes
+    :param values: serialized dependency values for the stream
+    :param store: cache used to resolve dependencies
+    :param task_mgr: task manager used to resolve dependencies
+    :param keepalive_interval_seconds: maximum quiet period before emitting an SSE comment
+    """
+    stream_name = (
+        f'{getattr(entry.func, "__module__", "unknown")}.'
+        f'{getattr(entry.func, "__qualname__", type(entry.func).__name__)}'
+    )
+    with observe_stream(stream_name) as observation:
+        # Keep at most one produced chunk ahead of the browser. Besides bounding
+        # memory, this makes cancellation deterministic when the browser stops
+        # consuming while the producer is blocked on an upstream stream.
+        queue: asyncio.Queue[_StreamQueueItem] = asyncio.Queue(maxsize=1)
+        producer_task = asyncio.create_task(
+            _produce_stream(
+                queue,
+                entry,
+                values,
+                store,
+                task_mgr,
+                observation,
+            )
+        )
+        disconnect_task = asyncio.create_task(disconnect_event.wait())
+        item_task: asyncio.Task[_StreamQueueItem] | None = None
+
+        try:
+            while True:
+                if item_task is None:
+                    item_task = asyncio.create_task(queue.get())
+
+                # Reuse the same queue.get() task after a heartbeat timeout.
+                # Replacing it could abandon a concurrently completed get and
+                # silently drop the next application event.
+                done, _ = await asyncio.wait(
+                    {item_task, disconnect_task},
+                    timeout=keepalive_interval_seconds,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                # Once the browser disconnects, cancellation owns the outcome
+                # even if the producer completed in the same event-loop turn.
+                if disconnect_event.is_set() or disconnect_task in done:
+                    observation.set_outcome('cancelled')
+                    break
+
+                if not done:
+                    yield ': keepalive\n\n'
+                    continue
+
+                item = item_task.result()
+                item_task = None
+                if isinstance(item, _StreamChunk):
+                    yield item.value
+                    continue
+                if isinstance(item, _StreamFailed):
+                    raise item.error
+                break
+        finally:
+            deferred_cancellation: asyncio.CancelledError | None = None
+
+            # The ASGI response task can enter this block from an already
+            # cancelled AnyIO task group. Shield the lifecycle owner here—not
+            # only at the later StreamingResponse boundary—so level-triggered
+            # parent cancellation cannot interrupt a user generator while its
+            # async context is closing a real upstream transport.
+            with anyio.CancelScope(shield=True):
+                if item_task is not None:
+                    cancellation = await _cancel_and_wait_for_task(item_task)
+                    if cancellation is not None:
+                        deferred_cancellation = cancellation
+
+                # Cancelling the single lifecycle owner injects cancellation
+                # into whichever dependency/upstream read is blocked. Awaiting
+                # it ensures async generator finally blocks close subscriptions
+                # before this browser-facing stream returns.
+                cancellation = await _cancel_and_wait_for_task(producer_task)
+                if cancellation is not None:
+                    deferred_cancellation = cancellation
+
+                cancellation = await _cancel_and_wait_for_task(disconnect_task)
+                if cancellation is not None:
+                    deferred_cancellation = cancellation
+
+            if deferred_cancellation is not None:
+                raise deferred_cancellation
+
+
+async def _produce_stream(
+    queue: asyncio.Queue[_StreamQueueItem],
+    entry: StreamVariableRegistryEntry,
+    values: list[Any],
+    store: CacheStore,
+    task_mgr: TaskManager,
+    observation: _OperationObservation,
+) -> None:
+    """
+    Run the entire stream lifecycle in one task and serialize its outcomes.
+
+    Keeping dependency resolution, generator iteration, and cleanup in the same
+    task preserves generator-local ContextVar state across yields. Advancing one
+    async generator from a fresh task per yield can otherwise make a ContextVar
+    token impossible to reset during generator cleanup.
+    """
+    try:
+        # async for does not own iterator teardown. In particular, cancellation
+        # can land while queue.put() is blocked, leaving _generate_stream
+        # suspended at yield and deferring its finally block until GC. Owning it
+        # explicitly ensures upstream subscriptions close before cancellation
+        # returns to the browser-facing parent.
+        async with contextlib.aclosing(_generate_stream(entry, values, store, task_mgr, observation)) as stream:
+            async for chunk in stream:
+                await queue.put(_StreamChunk(chunk))
+    except asyncio.CancelledError:
+        raise
+    except BaseException as error:
+        await queue.put(_StreamFailed(error))
+    else:
+        await queue.put(_StreamFinished())
+
+
+async def _generate_stream(
+    entry: StreamVariableRegistryEntry,
+    values: list[Any],
+    store: CacheStore,
+    task_mgr: TaskManager,
+    observation: _OperationObservation,
+):
+    """Implement a StreamVariable lifecycle and report handled terminal outcomes."""
+    started = perf_counter()
+
     # dynamic import due to circular import
     from dara.core.internal.dependency_resolution import (
         resolve_dependency,
@@ -334,79 +536,52 @@ async def run_stream(
         raise NotImplementedError('StreamVariable does not support tasks')
 
     generator = None
+    event_count = 0
+    time_to_first_event: float | None = None
+    last_event_at: float | None = None
+    max_event_interval: float | None = None
     try:
         generator = entry.func(*resolved_values)
 
-        # --- Disconnect-aware iteration ---
-        #
-        # A StreamVariable generator may open its own long-lived HTTP connections
-        # internally (e.g. connecting to an upstream SSE endpoint). The naive loop:
-        #
-        #     async for event in generator:
-        #         if await request.is_disconnected(): break
-        #
-        # only checks for disconnection *after* the generator yields. If the generator
-        # is suspended in an `await` on an inner HTTP read, `is_disconnected()` never
-        # runs and the inner connection stays open indefinitely -- one leaked connection
-        # per stream restart.
-        #
-        # To fix this we race each `generator.__anext__()` call against a
-        # `disconnect_event.wait()` using `asyncio.wait(return_when=FIRST_COMPLETED)`.
-        # If the client disconnects while the generator is blocked, the disconnect
-        # event completes first, and we cancel the pending `__anext__()` task. The
-        # resulting `CancelledError` propagates into whatever `await` the generator is
-        # suspended in, triggering cleanup via standard Python `finally` blocks -- which
-        # is what closes the inner HTTP connection.
-        #
-        # We use an `asyncio.Event` rather than polling `request.is_disconnected()`
-        # because the latter reads from the ASGI receive channel. Polling it from a
-        # background task would steal messages from the channel, interfering with
-        # Starlette's own request/response handling. The event is set by the caller
-        # (the stream endpoint in routing.py) when it detects the client has
-        # disconnected.
-        #
-        # Performance: the only overhead is a single `disconnect_event.wait()` future
-        # reused across iterations and the `asyncio.wait` call -- both standard
-        # event-loop machinery with negligible cost compared to the HTTP I/O the
-        # generator performs (hundreds of ms to seconds per event).
-        disconnect_task = asyncio.ensure_future(disconnect_event.wait())
-        try:
-            while True:
-                next_task: asyncio.Task[StreamEvent] = asyncio.ensure_future(generator.__anext__())
-                done, _ = await asyncio.wait(
-                    {next_task, disconnect_task},
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-
-                if disconnect_task in done:
-                    next_task.cancel()
-                    with contextlib.suppress(asyncio.CancelledError):
-                        await next_task
-                    break
-
-                try:
-                    event = next_task.result()
-                except StopAsyncIteration:
-                    break
-
-                _validate_event_mode(event, entry.key_accessor)
-                yield f'data: {event.model_dump_json()}\n\n'
-        except StopAsyncIteration:
-            pass
-        finally:
-            disconnect_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await disconnect_task
+        async for event in generator:
+            _validate_event_mode(event, entry.key_accessor)
+            emitted_at = perf_counter()
+            event_interval = emitted_at - last_event_at if last_event_at is not None else None
+            last_event_at = emitted_at
+            event_count += 1
+            record_stream_event(event_interval)
+            if event_interval is not None:
+                max_event_interval = max(max_event_interval or 0, event_interval)
+            if time_to_first_event is None:
+                time_to_first_event = emitted_at - started
+            yield f'data: {event.model_dump_json()}\n\n'
 
     except ReconnectException:
+        event_count += 1
+        record_stream_event()
+        time_to_first_event = time_to_first_event or perf_counter() - started
         yield f'data: {StreamEvent.reconnect().model_dump_json()}\n\n'
     except StreamVariableModeError as e:
-        dev_logger.error('Stream mode error', error=e)
+        observation.record_exception(e)
+        event_count += 1
+        record_stream_event()
+        time_to_first_event = time_to_first_event or perf_counter() - started
+        dev_logger.error('Stream mode error', error=e, event_name='stream.mode.error')
         yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
     except Exception as e:
-        dev_logger.error('Stream error', error=e)
+        observation.record_exception(e)
+        event_count += 1
+        record_stream_event()
+        time_to_first_event = time_to_first_event or perf_counter() - started
+        dev_logger.error('Stream error', error=e, event_name='stream.execution.error')
         yield f'data: {StreamEvent.error(str(e)).model_dump_json()}\n\n'
     finally:
+        record_stream_progress(
+            observation,
+            event_count=event_count,
+            time_to_first_event=time_to_first_event,
+            max_event_interval=max_event_interval,
+        )
         # Cleanup: close generator if it's still open
         if generator is not None:
             with contextlib.suppress(Exception):

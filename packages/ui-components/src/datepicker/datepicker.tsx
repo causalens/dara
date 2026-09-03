@@ -21,7 +21,8 @@ import enGB from 'date-fns/locale/en-GB';
 import range from 'lodash/range';
 import { transparentize } from 'polished';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ReactDatePicker, { type ReactDatePickerProps } from 'react-datepicker';
+import ReactDatePicker, { type ReactDatePickerCustomHeaderProps } from 'react-datepicker';
+
 import 'react-datepicker/dist/react-datepicker.css';
 
 import styled from '@darajs/styled-components';
@@ -40,7 +41,7 @@ function getMonths(): Item[] {
     const months: Item[] = [];
 
     for (let i = 0; i < 12; i++) {
-        months.push({ label: enGB.localize.month(i), value: i });
+        months.push({ label: enGB.localize!.month(i), value: i });
     }
 
     return months;
@@ -109,12 +110,12 @@ const DatepickerWrapper = styled.div<DatepickerWrapperProps>`
     .react-datepicker {
         width: 16.45rem;
         height: 18.5rem;
+        border: 1px solid ${(props) => props.theme.colors.grey1};
 
         font-family: Manrope, sans-serif;
         font-size: 0.75rem;
 
         background-color: ${(props) => props.theme.colors.grey1};
-        border: 1px solid ${(props) => props.theme.colors.grey1};
         box-shadow: ${(props) => props.theme.shadow.light};
 
         svg {
@@ -146,11 +147,11 @@ const DatepickerWrapper = styled.div<DatepickerWrapperProps>`
                 margin-right: 3px;
                 margin-left: 3px;
                 padding: 1.25em 0.75em 0;
+                border: none;
 
                 color: ${(props) => props.theme.colors.text};
 
                 background-color: ${(props) => props.theme.colors.grey1};
-                border: none;
 
                 .react-datepicker__day-names {
                     display: flex;
@@ -332,15 +333,15 @@ const DateInput = styled.input<DateInputProps>`
     width: 8.5rem;
     height: 2.5rem;
     padding: 0 1rem;
+    border: 1px solid ${(props) => props.theme.colors.grey1};
+    border-radius: 0.25rem;
+    border-radius: ${(props) => (props.isTimeRange ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     font-size: 1rem;
     color: ${(props) => (props.disabled ? props.theme.colors.grey2 : props.theme.colors.text)};
     text-align: center;
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: 1px solid ${(props) => props.theme.colors.grey1};
-    border-radius: 0.25rem;
-    border-radius: ${(props) => (props.isTimeRange ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
     outline: 0;
 
     :focus:not(:disabled) {
@@ -379,12 +380,11 @@ const TimeInput = styled(Input)<TimeInputProps>`
         justify-content: center;
 
         padding: 0.5rem;
+        border-radius: ${(props) => (props.isRange ? '0rem 0rem 0.25rem 0.25rem' : '0.25rem')};
 
         font-size: 1rem;
         color: ${(props) => props.theme.colors.text};
         text-align: center;
-
-        border-radius: ${(props) => (props.isRange ? '0rem 0rem 0.25rem 0.25rem' : '0.25rem')};
 
         :focus:not(:disabled) {
             border: 1px solid ${(props) => props.theme.colors.grey3};
@@ -405,13 +405,13 @@ const TimeInput = styled(Input)<TimeInputProps>`
             display: block;
 
             width: 6rem;
-
             border-top: ${(props) => (props.isRange ? `1px solid ${props.theme.colors.grey2}` : 'none')};
         }
     }
 `;
 
 type DatepickerValue = Date | [Date, Date];
+type InternalDatepickerValue = Date | [Date | null, Date | null] | null;
 type TimeValue = string | [string, string];
 
 /**
@@ -479,7 +479,7 @@ function DatePickerHeader({
     portalsRef,
     minDate,
     maxDate,
-}: Parameters<ReactDatePickerProps['renderCustomHeader']>[0] & {
+}: ReactDatePickerCustomHeaderProps & {
     maxDate?: Date;
     minDate?: Date;
     portalsRef?: React.MutableRefObject<HTMLElement[]>;
@@ -489,7 +489,7 @@ function DatePickerHeader({
     const years = useMemo(() => getYears(minDate, maxDate), [minDate, maxDate]);
 
     const selectedMonth = useMemo(() => {
-        return { label: enGB.localize.month(date.getMonth()), value: date.getMonth() };
+        return { label: enGB.localize!.month(date.getMonth()), value: date.getMonth() };
     }, [date]);
     const selectedYear = useMemo(() => ({ label: date.getFullYear().toString(), value: date.getFullYear() }), [date]);
 
@@ -556,7 +556,7 @@ function getTimeFormatted(time: number): string {
  *
  * @returns the time set
  */
-function getInitialTime(initialDate: DatepickerValue, isRange: boolean): TimeValue {
+function getInitialTime(initialDate: DatepickerValue | undefined, isRange: boolean): TimeValue {
     if (!initialDate) {
         if (isRange) {
             return ['00:00', '00:00'];
@@ -581,7 +581,7 @@ function getInitialTime(initialDate: DatepickerValue, isRange: boolean): TimeVal
  * @param formatToApply - the date format that the string should obey
  * @param isStart - for the case of range dates whether to get the first date or the second from the initialDate object
  */
-function getInitialDate(initialDate: DatepickerValue, formatToApply: string, isStart: boolean): string {
+function getInitialDate(initialDate: DatepickerValue | undefined, formatToApply: string, isStart: boolean): string {
     let formattedDate = '';
     if (initialDate) {
         if (Array.isArray(initialDate)) {
@@ -599,15 +599,15 @@ function getInitialDate(initialDate: DatepickerValue, formatToApply: string, isS
  * @param date - the date(s) to have time added to
  * @param time - the time(s) to add to the date(s)
  */
-function getNewDatetime(date: DatepickerValue, time: TimeValue): DatepickerValue {
+function getNewDatetime(date: InternalDatepickerValue, time: TimeValue): InternalDatepickerValue {
     if (!Array.isArray(date) && !Array.isArray(time)) {
         const [hours, minutes] = time?.split(':') ?? ['00', '00'];
         const newDate = date ? new Date(date.setHours(Number(hours), Number(minutes))) : null;
         return newDate;
     }
-    const [startHours, startMinutes] = time[0]?.split(':') ?? ['00', '00'];
-    const [endHours, endMinutes] = time[1]?.split(':') ?? ['00', '00'];
-    const dates = date as [Date, Date];
+    const [startHours, startMinutes] = (time as [string, string])[0]?.split(':') ?? ['00', '00'];
+    const [endHours, endMinutes] = (time as [string, string])[1]?.split(':') ?? ['00', '00'];
+    const dates = date as [Date | null, Date | null];
     const startDate = dates[0] ? new Date(dates[0].setHours(Number(startHours), Number(startMinutes))) : null;
     const endDate = dates[1] ? new Date(dates[1].setHours(Number(endHours), Number(endMinutes))) : null;
     return [startDate, endDate];
@@ -620,30 +620,37 @@ function getNewDatetime(date: DatepickerValue, time: TimeValue): DatepickerValue
  */
 function DatePicker(props: DatePickerProps): JSX.Element {
     const value = props.value ?? props.initialValue;
-    const [selectedDate, setSelectedDate] = useState<DatepickerValue>(
-        value || (props.selectsRange ? [null, null] : null)
+    const [selectedDate, setSelectedDate] = useState<InternalDatepickerValue>(
+        value ?? (props.selectsRange ? [null, null] : null)
     );
-    const [selectedTime, setSelectedTime] = useState<TimeValue>(() => getInitialTime(value, props.selectsRange));
+    const [selectedTime, setSelectedTime] = useState<TimeValue>(() =>
+        getInitialTime(value, props.selectsRange as boolean)
+    );
     const formatToApply = props.dateFormat ?? 'dd/MM/yyyy';
     const [startDate, setStartDate] = useState<string>(() => getInitialDate(value, formatToApply, true));
     const [endDate, setEndDate] = useState<string>(() => getInitialDate(value, formatToApply, false));
     // state to track which date is being selected based on the input which has been interacted with
-    const [isSelectingStart, setIsSelectingStart] = useState<boolean>(null);
+    const [isSelectingStart, setIsSelectingStart] = useState<boolean | null>(null);
 
     // Keep state in refs so we can compare it in useEffect without subscribing
     const selectedDateRef = useRef(selectedDate);
     selectedDateRef.current = selectedDate;
 
-    const datepickerRef = useRef(null);
+    const datepickerRef = useRef<
+        | (ReactDatePicker & {
+              onInputKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+          })
+        | null
+    >(null);
 
     const extraProps = useMemo(() => {
         if (props.selectsRange) {
-            const selectedDates = (selectedDate ?? [null, null]) as [Date, Date];
+            const selectedDates = (selectedDate ?? [null, null]) as [Date | null, Date | null];
             let { minDate } = props;
             // If we are selecting the end date minDate becomes whatever the startDate is
             if (!isSelectingStart) {
                 const [currentStartDate] = selectedDates;
-                minDate = currentStartDate;
+                minDate = currentStartDate as Date;
             }
 
             return {
@@ -684,7 +691,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                 currentEndDate = date;
             }
 
-            setStartDate(format(currentStartDate, formatToApply));
+            setStartDate(format(currentStartDate as Date, formatToApply));
             setEndDate(format(currentEndDate, formatToApply));
             setSelectedDate([currentStartDate, currentEndDate]);
         } else {
@@ -701,8 +708,8 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         if (
             newDate instanceof Date &&
             !Number.isNaN(newDate.valueOf()) &&
-            !(newDate < props.minDate) &&
-            !(newDate > props.maxDate)
+            !(newDate < props.minDate!) &&
+            !(newDate > props.maxDate!)
         ) {
             // allows so that changes to the input update the datepicker
             datepickerRef.current?.setState({
@@ -713,7 +720,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                 if (isStartDate) {
                     let end = selectedDate[1];
                     // is start date is after end date, then adjust end date
-                    if (newDate > end) {
+                    if (newDate > end!) {
                         end = newDate;
                         setEndDate(target.value);
                     }
@@ -724,7 +731,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
 
                 let start = selectedDate[0];
                 // if end date is before start date, then adjust start date
-                if (newDate < start) {
+                if (newDate < start!) {
                     start = newDate;
                     setStartDate(target.value);
                 }
@@ -763,7 +770,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
     useEffect(() => {
         const newValue = props.value ?? props.initialValue;
 
-        const newDate = newValue || (props.selectsRange ? [null, null] : null);
+        const newDate: InternalDatepickerValue = newValue ?? (props.selectsRange ? [null, null] : null);
 
         // Skip if the value is the same as the current state, this is necessary to prevent loops
         if (JSON.stringify(newDate) === JSON.stringify(selectedDateRef.current)) {
@@ -772,7 +779,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
 
         setSelectedDate(newDate);
 
-        const newTime = getInitialTime(newValue, props.selectsRange);
+        const newTime = getInitialTime(newValue, props.selectsRange as boolean);
         setSelectedTime(newTime);
 
         const newStartDate = getInitialDate(newValue, formatToApply, true);
@@ -792,7 +799,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
         }
         // We have to typecast to make compiler happy as we don't know which type it is at this point
         const newDateTime = getNewDatetime(selectedDate, time);
-        props.onChange?.(newDateTime as Date & [Date, Date]);
+        void props.onChange?.(newDateTime as Date & [Date, Date]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, selectedTime]);
 
@@ -867,7 +874,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                                                 onChangeTime(e, false);
                                             }}
                                             type="time"
-                                            value={selectedTime[1]}
+                                            value={(selectedTime as [string, string])[1]}
                                         />
                                     )}
                                 </DateTimeWrapper>
@@ -884,7 +891,7 @@ function DatePicker(props: DatePickerProps): JSX.Element {
                         onChange={onChangeDate}
                         ref={datepickerRef}
                         selectsEnd={!isSelectingStart}
-                        selectsStart={isSelectingStart}
+                        selectsStart={isSelectingStart as boolean}
                         shouldCloseOnSelect={props.shouldCloseOnSelect}
                         {...extraProps}
                         popperProps={{ strategy: props.popperStrategy ?? 'absolute' }}

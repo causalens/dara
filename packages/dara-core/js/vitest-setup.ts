@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { transferableAbortController } from 'node:util';
 import * as React from 'react';
 import { RecoilEnv } from 'recoil';
+import { vi } from 'vitest';
 // @ts-expect-error typescript is not happy but this works
 import { fetch as fetchPolyfill } from 'whatwg-fetch';
 
@@ -59,18 +60,23 @@ RecoilEnv.RECOIL_DUPLICATE_ATOM_KEY_CHECKING_ENABLED = false;
 // This simplifies the tests as we don't have to pass credentials: 'include' to every request
 // In reality in a browser we're always dealing with same-origin in Dara so this is fine
 global.fetch = (input, info?) => {
+    // Preserve the mock's historical handling of an empty request string.
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
     const init = info || {};
     init.credentials = 'include';
     return fetchPolyfill(input, init);
 };
 
-// Simulate Jest for waitFor()
+// Testing Library detects fake timers through a global named `jest`, even when
+// the test runner is Vitest.
 // see https://github.com/testing-library/dom-testing-library/blob/0ce0c7054dfa64d1cd65053790246aed151bda9d/src/helpers.ts#L5
 // and https://github.com/testing-library/dom-testing-library/blob/0ce0c7054dfa64d1cd65053790246aed151bda9d/src/wait-for.js#L53
-global.jest = {
-    // @ts-expect-error vi is globally available
-    advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms),
-} as any;
+Object.defineProperty(globalThis, 'jest', {
+    configurable: true,
+    value: {
+        advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms),
+    },
+});
 
 // Use an in-memory BroadcastChannel polyfill for tests to avoid cross-worker
 // traffic (which can leak session-state between Vitest workers), while still

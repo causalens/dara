@@ -3,6 +3,7 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { WebSocketClient } from '@/api';
+import type { WebSocketClientInterface } from '@/api/websocket';
 import { deferred } from '@/shared';
 
 const authServer = setupServer();
@@ -102,7 +103,7 @@ describe('Websocket auth recovery', () => {
             });
             window.dara = {
                 base_url: 'http://localhost:8001',
-                ws: deferred<WebSocketClient>(),
+                ws: deferred<WebSocketClientInterface>(),
             };
 
             const client = new WebSocketClient('ws://localhost:1234');
@@ -141,7 +142,7 @@ describe('Websocket auth recovery', () => {
             });
             window.dara = {
                 base_url: 'http://localhost:8001',
-                ws: deferred<WebSocketClient>(),
+                ws: deferred<WebSocketClientInterface>(),
             };
 
             const client = new WebSocketClient('ws://localhost:1234');

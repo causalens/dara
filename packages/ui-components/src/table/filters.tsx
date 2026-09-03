@@ -56,7 +56,6 @@ export const HeaderIconWrapper = styled.div<HeaderIconWrapperProp>`
 
     width: 1.5rem;
     height: 1.5rem;
-
     border-radius: 0.25rem;
 
     :hover {
@@ -118,7 +117,7 @@ function applyNumericOperator(
     operator: NumericOperator,
     value: number,
     filterValue: number | [number, number]
-): boolean {
+): boolean | undefined {
     switch (operator) {
         case NumericOperator.EQ:
             return value === filterValue;
@@ -196,7 +195,7 @@ export function numeric(rows: Array<Row>, columnIds: Array<string>, filterValue:
         return rows;
     }
 
-    return rows.filter((row) => applyNumericOperator(selected, row.values[colId], value));
+    return rows.filter((row) => applyNumericOperator(selected, row.values[colId], value as number | [number, number]));
 }
 
 /**
@@ -246,7 +245,11 @@ export function TextFilter(props: FilterProps<any>): JSX.Element {
             <StyledSearchBar
                 onChange={(val) => props.column.setFilter(val || undefined)}
                 placeholder="Rows containing value..."
-                value={props.column.filterValue || ''}
+                value={
+                    // Falsy filter values have historically displayed an empty text field.
+                    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
+                    props.column.filterValue || ''
+                }
             />
         </FilterWrapper>
     );

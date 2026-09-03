@@ -468,6 +468,7 @@ async def test_fetching_derived_variable_run_as_task():
         # Listen on the websocket channel for the notification of task completion
         data = await websocket.receive_json()
         assert data == {
+            '__typename': 'TaskNotificationMessage',
             'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
             'type': 'message',
         }
@@ -530,6 +531,7 @@ async def test_cancel_derived_variable_run_as_task():
         messages = await get_ws_messages(websocket, 3)
         # There should be a cancellation notif
         assert {
+            '__typename': 'TaskNotificationMessage',
             'message': {'status': 'CANCELED', 'task_id': str(task_id)},
             'type': 'message',
         } in messages
@@ -628,6 +630,7 @@ async def test_fetching_derived_variable_that_returns_task():
         # Listen on the websocket channel for the notification of task completion
         data = await websocket.receive_json()
         assert data == {
+            '__typename': 'TaskNotificationMessage',
             'message': {'status': 'COMPLETE', 'task_id': str(task_id)},
             'type': 'message',
         }
@@ -700,6 +703,7 @@ async def test_chaining_derived_variable_run_as_task():
         assert all(data['message']['status'] == 'COMPLETE' for data in messages)
 
         assert {
+            '__typename': 'TaskNotificationMessage',
             'message': {'status': 'COMPLETE', 'task_id': task_id},
             'type': 'message',
         } in messages
@@ -784,6 +788,7 @@ async def test_chaining_derived_variable_all_run_as_task():
         assert all(data['message']['status'] == 'COMPLETE' for data in messages)
 
         assert {
+            '__typename': 'TaskNotificationMessage',
             'message': {'status': 'COMPLETE', 'task_id': task_id},
             'type': 'message',
         } in messages

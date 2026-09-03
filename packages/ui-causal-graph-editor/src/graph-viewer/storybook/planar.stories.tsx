@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { Meta } from '@storybook/react-vite';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 import * as React from 'react';
 
 import { SHIPPED_UNITS } from '../../../tests/mocks/graphs';
@@ -29,14 +29,14 @@ export default {
     title: 'CausalGraphEditor/GraphEditor/Planar',
 } as Meta;
 
-export const PlanarVertical = Template.bind({});
+export const PlanarVertical: typeof Template = Template.bind({});
 PlanarVertical.args = {
     editable: true,
     graphData: { ...causalGraph, edges: { input2: causalGraph.edges.input2 } },
     graphLayout: PlanarLayout.Builder.orientation('vertical').build(),
 };
 
-export const PlanarHorizontal = Template.bind({});
+export const PlanarHorizontal: typeof Template = Template.bind({});
 PlanarHorizontal.args = {
     editable: true,
     graphData: SHIPPED_UNITS,
@@ -68,7 +68,7 @@ export const PlanarLayoutAlgos = (): JSX.Element => {
     );
 };
 
-export const PlanarTiers = Template.bind({});
+export const PlanarTiers: typeof Template = Template.bind({});
 const planarLayout = PlanarLayout.Builder.build();
 planarLayout.tiers = { group: 'meta.test', order_nodes_by: 'order' };
 // planarLayout.tiers = nodeTiersList;
@@ -131,7 +131,7 @@ function generateRandomDAG(parentsPerNode: number, levels: number): CausalGraph 
     return graph;
 }
 
-export const PlanarGenerated = (props: CausalGraphEditorProps): JSX.Element => {
+export const PlanarGenerated: StoryFn<CausalGraphEditorProps> = (props) => {
     const [parentCount, setParentCount] = React.useState(4);
     const [levelCount, setLevelCount] = React.useState(6);
 
@@ -142,11 +142,15 @@ export const PlanarGenerated = (props: CausalGraphEditorProps): JSX.Element => {
         <>
             <label>
                 Parent count:
-                <input type="number" value={parentCount} onChange={(e) => setParentCount(parseInt(e.target.value))} />
+                <input
+                    type="number"
+                    value={parentCount}
+                    onChange={(e) => setParentCount(parseInt(e.target.value, 10))}
+                />
             </label>
             <label>
                 Level count:
-                <input type="number" value={levelCount} onChange={(e) => setLevelCount(parseInt(e.target.value))} />
+                <input type="number" value={levelCount} onChange={(e) => setLevelCount(parseInt(e.target.value, 10))} />
             </label>
             <CausalGraphViewerComponent {...props} graphData={graph} />
         </>

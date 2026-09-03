@@ -13,7 +13,8 @@ from dara.core.internal.cache_store.keep_all import KeepAllCache
 from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.ttl import TTLCache
 from dara.core.internal.utils import CacheScope, get_cache_scope
-from dara.core.metrics import CACHE_METRICS_TRACKER, total_size
+from dara.core.metrics import total_size
+from dara.core.telemetry import observe_internal_operation, record_cache_store_metrics
 
 
 def cache_impl_for_policy(policy: PolicyT) -> CacheStoreImpl[PolicyT]:
@@ -108,6 +109,14 @@ class CacheScopeStore(Generic[PolicyT]):
             await cache.clear()
         self.caches = {}
 
+    def __len__(self) -> int:
+        """Return the number of entries across every cache scope."""
+        return sum(len(cache) for cache in self.caches.values())
+
+    def values(self) -> list[Any]:
+        """Return a point-in-time snapshot of values across every cache scope."""
+        return [value for cache in self.caches.values() for value in cache.values()]
+
 
 class CacheStore:
     """
@@ -121,15 +130,15 @@ class CacheStore:
         # of just the values stored
         self._size = 0
 
-    def _update_size(self, prev_value: Any, new_value: Any):
-        previous_value_size = total_size(prev_value) if prev_value is not None else 0
-        self._size = self._size - previous_value_size + total_size(new_value)
-
     def _update_metrics(self):
         """
-        Notify metrics tracker about current size
+        Recompute current values so policy-driven eviction cannot drift the gauges.
         """
-        CACHE_METRICS_TRACKER.update_store(self._size)
+        self._size = sum(
+            total_size(value) for registry_store in self.registry_stores.values() for value in registry_store.values()
+        )
+        entries = sum(len(registry_store) for registry_store in self.registry_stores.values())
+        record_cache_store_metrics(self._size, entries)
 
     async def delete(self, registry_entry: CachedRegistryEntry, key: str) -> Any:
         """
@@ -146,8 +155,6 @@ class CacheStore:
 
         prev_entry = await registry_store.delete(key)
 
-        # Update size
-        self._update_size(prev_entry, None)
         self._update_metrics()
 
         return prev_entry
@@ -175,7 +182,9 @@ class CacheStore:
                 raise KeyError(f'No cache store found for {registry_entry.to_store_key()}')
             return None
 
-        return await registry_store.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
+        value = await registry_store.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
+        self._update_metrics()
+        return value
 
     async def get_or_wait(self, registry_entry: CachedRegistryEntry, key: str):
         """
@@ -189,7 +198,8 @@ class CacheStore:
         value = await self.get(registry_entry, key)
 
         if isinstance(value, PendingTask):
-            return await value.run()
+            with observe_internal_operation('cache', 'wait'):
+                return await value.run()
 
         return value
 
@@ -226,11 +236,8 @@ class CacheStore:
         if isinstance(prev_value, PendingTask):
             prev_value.resolve(value)
 
-        # Update size
-        self._update_size(prev_value, value)
-        self._update_metrics()
-
         await registry_store.set(key, value, pin=pin)
+        self._update_metrics()
 
         return value
 

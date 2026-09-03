@@ -13,8 +13,11 @@ from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import default_template
 from dara.core.definitions import ComponentInstance
 from dara.core.http import get
+from dara.core.internal.settings import get_settings
 from dara.core.internal.websocket import WebsocketManager
+from dara.core.js_tooling.dev_server import UnidentifiedDevServerMismatch
 from dara.core.main import _start_application
+from dara.core.metrics import DARA_METRICS_REGISTRY
 from dara.core.router import LayoutRoute, Outlet
 from dara.core.visual.components.router_content import RouterContent
 from dara.core.visual.components.sidebar_frame import SideBarFrame
@@ -27,6 +30,14 @@ from tests.python.utils import (
 )
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_cache():
+    """Reload environment-backed settings for each application test."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class LocalJsComponent(ComponentInstance):
@@ -84,6 +95,81 @@ async def test_validates_configuration(config: Configuration):
 
     with pytest.raises(ValueError):
         _start_application(1)
+
+
+async def test_metrics_server_uses_dara_registry(monkeypatch: pytest.MonkeyPatch):
+    """The built-in metrics server only exposes collectors owned by Dara."""
+    monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('DARA_TEST_FLAG', raising=False)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'FALSE')
+    monkeypatch.setenv('DARA_METRICS_PORT', '12345')
+
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    with (
+        patch('dara.core.main.initialize_process_telemetry'),
+        patch('dara.core.main.instrument_fastapi_app'),
+        patch('dara.core.main.start_http_server') as start_http_server,
+    ):
+        _start_application(config)
+
+    start_http_server.assert_called_once_with(12345, registry=DARA_METRICS_REGISTRY)
+
+
+async def test_prometheus_endpoint_keeps_port_10000_by_default(monkeypatch: pytest.MonkeyPatch):
+    """Prometheus migrations do not require changing the existing scrape target."""
+    monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('DARA_METRICS_PORT', raising=False)
+    monkeypatch.delenv('DARA_TEST_FLAG', raising=False)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'FALSE')
+
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    with (
+        patch('dara.core.main.initialize_process_telemetry'),
+        patch('dara.core.main.instrument_fastapi_app'),
+        patch('dara.core.main.start_http_server') as start_http_server,
+    ):
+        _start_application(config)
+
+    start_http_server.assert_called_once_with(10000, registry=DARA_METRICS_REGISTRY)
+
+
+async def test_otel_enabled_keeps_prometheus_server(monkeypatch: pytest.MonkeyPatch):
+    """Enabling OTEL does not silently remove the existing Prometheus endpoint."""
+    monkeypatch.delenv('DARA_DISABLE_METRICS', raising=False)
+    monkeypatch.delenv('DARA_TEST_FLAG', raising=False)
+    monkeypatch.setenv('DARA_OTEL_ENABLED', 'TRUE')
+
+    builder = ConfigurationBuilder()
+    config = create_app(builder)
+
+    with (
+        patch('dara.core.main.initialize_process_telemetry'),
+        patch('dara.core.main.instrument_fastapi_app'),
+        patch('dara.core.main.start_http_server') as start_http_server,
+    ):
+        _start_application(config)
+
+    start_http_server.assert_called_once_with(10000, registry=DARA_METRICS_REGISTRY)
+
+
+async def test_fastapi_is_instrumented_only_after_application_construction():
+    """A construction failure must not leave a partially built FastAPI app instrumented."""
+    config = create_app(ConfigurationBuilder())
+
+    with (
+        patch('dara.core.main.initialize_process_telemetry') as initialize_process_telemetry,
+        patch('dara.core.main.instrument_fastapi_app') as instrument_fastapi_app,
+        patch('dara.core.main.BuildCache.from_config', side_effect=RuntimeError('build failed')),
+        pytest.raises(SystemExit),
+    ):
+        _start_application(config)
+
+    initialize_process_telemetry.assert_called_once_with('application')
+    instrument_fastapi_app.assert_not_called()
 
 
 def assert_dict_subset(haystack: dict, needle: dict):
@@ -174,6 +260,89 @@ async def test_dara_data_properjs(monkeypatch: pytest.MonkeyPatch, config: Confi
             with patch.object(ViteLoader, '__new__', return_value=mock_vite_loader):
                 async with AsyncClient(app) as client:
                     await _check_dara_data(client)
+
+
+async def test_dev_server_handshake_renders_one_mismatch_page(
+    monkeypatch: pytest.MonkeyPatch,
+    config: Configuration,
+):
+    """HMR mode should render Dara's unified mismatch page before loading Vite assets."""
+    monkeypatch.setenv('DARA_HMR_MODE', 'TRUE')
+    monkeypatch.setenv('VITE_HOT_RELOAD', 'TRUE')
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+
+    async def report_mismatch(expected):
+        return UnidentifiedDevServerMismatch(expected=expected)
+
+    with (
+        patch('dara.core.main.rebuild_js'),
+        patch('dara.core.main.check_dev_server', new=AsyncMock(side_effect=report_mismatch)) as check,
+    ):
+        app = _start_application(config)
+
+        async with AsyncClient(app) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    assert 'Development server mismatch' in response.text
+    assert '<code>dara dev</code>' in response.text
+    assert 'This page retries automatically' in response.text
+    check.assert_awaited_once()
+
+
+async def test_dev_server_handshake_is_skipped_in_autojs(
+    monkeypatch: pytest.MonkeyPatch,
+    config: Configuration,
+):
+    """The UMD mode should not contact or render development server machinery."""
+    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+
+    with (
+        patch('dara.core.main.rebuild_js'),
+        patch('dara.core.main.check_dev_server', new=AsyncMock()) as check,
+    ):
+        app = _start_application(config)
+
+        async with AsyncClient(app) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    assert 'Development server mismatch' not in response.text
+    check.assert_not_awaited()
+
+
+async def test_dev_server_handshake_is_skipped_in_production(
+    monkeypatch: pytest.MonkeyPatch,
+    config: Configuration,
+):
+    """A production Vite build should not contact or render development server machinery."""
+    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
+    monkeypatch.setenv('DARA_PRODUCTION_MODE', 'TRUE')
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+
+    from fastapi_vite_dara.loader import ViteLoader
+
+    mock_vite_loader = Mock()
+    mock_vite_loader.generate_vite_ws_client = Mock(return_value='')
+    mock_vite_loader.generate_vite_asset = Mock(return_value='asset')
+    mock_vite_loader.generate_vite_react_hmr = Mock(return_value='')
+
+    with (
+        patch('dara.core.main.rebuild_js'),
+        patch('dara.core.main.check_dev_server', new=AsyncMock()) as check,
+        patch.object(ViteLoader, '__new__', return_value=mock_vite_loader),
+    ):
+        app = _start_application(config)
+
+        async with AsyncClient(app) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    assert 'Development server mismatch' not in response.text
+    check.assert_not_awaited()
 
 
 @patch('dara.core.definitions.uuid.uuid4', return_value='uid')

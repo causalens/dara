@@ -64,14 +64,14 @@ function EdgeInfoContent(props: EdgeInfoContentProps): JSX.Element {
             />
 
             <ColumnWrapper $gap={1} $scrollable>
-                {(editable || edgeAttributes['meta.rendering_properties.description']) && (
+                {(Boolean(editable) || Boolean(edgeAttributes['meta.rendering_properties.description'])) && (
                     <DescriptionEditor api={props.api} edge={edgeAttributes} selectedEdge={props.selectedEdge} />
                 )}
                 {editable && (
                     <EdgeEditor
                         api={props.api}
                         edge={edgeAttributes}
-                        edgeConstraint={props.selectedConstraint}
+                        edgeConstraint={props.selectedConstraint as EdgeConstraintItem}
                         onUpdateConstraint={props.onUpdateConstraint}
                         source={source}
                         state={props.state}

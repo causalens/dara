@@ -34,10 +34,9 @@ const NodeContent = styled.li`
         width: 0.9rem;
         height: 0.8rem;
         margin-right: 0.1rem;
+        border-bottom: thin solid ${(props) => props.theme.colors.grey6};
 
         vertical-align: top;
-
-        border-bottom: thin solid ${(props) => props.theme.colors.grey6};
     }
 
     &:last-child {
@@ -140,7 +139,7 @@ interface BranchProps {
     /** Optional function to get id of the node selected by the user */
     selectNode?: (nodeId: string) => void;
     /** The id of the node selected by the user */
-    selectedNodeId: string;
+    selectedNodeId?: string;
     /** Pass through of the style to the node container */
     style?: React.CSSProperties;
 }
@@ -153,7 +152,7 @@ interface BranchProps {
  */
 function Branch(props: BranchProps): JSX.Element {
     const theme = useTheme();
-    const [open, setOpen] = useState(props.open || false);
+    const [open, setOpen] = useState(props.open ?? false);
 
     const toggle = (): void => {
         if (props.content) {
@@ -162,11 +161,11 @@ function Branch(props: BranchProps): JSX.Element {
     };
 
     const select = (): void => {
-        props.selectNode(props.content.id);
+        props.selectNode!(props.content.id);
     };
 
     const selectionAllowed =
-        (props.allowSelectCategory && props.content.children && props.content.children.length > 0) ||
+        Boolean(props.allowSelectCategory && props.content.children && props.content.children.length > 0) ||
         (props.allowSelectLeaf && (!props.content.children || props.content.children.length === 0));
 
     return (

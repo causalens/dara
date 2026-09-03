@@ -26,7 +26,7 @@ export interface MenuAction {
     label: string;
 }
 
-export interface ContextMenuProps<T> {
+export interface ContextMenuProps<T extends React.ElementType> {
     /** An array of actions to show in the context menu */
     actions: Array<MenuAction>;
     /** Pass through children onto the root element */
@@ -34,7 +34,7 @@ export interface ContextMenuProps<T> {
     /** Pass through className onto the root element */
     className?: string;
     /** Any element props for the root element */
-    elementProps?: T;
+    elementProps?: React.ComponentPropsWithoutRef<T>;
 }
 
 export interface UseContextMenuProps {
@@ -201,7 +201,7 @@ export function useContextMenu(props: UseContextMenuProps): UseContextMenuReturn
  *
  * @param Component the component to wrap and draw as the root
  */
-function ContextMenu<T>(Component: React.ComponentType<T> | string): (props: ContextMenuProps<T>) => JSX.Element {
+function ContextMenu<T extends React.ElementType>(Component: T): (props: ContextMenuProps<T>) => JSX.Element {
     function WrappedContextMenu(props: ContextMenuProps<T>): JSX.Element {
         const menuItems = React.useMemo<MenuItem[][]>(() => {
             return [
@@ -230,9 +230,9 @@ function ContextMenu<T>(Component: React.ComponentType<T> | string): (props: Con
             menuItems,
             onClick: handleClick,
         });
-
         return (
             <>
+                {/* @ts-expect-error TypeScript cannot resolve JSX props for a generic element type. */}
                 <Component {...props.elementProps} className={props.className} onContextMenu={onContextMenu}>
                     {props.children}
                 </Component>

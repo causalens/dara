@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Select, { SelectProps } from './select';
+import Select, { type SelectProps } from './select';
 
 const items = [
     {
@@ -142,7 +142,7 @@ describe('Select', () => {
     });
 
     it('should track selected item internally', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
         const { getByRole } = render(<RenderSelect items={items} onSelect={onSelectStub} />);
 
         let select = getByRole('combobox', { hidden: true });
@@ -185,7 +185,7 @@ describe('Select', () => {
     });
 
     it('should respect initialValue and be in controlled mode', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
         const { getByRole, rerender } = render(
             <RenderSelect items={items} onSelect={onSelectStub} selectedItem={items[3]} />
         );
@@ -218,7 +218,7 @@ describe('Select', () => {
     });
 
     it('should support the disabled prop', async () => {
-        const onSelectStub = jest.fn();
+        const onSelectStub = vi.fn();
         const { getByRole, rerender } = render(<RenderSelect disabled items={items} onSelect={onSelectStub} />);
         let select = getByRole('combobox', { hidden: true });
         expect(select).toHaveAttribute('disabled');
@@ -244,7 +244,7 @@ describe('Select', () => {
     });
 
     it('should work with placeholder', async () => {
-        const onSelectStub = jest.fn((value) => value);
+        const onSelectStub = vi.fn((value) => value);
         const { getByRole } = render(
             <RenderSelect items={items} onSelect={onSelectStub} placeholder="Test Placeholder" />
         );
@@ -279,7 +279,11 @@ describe('Select', () => {
         const select = getByRole('combobox', { hidden: true });
 
         // Check that select has an error boundary
-        expect(select.parentElement).toHaveStyle(`border: 1px solid ${theme.colors.error}`);
+        expect(select.parentElement).toHaveStyle({
+            borderColor: theme.colors.error,
+            borderStyle: 'solid',
+            borderWidth: '1px',
+        });
 
         // Check that the tooltip is displayed and the errorMsg is correct
         userEvent.hover(getByRole('combobox', { hidden: true }));

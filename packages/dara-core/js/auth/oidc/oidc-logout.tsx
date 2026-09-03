@@ -20,7 +20,7 @@ function OIDCAuthLogout(): JSX.Element {
     const navigate = useNavigate();
 
     useEffect(() => {
-        revokeSession().then((responseData) => {
+        void revokeSession().then((responseData) => {
             // Always clear the local session state
             notifySessionLoggedOut();
 
@@ -35,7 +35,7 @@ function OIDCAuthLogout(): JSX.Element {
             }
 
             // No redirect URL - IDP doesn't support logout, just go to login
-            navigate('/login');
+            void navigate('/login');
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

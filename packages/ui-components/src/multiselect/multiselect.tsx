@@ -55,7 +55,6 @@ const Wrapper = styled.div<WrapperProps>`
     width: 100%;
     max-width: ${(props) => props.maxWidth};
     max-height: ${(props) => props.maxRows * (tagHeight + tagTopMargin)}rem;
-
     border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 `;
 
@@ -76,12 +75,12 @@ const InputWrapper = styled.div<InputWrapperProps>`
     min-height: 2.5rem;
     margin-right: 0.25rem;
     padding: 0.25rem 0.5rem 0.25rem 1rem;
+    border: none;
+    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     color: ${(props) => (props.isDisabled ? props.theme.colors.grey2 : props.theme.colors.text)};
 
     background-color: ${(props) => props.theme.colors.grey1};
-    border: none;
-    border-radius: ${(props) => (props.isOpen ? '0.25rem 0.25rem 0rem 0rem' : '0.25rem')};
 
     :hover {
         background-color: ${(props) => (props.isDisabled ? props.theme.colors.grey1 : props.theme.colors.grey2)};
@@ -127,6 +126,7 @@ const Input = styled.input<InputProps>`
 
     margin-right: 0.5rem;
     padding: 0;
+    border: none;
 
     font-size: ${(props) => (props.size ? `${props.size}rem` : props.theme.font.size)};
     font-weight: 300;
@@ -136,7 +136,6 @@ const Input = styled.input<InputProps>`
     white-space: nowrap;
 
     background-color: transparent;
-    border: none;
     outline: 0;
 
     :disabled {
@@ -171,13 +170,13 @@ const Tag = styled.span<TagProps>`
 
     height: ${tagHeight}rem;
     padding: 0 0.75rem;
+    border: 1px solid ${(props) => props.theme.colors.primary};
+    border-radius: 1rem;
 
     font-size: 0.875rem;
     color: ${(props) => (props.disabled ? props.theme.colors.grey3 : props.theme.colors.text)};
 
     background-color: ${(props) => (props.disabled ? props.theme.colors.grey3 : props.theme.colors.blue3)};
-    border: 1px solid ${(props) => props.theme.colors.primary};
-    border-radius: 1rem;
 
     svg {
         width: 0.85rem;
@@ -236,7 +235,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
             initialSelectedItems: props.initialValue ?? [],
             onSelectedItemsChange: (changes: UseMultipleSelectionStateChange<Item>) => {
                 if (props.onSelect) {
-                    props.onSelect(changes.selectedItems);
+                    void props.onSelect(changes.selectedItems as Item[]);
                 }
             },
             // Only set the selectedItems key if it has been explicitly set in props
@@ -247,7 +246,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
         (term: string) => {
             setInputValue(term);
             if (props.onTermChange) {
-                props.onTermChange(term);
+                void props.onTermChange(term);
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -257,12 +256,12 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
     // If there is a term change function passed in then don't filter locally
     const filteredItems = useMemo(
         () =>
-            props.onTermChange ?
-                props.items
-            :   props.items.filter(
-                    (item) =>
-                        !selectedItems.includes(item) && item.label?.toLowerCase().includes(inputValue.toLowerCase())
-                ),
+            props.onTermChange
+                ? props.items
+                : props.items.filter(
+                      (item) =>
+                          !selectedItems.includes(item) && item.label?.toLowerCase().includes(inputValue.toLowerCase())
+                  ),
         [props.onTermChange, props.items, selectedItems, inputValue]
     );
 
@@ -271,7 +270,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
         defaultHighlightedIndex: -1,
         initialIsOpen: props.initialIsOpen,
         inputValue,
-        itemToString: (item) => item?.label || '',
+        itemToString: (item) => item?.label ?? '',
         items: filteredItems,
         onStateChange: ({ selectedItem, type }: any) => {
             // Note: we're explicitly ignoring InputChange as we're consuming it in a custom onChange handler
@@ -367,7 +366,7 @@ function MultiSelect({ maxWidth = '100%', maxRows = 3, ...props }: MultiSelectPr
                         />
                     </TagWrapper>
                     <ChevronButton
-                        disabled={props.disabled}
+                        disabled={props.disabled as boolean}
                         isOpen={isOpen}
                         getToggleButtonProps={getToggleButtonProps}
                     />

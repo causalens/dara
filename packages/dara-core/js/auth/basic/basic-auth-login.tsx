@@ -35,11 +35,11 @@ const Wrapper = styled.div`
 
 const Card = styled.div`
     padding: 1.5rem;
+    border-radius: 1rem;
 
     color: ${(props) => props.theme.colors.text};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border-radius: 1rem;
     box-shadow: ${(props) => props.theme.shadow.medium};
 
     @media (width >= 640px) {
@@ -86,14 +86,14 @@ const StyledInput = styled.input<{ $error?: boolean }>`
     height: 2.5rem;
     margin-top: 0.5rem;
     padding: 0 1rem;
+    border: none;
+    border-radius: 0.25rem;
 
     font-size: 1rem;
     line-height: 1.5rem;
     color: ${(props) => props.theme.colors.text};
 
     background-color: ${(props) => props.theme.colors.blue1};
-    border: none;
-    border-radius: 0.25rem;
     outline: none;
     box-shadow:
         inset 0 0 0 0 ${(props) => props.theme.colors.blue1},
@@ -148,7 +148,7 @@ function BasicAuthLogin(): JSX.Element {
             const sessionCreated = await requestSessionToken({ password, username });
 
             if (sessionCreated) {
-                navigate(previousLocation);
+                void navigate(previousLocation);
             }
         } catch {
             setIsError(true);
@@ -159,9 +159,9 @@ function BasicAuthLogin(): JSX.Element {
 
     useEffect(() => {
         // If we landed on this page with a valid session already, redirect.
-        verifySessionToken().then((verificationResult) => {
+        void verifySessionToken().then((verificationResult) => {
             if (verificationResult === 'verified') {
-                navigate(previousLocation, { replace: true });
+                void navigate(previousLocation, { replace: true });
             } else if (verificationResult === 'login_required') {
                 setIsVerifyingToken(false);
             }
@@ -184,7 +184,7 @@ function BasicAuthLogin(): JSX.Element {
                     <Form
                         onSubmit={(e) => {
                             e.preventDefault();
-                            login();
+                            void login();
                         }}
                     >
                         <div>

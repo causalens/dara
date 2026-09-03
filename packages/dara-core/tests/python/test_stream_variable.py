@@ -4,9 +4,12 @@ Tests for StreamVariable functionality.
 
 import asyncio
 import json
+from contextlib import aclosing, asynccontextmanager, suppress
+from contextvars import ContextVar
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
+import httpx
 import pytest
 from async_asgi_testclient import TestClient as AsyncClient
 
@@ -14,13 +17,24 @@ from dara.core import DerivedVariable, Variable
 from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.interactivity.stream_event import ReconnectException, StreamEvent, StreamEventType
+from dara.core.interactivity.stream_utils import track_stream
 from dara.core.interactivity.stream_variable import StreamVariable, StreamVariableRegistryEntry, run_stream
 from dara.core.internal.dependency_resolution import ResolvedDerivedVariable
+from dara.core.internal.routing import StreamRequestBody, stream_endpoint
+from dara.core.internal.settings import get_settings
 from dara.core.main import _start_application
 
 from tests.python.utils import _get_auth_headers, create_app, normalize_request
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_cache():
+    """Keep environment-backed settings isolated between stream endpoint tests."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class MockComponent(ComponentInstance):
@@ -523,6 +537,395 @@ async def test_stream_endpoint_reconnect_exception():
         assert events[1]['type'] == 'reconnect'
 
 
+async def test_stream_endpoint_sends_protocol_comments_while_quiet(monkeypatch: pytest.MonkeyPatch):
+    """Quiet browser-facing streams emit heartbeats without creating application events."""
+    builder = ConfigurationBuilder()
+    release_generator = asyncio.Event()
+    generator_cleaned_up = asyncio.Event()
+    generator_started_at: float | None = None
+
+    async def quiet_stream():
+        nonlocal generator_started_at
+        try:
+            generator_started_at = asyncio.get_running_loop().time()
+            await release_generator.wait()
+            yield StreamEvent.json_snapshot({'ready': True})
+        finally:
+            generator_cleaned_up.set()
+
+    stream_var = StreamVariable(quiet_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=0.05),
+    )
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        normalized_values, lookup = normalize_request([], stream_var.variables)
+        response = await client.post(
+            f'/api/core/stream/{str(stream_var.uid)}',
+            json={'values': {'data': normalized_values, 'lookup': lookup}},
+            headers=await _get_auth_headers(),
+            stream=True,
+        )
+        first_chunk = response.raw.read()
+        heartbeat_received_at = asyncio.get_running_loop().time()
+
+        assert first_chunk == b': keepalive\n\n'
+        assert generator_started_at is not None
+        heartbeat_delay = heartbeat_received_at - generator_started_at
+        assert 0.04 <= heartbeat_delay < 0.2
+
+        release_generator.set()
+        remaining_chunks = b''.join([chunk async for chunk in response])
+
+    content = (first_chunk + remaining_chunks).decode()
+    assert parse_sse_events(content) == [
+        {
+            'type': 'json_snapshot',
+            'data': {'ready': True},
+        }
+    ]
+    assert generator_cleaned_up.is_set()
+
+
+async def test_stream_endpoint_does_not_delay_normal_events(monkeypatch: pytest.MonkeyPatch):
+    """Events available before the heartbeat deadline are delivered without comments."""
+    builder = ConfigurationBuilder()
+
+    async def immediate_stream():
+        yield StreamEvent.json_snapshot({'ready': True})
+
+    stream_var = StreamVariable(immediate_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=0.1),
+    )
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        response = await _get_stream_response(client, stream_var, [])
+
+    assert ': keepalive' not in response.text
+    assert parse_sse_events(response.text)[0]['data'] == {'ready': True}
+
+
+async def test_stream_endpoint_request_cancellation_cleans_up_generator(monkeypatch: pytest.MonkeyPatch):
+    """A browser disconnect closes a blocked stream generator and its subscription."""
+    builder = ConfigurationBuilder()
+    generator_started = asyncio.Event()
+    generator_cancelled = asyncio.Event()
+    generator_cleaned_up = asyncio.Event()
+    subscription_closed = asyncio.Event()
+
+    @asynccontextmanager
+    async def upstream_subscription():
+        try:
+            yield
+        finally:
+            subscription_closed.set()
+
+    async def blocking_stream():
+        async with upstream_subscription():
+            try:
+                generator_started.set()
+                yield StreamEvent.json_snapshot({'ready': True})
+                try:
+                    await asyncio.Event().wait()
+                except asyncio.CancelledError:
+                    generator_cancelled.set()
+                    raise
+            finally:
+                generator_cleaned_up.set()
+
+    stream_var = StreamVariable(blocking_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=0.01),
+    )
+
+    app = _start_application(config)
+    async with AsyncClient(app) as client:
+        normalized_values, lookup = normalize_request([], stream_var.variables)
+        response = await client.post(
+            f'/api/core/stream/{str(stream_var.uid)}',
+            json={'values': {'data': normalized_values, 'lookup': lookup}},
+            headers=await _get_auth_headers(),
+            stream=True,
+        )
+        await asyncio.wait_for(generator_started.wait(), timeout=1)
+        response.send({'type': 'http.disconnect'})
+
+    await asyncio.wait_for(generator_cleaned_up.wait(), timeout=1)
+    await asyncio.wait_for(subscription_closed.wait(), timeout=1)
+    assert generator_cancelled.is_set()
+
+
+async def test_stream_endpoint_browser_disconnect_closes_nested_generator(monkeypatch: pytest.MonkeyPatch):
+    """ASGI disconnect while sending an event immediately tears down the upstream stream."""
+    builder = ConfigurationBuilder()
+    producer_blocked = asyncio.Event()
+    generator_cleaned_up = asyncio.Event()
+    subscription_cleanup_started = asyncio.Event()
+    subscription_closed = asyncio.Event()
+
+    @asynccontextmanager
+    async def upstream_subscription():
+        try:
+            yield
+        finally:
+            subscription_cleanup_started.set()
+            # Real transports need an event-loop checkpoint to close their
+            # response body/socket; setting an event alone cannot prove that
+            # cleanup survived cancellation.
+            await asyncio.sleep(0)
+            subscription_closed.set()
+
+    async def blocking_stream():
+        async with upstream_subscription():
+            try:
+                yield StreamEvent.json_snapshot({'ready': True})
+                producer_blocked.set()
+                await asyncio.Event().wait()
+            finally:
+                generator_cleaned_up.set()
+
+    stream_var = StreamVariable(blocking_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    # Retain the source so reference-counting cannot mask a missing explicit
+    # close at the route's async-iterator ownership seam.
+    retained_sources = []
+
+    def retained_run_stream(*args, **kwargs):
+        source = run_stream(*args, **kwargs)
+        retained_sources.append(source)
+        return source
+
+    monkeypatch.setattr('dara.core.internal.routing.run_stream', retained_run_stream)
+
+    app = _start_application(config)
+    http_stream = None
+    try:
+        async with AsyncClient(app):
+            normalized_values, lookup = normalize_request([], stream_var.variables)
+            response = await stream_endpoint(
+                request=Mock(),
+                stream_uid=str(stream_var.uid),
+                body=StreamRequestBody(values={'data': normalized_values, 'lookup': lookup}),
+            )
+            http_stream = response.body_iterator
+            body_send_started = asyncio.Event()
+            sent_bodies = []
+
+            async def receive():
+                # Disconnect after StreamingResponse has pulled the first item and
+                # become suspended sending it to the browser. This is the ASGI
+                # timing where Starlette cancels its response task between pulls.
+                await body_send_started.wait()
+                await producer_blocked.wait()
+                return {'type': 'http.disconnect'}
+
+            async def send(message):
+                if message['type'] == 'http.response.body' and message.get('body'):
+                    sent_bodies.append(message['body'])
+                    body_send_started.set()
+                    await asyncio.Event().wait()
+
+            await response(
+                {'type': 'http', 'asgi': {'spec_version': '2.3'}},
+                receive,
+                send,
+            )
+
+            assert len(sent_bodies) == 1
+            assert b'"ready":true' in sent_bodies[0]
+            assert generator_cleaned_up.is_set()
+            assert subscription_cleanup_started.is_set()
+            assert subscription_closed.is_set()
+    finally:
+        if http_stream is not None:
+            await http_stream.aclose()
+        for source in retained_sources:
+            await source.aclose()
+
+
+async def test_stream_endpoint_browser_disconnect_closes_httpx_upstream(monkeypatch: pytest.MonkeyPatch):
+    """Disconnect after a sent event releases a real capacity-one HTTPX pool."""
+    builder = ConfigurationBuilder()
+    upstream_connected = asyncio.Event()
+    upstream_read_started = asyncio.Event()
+    upstream_socket_closed = asyncio.Event()
+    next_stream_item_requested = asyncio.Event()
+    connection_count = 0
+
+    async def handle_upstream(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        nonlocal connection_count
+        connection_count += 1
+        is_first_connection = connection_count == 1
+
+        try:
+            await reader.readuntil(b'\r\n\r\n')
+            writer.write(
+                b'HTTP/1.1 200 OK\r\n'
+                b'Content-Type: text/event-stream\r\n'
+                b'Cache-Control: no-cache\r\n'
+                b'Connection: keep-alive\r\n'
+                b'\r\n'
+                b'data: ready\n\n'
+            )
+            await writer.drain()
+            if is_first_connection:
+                upstream_connected.set()
+            await reader.read()
+        finally:
+            if is_first_connection:
+                upstream_socket_closed.set()
+            writer.close()
+            with suppress(ConnectionError):
+                await writer.wait_closed()
+
+    upstream_server = await asyncio.start_server(handle_upstream, '127.0.0.1', 0)
+    upstream_port = upstream_server.sockets[0].getsockname()[1]
+    upstream_client = httpx.AsyncClient(
+        limits=httpx.Limits(max_connections=1, max_keepalive_connections=1),
+        timeout=None,
+    )
+
+    async def blocking_stream():
+        # The shared capacity-one client outlives this stream, matching Dara's
+        # use of an application-scoped HTTPX pool. Only closing the response
+        # can release its checked-out connection.
+        async with upstream_client.stream('GET', f'http://127.0.0.1:{upstream_port}/events') as response:
+            chunks = response.aiter_raw()
+            await anext(chunks)
+            yield StreamEvent.json_snapshot({'ready': True})
+            upstream_read_started.set()
+            await anext(chunks)
+
+    stream_var = StreamVariable(blocking_stream, variables=[])
+    builder.add_page('Test', content=MockComponent(stream=stream_var))
+    config = create_app(builder)
+
+    monkeypatch.setattr(
+        'dara.core.internal.routing.get_settings',
+        lambda: Mock(dara_stream_keepalive_interval_seconds=1),
+    )
+
+    retained_sources = []
+
+    def retained_run_stream(*args, **kwargs):
+        source = run_stream(*args, **kwargs)
+        retained_sources.append(source)
+
+        async def observe_next_item_request():
+            first_item = True
+            async with aclosing(source):
+                async for item in source:
+                    yield item
+                    if first_item:
+                        first_item = False
+                        # This runs only when StreamingResponse requests another
+                        # body after the ready frame's send() has returned. The
+                        # following async-for step then drives run_stream to its
+                        # quiet asyncio.wait before receive() can disconnect.
+                        next_stream_item_requested.set()
+
+        return observe_next_item_request()
+
+    monkeypatch.setattr('dara.core.internal.routing.run_stream', retained_run_stream)
+
+    app = _start_application(config)
+    http_stream = None
+    try:
+        async with AsyncClient(app):
+            normalized_values, lookup = normalize_request([], stream_var.variables)
+            response = await stream_endpoint(
+                request=Mock(),
+                stream_uid=str(stream_var.uid),
+                body=StreamRequestBody(values={'data': normalized_values, 'lookup': lookup}),
+            )
+            http_stream = response.body_iterator
+            ready_body_sent = asyncio.Event()
+
+            async def receive():
+                await ready_body_sent.wait()
+                await next_stream_item_requested.wait()
+                await upstream_connected.wait()
+                await upstream_read_started.wait()
+                return {'type': 'http.disconnect'}
+
+            async def send(message):
+                if message['type'] == 'http.response.body' and b'"ready":true' in message.get('body', b''):
+                    ready_body_sent.set()
+
+            await response(
+                {'type': 'http', 'asgi': {'spec_version': '2.3'}},
+                receive,
+                send,
+            )
+
+            await asyncio.wait_for(upstream_socket_closed.wait(), timeout=1)
+
+            # The first response must have returned its checked-out connection,
+            # not merely released a higher-level admission lease. A leaked
+            # response would make this replacement request PoolTimeout forever.
+            async def fetch_replacement_event():
+                async with upstream_client.stream(
+                    'GET',
+                    f'http://127.0.0.1:{upstream_port}/events',
+                ) as replacement:
+                    return await anext(replacement.aiter_raw())
+
+            replacement_event = await asyncio.wait_for(fetch_replacement_event(), timeout=2)
+            assert b'data: ready\n\n' in replacement_event
+    finally:
+        if http_stream is not None:
+            await http_stream.aclose()
+        for source in retained_sources:
+            await source.aclose()
+        await upstream_client.aclose()
+        upstream_server.close()
+        await upstream_server.wait_closed()
+
+
+async def test_track_stream_wrapper_close_closes_retained_source():
+    """The HTTP tracking wrapper owns its nested route iterator."""
+    source_closed = asyncio.Event()
+    retained_sources = []
+
+    async def source():
+        try:
+            yield 'first'
+            await asyncio.Event().wait()
+        finally:
+            source_closed.set()
+
+    def create_source():
+        nested_source = source()
+        retained_sources.append(nested_source)
+        return nested_source
+
+    http_stream = track_stream(create_source)()
+    try:
+        assert await anext(http_stream) == 'first'
+        await http_stream.aclose()
+        await asyncio.wait_for(source_closed.wait(), timeout=1)
+    finally:
+        for nested_source in retained_sources:
+            await nested_source.aclose()
+
+
 async def test_stream_endpoint_not_found():
     """Test that stream endpoint returns 404 for unknown stream."""
 
@@ -621,6 +1024,92 @@ async def _collect_events(run_stream_gen) -> list[str]:
     return events
 
 
+async def test_stream_first_event_timer_starts_before_dependency_resolution():
+    """Time-to-first-event includes work spent resolving stream dependencies."""
+    ordering: list[str] = []
+    progress: dict[str, Any] = {}
+    clock_values = iter((10.0, 15.0))
+
+    def clock():
+        ordering.append('clock')
+        return next(clock_values)
+
+    async def resolve_dependency(_value, _store, _task_mgr):
+        ordering.append('dependency')
+        return 'resolved'
+
+    async def stream(_value):
+        yield StreamEvent.json_snapshot({'ready': True})
+
+    def capture_progress(_observation, **kwargs):
+        progress.update(kwargs)
+
+    with (
+        patch('dara.core.interactivity.stream_variable.perf_counter', side_effect=clock),
+        patch(
+            'dara.core.internal.dependency_resolution.resolve_dependency',
+            side_effect=resolve_dependency,
+        ),
+        patch(
+            'dara.core.interactivity.stream_variable.record_stream_progress',
+            side_effect=capture_progress,
+        ),
+    ):
+        events = await _collect_events(
+            run_stream(
+                _make_entry(stream),
+                asyncio.Event(),
+                [object()],
+                Mock(),
+                Mock(),
+            )
+        )
+
+    assert len(events) == 1
+    assert ordering[:2] == ['clock', 'dependency']
+    assert progress['time_to_first_event'] == 5.0
+
+
+async def test_run_stream_heartbeats_during_dependency_resolution():
+    """The browser connection stays active while a slow dependency is resolving."""
+    dependency_started = asyncio.Event()
+    release_dependency = asyncio.Event()
+
+    async def resolve_dependency(_value, _store, _task_mgr):
+        dependency_started.set()
+        await release_dependency.wait()
+        return 'resolved'
+
+    async def stream(_value):
+        yield StreamEvent.json_snapshot({'ready': True})
+
+    with patch(
+        'dara.core.internal.dependency_resolution.resolve_dependency',
+        side_effect=resolve_dependency,
+    ):
+        stream_generator = run_stream(
+            _make_entry(stream),
+            asyncio.Event(),
+            [object()],
+            Mock(),
+            Mock(),
+            keepalive_interval_seconds=0.05,
+        )
+        started_at = asyncio.get_running_loop().time()
+        first_chunk = await asyncio.wait_for(anext(stream_generator), timeout=0.3)
+        heartbeat_received_at = asyncio.get_running_loop().time()
+
+        assert dependency_started.is_set()
+        assert first_chunk == ': keepalive\n\n'
+        assert 0.04 <= heartbeat_received_at - started_at < 0.2
+
+        release_dependency.set()
+        remaining_chunks = await _collect_events(stream_generator)
+
+    assert len(remaining_chunks) == 1
+    assert '"ready":true' in remaining_chunks[0]
+
+
 async def test_run_stream_disconnect_cancels_blocked_generator():
     """
     Core scenario from the leak document: a generator blocked on an inner
@@ -668,6 +1157,107 @@ async def test_run_stream_disconnect_cancels_blocked_generator():
     assert inner_was_cancelled.is_set(), 'CancelledError should have propagated into the blocked await'
 
 
+async def test_run_stream_repeated_parent_cancellation_waits_for_generator_cleanup():
+    """Repeated response cancellation must not interrupt awaited upstream cleanup."""
+    first_event_received = asyncio.Event()
+    cleanup_started = asyncio.Event()
+    allow_cleanup = asyncio.Event()
+    cleanup_finished = asyncio.Event()
+
+    @asynccontextmanager
+    async def upstream_subscription():
+        try:
+            yield
+        finally:
+            cleanup_started.set()
+            await allow_cleanup.wait()
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            cleanup_finished.set()
+
+    async def blocking_stream():
+        async with upstream_subscription():
+            yield StreamEvent.json_snapshot({'ready': True})
+            await asyncio.Event().wait()
+
+    async def consume():
+        async for _event in run_stream(
+            _make_entry(blocking_stream),
+            asyncio.Event(),
+            [],
+            Mock(),
+            Mock(),
+        ):
+            first_event_received.set()
+
+    consumer_task = asyncio.create_task(consume())
+    await asyncio.wait_for(first_event_received.wait(), timeout=1)
+
+    # The first cancellation reaches run_stream and cancels its producer.
+    consumer_task.cancel()
+    await asyncio.wait_for(cleanup_started.wait(), timeout=1)
+
+    # ASGI/AnyIO cancellation is level-triggered and can hit the response
+    # owner again while it is awaiting the child producer's async cleanup.
+    consumer_task.cancel()
+    allow_cleanup.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(consumer_task, timeout=1)
+    assert cleanup_finished.is_set()
+
+
+async def test_run_stream_parent_close_closes_backpressured_generator():
+    """
+    Closing the browser-facing parent must close its nested iterator even when
+    the producer is suspended while publishing an already-produced chunk.
+    """
+    third_chunk_produced = asyncio.Event()
+    nested_iterator_closed = asyncio.Event()
+
+    class NestedStreamIterator:
+        def __init__(self):
+            self.chunks = iter(['chunk 1', 'chunk 2', 'chunk 3'])
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            try:
+                chunk = next(self.chunks)
+            except StopIteration as error:
+                raise StopAsyncIteration from error
+            if chunk == 'chunk 3':
+                third_chunk_produced.set()
+            return chunk
+
+        async def aclose(self):
+            nested_iterator_closed.set()
+
+    nested_iterator = NestedStreamIterator()
+
+    with patch(
+        'dara.core.interactivity.stream_variable._generate_stream',
+        return_value=nested_iterator,
+    ):
+        stream_generator = run_stream(
+            _make_entry(Mock()),
+            asyncio.Event(),
+            [],
+            Mock(),
+            Mock(),
+        )
+
+        assert await anext(stream_generator) == 'chunk 1'
+        await asyncio.wait_for(third_chunk_produced.wait(), timeout=1)
+
+        # The parent closes while chunk 2 occupies the bounded queue and the
+        # producer is blocked trying to publish chunk 3.
+        await stream_generator.aclose()
+
+    assert nested_iterator_closed.is_set()
+
+
 async def test_run_stream_normal_exhaustion():
     """Generator that yields multiple events and finishes naturally."""
     generator_cleaned_up = asyncio.Event()
@@ -691,6 +1281,36 @@ async def test_run_stream_normal_exhaustion():
     assert parsed[1]['data'] == {'b': 2}
     assert parsed[2]['data'] == {'c': 3}
     assert generator_cleaned_up.is_set()
+
+
+async def test_run_stream_preserves_generator_context_between_yields():
+    """One producer task owns the generator's ContextVar lifecycle."""
+    stream_context = ContextVar('stream_context', default='outside')
+    observed_values: list[str] = []
+
+    async def context_stream():
+        token = stream_context.set('inside')
+        try:
+            observed_values.append(stream_context.get())
+            yield StreamEvent.json_snapshot({'event': 1})
+            observed_values.append(stream_context.get())
+            yield StreamEvent.json_snapshot({'event': 2})
+        finally:
+            stream_context.reset(token)
+
+    events = await _collect_events(
+        run_stream(
+            _make_entry(context_stream),
+            asyncio.Event(),
+            [],
+            Mock(),
+            Mock(),
+        )
+    )
+
+    assert len(events) == 2
+    assert observed_values == ['inside', 'inside']
+    assert stream_context.get() == 'outside'
 
 
 async def test_run_stream_disconnect_between_yields():
@@ -722,6 +1342,37 @@ async def test_run_stream_disconnect_between_yields():
     assert len(collected) == 1
     assert 'first' in collected[0]
     assert generator_cleaned_up.is_set()
+
+
+async def test_run_stream_disconnect_wins_over_simultaneous_failure():
+    """A disconnect suppresses an upstream failure from the same event-loop turn."""
+    generator_started = asyncio.Event()
+    release_generator = asyncio.Event()
+
+    async def failing_stream():
+        generator_started.set()
+        await release_generator.wait()
+        raise RuntimeError('upstream failure after disconnect')
+        yield  # noqa: RET503 -- unreachable, but required to make this an async generator
+
+    disconnect_event = asyncio.Event()
+    consume_task = asyncio.create_task(
+        _collect_events(
+            run_stream(
+                _make_entry(failing_stream),
+                disconnect_event,
+                [],
+                Mock(),
+                Mock(),
+            )
+        )
+    )
+    await asyncio.wait_for(generator_started.wait(), timeout=1)
+
+    release_generator.set()
+    disconnect_event.set()
+
+    assert await asyncio.wait_for(consume_task, timeout=1) == []
 
 
 async def test_run_stream_generator_exception_produces_error_event():

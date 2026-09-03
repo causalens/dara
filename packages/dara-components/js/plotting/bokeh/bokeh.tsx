@@ -154,7 +154,7 @@ function Bokeh(props: BokehProps): JSX.Element {
 
         eventActions.forEach(([name, action]) => {
             const handler: EventListener = (e) => {
-                action((e as any).detail);
+                void action((e as any).detail);
             };
 
             const evtName = createEventName(name, docJson.roots[0]!.id);
@@ -163,7 +163,7 @@ function Bokeh(props: BokehProps): JSX.Element {
         });
 
         if (docJson) {
-            window.Bokeh.embed.embed_item({
+            void window.Bokeh.embed.embed_item({
                 doc: docJson,
                 root_id: rootId,
                 target_id: id,
@@ -174,7 +174,7 @@ function Bokeh(props: BokehProps): JSX.Element {
     }
 
     useEffect(() => {
-        initializeBokeh();
+        void initializeBokeh();
 
         return () => {
             if (!window.Bokeh) {

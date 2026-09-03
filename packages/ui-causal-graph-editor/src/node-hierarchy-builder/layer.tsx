@@ -141,7 +141,7 @@ function Layer(props: LayerProps, ref: ForwardedRef<HTMLDivElement>): JSX.Elemen
             isOver: !!monitor.isOver(),
         }),
         drop: (item: DragItem) => {
-            props.onDrop(item);
+            void props.onDrop(item);
         },
     });
 

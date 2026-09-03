@@ -29,9 +29,9 @@ For example the above example could also be written as:
 Card(
     Text(
         'My bold and italic text in a box with blue background',
-        raw_css={'font-weight': 'bold', 'font-style': 'italic'} # You can use a dict
+        raw_css={'font-weight': 'bold', 'font-style': 'italic'},  # You can use a dict
     ),
-    raw_css='background-color: powderblue' # Or a string
+    raw_css='background-color: powderblue',  # Or a string
 )
 ```
 
@@ -41,12 +41,9 @@ The advantage of this method over the previous is that you can pass any CSS prop
 Card(
     Text(
         'My bold and italic text in a box with blue background and solid border',
-        raw_css={'font-weight': 'bold', 'font-style': 'italic'}
+        raw_css={'font-weight': 'bold', 'font-style': 'italic'},
     ),
-    raw_css={
-        'background-color': 'powderblue',
-        'border': '1px solid #111'
-    }
+    raw_css={'background-color': 'powderblue', 'border': '1px solid #111'},
 )
 ```
 
@@ -193,6 +190,7 @@ css_string = Variable(
 """
 )
 
+
 @py_component
 def tab_component(code: str):
     return TabbedCard(
@@ -202,6 +200,7 @@ def tab_component(code: str):
         raw_css=code,
     )
 
+
 def page_content() -> ComponentInstance:
     return Stack(
         tab_component(css_string),
@@ -209,6 +208,7 @@ def page_content() -> ComponentInstance:
         height='200px',
         direction='horizontal',
     )
+
 
 config = ConfigurationBuilder()
 config.router.add_page(path='interactivity', content=page_content)
@@ -242,7 +242,7 @@ Card(
         & > [data-type="children-wrapper"] {
             padding: 0;
         }
-    """
+    """,
 )
 ```
 
@@ -260,10 +260,7 @@ These properties have no runtime effect and are intended to help identify compon
 ```python
 from dara.core import Text, Input, Stack
 
-Stack(
-    Text('This is a label', for_='my_input'),
-    Input(placeholder='This is an input', id_='my_input')
-)
+Stack(Text('This is a label', for_='my_input'), Input(placeholder='This is an input', id_='my_input'))
 ```
 
 The serialized component tree will now have the `for_` and `id_` properties for the respective components

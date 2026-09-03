@@ -23,6 +23,7 @@ from dara.components import Stack, Text, For, Card
 # Dependency variable - changing this restarts the stream
 category = Variable('general')
 
+
 async def events_stream(category: str):
     """Stream events filtered by category."""
     # Set initial state atomically (no flash of empty content on reconnect)
@@ -33,26 +34,32 @@ async def events_stream(category: str):
     async for event in subscribe_to_events(category):
         yield StreamEvent.add(event)
 
+
 # Create the StreamVariable
 events = StreamVariable(
     events_stream,
     variables=[category],  # When category changes, stream restarts
-    key_accessor='id',     # Unique identifier for each item
+    key_accessor='id',  # Unique identifier for each item
 )
 
 # Display the events
-page = Stack(
-    For(
-        items=events,
-        renderer=Card(
-            Text(events.list_item.get('message'))
-        ),
-        key_accessor='id'
-    )
-)
+page = Stack(For(items=events, renderer=Card(Text(events.list_item.get('message'))), key_accessor='id'))
 ```
 
 When the user changes the `category` variable, the current stream closes and a new one opens with the new category value.
+
+### Keeping Idle Connections Alive
+
+Dara sends an SSE protocol comment to the browser every 15 seconds while a
+`StreamVariable` lifecycle is quiet, including while its dependencies are being
+resolved. This keeps the Dara-to-browser connection active even when an upstream
+SSE client has consumed its own heartbeat comments. Protocol comments are not
+application events: they do not update the `StreamVariable`, wake components,
+produce browser errors, or reset the browser's reconnect retry count.
+
+The interval is intentionally shorter than common 30-60 second proxy idle
+timeouts. Deployments with different infrastructure requirements can set
+`DARA_STREAM_KEEPALIVE_INTERVAL_SECONDS` from 1 to 30 seconds.
 
 ## Handling Reconnection (Important)
 
@@ -98,11 +105,13 @@ async def bad_stream():
     async for event in subscribe():
         yield StreamEvent.add(event)
 
+
 # BAD: Only streaming live events - reconnection loses history
 async def also_bad_stream():
     yield StreamEvent.clear()
     async for event in subscribe():  # misses events that happened before connect
         yield StreamEvent.add(event)
+
 
 # BAD: No cleanup - leaks resources when client disconnects
 async def leaky_stream():
@@ -112,6 +121,7 @@ async def leaky_stream():
         yield StreamEvent.add(event)
     # subscription is never closed if client disconnects!
 
+
 # OK but has flash of empty content on reconnection:
 async def ok_stream():
     yield StreamEvent.clear()
@@ -119,6 +129,7 @@ async def ok_stream():
         yield StreamEvent.add(event)
     async for event in subscribe():
         yield StreamEvent.add(event)
+
 
 # BEST: Atomic replace, cleanup in finally
 async def good_stream():
@@ -184,18 +195,18 @@ For more complex state that isn't a simple list, omit `key_accessor` and use JSO
 ```python
 async def dashboard_stream(dashboard_id: str):
     # Set initial state
-    yield StreamEvent.json_snapshot({
-        'metrics': {'users': 0, 'requests': 0},
-        'status': 'initializing'
-    })
+    yield StreamEvent.json_snapshot({'metrics': {'users': 0, 'requests': 0}, 'status': 'initializing'})
 
     async for update in subscribe_to_metrics(dashboard_id):
         # Update specific fields without replacing everything
-        yield StreamEvent.json_patch([
-            {'op': 'replace', 'path': '/metrics/users', 'value': update.users},
-            {'op': 'replace', 'path': '/metrics/requests', 'value': update.requests},
-            {'op': 'replace', 'path': '/status', 'value': 'live'}
-        ])
+        yield StreamEvent.json_patch(
+            [
+                {'op': 'replace', 'path': '/metrics/users', 'value': update.users},
+                {'op': 'replace', 'path': '/metrics/requests', 'value': update.requests},
+                {'op': 'replace', 'path': '/status', 'value': 'live'},
+            ]
+        )
+
 
 dashboard = StreamVariable(dashboard_stream, variables=[dashboard_id_var])
 
@@ -212,8 +223,8 @@ Use `.get()` to access nested properties in your stream's state:
 # For custom state mode
 dashboard = StreamVariable(dashboard_stream, variables=[])
 
-Text(dashboard.get('status'))              # Access 'status' field
-Text(dashboard.get('metrics', 'users'))    # Access nested 'metrics.users'
+Text(dashboard.get('status'))  # Access 'status' field
+Text(dashboard.get('metrics', 'users'))  # Access nested 'metrics.users'
 ```
 
 ## Using with `For` Component
@@ -237,8 +248,8 @@ page = Stack(
             )
         ),
         key_accessor='id',
-        placeholder=Text('No events yet')
-    )
+        placeholder=Text('No events yet'),
+    ),
 )
 ```
 
@@ -251,6 +262,7 @@ StreamVariable is ideal for connecting to external APIs, databases, or message q
 ```python
 import httpx
 from dara.core import StreamVariable, StreamEvent, ReconnectException
+
 
 async def stock_prices_stream(symbol: str):
     """Stream stock prices from an external API."""
@@ -265,12 +277,15 @@ async def stock_prices_stream(symbol: str):
                 async for line in stream.aiter_lines():
                     if line:
                         data = json.loads(line)
-                        yield StreamEvent.json_patch([
-                            {'op': 'replace', 'path': '/price', 'value': data['price']},
-                            {'op': 'replace', 'path': '/updated_at', 'value': data['timestamp']}
-                        ])
+                        yield StreamEvent.json_patch(
+                            [
+                                {'op': 'replace', 'path': '/price', 'value': data['price']},
+                                {'op': 'replace', 'path': '/updated_at', 'value': data['timestamp']},
+                            ]
+                        )
         except httpx.ConnectError:
             raise ReconnectException()  # Retry on connection issues
+
 
 stock_data = StreamVariable(stock_prices_stream, variables=[symbol_var])
 ```
@@ -281,10 +296,11 @@ stock_data = StreamVariable(stock_prices_stream, variables=[symbol_var])
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 async def recent_orders_stream(customer_id: str):
     """Poll database for new orders."""
     last_seen_id = None
-    
+
     try:
         while True:
             async with AsyncSession(engine) as session:
@@ -293,10 +309,10 @@ async def recent_orders_stream(customer_id: str):
                 if last_seen_id:
                     query = query.where(Order.id > last_seen_id)
                 query = query.order_by(Order.id)
-                
+
                 result = await session.execute(query)
                 orders = result.scalars().all()
-                
+
                 if not last_seen_id:
                     # Initial load
                     yield StreamEvent.replace(*[o.to_dict() for o in orders])
@@ -304,13 +320,14 @@ async def recent_orders_stream(customer_id: str):
                     # Incremental updates
                     for order in orders:
                         yield StreamEvent.add(order.to_dict())
-                
+
                 if orders:
                     last_seen_id = orders[-1].id
-            
+
             await asyncio.sleep(5)  # Poll every 5 seconds
     except Exception as e:
         raise ReconnectException()
+
 
 orders = StreamVariable(recent_orders_stream, variables=[customer_id_var], key_accessor='id')
 ```
@@ -325,6 +342,7 @@ For temporary issues—network timeouts, upstream service unavailable, connectio
 
 ```python
 from dara.core import ReconnectException
+
 
 async def events_stream(category: str):
     yield StreamEvent.replace(*await get_initial_events(category))

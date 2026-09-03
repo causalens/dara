@@ -11,82 +11,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  setup:
+  python-lint:
     runs-on: ubuntu-latest
-    outputs:
-      cypress-version: ${{ steps.set-cypress.outputs.cypress }}
-      pnpm-store-path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Setup git config
-        run: |
-          git config --global --add safe.directory /__w/dara/dara
-          git config user.name "GitHub Actions Bot"
-          git config user.email "<>"
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
         id: setup-python
-      - uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
         with:
           version: 1.8.3
       - name: Install Anthology
         run: poetry self add anthology
-      - name: Setup cached venv
+      - name: Restore Python cache
         id: cached-poetry-dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install Python venv if cache was not found
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry anthology install
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-      - name: Detect Cypress version used
-        id: set-cypress
-        run: |
-          CYPRESS_VERSION=$(grep "cypress@" pnpm-lock.yaml | head -1 | sed 's/.*cypress@\([^:]*\):.*/\1/')
-          echo "cypress=$CYPRESS_VERSION" >> $GITHUB_OUTPUT
-
-  python-lint:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-        id: setup-python
-      - uses: snok/install-poetry@v1
-        with:
-          version: 1.8.3
-      - name: Install Anthology
-        run: poetry self add anthology
-      - name: Restore Python cache
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       - name: Link venvs
         run: make link
       - name: Run Python linting
@@ -97,24 +43,16 @@ jobs:
         run: make security-scan
 
   js-lint:
-    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-      - name: Restore pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.pnpm-store-path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install JS dependencies
         run: make deps-project
         env:
@@ -122,57 +60,50 @@ jobs:
       - name: Prepare JS packages
         run: make prepare-dev
       - name: Run JS linting
-        run: pnpm lerna run lint
+        run: make lint-js
       - name: Run JS format check
         run: pnpm lerna run format:check
       - name: Run JS security scan
         run: make bearer
 
   python-tests:
-    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
         id: setup-python
-      - uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
         with:
           version: 1.8.3
       - name: Install Anthology
         run: poetry self add anthology
       - name: Restore Python cache
-        uses: actions/cache@v4
+        id: cached-poetry-dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install Python venv if cache was not found
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry anthology install
       - name: Link venvs
         run: make link
       - name: Run Python tests
         run: poetry anthology run test
 
   js-tests:
-    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-      - name: Restore pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.pnpm-store-path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install JS dependencies
         run: make deps-project
         env:
@@ -183,64 +114,55 @@ jobs:
         run: pnpm lerna run test
 
   e2e-tests:
-    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
         id: setup-python
-      - uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
         with:
           version: 1.8.3
       - name: Install Anthology
         run: poetry self add anthology
       - name: Restore Python cache
-        uses: actions/cache@v4
+        id: cached-poetry-dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install Python venv if cache was not found
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry anthology install
       - name: Link venvs
         run: make link
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-      - name: Restore pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.setup.outputs.pnpm-store-path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install JS dependencies
         run: make deps-project
         env:
           PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
       - name: Build JS packages
         run: make prepare
+      - name: Read Cypress version
+        id: cypress-version
+        run: |
+          echo "version=$(node -p 'require("./packages/dara-core/package.json").devDependencies.cypress')" >> "$GITHUB_OUTPUT"
       - name: Cache Cypress binary
         id: cypress-cache
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-cypress-${{ needs.setup.outputs.cypress-version }}
+          key: cypress-${{ runner.os }}-${{ steps.cypress-version.outputs.version }}
       - name: Install Cypress binary
         if: steps.cypress-cache.outputs.cache-hit != 'true'
         run: pnpm --dir packages/dara-core exec cypress install
-      - name: Verify Cypress binary
-        run: pnpm --dir packages/dara-core exec cypress verify
-      - name: Install system deps
-        run: sudo apt update && sudo apt install wget -y
-      - name: Install and cache APT Cypress deps
-        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
-        with:
-          packages: libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
-          version: cypress-${{ runner.os }}-${{ needs.setup.outputs.cypress-version }}
       - name: Run Cypress E2E tests
         run: |
           cd packages/dara-core
@@ -249,7 +171,7 @@ jobs:
           CYPRESS_SCREENSHOT_ON_RUN_FAILURE: true
       - name: Upload Cypress screenshots
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: screenshots
           path: packages/dara-core/cypress/screenshots
@@ -259,7 +181,7 @@ jobs:
     needs: [python-lint, js-lint, python-tests, js-tests, e2e-tests]
     runs-on: ubuntu-latest
     steps:
-      - uses: 8398a7/action-slack@v3
+      - uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3.19.0
         with:
           status: custom
           fields: workflow,job,commit,repo,ref,author,took

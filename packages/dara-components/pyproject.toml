@@ -7,7 +7,7 @@ format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run 
 format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
 lint = "poetry run pyright ./dara && poetry run ruff check ."
 package = "poetry build -f wheel"
-publish = "poetry publish"
+publish = "poetry publish --skip-existing"
 security-scan = "poetry run bandit dara -r -ll -i"
 test = "poetry run pytest ./tests -n auto -v"
 
@@ -20,7 +20,7 @@ license = "Apache-2.0"
 name = "dara-components"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.28.6"
+version = "1.29.8"
 source = []
 
 [[tool.poetry.packages]]
@@ -30,7 +30,7 @@ include = "dara"
 bokeh = "3.1.1"
 cai-causal-graph = ">=0.3.6"
 certifi = ">=2024.7.4"
-dara-core = "1.28.6"
+dara-core = "1.29.8"
 dill = ">=0.3.0, <0.4.0"
 matplotlib = ">=2.0.0"
 pandas = ">=1.1.0, <3.0.0"
@@ -40,7 +40,7 @@ scipy = "*"
 seaborn = ">=0.11.0"
 
 [tool.poetry.dev-dependencies]
-ruff = ">=0.12.2"
+ruff = "0.16.0"
 bandit = "^1.7.5"
 pytest = "^9.0.3"
 pyright = "^1.1.400"

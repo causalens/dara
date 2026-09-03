@@ -19,7 +19,7 @@ import { format } from 'date-fns';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import DatePicker, { DatePickerProps } from './datepicker';
+import DatePicker, { type DatePickerProps } from './datepicker';
 
 function RenderDatePicker(props: DatePickerProps = { shouldCloseOnSelect: true }): JSX.Element {
     return (
@@ -121,7 +121,7 @@ describe('DatePicker', () => {
     });
 
     it('should call onChange if in controlled mode', async () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const currentDate = new Date();
         const { container } = render(RenderDatePicker({ onChange, shouldCloseOnSelect: true, value: currentDate }));
 

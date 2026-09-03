@@ -18,8 +18,8 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { Item } from '../types';
-import ButtonBar, { ButtonProps } from './button-bar';
+import type { Item } from '../types';
+import ButtonBar, { type ButtonProps } from './button-bar';
 
 const items: Array<Item> = [
     {
@@ -56,7 +56,7 @@ describe('ButtonBar', () => {
     });
 
     it('controlled mode - value is defined externally', () => {
-        const onSelectStub = jest.fn();
+        const onSelectStub = vi.fn();
         const { getAllByRole } = render(
             <RenderButtonBar items={items} onSelect={onSelectStub} value={{ label: 'Button 2', value: 'button2' }} />
         );
@@ -83,7 +83,7 @@ describe('ButtonBar', () => {
     });
 
     it('uncontrolled mode value should be tracked internally', () => {
-        const onSelectStub = jest.fn();
+        const onSelectStub = vi.fn();
         const { getAllByRole } = render(
             <RenderButtonBar initialValue={{ label: 'Button 2', value: 'button2' }} items={items} />
         );
@@ -120,7 +120,7 @@ describe('ButtonBar', () => {
     });
 
     it('should support the disabled prop', async () => {
-        const onSelectStub = jest.fn();
+        const onSelectStub = vi.fn();
         const { getAllByRole, rerender } = render(<RenderButtonBar disabled items={items} onSelect={onSelectStub} />);
 
         let buttons = getAllByRole('button', { hidden: true });

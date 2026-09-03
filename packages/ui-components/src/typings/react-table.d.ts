@@ -75,7 +75,8 @@ declare module 'react-table' {
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface TableOptions<D extends object>
-        extends UseExpandedOptions<D>,
+        extends
+            UseExpandedOptions<D>,
             UseFiltersOptions<D>,
             UseGlobalFiltersOptions<D>,
             UseGroupByOptions<D>,
@@ -91,14 +92,12 @@ declare module 'react-table' {
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface Hooks<D extends object = {}>
-        extends UseExpandedHooks<D>,
-            UseGroupByHooks<D>,
-            UseRowSelectHooks<D>,
-            UseSortByHooks<D> {}
+        extends UseExpandedHooks<D>, UseGroupByHooks<D>, UseRowSelectHooks<D>, UseSortByHooks<D> {}
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface TableInstance<D extends object = {}>
-        extends UseColumnOrderInstanceProps<D>,
+        extends
+            UseColumnOrderInstanceProps<D>,
             UseExpandedInstanceProps<D>,
             UseFiltersInstanceProps<D>,
             UseGlobalFiltersInstanceProps<D>,
@@ -110,7 +109,8 @@ declare module 'react-table' {
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface TableState<D extends object = {}>
-        extends UseColumnOrderState<D>,
+        extends
+            UseColumnOrderState<D>,
             UseExpandedState<D>,
             UseFiltersState<D>,
             UseGlobalFiltersState<D>,
@@ -123,7 +123,8 @@ declare module 'react-table' {
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface ColumnInterface<D extends object = {}>
-        extends UseFiltersColumnOptions<D>,
+        extends
+            UseFiltersColumnOptions<D>,
             UseGlobalFiltersColumnOptions<D>,
             UseGroupByColumnOptions<D>,
             UseResizeColumnsColumnOptions<D>,
@@ -131,20 +132,17 @@ declare module 'react-table' {
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface ColumnInstance<D extends object = {}>
-        extends UseFiltersColumnProps<D>,
+        extends
+            UseFiltersColumnProps<D>,
             UseGroupByColumnProps<D>,
             UseResizeColumnsColumnProps<D>,
             UseSortByColumnProps<D> {}
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface Cell<D extends Record<string, unknown> = Record<string, unknown>, V = any>
-        extends UseGroupByCellProps<D>,
-            UseRowStateCellProps<D> {}
+        extends UseGroupByCellProps<D>, UseRowStateCellProps<D> {}
 
     // eslint-disable-next-line @typescript-eslint/ban-types
     export interface Row<D extends object = {}>
-        extends UseExpandedRowProps<D>,
-            UseGroupByRowProps<D>,
-            UseRowSelectRowProps<D>,
-            UseRowStateRowProps<D> {}
+        extends UseExpandedRowProps<D>, UseGroupByRowProps<D>, UseRowSelectRowProps<D>, UseRowStateRowProps<D> {}
 }

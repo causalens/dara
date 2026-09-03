@@ -21,7 +21,7 @@ import styled from '@darajs/styled-components';
 import { type InteractiveComponentProps } from '../types';
 
 interface CheckboxWrapperProps {
-    disabled: boolean;
+    disabled?: boolean;
     isListStyle?: boolean;
 }
 
@@ -36,10 +36,9 @@ const CheckboxWrapper = styled.label<CheckboxWrapperProps>`
 
     width: ${(props) => (props.isListStyle ? '100%' : 'fit-content')};
     padding: 0.5625rem 0 0.5625rem 2rem;
+    border-radius: 0.25rem;
 
     font-size: 1rem;
-
-    border-radius: 0.25rem;
 
     ${(props) => {
         if (props.isListStyle && !props.disabled) {
@@ -67,7 +66,6 @@ const CheckboxWrapper = styled.label<CheckboxWrapperProps>`
 
         width: 0.3125rem;
         height: 0.625rem;
-
         border: solid ${(props) => props.theme.colors.grey5};
         border-width: 0 2px 2px 0;
     }
@@ -80,6 +78,7 @@ const CheckboxWrapper = styled.label<CheckboxWrapperProps>`
     :hover {
         span,
         input:checked ~ span {
+            border: 1px solid ${(props) => props.theme.colors.grey4};
             background-color: ${(props) => {
                 if (props.disabled) {
                     return props.theme.colors.grey3;
@@ -89,7 +88,6 @@ const CheckboxWrapper = styled.label<CheckboxWrapperProps>`
                 }
                 return props.theme.colors.grey1;
             }};
-            border: 1px solid ${(props) => props.theme.colors.grey4};
         }
     }
 
@@ -170,7 +168,7 @@ export interface CheckboxProps extends InteractiveComponentProps<boolean> {
  * @param {CheckboxProps} props - the component props
  */
 function Checkbox(props: CheckboxProps): JSX.Element {
-    const [checked, setChecked] = useState(props.selected || props.initialValue);
+    const [checked, setChecked] = useState(props.selected ?? props.initialValue);
 
     useEffect(() => {
         if (props.selected !== undefined) {
@@ -188,7 +186,7 @@ function Checkbox(props: CheckboxProps): JSX.Element {
             setChecked(!checked);
         }
         if (props.onChange) {
-            props.onChange(!checked, e);
+            void props.onChange(!checked, e);
         }
     };
 

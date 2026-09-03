@@ -19,9 +19,10 @@ from dara.components import BulletList, Stack, Input
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # Connect to the sql alchemy engine
-engine = create_async_engine("postgresql+asyncpg://user:pw@localhost/test", echo=True)
+engine = create_async_engine('postgresql+asyncpg://user:pw@localhost/test', echo=True)
 
 config = ConfigurationBuilder()
+
 
 # Define an async function to derive the state of a DerivedVariable
 async def fetch_data(search_term: str):
@@ -30,6 +31,7 @@ async def fetch_data(search_term: str):
             result = await conn.execute(select(t1).where(t1.c.name == search_term))
             return result.fetchall()
     return []
+
 
 # Define the UI state, one variable for tracking the input and then a DerivedVariable for the results
 search_term = Variable()

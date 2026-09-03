@@ -1,50 +1,54 @@
+import { describe, expect, it } from 'vitest';
+
 import { GraphActionCreators, GraphReducer } from '../src/shared/causal-graph-store';
 import { causalGraphParser } from '../src/shared/parsers';
 import { causalGraphSerializer } from '../src/shared/serializer';
-import type { CausalGraph, CausalGraphEdge} from '../src/types';
+import type { CausalGraph, CausalGraphEdge, CausalGraphNode } from '../src/types';
 import { EdgeType, EditorMode } from '../src/types';
 import { MockCausalGraphWithExtras } from './mocks/extras-graph';
 import { MockCausalGraph } from './utils';
 
-const getExpectedNodes = (mockCausalGraph: CausalGraph): Record<string, any> => {
-    return Object.keys(mockCausalGraph.nodes).reduce((acc, key) => {
-        acc[key] = {
-            ...mockCausalGraph.nodes[key],
-            meta: {
-                ...mockCausalGraph.nodes[key].meta,
-                rendering_properties: {
-                    ...mockCausalGraph.nodes[key].meta.rendering_properties,
-                    latent: false,
+const getExpectedNodes = (mockCausalGraph: CausalGraph): Record<string, CausalGraphNode> => {
+    return Object.fromEntries(
+        Object.entries(mockCausalGraph.nodes).map(([key, node]) => [
+            key,
+            {
+                ...node,
+                meta: {
+                    ...node.meta,
+                    rendering_properties: {
+                        ...node.meta.rendering_properties,
+                        latent: false,
+                    },
                 },
             },
-        };
-
-        return acc;
-    }, {});
+        ])
+    );
 };
 
 const getExpectedEdges = (mockCausalGraph: CausalGraph): Record<string, Record<string, CausalGraphEdge>> => {
     const expectedNodes = getExpectedNodes(mockCausalGraph);
-    return Object.keys(mockCausalGraph.edges).reduce((acc, sourceKey) => {
-        const nestedEdges = Object.keys(mockCausalGraph.edges[sourceKey]).reduce((nestedAcc, targetKey) => {
-            nestedAcc[targetKey] = {
-                ...mockCausalGraph.edges[sourceKey][targetKey],
-                destination: expectedNodes[targetKey],
-                meta: {
-                    ...mockCausalGraph.edges[sourceKey][targetKey].meta,
-                    rendering_properties: {
-                        ...mockCausalGraph.edges[sourceKey][targetKey].meta.rendering_properties,
+    return Object.fromEntries(
+        Object.entries(mockCausalGraph.edges).map(([sourceKey, edges]) => [
+            sourceKey,
+            Object.fromEntries(
+                Object.entries(edges).map(([targetKey, edge]) => [
+                    targetKey,
+                    {
+                        ...edge,
+                        destination: expectedNodes[targetKey],
+                        meta: {
+                            ...edge.meta,
+                            rendering_properties: {
+                                ...edge.meta.rendering_properties,
+                            },
+                        },
+                        source: expectedNodes[sourceKey],
                     },
-                },
-                source: expectedNodes[sourceKey],
-            };
-
-            return nestedAcc;
-        }, {});
-        acc[sourceKey] = nestedEdges;
-
-        return acc;
-    }, {} as Record<string, Record<string, CausalGraphEdge>>);
+                ])
+            ),
+        ])
+    );
 };
 
 describe('CausalGraphSerializer', () => {
@@ -62,7 +66,7 @@ describe('CausalGraphSerializer', () => {
         delete expectedEdges.input2.target1;
         expectedEdges.target1.input2.edge_type = EdgeType.DIRECTED_EDGE;
 
-        expect(causalGraphSerializer({ graph: parsedGraph })).toEqual({
+        expect(causalGraphSerializer({ editorMode: EditorMode.DEFAULT, graph: parsedGraph })).toEqual({
             edges: expectedEdges,
             nodes: expectedNodes,
             version: MockCausalGraph.version,
@@ -78,7 +82,7 @@ describe('CausalGraphSerializer', () => {
 
         const expectedEdges = getExpectedEdges(mockCausalGraph);
 
-        expect(causalGraphSerializer({ graph: parsedGraph })).toEqual({
+        expect(causalGraphSerializer({ editorMode: EditorMode.DEFAULT, graph: parsedGraph })).toEqual({
             defaults: MockCausalGraphWithExtras.defaults,
             edges: expectedEdges,
             nodes: expectedNodes,
@@ -97,16 +101,14 @@ describe('Update extra metadata', () => {
             actions.updateNode('input1', { meta: { extra_meta: 'extra_meta' } })
         );
 
-        expect(causalGraphSerializer({ graph: state.graph }).nodes.input1.meta).toMatchInlineSnapshot(`
-            {
-              "extra_meta": "extra_meta",
-              "original": "metadata",
-              "rendering_properties": {
-                "label": "input1 label",
-                "latent": false,
-              },
-            }
-        `);
+        expect(causalGraphSerializer({ editorMode: state.editorMode, graph: state.graph }).nodes.input1.meta).toEqual({
+            extra_meta: 'extra_meta',
+            original: 'metadata',
+            rendering_properties: {
+                label: 'input1 label',
+                latent: false,
+            },
+        });
     });
     it('should serialize metadata for an updated edge', () => {
         const parsedGraph = causalGraphParser(MockCausalGraph);
@@ -115,16 +117,16 @@ describe('Update extra metadata', () => {
             actions.updateEdge(['input1', 'target2'], { meta: { extra_meta: 'extra_meta' } })
         );
 
-        expect(causalGraphSerializer({ graph: state.graph }).edges.input1.target2.meta).toMatchInlineSnapshot(`
-            {
-              "extra_meta": "extra_meta",
-              "original": "metadata",
-              "rendering_properties": {
-                "color": "#7510F7",
-                "thickness": 10,
-              },
-            }
-        `);
+        expect(
+            causalGraphSerializer({ editorMode: state.editorMode, graph: state.graph }).edges.input1.target2.meta
+        ).toEqual({
+            extra_meta: 'extra_meta',
+            original: 'metadata',
+            rendering_properties: {
+                color: '#7510F7',
+                thickness: 10,
+            },
+        });
     });
 });
 
@@ -138,7 +140,7 @@ describe('Edge source/destination', () => {
         const state = GraphReducer(initialState, actions.addEdge(['input1', 'target1']));
 
         const expectedEdges = getExpectedEdges(MockCausalGraph);
-        const serializedGraph = causalGraphSerializer({ graph: state.graph });
+        const serializedGraph = causalGraphSerializer({ editorMode: state.editorMode, graph: state.graph });
 
         expect(serializedGraph.edges.input1.target1).toEqual(expectedEdges.input1.target1);
     });

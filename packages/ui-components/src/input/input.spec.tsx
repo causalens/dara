@@ -20,7 +20,7 @@ import * as React from 'react';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import Input, { InputProps } from './input';
+import Input, { type InputProps } from './input';
 
 const keyDownFilter = (e: React.KeyboardEvent<HTMLInputElement>): boolean => {
     if (e.key !== 'e' && e.key !== 'A') {
@@ -47,7 +47,7 @@ describe('Input', () => {
     });
 
     it('should track value internally and have blank initial value', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByRole } = render(<RenderInput onChange={onChangeStub} />);
 
         let input = getByRole('textbox', { hidden: true });
@@ -66,7 +66,7 @@ describe('Input', () => {
     });
 
     it('should respect initial value and be in controlled mode', () => {
-        const onChangeStub = jest.fn((value) => value);
+        const onChangeStub = vi.fn((value) => value);
         const { getByRole, rerender } = render(<RenderInput onChange={onChangeStub} value="Test Value" />);
 
         let input = getByRole('textbox', { hidden: true });
@@ -91,8 +91,8 @@ describe('Input', () => {
     });
 
     it('should support the disabled prop', async () => {
-        const onClickStub = jest.fn();
-        const onChangeStub = jest.fn();
+        const onClickStub = vi.fn();
+        const onChangeStub = vi.fn();
         const { getByRole, rerender } = render(<RenderInput disabled onChange={onChangeStub} onClick={onClickStub} />);
 
         let input = getByRole('textbox', { hidden: true });
@@ -125,7 +125,7 @@ describe('Input', () => {
     });
 
     it('should work with placeholder', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByRole } = render(<RenderInput onChange={onChangeStub} placeholder="Test Placeholder" />);
 
         let input = getByRole('textbox', { hidden: true });
@@ -152,7 +152,11 @@ describe('Input', () => {
         const input = getByRole('textbox', { hidden: true });
 
         // Check that input has an error boundary
-        expect(input).toHaveStyle(`border: 1px solid ${theme.colors.error}`);
+        expect(input).toHaveStyle({
+            borderColor: theme.colors.error,
+            borderStyle: 'solid',
+            borderWidth: '1px',
+        });
 
         // Check that the tooltip is displayed and the errorMsg is correct
         fireEvent.mouseEnter(getByRole('textbox', { hidden: true }));
@@ -161,7 +165,7 @@ describe('Input', () => {
     });
 
     it('should respect the keyDownFilter', () => {
-        const onChangeStub = jest.fn();
+        const onChangeStub = vi.fn();
         const { getByRole } = render(<RenderInput keydownFilter={keyDownFilter} onChange={onChangeStub} />);
 
         let input = getByRole('textbox', { hidden: true });
@@ -194,8 +198,8 @@ describe('Input', () => {
     });
 
     it('should fire onComplete correctly', () => {
-        const onCompleteStub = jest.fn();
-        const onChangeStub = jest.fn((value) => value);
+        const onCompleteStub = vi.fn();
+        const onChangeStub = vi.fn((value) => value);
         const { getByRole } = render(
             <RenderInput keydownFilter={keyDownFilter} onChange={onChangeStub} onComplete={onCompleteStub} />
         );

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 
-import type { ServerVariableMessage } from '@/api/websocket';
+import { ServerMessageTypename, type ServerVariableMessage } from '@/api/websocket';
 import { setSessionIdentifier } from '@/auth/session-state';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import type { DerivedVariable, ResolvedServerVariable, ServerVariable, Variable } from '@/types/core';
@@ -124,6 +124,7 @@ describe('ServerVariable', () => {
                         data-testid="trigger"
                         onClick={() =>
                             wsClient.receiveMessage({
+                                __typename: ServerMessageTypename.SERVER_VARIABLE,
                                 message: {
                                     __type: 'ServerVariable',
                                     uid: 'dep2',
@@ -224,6 +225,7 @@ describe('ServerVariable', () => {
                         data-testid="trigger"
                         onClick={() =>
                             wsClient.receiveMessage({
+                                __typename: ServerMessageTypename.SERVER_VARIABLE,
                                 message: {
                                     __type: 'ServerVariable',
                                     uid: 'dep2',
@@ -326,6 +328,7 @@ describe('ServerVariable', () => {
                         data-testid="trigger"
                         onClick={() =>
                             wsClient.receiveMessage({
+                                __typename: ServerMessageTypename.SERVER_VARIABLE,
                                 message: {
                                     uid: 'dep2',
                                     sequence_number: 2,
@@ -412,6 +415,7 @@ describe('ServerVariable', () => {
                         data-testid="trigger"
                         onClick={() =>
                             wsClient.receiveMessage({
+                                __typename: ServerMessageTypename.SERVER_VARIABLE,
                                 message: {
                                     uid: 'dep2',
                                     sequence_number: 1,
@@ -508,6 +512,7 @@ describe('ServerVariable', () => {
                         data-testid="trigger"
                         onClick={() =>
                             wsClient.receiveMessage({
+                                __typename: ServerMessageTypename.SERVER_VARIABLE,
                                 message: {
                                     uid: 'dep2',
                                     sequence_number: 1,

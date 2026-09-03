@@ -59,12 +59,12 @@ const StyledInput = styled(Input)<StyledInputProps>`
 
     input {
         width: ${(props) => (props.showTwoInputs ? '106px' : '100%')};
-        background-color: ${(props) => props.theme.colors.background};
         border: 1px solid ${(props) => (props.showError ? props.theme.colors.error : props.theme.colors.background)};
+        background-color: ${(props) => props.theme.colors.background};
 
         :hover:not(:disabled) {
-            background-color: ${(props) => props.theme.colors.background};
             border: 1px solid ${(props) => (props.showError ? props.theme.colors.error : props.theme.colors.grey3)};
+            background-color: ${(props) => props.theme.colors.background};
         }
 
         :active:not(:disabled),
@@ -108,8 +108,8 @@ const NumericFilterItems: Item[] = [
 ];
 
 export interface FilterResults {
-    selected: string;
-    value: number | [number, number];
+    selected?: string;
+    value: number | [number | null, number | null] | null;
 }
 
 export interface NumericFilterProps extends FilterProps<any> {
@@ -129,9 +129,9 @@ export interface NumericFilterProps extends FilterProps<any> {
  * @param {NumericFilterProps} props - the component props
  */
 function NumericFilter(props: NumericFilterProps): JSX.Element {
-    const [selected, setSelected] = useState<Item>(null);
-    const [firstInput, setFirstInput] = useState<number>(null);
-    const [secondInput, setSecondInput] = useState<number>(null);
+    const [selected, setSelected] = useState<Item | null>(null);
+    const [firstInput, setFirstInput] = useState<number | null>(null);
+    const [secondInput, setSecondInput] = useState<number | null>(null);
 
     const filteredValues = useMemo((): FilterResults => {
         if (selected?.label === 'None') {
@@ -209,7 +209,7 @@ function NumericFilter(props: NumericFilterProps): JSX.Element {
             <ApplyButton
                 disabled={disableApply}
                 onClick={(e) => {
-                    props.onChange?.(filteredValues, e);
+                    void props.onChange?.(filteredValues, e);
                     props?.column?.setFilter(filteredValues || undefined);
                     setPreviousFilter(filteredValues);
                 }}

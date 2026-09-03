@@ -1,9 +1,11 @@
 {
-  "extends": "../../tsconfig.json",
-  "exclude": ["tests/**", "**/*.spec.tsx", "**/*.stories.tsx", "dist/**"],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "rootDir": "./src",
-    "outDir": "./dist/"
-  }
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.build.json"
+    },
+    {
+      "path": "./tsconfig.stories.json"
+    }
+  ]
 }
