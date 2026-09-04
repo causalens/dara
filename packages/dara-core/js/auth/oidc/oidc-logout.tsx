@@ -8,6 +8,18 @@ import { revokeSession } from '../auth';
 import { runLogout } from '../session-state';
 
 /**
+ * Navigate to a new document and resolve when the current document starts to unload.
+ *
+ * @param url target document URL
+ */
+function navigateDocument(url: string): Promise<void> {
+    return new Promise((resolve) => {
+        window.addEventListener('pagehide', () => resolve(), { once: true });
+        window.location.href = url;
+    });
+}
+
+/**
  * Auth component that handles OIDC logout.
  *
  * If the IDP supports RP-Initiated Logout, redirects to the IDP's end_session_endpoint
@@ -27,7 +39,7 @@ function OIDCAuthLogout(): JSX.Element {
                 const loginUrl = new URL('/login', window.location.origin);
                 const finalRedirectUrl = new URL(responseData.redirect_uri);
                 finalRedirectUrl.searchParams.append('post_logout_redirect_uri', loginUrl.toString());
-                window.location.href = finalRedirectUrl.toString();
+                await navigateDocument(finalRedirectUrl.toString());
                 return;
             }
 

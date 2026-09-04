@@ -1,5 +1,10 @@
+import { render, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+import { MemoryRouter } from 'react-router';
+import { RecoilRoot } from 'recoil';
+
+import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import {
     getSessionIdentifier,
@@ -12,7 +17,9 @@ import {
     setSessionIdentifier,
     verifySessionToken,
 } from '@/auth';
+import OIDCAuthLogout from '@/auth/oidc/oidc-logout';
 import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '@/auth/origin-security';
+import GlobalTaskProvider from '@/shared/context/global-task-context';
 
 const server = setupServer();
 
@@ -319,6 +326,48 @@ describe('handleAuthErrors', () => {
         finishNavigation();
         await logout;
         expect(isLoggingOut()).toBe(false);
+    });
+
+    it('keeps logout navigation ownership until an external OIDC navigation starts unloading', async () => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/custom-auth/logOUT'),
+        });
+        server.use(
+            http.post('/api/auth/revoke-session', () => {
+                return HttpResponse.json({ redirect_uri: 'https://idp.test/logout' });
+            })
+        );
+
+        render(
+            <ThemeProvider theme={theme}>
+                <RecoilRoot>
+                    <GlobalTaskProvider>
+                        <MemoryRouter>
+                            <OIDCAuthLogout />
+                        </MemoryRouter>
+                    </GlobalTaskProvider>
+                </RecoilRoot>
+            </ThemeProvider>
+        );
+
+        const externalLogoutUrl = 'https://idp.test/logout?post_logout_redirect_uri=https%3A%2F%2Ftest.com%2Flogin';
+        await waitFor(() => {
+            expect(window.location.href).toBe(externalLogoutUrl);
+        });
+        expect(isLoggingOut()).toBe(true);
+
+        const handled = await handleAuthError('expired', 401);
+
+        expect(handled).toBe(true);
+        expect(window.location.href).toBe(externalLogoutUrl);
+        expect(isLoggingOut()).toBe(true);
+
+        window.dispatchEvent(new Event('pagehide'));
+        await waitFor(() => {
+            expect(isLoggingOut()).toBe(false);
+        });
     });
 
     it('still redirects authorization failures during logout to the error page', async () => {
