@@ -21,7 +21,7 @@ license = "Apache-2.0"
 name = "dara-core"
 readme = "README.md"
 repository = "https://github.com/causalens/dara"
-version = "1.29.9"
+version = "1.29.10"
 source = []
 
 [[tool.poetry.packages]]
@@ -71,11 +71,11 @@ opentelemetry-instrumentation-logging = ">=0.65b0,<0.66"
 
 [tool.poetry.dependencies.create-dara-app]
 optional = true
-version = "1.29.9"
+version = "1.29.10"
 
 [tool.poetry.dependencies.dara-components]
 optional = true
-version = "1.29.9"
+version = "1.29.10"
 
 [tool.poetry.dependencies.uvicorn]
 extras = ["standard"]
