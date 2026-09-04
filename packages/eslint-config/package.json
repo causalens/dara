@@ -1,6 +1,6 @@
 {
   "name": "@darajs/eslint-config",
-  "version": "1.29.8",
+  "version": "1.29.9",
   "description": "Dara ESLint configuration",
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
@@ -28,7 +28,7 @@
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "devDependencies": {
-    "@darajs/oxfmt-config": "1.29.8",
+    "@darajs/oxfmt-config": "1.29.9",
     "oxfmt": "^0.60.0"
   },
   "publishConfig": {

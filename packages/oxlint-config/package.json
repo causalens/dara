@@ -1,6 +1,6 @@
 {
   "name": "@darajs/oxlint-config",
-  "version": "1.29.8",
+  "version": "1.29.9",
   "description": "Dara Oxlint configuration",
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",

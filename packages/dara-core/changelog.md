@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.9
 
 - Fixed stale authentication requests interrupting logout and sending users back through a login/logout loop.
 

@@ -1,6 +1,6 @@
 {
   "name": "@darajs/ui-hierarchy-viewer",
-  "version": "1.29.8",
+  "version": "1.29.9",
   "description": "Hierarchy Viewer for the Dara UI framework",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -17,9 +17,9 @@
   "author": "Krzysztof Bielikowicz <krzysztof@causalens.com>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@darajs/oxfmt-config": "1.29.8",
-    "@darajs/oxlint-config": "1.29.8",
-    "@darajs/stylelint-config": "1.29.8",
+    "@darajs/oxfmt-config": "1.29.9",
+    "@darajs/oxlint-config": "1.29.9",
+    "@darajs/stylelint-config": "1.29.9",
     "@types/d3": "^6.2.0",
     "@types/react": "^18.0",
     "@types/styled-components": "^5.1.26",
@@ -33,8 +33,8 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@darajs/styled-components": "1.29.8",
-    "@darajs/ui-utils": "1.29.8",
+    "@darajs/styled-components": "1.29.9",
+    "@darajs/ui-utils": "1.29.9",
     "d3": "6.2.0",
     "react": "^18.0"
   },
