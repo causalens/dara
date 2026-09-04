@@ -17,6 +17,7 @@ type SessionStateMessage = z.infer<typeof SessionStateMessageSchema>;
 
 const sessionIdSubscribers = new Set<(val: string | null) => void>();
 let sessionIdentifier: string | null = null;
+let activeLogoutTransitions = 0;
 
 const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(SESSION_STATE_CHANNEL_NAME) : null;
 
@@ -85,6 +86,34 @@ export function notifySessionLoggedOut(): void {
     if (channel) {
         channel.postMessage({ type: 'session_logged_out' } satisfies SessionStateMessage);
     }
+}
+
+/**
+ * Run a logout operation while preventing stale authentication errors from starting a competing login redirect.
+ *
+ * @param logout operation that revokes the current session
+ * @param onLoggedOut callback that completes the final navigation
+ */
+export async function runLogout<T>(
+    logout: () => Promise<T>,
+    onLoggedOut: (result: T) => void | Promise<void>
+): Promise<void> {
+    activeLogoutTransitions += 1;
+    notifySessionLoggedOut();
+
+    try {
+        const result = await logout();
+        await onLoggedOut(result);
+    } finally {
+        activeLogoutTransitions = Math.max(0, activeLogoutTransitions - 1);
+    }
+}
+
+/**
+ * Whether a logout operation currently owns navigation.
+ */
+export function isLoggingOut(): boolean {
+    return activeLogoutTransitions > 0;
 }
 
 /**
