@@ -42,8 +42,8 @@ dara-core = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["dara"]
-# Generated JS bundles are gitignored; ship them anyway (poetry `include` equivalent).
-artifacts = ["dara/components/_assets/auto_js/*"]
+# Wheels ship only the committed common assets; legacy auto_js bundles stay out.
+exclude = ["dara/components/_assets/auto_js"]
 
 [dependency-groups]
 dev = [

@@ -98,13 +98,25 @@ run = "./tooling/scripts/publish-docs.sh"
 run = "./tooling/scripts/bump_python_versions.sh"
 
 [tasks.version-patch]
-run = "./tooling/scripts/bump_python_versions.sh patch"
+run = ["./tooling/scripts/bump_python_versions.sh patch", "mise run lock-frontends"]
 
 [tasks.version-minor]
-run = "./tooling/scripts/bump_python_versions.sh minor"
+run = ["./tooling/scripts/bump_python_versions.sh minor", "mise run lock-frontends"]
 
 [tasks.version-major]
-run = "./tooling/scripts/bump_python_versions.sh major"
+run = ["./tooling/scripts/bump_python_versions.sh major", "mise run lock-frontends"]
+
+# Reconcile committed app catalogs after the Python/npm release version changes.
+[tasks.lock-frontends]
+run = [
+  "cd packages/demo-app && uv run --locked dara lock",
+  "cd packages/dara-core/cypress/app && PYTHONPATH=../.. uv run --locked --project ../.. dara lock",
+]
+
+# Check real packed distributions and browser behavior without publishing.
+[tasks.release-check]
+depends = ["prepare"]
+run = "uv run --locked python tooling/scripts/check_frontend_release.py --browser"
 
 [tasks.update-ui-deps]
 run = "pnpm --recursive --latest update @darajs/styled-components @darajs/eslint-config @darajs/oxfmt-config @darajs/oxlint-config @darajs/prettier-config @darajs/stylelint-config @darajs/ui-causal-graph-editor @darajs/ui-code-editor @darajs/ui-components @darajs/ui-hierarchy-viewer @darajs/ui-icons @darajs/ui-notifications @darajs/ui-utils @darajs/ui-widgets"

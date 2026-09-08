@@ -28,7 +28,7 @@
     "format": "oxfmt js --write",
     "format:check": "oxfmt js --check",
     "lint:fix": "oxlint --type-aware --type-check --fix js tests cypress && stylelint --fix './js/**/*.tsx'",
-    "package": "yarn build && yarn publish --no-git-tag-version",
+    "package": "pnpm run build && pnpm publish --no-git-checks",
     "test-watch": "vitest",
     "test": "vitest --run",
     "test:e2e": "uv run --locked python cypress/run.py"
