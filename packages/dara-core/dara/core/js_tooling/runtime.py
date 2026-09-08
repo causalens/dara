@@ -33,7 +33,7 @@ class InputRecord(BaseModel):
 
     root: str
     path: str
-    hash: str
+    hash: str | None
     model_config = ConfigDict(extra='forbid')
 
 
@@ -71,10 +71,40 @@ def _hash(path: Path) -> str:
 
 
 def _safe_path(root: Path, relative: str) -> Path:
+    if relative.startswith('/') or '\\' in relative or ':' in relative or '..' in relative.split('/'):
+        raise ProjectError('build.marker', f'Build marker path escapes its root: {relative}', 'dara build')
     candidate = (root / relative).resolve()
     if not candidate.is_relative_to(root.resolve()):
         raise ProjectError('build.marker', f'Build marker path escapes its root: {relative}', 'dara build')
     return candidate
+
+
+def _tree_files(root: Path) -> list[str]:
+    """Match the builder's inventory, following internal links and rejecting escapes and cycles."""
+    if not root.exists():
+        return []
+    files: list[str] = []
+    visited: set[Path] = set()
+    resolved_root = root.resolve()
+
+    def walk(current: Path) -> None:
+        real = current.resolve()
+        if not real.is_relative_to(resolved_root):
+            raise ValueError(f'Input link escapes its root: {current}')
+        if real.is_dir():
+            if real in visited:
+                raise ValueError(f'Cyclic input directory: {current}')
+            visited.add(real)
+            for child in sorted(current.iterdir()):
+                walk(child)
+            visited.remove(real)
+        elif real.is_file():
+            files.append(current.relative_to(root).as_posix())
+        else:
+            raise ValueError(f'Missing or unsupported input: {current}')
+
+    walk(root)
+    return sorted(files)
 
 
 def validate_build(root: Path, manifest: FrontendManifest) -> None:
@@ -95,11 +125,7 @@ def validate_build(root: Path, manifest: FrontendManifest) -> None:
             file = _safe_path(output, relative)
             if not file.is_file() or _hash(file) != expected:
                 raise ValueError(f'Changed or missing output: {relative}')
-        actual = sorted(
-            str(p.relative_to(output)).replace(os.sep, '/')
-            for p in output.rglob('*')
-            if p.is_file() and p.name != '.dara-build.json'
-        )
+        actual = [file for file in _tree_files(output) if file != '.dara-build.json']
         if actual != sorted(marker.files):
             raise ValueError('The build output file inventory changed')
         workspace = workspace_root(root)
@@ -130,7 +156,9 @@ def validate_build(root: Path, manifest: FrontendManifest) -> None:
             if location is None:
                 raise ValueError(f'Missing source root: {entry.root}')
             file = _safe_path(location, entry.path)
-            if not file.is_file() or _hash(file) != entry.hash:
+            if (entry.hash is None and file.exists()) or (
+                entry.hash is not None and (not file.is_file() or _hash(file) != entry.hash)
+            ):
                 raise ValueError(f'Changed or missing input: {entry.root}/{entry.path}')
         for tree in marker.directories:
             if tree.root in ('app', 'workspace') and not checkout:
@@ -141,9 +169,7 @@ def validate_build(root: Path, manifest: FrontendManifest) -> None:
             if location is None:
                 raise ValueError(f'Missing source directory: {tree.root}')
             directory = _safe_path(location, tree.path)
-            files = sorted(
-                str(file.relative_to(directory)).replace(os.sep, '/') for file in directory.rglob('*') if file.is_file()
-            )
+            files = _tree_files(directory)
             if not directory.is_dir() or files != sorted(tree.files):
                 raise ValueError(f'Changed input inventory: {tree.root}/{tree.path}')
         if checkout:
@@ -159,7 +185,7 @@ class ArtifactFiles(StaticFiles):
 
     async def get_response(self, path: str, scope):
         """Refuse private output even when accessed through a normalized alias."""
-        normalized = Path(path).as_posix()
+        normalized = os.path.normpath('/' + path).lstrip('/')
         if normalized in ('index.html', '.dara-build.json') or any(
             part.startswith('.dara') for part in Path(path).parts
         ):
