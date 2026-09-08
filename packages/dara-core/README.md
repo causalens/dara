@@ -41,11 +41,11 @@ After the project is created, you can run it with:
 cd my-dara-app
 
 # with uv installation
-uv run dara start
+uv run dara dev
 
 # with pip installation make sure to activate the new virtual environment
 source .venv/bin/activate
-dara start
+dara dev
 ```
 
 ![Dara App](https://github.com/causalens/dara/blob/master/img/components_gallery.png?raw=true)

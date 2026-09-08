@@ -151,6 +151,15 @@ jobs:
       - name: Install Cypress binary
         if: steps.cypress-cache.outputs.cache-hit != 'true'
         run: pnpm --dir packages/dara-core exec cypress install
+      - name: Check packed frontend release artifacts
+        run: uv run --locked python tooling/scripts/check_frontend_release.py --browser --output "$RUNNER_TEMP/dara-release-check"
+      - name: Upload release fixture logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-release-logs
+          path: ${{ runner.temp }}/dara-release-check/logs
+          retention-days: 7
       - name: Run Cypress E2E tests
         run: |
           cd packages/dara-core
