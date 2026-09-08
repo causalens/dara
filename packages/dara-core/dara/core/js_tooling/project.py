@@ -468,7 +468,7 @@ def prepare_project(
             if install:
                 command = ['pnpm', 'install', '--frozen-lockfile' if agrees else '--no-frozen-lockfile']
                 if workspace != root:
-                    command += ['--filter', str(root)]
+                    command += ['--filter', './' + root.relative_to(workspace).as_posix() + '...']
                 # Registry placeholders require the complete environment for installation only.
                 policy = run(
                     ['pnpm', 'config', 'get', 'strictDepBuilds'],
