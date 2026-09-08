@@ -1,16 +1,25 @@
+import { render, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+import { MemoryRouter } from 'react-router';
+import { RecoilRoot } from 'recoil';
+
+import { ThemeProvider, theme } from '@darajs/styled-components';
 
 import {
     getSessionIdentifier,
     handleAuthErrors,
+    isLoggingOut,
     parseLoginReferrer,
-    resolveReferrer,
     resolveLoginReferrer,
+    resolveReferrer,
+    runLogout,
     setSessionIdentifier,
     verifySessionToken,
 } from '@/auth';
+import OIDCAuthLogout from '@/auth/oidc/oidc-logout';
 import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '@/auth/origin-security';
+import GlobalTaskProvider from '@/shared/context/global-task-context';
 
 const server = setupServer();
 
@@ -108,6 +117,40 @@ describe('resolveLoginReferrer', () => {
         });
 
         expect(resolveLoginReferrer()).toBe('%2Ffiles%2Ffoo%252Fbar%3Fx%3Da%252Fb');
+    });
+});
+
+describe('runLogout', () => {
+    it('owns auth navigation until final logout navigation completes', async () => {
+        let finishRevocation = (): void => undefined;
+        const revocation = new Promise<void>((resolve) => {
+            finishRevocation = resolve;
+        });
+        let finishNavigation = (): void => undefined;
+        const navigation = new Promise<void>((resolve) => {
+            finishNavigation = resolve;
+        });
+        let navigationStarted = false;
+
+        const logout = runLogout(
+            () => revocation,
+            () => {
+                navigationStarted = true;
+                expect(isLoggingOut()).toBe(true);
+                return navigation;
+            }
+        );
+
+        expect(isLoggingOut()).toBe(true);
+        finishRevocation();
+        await Promise.resolve();
+
+        expect(navigationStarted).toBe(true);
+        expect(isLoggingOut()).toBe(true);
+        finishNavigation();
+        await logout;
+
+        expect(isLoggingOut()).toBe(false);
     });
 });
 
@@ -244,6 +287,112 @@ describe('handleAuthErrors', () => {
         expect(window.location.pathname).toBe('/login');
         expect(window.location.search).toContain('referrer=%2Ftest%2Froute');
         expect(getSessionIdentifier()).toBe(null);
+    });
+
+    it('handles authentication failures during logout without interrupting logout navigation', async () => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/custom-auth/logOUT'),
+        });
+
+        let finishRevocation = (): void => undefined;
+        const revocation = new Promise<void>((resolve) => {
+            finishRevocation = resolve;
+        });
+        let finishNavigation = (): void => undefined;
+        const navigation = new Promise<void>((resolve) => {
+            finishNavigation = resolve;
+        });
+        let navigationStarted = false;
+        const logout = runLogout(
+            () => revocation,
+            () => {
+                navigationStarted = true;
+                return navigation;
+            }
+        );
+        finishRevocation();
+        await Promise.resolve();
+
+        expect(navigationStarted).toBe(true);
+        expect(isLoggingOut()).toBe(true);
+        const handled = await handleAuthError('expired', 401);
+
+        expect(handled).toBe(true);
+        expect(window.location.href).toBe('https://test.com/custom-auth/logOUT');
+        expect(getSessionIdentifier()).toBe(null);
+        expect(isLoggingOut()).toBe(true);
+        finishNavigation();
+        await logout;
+        expect(isLoggingOut()).toBe(false);
+    });
+
+    it('keeps logout navigation ownership until an external OIDC navigation starts unloading', async () => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/custom-auth/logOUT'),
+        });
+        server.use(
+            http.post('/api/auth/revoke-session', () => {
+                return HttpResponse.json({ redirect_uri: 'https://idp.test/logout' });
+            })
+        );
+
+        render(
+            <ThemeProvider theme={theme}>
+                <RecoilRoot>
+                    <GlobalTaskProvider>
+                        <MemoryRouter>
+                            <OIDCAuthLogout />
+                        </MemoryRouter>
+                    </GlobalTaskProvider>
+                </RecoilRoot>
+            </ThemeProvider>
+        );
+
+        const externalLogoutUrl = 'https://idp.test/logout?post_logout_redirect_uri=https%3A%2F%2Ftest.com%2Flogin';
+        await waitFor(() => {
+            expect(window.location.href).toBe(externalLogoutUrl);
+        });
+        expect(isLoggingOut()).toBe(true);
+
+        const handled = await handleAuthError('expired', 401);
+
+        expect(handled).toBe(true);
+        expect(window.location.href).toBe(externalLogoutUrl);
+        expect(isLoggingOut()).toBe(true);
+
+        window.dispatchEvent(new Event('pagehide'));
+        await waitFor(() => {
+            expect(isLoggingOut()).toBe(false);
+        });
+    });
+
+    it('still redirects authorization failures during logout to the error page', async () => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: new URL('https://test.com/custom-auth/logOUT'),
+        });
+
+        let finishRevocation = (): void => undefined;
+        const logout = runLogout(
+            () =>
+                new Promise<void>((resolve) => {
+                    finishRevocation = resolve;
+                }),
+            () => undefined
+        );
+        const handled = await handleAuthError('unauthorized', 403);
+
+        expect(handled).toBe(true);
+        expect(window.location.pathname).toBe('/error');
+        expect(window.location.search).toBe('?code=403');
+        expect(getSessionIdentifier()).toBe(null);
+        finishRevocation();
+        await logout;
     });
 
     it('preserves an existing encoded login referrer when redirecting back to login', async () => {

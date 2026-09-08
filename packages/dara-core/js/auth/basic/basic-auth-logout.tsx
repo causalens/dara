@@ -3,15 +3,14 @@ import { useEffect } from 'react';
 
 import { revokeSession } from '@/auth/auth';
 
-import { notifySessionLoggedOut } from '../session-state';
+import { runLogout } from '../session-state';
 
 /**
  * Auth component that wipes user token in AuthContext on mount and redirects to /login
  */
 function BasicAuthLogout(): React.ReactNode {
     useEffect(() => {
-        void revokeSession().then(() => {
-            notifySessionLoggedOut();
+        void runLogout(revokeSession, () => {
             window.location.href = `${window.dara.base_url}/login`;
         });
     }, []);

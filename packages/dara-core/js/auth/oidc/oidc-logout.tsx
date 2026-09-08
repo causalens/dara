@@ -5,7 +5,19 @@ import DefaultFallback from '@/components/fallback/default';
 import Center from '@/shared/center/center';
 
 import { revokeSession } from '../auth';
-import { notifySessionLoggedOut } from '../session-state';
+import { runLogout } from '../session-state';
+
+/**
+ * Navigate to a new document and resolve when the current document starts to unload.
+ *
+ * @param url target document URL
+ */
+function navigateDocument(url: string): Promise<void> {
+    return new Promise((resolve) => {
+        window.addEventListener('pagehide', () => resolve(), { once: true });
+        window.location.href = url;
+    });
+}
 
 /**
  * Auth component that handles OIDC logout.
@@ -20,22 +32,19 @@ function OIDCAuthLogout(): JSX.Element {
     const navigate = useNavigate();
 
     useEffect(() => {
-        void revokeSession().then((responseData) => {
-            // Always clear the local session state
-            notifySessionLoggedOut();
-
+        void runLogout(revokeSession, async (responseData) => {
             // Check if we got a redirect URL (IDP supports RP-Initiated Logout)
             if (responseData && 'redirect_uri' in responseData) {
                 // Append the post_logout_redirect_uri to redirect back to /login after IDP logout
                 const loginUrl = new URL('/login', window.location.origin);
                 const finalRedirectUrl = new URL(responseData.redirect_uri);
                 finalRedirectUrl.searchParams.append('post_logout_redirect_uri', loginUrl.toString());
-                window.location.href = finalRedirectUrl.toString();
+                await navigateDocument(finalRedirectUrl.toString());
                 return;
             }
 
             // No redirect URL - IDP doesn't support logout, just go to login
-            void navigate('/login');
+            await navigate('/login');
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

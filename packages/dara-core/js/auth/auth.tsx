@@ -7,7 +7,7 @@ import { request } from '@/api/http';
 import { useRequestExtras } from '@/shared/context/request-extras-context';
 import { type User, type UserData } from '@/types';
 
-import { notifySessionLoggedOut, setSessionIdentifier } from './session-state';
+import { isLoggingOut, notifySessionLoggedOut, setSessionIdentifier } from './session-state';
 
 export enum AuthenticationErrorReason {
     BAD_REQUEST = 'bad_request',
@@ -125,25 +125,30 @@ export async function revokeSession(): Promise<RedirectResponse | SuccessRespons
 }
 
 /**
+ * Resolve the current pathname relative to Dara's configured base path.
+ */
+function getAppPathname(): string {
+    const { pathname } = window.location;
+
+    if (!window.dara.base_url) {
+        return pathname;
+    }
+
+    const baseUrlPath = new URL(window.dara.base_url, window.location.origin).pathname.replace(/\/$/, '');
+
+    if (baseUrlPath && (pathname === baseUrlPath || pathname.startsWith(`${baseUrlPath}/`))) {
+        return pathname.slice(baseUrlPath.length) || '/';
+    }
+
+    return pathname;
+}
+
+/**
  * Resolve the encoded referrer url to be passed back to login, adjusted for the base path.
  */
 export function resolveReferrer(): string {
-    if (!window.dara.base_url) {
-        return encodeURIComponent(window.location.pathname + window.location.search);
-    }
-
-    const base_url_path = new URL(window.dara.base_url, window.location.origin).pathname;
-    const referrer = window.location.pathname;
-
-    // Remove the matching part of the base_url from the referrer.
-    let strippedReferrer = referrer.replace(base_url_path, '');
-
-    // If this has stripped the leading / then replace it
-    if (!strippedReferrer.startsWith('/')) {
-        strippedReferrer = `/${strippedReferrer}`;
-    }
-
-    return encodeURIComponent(strippedReferrer + window.location.search);
+    const referrer = getAppPathname() + window.location.search;
+    return encodeURIComponent(referrer);
 }
 
 /**
@@ -188,15 +193,21 @@ export async function handleAuthErrors(res: Response, options: HandleAuthErrorsO
     const authError = parseAuthenticationError(content?.detail);
 
     if (authError && !shouldIgnoreError(authError, ignoreErrors)) {
-        // use existing referrer if available in case we were already redirected because of e.g. missing token
-        const referrer = resolveLoginReferrer();
-
         const redirect = getAuthErrorRedirect(authError, authenticationFailureRedirect);
-        const path = redirect === 'login' ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
 
         if (redirect === 'login') {
             notifySessionLoggedOut();
+
+            // Requests started before session revocation can return authentication errors while logout is running.
+            // The active logout operation owns navigation until it initiates the final redirect.
+            if (isLoggingOut()) {
+                return true;
+            }
         }
+
+        // use existing referrer if available in case we were already redirected because of e.g. missing token
+        const referrer = resolveLoginReferrer();
+        const path = redirect === 'login' ? `/login?referrer=${referrer}` : `/error?code=${res.status}`;
 
         window.location.href = `${window.dara.base_url}${path}`;
 

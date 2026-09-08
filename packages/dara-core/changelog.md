@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## 1.29.9
+
+- Fixed stale authentication requests interrupting logout and sending users back through a login/logout loop.
+
 ## 1.29.7
 
 - Added one-at-a-time polling for DerivedVariable and Python components. Polling now waits after each request, pauses in hidden tabs, spreads retries with jitter and backoff, honors Retry-After, aborts work on cleanup, and drops stale results.
