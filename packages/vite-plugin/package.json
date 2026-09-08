@@ -1,6 +1,6 @@
 {
   "name": "@darajs/vite-plugin",
-  "version": "1.29.8",
+  "version": "1.29.10",
   "description": "Dara app-root Vite project loader and runners",
   "type": "module",
   "license": "Apache-2.0",
@@ -26,8 +26,8 @@
     "zod": "^3.25.0"
   },
   "devDependencies": {
-    "@darajs/oxfmt-config": "1.29.8",
-    "@darajs/oxlint-config": "1.29.8",
+    "@darajs/oxfmt-config": "1.29.10",
+    "@darajs/oxlint-config": "1.29.10",
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0"
   },
