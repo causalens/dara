@@ -29,7 +29,7 @@ interface ServerMenuItem {
 const StyledDropdown = injectCss(UIDropdownMenu);
 
 interface DropdownMenuProps extends StyledComponentProps {
-    button: ComponentInstance;
+    button: ComponentInstance<React.ComponentProps<typeof Button>>;
     menu_items: ServerMenuItem[][] | Variable<ServerMenuItem[][]>;
     onclick: Action;
     footer?: ComponentInstance;

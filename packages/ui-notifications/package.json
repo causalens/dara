@@ -25,7 +25,7 @@
     "@storybook/react-vite": "^10.5.3",
     "@types/lodash": "^4.14.155",
     "@types/node": "^24.0.0",
-    "@types/react": "^18.0",
+    "@types/react": "^18.3.0",
     "@types/styled-components": "^5.1.26",
     "@typescript/native": "npm:typescript@^7.0.0",
     "oxfmt": "^0.60.0",

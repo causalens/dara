@@ -108,7 +108,7 @@ async function fetchFunctionComponent(
             method: HTTP_METHOD.POST,
         },
         extras,
-        { signal }
+        { signal: signal ?? null }
     );
     await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
     try {
@@ -167,7 +167,7 @@ function getOrRegisterServerComponent({
     wsClient: WebSocketClientInterface;
     taskContext: GlobalTaskContext;
     currentExtras: RequestExtras;
-    loop_instance_uid?: string;
+    loop_instance_uid?: string | undefined;
 }): RecoilValue<ComponentInstance> {
     const key = getComponentRegistryKey(uid, false, loop_instance_uid);
 
@@ -292,7 +292,7 @@ function getOrRegisterServerComponent({
                                 if (shouldFetchTask) {
                                     const taskResult = await fetchTaskResult<any>(taskId, {
                                         ...extras,
-                                        signal,
+                                        signal: signal ?? null,
                                     });
                                     if (taskResult.status === 'ok') {
                                         result = taskResult.result;
@@ -314,7 +314,7 @@ function getOrRegisterServerComponent({
                                         taskId,
                                         {
                                             ...extras,
-                                            signal,
+                                            signal: signal ?? null,
                                         }
                                     );
                                     if (response.status === 'not_found') {

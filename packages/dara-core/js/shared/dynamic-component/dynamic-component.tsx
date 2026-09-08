@@ -90,7 +90,7 @@ function resolveComponent(component: ComponentInstance | null | undefined): JSX.
     }
 
     if (component?.name === 'RawString') {
-        return component.props.content;
+        return component.props['content'];
     }
 
     const ResolvedComponent = COMPONENTS.get(component.name);

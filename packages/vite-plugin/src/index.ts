@@ -107,6 +107,16 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
                   "styled-components",
                   "recoil",
                   "@tanstack/react-query",
+                  "@darajs/core > @darajs/ui-components",
+                  "@darajs/core > @darajs/ui-notifications",
+                  ...(api.project?.manifest.packageRequirements.some(
+                    (requirement) => requirement.name === "@darajs/components",
+                  )
+                    ? [
+                        "@darajs/components > @darajs/ui-causal-graph-editor",
+                        "@darajs/components > @darajs/ui-icons",
+                      ]
+                    : []),
                 ],
           },
         };

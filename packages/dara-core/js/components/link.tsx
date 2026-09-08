@@ -13,7 +13,8 @@ import { type ComponentInstance, type RouterPath, type StyledComponentProps, typ
 
 type MaybeVariable<T> = T | Variable<T>;
 
-export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'style' | 'children' | 'prefetch' | 'to'> {
+export interface LinkProps
+    extends StyledComponentProps, Omit<NavLinkProps, 'style' | 'children' | 'prefetch' | 'to' | 'color' | 'className'> {
     className?: string;
     case_sensitive: boolean;
     children: Array<ComponentInstance>;
@@ -27,7 +28,7 @@ export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'sty
     referrer_policy?: NavLinkProps['referrerPolicy'];
 }
 
-type ResolvedLinkProps = Omit<LinkProps, 'to'> & {
+type ResolvedLinkProps = { [Key in keyof LinkProps as Exclude<Key, 'to'>]: LinkProps[Key] } & {
     to: string | Partial<RouterPath>;
     children: Array<ComponentInstance>;
 };
@@ -54,7 +55,7 @@ const NavLinkWrapper = React.forwardRef(
             <NavLink
                 ref={ref}
                 to={to}
-                className={className}
+                {...(className === undefined ? {} : { className })}
                 style={({ isActive }) => {
                     return {
                         ...style,
@@ -147,13 +148,13 @@ function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
     return (
         <DisplayCtx.Provider value={{ component: 'anchor', direction: displayCtx.direction }}>
             <StyledNavLink
-                id={props.id_}
-                className={props.className}
+                id={props['id_']}
+                className={props.className ?? ''}
                 to={to}
-                end={props.end}
-                caseSensitive={props.case_sensitive}
-                replace={props.replace}
-                relative={props.relative}
+                end={props.end ?? false}
+                caseSensitive={props['case_sensitive']}
+                replace={props.replace ?? false}
+                relative={props.relative ?? 'route'}
                 $activeCss={css + activeCss}
                 $inactiveCss={css + inactiveCss}
                 style={style}
@@ -163,10 +164,10 @@ function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
                 onFocus={props.prefetch ? handleFocus : undefined}
                 onTouchStart={props.prefetch ? handleTouchStart : undefined}
                 // core AnchorElementAttributes
-                download={props.download}
-                referrerPolicy={props.referrer_policy}
-                target={props.target}
-                rel={props.rel}
+                download={props['download']}
+                referrerPolicy={props['referrer_policy']}
+                target={props['target']}
+                rel={props['rel']}
             >
                 {props.children.map((child, idx) => (
                     <DynamicComponent component={child} key={idx} />

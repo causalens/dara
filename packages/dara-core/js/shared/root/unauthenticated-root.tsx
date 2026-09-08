@@ -35,7 +35,7 @@ function UnauthenticatedRoot(): JSX.Element {
     const navigation = useNavigation();
 
     const progressRef = useRef<boolean>(false);
-    const progressTimeout = useRef<NodeJS.Timeout | null>(null);
+    const progressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         // create a bar when state becomes loading or submitting

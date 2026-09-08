@@ -1,3 +1,7 @@
+## NEXT
+
+- Supported strict workspace source checking and reliable development process shutdown.
+
 ---
 title: Changelog
 ---

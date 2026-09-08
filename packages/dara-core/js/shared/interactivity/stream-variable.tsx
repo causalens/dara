@@ -139,7 +139,7 @@ export interface StreamState {
     /** Current connection status */
     status: StreamStatus;
     /** Error message if status is 'error' */
-    error?: string;
+    error?: string | undefined;
 }
 
 /**
