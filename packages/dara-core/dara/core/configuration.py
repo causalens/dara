@@ -228,7 +228,7 @@ class ConfigurationBuilder:
     def auth_session_backend(self, backend: AuthSessionBackendConfig):
         self._auth_session_backend = backend
 
-    def add_action(self, action: type[ActionImpl]):
+    def add_action(self, action: type[ActionImpl], **removed_options):
         """
         Register an Action with the application.
 
@@ -241,6 +241,10 @@ class ConfigurationBuilder:
 
         :param action: ActionImpl-subclass definition
         """
+        if removed_options:
+            raise TypeError(
+                'add_action no longer accepts local=. Run dara migrate; keep the registration with js_source.'
+            )
         act_def = create_action_definition(action)
         self._actions.append(act_def)
         return act_def
@@ -278,7 +282,7 @@ class ConfigurationBuilder:
         self.context_components.append(component)
         self.add_component(component.__class__)
 
-    def add_component(self, component: type[ComponentInstance]):
+    def add_component(self, component: type[ComponentInstance], **removed_options):
         """
         Register a Component with the application.
 
@@ -291,6 +295,10 @@ class ConfigurationBuilder:
 
         :param component: ComponentInstance-subclass definition
         """
+        if removed_options:
+            raise TypeError(
+                'add_component no longer accepts local=. Run dara migrate; keep the registration with js_source.'
+            )
         component_def = create_component_definition(component)
 
         self._components.append(component_def)
