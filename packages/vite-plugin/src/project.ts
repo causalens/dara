@@ -52,6 +52,7 @@ export interface Project extends ProjectConfig {
   server?: ViteDevServer;
 }
 
+import { workspaceGraph } from "./workspace.js";
 const defaults = {
   "vite.config.ts": `import dara from '@darajs/vite-plugin';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [dara()] });\n`,
   "tsconfig.json":
@@ -294,6 +295,7 @@ export async function loadProject(
   const packageJson = readPackageJson(path.join(root, "package.json"));
   const workspace = workspaceRoot(root);
   const dependencyInputs = checkDependencies(root, workspace, manifest, packageJson);
+  const graph = workspaceGraph(root, workspace);
   for (const name of Object.keys(defaults)) {
     if (!fs.existsSync(path.join(root, name))) {
       throw new ProjectError(
@@ -329,6 +331,7 @@ export async function loadProject(
     ...chosen,
     inputs: new Set([
       ...dependencyInputs,
+      ...graph.inputs,
       ...configs.flatMap((config) => config.configInputs),
       ...typescript.hashes.keys(),
     ]),
@@ -337,7 +340,37 @@ export async function loadProject(
     assets: new Map<string, string>(),
     state: "waiting",
     base: "/static/",
+    workspacePackages: graph.packages,
   };
+  const libraryFile = path.join(root, "vite.lib.config.ts");
+  if (fs.existsSync(libraryFile)) {
+    const library = await loadConfigFromFile(
+      { command: "build", mode: "production" },
+      libraryFile,
+      root,
+      "warn",
+    );
+    if (!library) {
+      throw new ProjectError(
+        "workspace.library",
+        `Cannot load ${libraryFile}`,
+        "edit vite.lib.config.ts",
+      );
+    }
+    const libraryOutput = path.resolve(root, library.config.build?.outDir ?? "dist");
+    const appOutput = path.resolve(root, manifest.outDir);
+    if (inside(libraryOutput, appOutput) || inside(appOutput, libraryOutput)) {
+      throw new ProjectError(
+        "workspace.output",
+        `Library output ${libraryOutput} overlaps app output ${appOutput}`,
+        "choose separate app and library output directories",
+      );
+    }
+    project.inputs.add(libraryFile);
+    for (const file of library.dependencies) {
+      project.inputs.add(file);
+    }
+  }
   project.api.project = project;
   // Use Vite's real plugin container, so user resolvers and the app's exports participate.
   project.api.resolving = true;
@@ -363,10 +396,19 @@ export async function loadProject(
     const resolve = async (item: { name: string; source: string }) => {
       const local = sourcePackage(item.source) === null;
       const specifier = local ? path.resolve(root, item.source) : item.source;
-      const resolved = await client.pluginContainer.resolveId(
-        specifier,
-        path.join(root, "js/index.tsx"),
-      );
+      let resolved;
+      try {
+        resolved = await client.pluginContainer.resolveId(
+          specifier,
+          path.join(root, "js/index.tsx"),
+        );
+      } catch (error) {
+        throw new ProjectError(
+          "source.unresolved",
+          `${item.name}: cannot resolve ${item.source}: ${errorMessage(error)}`,
+          "build the workspace package, start its watcher, or add dara-source exports",
+        );
+      }
       if (!resolved || resolved.external) {
         throw new ProjectError(
           "source.unresolved",

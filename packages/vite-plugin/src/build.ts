@@ -15,7 +15,7 @@ export async function runCommand(command: string, args: string[], cwd: string): 
     const child = spawn(command, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: "false" },
     });
     child.stdout.on("data", (data) => process.stderr.write(data));
     child.stderr.on("data", (data) => process.stderr.write(data));
@@ -197,10 +197,10 @@ export async function buildProject(
   project.assets = collectAssets(project.manifest);
   project.state = "ready";
   project.base = "./";
-  if (!noDepsBuild && project.workspace !== project.root) {
+  if (!noDepsBuild && project.workspacePackages?.some((entry) => entry.root !== project.root)) {
     await runCommand(
       "pnpm",
-      ["--filter", `${project.packageJson.name}^...`, "run", "build"],
+      ["--fail-if-no-match", "--filter", `${project.packageJson.name}^...`, "run", "build"],
       project.workspace,
     );
   }
