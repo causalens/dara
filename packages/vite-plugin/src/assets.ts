@@ -150,6 +150,15 @@ export function assetMiddleware(
       ".ico": "image/x-icon",
       ".png": "image/png",
       ".html": "text/html",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".woff": "font/woff",
+      ".woff2": "font/woff2",
+      ".ttf": "font/ttf",
+      ".wasm": "application/wasm",
+      ".pdf": "application/pdf",
     };
     response.setHeader("Content-Type", types[extension] ?? "application/octet-stream");
     response.setHeader("Cache-Control", "no-cache");
@@ -169,7 +178,15 @@ export function assetMiddleware(
 export function copyAssets(project: Pick<Project, "assets">, staging: string) {
   for (const [target, source] of project.assets) {
     const destination = path.resolve(staging, target);
-    if (!inside(staging, destination) || fs.existsSync(destination)) {
+    let ancestor = path.dirname(destination);
+    while (inside(staging, ancestor) && ancestor !== staging && !fs.existsSync(ancestor)) {
+      ancestor = path.dirname(ancestor);
+    }
+    if (
+      !inside(staging, destination) ||
+      fs.existsSync(destination) ||
+      !fs.statSync(ancestor).isDirectory()
+    ) {
       throw new ProjectError(
         "asset.collision",
         `${source} collides with generated output ${target}`,
@@ -179,4 +196,15 @@ export function copyAssets(project: Pick<Project, "assets">, staging: string) {
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(source, destination);
   }
+}
+
+/** Watch registered roots, including missing files, so static additions and deletions recover live. */
+export function assetRoots(manifest) {
+  return [
+    ...new Set([
+      ...manifest.static.map((asset) => asset.source),
+      ...manifest.appStatic,
+      ...(manifest.favicon ? [manifest.favicon] : []),
+    ]),
+  ];
 }

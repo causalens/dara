@@ -9,9 +9,9 @@ import { randomUUID } from "node:crypto";
 import { createServer as createHttpServer } from "node:http";
 import { watch } from "chokidar";
 import { createServer } from "vite";
-import { collectAssets } from "./assets.js";
+import { assetRoots, collectAssets } from "./assets.js";
 import { resolvedEntry, diagnostic as projectDiagnostic } from "./contract.js";
-import { atomicWrite, readJson } from "./files.js";
+import { atomicWrite, inside, readJson } from "./files.js";
 import { htmlTemplate } from "./index.js";
 import { loadProject, publishStatus, resolveProjectSources } from "./project.js";
 import { startTypecheck } from "./typecheck.js";
@@ -76,6 +76,7 @@ export async function serveProject(
       const next = await loadProject(root, readJson(manifestPath), "serve");
       await resolveProjectSources(next);
       next.base = `${baseUrl.replace(/\/$/, "")}/static/`;
+      watcher.add(assetRoots(next.manifest));
       next.assets = collectAssets(next.manifest);
       next.state = "ready";
       for (const file of next.configInputs) {
@@ -187,6 +188,29 @@ export async function serveProject(
   watcher.on("all", (_event, file) => {
     if (file === reloadPath) {
       server?.ws.send({ type: "full-reload" });
+      return;
+    }
+    if (project && assetRoots(project.manifest).some((assetRoot) => inside(assetRoot, file))) {
+      revision = revision.then(() => {
+        try {
+          project.assets = collectAssets(project.manifest);
+          project.state = "ready";
+          state({ state: "ready", runtime: process.version });
+          server?.ws.send({ type: "full-reload" });
+        } catch (error) {
+          project.state = "blocked";
+          const diagnostic = error.diagnostic ?? {
+            code: "asset.source",
+            message: error.message,
+            fix: "edit static registrations",
+          };
+          state({ state: "blocked", diagnostic });
+          server?.ws.send({
+            type: "error",
+            err: { message: diagnostic.message, stack: "", plugin: "Dara" },
+          });
+        }
+      });
       return;
     }
     if (configFiles.has(file)) {

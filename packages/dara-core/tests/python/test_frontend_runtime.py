@@ -90,3 +90,53 @@ def test_marker_cannot_read_outside_its_source_root(built_project):
     file.write_text(json.dumps(marker))
     with pytest.raises(ProjectError, match='escapes its root'):
         validate_build(root, manifest)
+
+
+def test_nested_marker_is_an_output_inventory_change(built_project):
+    root, manifest = built_project
+    nested = root / 'dist/nested'
+    nested.mkdir()
+    (nested / '.dara-build.json').write_text('{}')
+    with pytest.raises(ProjectError, match='inventory changed'):
+        validate_build(root, manifest)
+
+
+def test_new_optional_config_and_environment_invalidate_checkout(built_project, monkeypatch):
+    root, manifest = built_project
+    marker_path = root / 'dist/.dara-build.json'
+    marker = json.loads(marker_path.read_text())
+    marker['inputs'].append({'root': 'app', 'path': '.env.production', 'hash': None})
+    marker['environment'] = {'DARA_FRESHNESS_TEST': _digest(None)}
+    marker_path.write_text(json.dumps(marker))
+    monkeypatch.delenv('DARA_FRESHNESS_TEST', raising=False)
+    validate_build(root, manifest)
+    monkeypatch.setenv('DARA_FRESHNESS_TEST', 'changed')
+    with pytest.raises(ProjectError, match='Changed build environment'):
+        validate_build(root, manifest)
+    monkeypatch.delenv('DARA_FRESHNESS_TEST')
+    (root / '.env.production').write_text('PUBLIC_COLOR=blue')
+    with pytest.raises(ProjectError, match='Changed or missing input'):
+        validate_build(root, manifest)
+
+
+def test_internal_directory_links_match_builder_inventory(built_project):
+    root, manifest = built_project
+    (root / 'js/sub').mkdir()
+    (root / 'js/sub/a.ts').write_text('export {};')
+    (root / 'js/alias').symlink_to(root / 'js/sub', target_is_directory=True)
+    marker_path = root / 'dist/.dara-build.json'
+    marker = json.loads(marker_path.read_text())
+    marker['directories'][0]['files'] += ['alias/a.ts', 'sub/a.ts']
+    marker_path.write_text(json.dumps(marker))
+    validate_build(root, manifest)
+    (root / 'js/sub/cycle').symlink_to(root / 'js', target_is_directory=True)
+    with pytest.raises(ProjectError, match='Cyclic input directory'):
+        validate_build(root, manifest)
+
+
+def test_partial_checkout_cannot_skip_missing_inputs(built_project):
+    root, manifest = built_project
+    shutil.rmtree(root / 'js')
+    (root / 'package.json').write_text('{}')
+    with pytest.raises(ProjectError, match='Changed or missing input'):
+        validate_build(root, manifest)

@@ -65,3 +65,13 @@ dara({
 ```
 
 These declarations participate in the private build marker and freshness checks. Static files belong in `static/` or Python's static registrations. Dara owns the app entry, HTML, output publication, runtime URLs and development endpoints; other Vite settings remain available to the app.
+
+### Static assets and build freshness
+
+Registered package assets and application static folders use the same URLs in development and production. The development runner watches these roots, rebuilds the collision-checked mapping after additions or removals, and reloads the browser. A collision blocks the frontend with both the source and destination; fixing it resumes serving without restarting Python.
+
+The build marker records source-tree inventories, inherited TypeScript configs (including JSONC and array inheritance), Vite config imports, workspace package manifests and source export directories, dependency settings and patches, static files, and declared plugin inputs. Optional environment and dependency config files are recorded even when absent, so adding one requires rebuilding. Installed registry packages are represented by the lockfile. Plugin filesystem and environment reads must be declared through `dara({ inputs, directories, environment })`; undeclared custom reads cannot be verified.
+
+Build inputs are checked again before publication. A changing input rejects staging and preserves the previous output. Interrupted publication leaves recoverable siblings next to the output: a subsequent build restores the sole complete candidate, or reports candidate paths when a choice is needed. Unverified backups are retained for inspection.
+
+A deployment can omit the frontend checkout as a whole and start using only the Python application and compiled output. When any frontend checkout remains, missing recorded inputs make the build stale. Startup checks the marker in Python and needs no Node or pnpm executable.
