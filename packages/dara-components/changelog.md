@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Keep workspace component and public imports on the same source modules to preserve shared React contexts.
+
 - Added direct ESM component entry points and explicit static asset declarations for the Vite pipeline.
 
 ## 1.29.8

@@ -7,12 +7,11 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 
 config = ConfigurationBuilder()
-config.template = 'default'
 config.task_module = 'cypress.dara.tasks'
 
 # Explicitly add all dashboarding components since we're dynamically importing pages, so auto-discovery won't work
 for symbol in dashboarding_components.__dict__.values():
-    if inspect.isclass(symbol) and issubclass(symbol, ComponentInstance):
+    if inspect.isclass(symbol) and issubclass(symbol, ComponentInstance) and getattr(symbol, 'js_source', None):
         config.add_component(symbol)
 
 

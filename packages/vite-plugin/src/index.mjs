@@ -89,6 +89,11 @@ export default function dara(options = {}) {
           },
         };
       },
+      configResolved(config) {
+        // Retain Vite's defaults and application exclusions. This also protects
+        // private files requested through transform URLs such as ?raw or @fs.
+        config.server.fs.deny.push("**/.dara*/**", "**/.dara-build.json", "**/index.dev.html");
+      },
       resolveId(source) {
         if (source === virtualEntry || source === "/@dara/entry") {
           return resolvedEntry;
@@ -158,7 +163,20 @@ export default function dara(options = {}) {
         server.middlewares.use(assetMiddleware(api.project));
         // Development HTML is read by Python; it must never be served directly by Vite.
         server.middlewares.use((request, response, next) => {
-          if (/\/(?:index\.html|\.dara-build\.json)(?:\?|$)/.test(request.url)) {
+          let segments;
+          try {
+            segments = decodeURIComponent(new URL(request.url, "http://localhost").pathname)
+              .replaceAll("\\", "/")
+              .split("/");
+          } catch {
+            response.statusCode = 400;
+            response.end();
+            return;
+          }
+          if (
+            segments.some((part) => part.startsWith(".dara")) ||
+            ["index.html", "index.dev.html"].includes(segments.at(-1))
+          ) {
             response.statusCode = 404;
             response.end();
             return;

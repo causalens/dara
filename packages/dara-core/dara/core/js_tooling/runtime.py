@@ -257,11 +257,21 @@ class FrontendProxy:
                 await send({'type': 'websocket.close', 'code': 1013})
         else:
             request = Request(scope, receive)
-            try:
-                async with (
-                    httpx.AsyncClient(trust_env=False, timeout=None) as client,
-                    client.stream(request.method, url, headers=headers, content=request.stream()) as response,
-                ):
+            # Vite may stream responses, but connecting and forwarding uploads are bounded.
+            async with httpx.AsyncClient(
+                trust_env=False, timeout=httpx.Timeout(connect=10, read=None, write=60, pool=10)
+            ) as client:
+                try:
+                    response = await client.send(
+                        client.build_request(request.method, url, headers=headers, content=request.stream()),
+                        stream=True,
+                    )
+                except httpx.HTTPError:
+                    await HTMLResponse('Frontend disconnected; waiting for recovery.', status_code=503)(
+                        scope, receive, send
+                    )
+                    return
+                try:
                     response_headers = [
                         (key, value) for key, value in response.headers.raw if key.lower() not in excluded
                     ]
@@ -271,10 +281,10 @@ class FrontendProxy:
                     async for chunk in response.aiter_raw():
                         await send({'type': 'http.response.body', 'body': chunk, 'more_body': True})
                     await send({'type': 'http.response.body', 'body': b''})
-            except httpx.HTTPError:
-                await HTMLResponse('Frontend disconnected; waiting for recovery.', status_code=503)(
-                    scope, receive, send
-                )
+                finally:
+                    # After headers are sent, an upstream failure must abort the response.
+                    # Sending a fallback would start a second, invalid ASGI response.
+                    await response.aclose()
 
 
 def render_frontend(request: Request, root: Path, output: Path, context: dict, development: bool):

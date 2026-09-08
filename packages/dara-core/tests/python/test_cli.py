@@ -1,79 +1,64 @@
+"""Command posture is explicit and independent of legacy environment switches."""
+
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
+import pytest
 
 from click.testing import CliRunner
 from dara.core.cli import cli
-from dara.core.configuration import ConfigurationBuilder
-from dara.core.js_tooling.dev_server import DevServerInfo
 
 
-def test_dev_uses_configured_static_files_dir():
-    """The dev server should run from the static directory declared by the application config."""
-    config = ConfigurationBuilder()
-    config.static_files_dir = 'custom-static'
-    vite_process = MagicMock()
-    vite_process.__enter__.return_value = vite_process
-    vite_process.stdout = []
+@pytest.fixture(autouse=True)
+def isolated_environment():
+    """Keep command environment assignments local to each invocation."""
+    with patch.dict(os.environ):
+        yield
 
-    with (
-        patch('dara.core.cli.JsConfig.from_file', return_value=None),
-        patch('dara.core.cli.import_config', return_value=(MagicMock(), config)) as import_config,
-        patch('dara.core.cli.os.chdir') as chdir,
-        patch('dara.core.cli.subprocess.Popen', return_value=vite_process) as popen,
-    ):
-        result = CliRunner().invoke(cli, ['dev', '--config', 'app.main:config', '--port', '3100'])
 
+def test_dev_supervises_from_project_root(tmp_path, monkeypatch):
+    """The frontend and backend share the selected project and explicit serving options."""
+    (tmp_path / 'pyproject.toml').write_text('[tool.dara]\nconfig = "example.main:config"\n')
+    monkeypatch.chdir(tmp_path)
+    with patch('dara.core.cli.check_toolchain'), patch('dara.core.cli.supervise') as supervise:
+        result = CliRunner().invoke(cli, ['dev', '--port', '3100', '--disable-metrics'])
     assert result.exception is None
-    import_config.assert_called_once_with('app.main:config')
-    chdir.assert_called_once_with('custom-static')
-    vite_env = popen.call_args.kwargs['env']
-    assert vite_env['VITE_SERVER_PORT'] == '3100'
-    assert DevServerInfo.decode(vite_env['VITE_DARA_DEV_SERVER_INFO']).origin == 'http://localhost:3100'
+    root, reference, serving = supervise.call_args.args
+    assert root == tmp_path.resolve()
+    assert reference == 'example.main:config'
+    assert serving['port'] == 3100
+    assert os.environ['DARA_COMMAND'] == 'dev'
+    assert os.environ['DARA_LIVE_RELOAD'] == 'TRUE'
 
 
-def test_dev_infers_default_config_path():
-    """The dev command should infer the same conventional config path as the start command."""
-    config = ConfigurationBuilder()
-    vite_process = MagicMock()
-    vite_process.__enter__.return_value = vite_process
-    vite_process.stdout = []
-
-    with (
-        patch('dara.core.cli.JsConfig.from_file', return_value=None),
-        patch('dara.core.cli.os.getcwd', return_value='/workspace/my-app'),
-        patch('dara.core.cli.import_config', return_value=(MagicMock(), config)) as import_config,
-        patch('dara.core.cli.os.chdir'),
-        patch('dara.core.cli.subprocess.Popen', return_value=vite_process),
-    ):
-        result = CliRunner().invoke(cli, ['dev'])
-
+def test_backend_only_needs_no_javascript_toolchain(monkeypatch):
+    """Backend debugging is an explicit operation even without installed frontend tools."""
+    monkeypatch.setenv('PATH', '')
+    with patch('dara.core.cli.supervise') as supervise:
+        result = CliRunner().invoke(cli, ['dev', '--backend-only', '--no-reload', '--disable-metrics'])
     assert result.exception is None
-    import_config.assert_called_once_with('my_app.main:config')
+    assert supervise.call_args.kwargs['backend_only']
+    assert supervise.call_args.kwargs['no_reload']
+    assert os.environ['DARA_LIVE_RELOAD'] == 'FALSE'
 
 
-def test_start_sets_development_server_port():
-    """The backend should use the development port supplied on the start command."""
-    configured_ports = []
-
-    def capture_development_port(*_args, **_kwargs):
-        configured_ports.append(os.environ.get('VITE_SERVER_PORT'))
-
-    with (
-        patch.dict(os.environ),
-        patch('dara.core.cli.uvicorn.run', side_effect=capture_development_port),
-    ):
-        result = CliRunner().invoke(
-            cli,
-            ['start', '--enable-hmr', '--dev-port', '3100', '--skip-jsbuild', '--disable-metrics'],
-        )
-
+def test_start_uses_deployment_posture_without_tools(monkeypatch):
+    """Serving an artifact does not probe Node, spawn Vite, or enable a reload loop."""
+    monkeypatch.setenv('PATH', '')
+    monkeypatch.setenv('DARA_HMR_MODE', 'TRUE')
+    with patch('dara.core.cli.uvicorn.run') as run:
+        result = CliRunner().invoke(cli, ['start', '--port', '3100', '--disable-metrics'])
     assert result.exception is None
-    assert configured_ports == ['3100']
+    assert run.call_args.kwargs['port'] == 3100
+    assert 'reload' not in run.call_args.kwargs
+    assert os.environ['DARA_COMMAND'] == 'start'
+    assert os.environ['DARA_LIVE_RELOAD'] == 'FALSE'
 
 
-def test_start_rejects_development_port_outside_hmr():
-    """A development port should not be accepted when the backend is not in development mode."""
-    result = CliRunner().invoke(cli, ['start', '--dev-port', '3100'])
-
+@pytest.mark.parametrize('option', ['--enable-hmr', '--skip-jsbuild', '--reload', '--production', '--dev-port'])
+def test_start_rejects_legacy_switches(option):
+    """Removed flags must fail instead of silently changing deployment behavior."""
+    result = CliRunner().invoke(cli, ['start', option])
     assert result.exit_code != 0
-    assert '--dev-port requires --enable-hmr' in result.output
+    assert f'{option} was removed:' in result.output
+    assert 'dara ' in result.output

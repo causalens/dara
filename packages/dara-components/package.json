@@ -6,7 +6,7 @@
   "module": "dist/index.js",
   "jsnext:main": "dist/index.js",
   "scripts": {
-    "build": "rimraf dist && vite build && tsc && cp js/index.css dist/ && cp -R dist/umd/. dara/components/_assets/auto_js/",
+    "build": "rimraf dist && tsc && cp js/index.css dist/",
     "prepare-dev": "tsc && cp js/index.css dist/",
     "lint": "oxlint --type-aware --type-check js && stylelint './js/**/*.tsx'",
     "format": "oxfmt js --write",
@@ -375,6 +375,7 @@
   },
   "exports": {
     ".": {
+      "dara-source": "./js/index.tsx",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },

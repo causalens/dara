@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
+import { createServer as createHttpServer } from "node:http";
 import { watch } from "chokidar";
 import { createServer } from "vite";
 import { collectAssets } from "./assets.mjs";
@@ -9,6 +9,7 @@ import { resolvedEntry } from "./contract.mjs";
 import { atomicWrite, readJson } from "./files.mjs";
 import { htmlTemplate } from "./index.mjs";
 import { loadProject, publishStatus } from "./project.mjs";
+import { startTypecheck } from "./typecheck.mjs";
 
 /** Supervise Vite and the native TypeScript watcher; Python owns both the manifest and HTTP origin. */
 export async function serveProject(
@@ -19,13 +20,31 @@ export async function serveProject(
   const reloadPath = path.join(root, "node_modules/.dara/backend-ready.json");
   let project,
     server,
+    httpServer,
     checker,
     origin,
     stopped = false;
   let revision = Promise.resolve();
+  const configFiles = new Set([
+    path.join(root, "vite.config.ts"),
+    path.join(root, "tsconfig.json"),
+  ]);
   const state = (value) => publishStatus(root, { token, origin, ...value });
   state({ state: "waiting" });
-  const update = async () => {
+  const closeRuntime = async () => {
+    await checker?.();
+    checker = undefined;
+    await server?.close();
+    server = undefined;
+    if (httpServer?.listening) {
+      await new Promise((resolve, reject) =>
+        httpServer.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+    httpServer = undefined;
+    origin = undefined;
+  };
+  const update = async (restart = false) => {
     if (stopped) {
       return;
     }
@@ -38,9 +57,20 @@ export async function serveProject(
       next.base = `${baseUrl.replace(/\/$/, "")}/static/`;
       next.assets = collectAssets(next.manifest);
       next.state = "ready";
+      for (const file of next.configInputs) {
+        configFiles.add(file);
+      }
+      watcher.add([...configFiles]);
+      if (restart) {
+        state({ state: "waiting" });
+        await closeRuntime();
+      }
       if (!server) {
         project = next;
         next.api.project = next;
+        // The runner owns process shutdown. Middleware mode prevents Vite from
+        // installing its own SIGTERM handler, which exits before our cleanup.
+        httpServer = createHttpServer();
         server = await createServer({
           ...next.userConfig,
           configFile: false,
@@ -49,13 +79,14 @@ export async function serveProject(
           logLevel: "warn",
           server: {
             ...next.userConfig.server,
+            middlewareMode: true,
             host: "127.0.0.1",
             port: 0,
             strictPort: false,
             // Omitting clientPort lets the browser use Python's port. No direct-origin fallback is needed.
-            hmr: { path: "@dara/hmr" },
+            hmr: { server: httpServer, path: "@dara/hmr" },
             origin: undefined,
-            fs: { strict: true, allow: [next.workspace] },
+            fs: { ...next.userConfig.server?.fs, strict: true, allow: [next.workspace] },
             watch: {
               ...next.userConfig.server?.watch,
               ignored: [
@@ -70,71 +101,27 @@ export async function serveProject(
             },
           },
         });
-        await server.listen();
-        const address = server.httpServer.address();
+        httpServer.on("request", server.middlewares);
+        await new Promise((resolve, reject) => {
+          httpServer.once("error", reject);
+          httpServer.listen(0, "127.0.0.1", resolve);
+        });
+        const address = httpServer.address();
         origin = `http://127.0.0.1:${address.port}`;
         atomicWrite(
           path.join(root, "node_modules/.dara/index.dev.html"),
           htmlTemplate(["@vite/client", "@dara/entry"], [], true),
         );
         if (!noTypecheck) {
-          checker = spawn(
-            "pnpm",
-            [
-              "exec",
-              "tsc",
-              "--project",
-              path.join(root, "tsconfig.json"),
-              "--noEmit",
-              "--watch",
-              "--preserveWatchOutput",
-              "--pretty",
-              "false",
-            ],
-            { cwd: root, env: process.env, stdio: ["ignore", "pipe", "pipe"] },
+          checker = startTypecheck(root, server, (diagnostic) =>
+            state({ state: "blocked", diagnostic }),
           );
-          let output = "";
-          const report = (data) => {
-            const chunk = data.toString();
-            process.stderr.write(`[typescript] ${chunk}`);
-            output += chunk;
-            if (/Found \d+ errors?\. Watching/.test(output)) {
-              if (output.includes("Found 0 errors")) {
-                server.ws.send({ type: "custom", event: "dara:typecheck-clear", data: {} });
-              } else {
-                server.ws.send({
-                  type: "error",
-                  err: { message: output, stack: "", plugin: "Dara TypeScript" },
-                });
-              }
-              output = "";
-            }
-          };
-          checker.stdout.on("data", report);
-          checker.stderr.on("data", report);
-          checker.on("error", (error) =>
-            state({
-              state: "blocked",
-              diagnostic: { code: "typescript.runner", message: error.message, fix: "dara lock" },
-            }),
-          );
-          checker.on("exit", (code) => {
-            if (!stopped) {
-              state({
-                state: "blocked",
-                diagnostic: {
-                  code: "typescript.runner",
-                  message: `TypeScript watcher exited ${code}`,
-                  fix: "dara dev",
-                },
-              });
-            }
-          });
         }
       } else {
         // Keep the running Vite plugin and process while replacing its parsed frontend state.
         Object.assign(project, {
           manifest: next.manifest,
+          packageJson: next.packageJson,
           assets: next.assets,
           inputs: next.inputs,
           sourceFiles: next.sourceFiles,
@@ -179,21 +166,23 @@ export async function serveProject(
       server?.ws.send({ type: "full-reload" });
       return;
     }
-    if (file === manifestPath || !server || project?.state !== "ready") {
-      revision = revision.then(update);
+    if (configFiles.has(file)) {
+      revision = revision.then(() => update(true));
+    } else if (file === manifestPath || !server || project?.state !== "ready") {
+      revision = revision.then(() => update());
     }
   });
-  await update();
-  await new Promise((resolve) => {
+  const finished = new Promise((resolve) => {
     const stop = async () => {
       if (stopped) {
         return;
       }
       stopped = true;
+      process.off("SIGINT", stop);
+      process.off("SIGTERM", stop);
       await watcher.close();
-      checker?.kill("SIGTERM");
       await revision;
-      await server?.close();
+      await closeRuntime();
       const status = path.join(root, "node_modules/.dara/dev-server.json");
       if (fs.existsSync(status) && readJson(status).token === token) {
         fs.rmSync(status);
@@ -203,4 +192,6 @@ export async function serveProject(
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
   });
+  revision = revision.then(() => update());
+  await finished;
 }

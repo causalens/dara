@@ -6,6 +6,7 @@ import { build } from "vite";
 import { ProjectError, digest, portable, version, virtualEntry } from "./contract.mjs";
 import { collectAssets, copyAssets } from "./assets.mjs";
 import { atomicWrite, fileHash, inside, treeFiles } from "./files.mjs";
+import { compilerExecutable } from "./compiler.mjs";
 
 /** Run a package executable with arguments and forward diagnostics without using a shell. */
 export async function runCommand(command, args, cwd) {
@@ -35,16 +36,8 @@ export async function runCommand(command, args, cwd) {
 /** Type errors prevent publishing any production output. */
 export async function checkTypes(project) {
   await runCommand(
-    "pnpm",
-    [
-      "exec",
-      "tsc",
-      "--project",
-      path.join(project.root, "tsconfig.json"),
-      "--noEmit",
-      "--pretty",
-      "false",
-    ],
+    compilerExecutable(project.root),
+    ["--project", path.join(project.root, "tsconfig.json"), "--noEmit", "--pretty", "false"],
     project.root,
   );
 }
