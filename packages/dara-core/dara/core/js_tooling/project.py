@@ -6,8 +6,9 @@ import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
-from importlib.metadata import entry_points, version
+from importlib.metadata import distributions, entry_points, version
 from pathlib import Path
 from typing import Any
 
@@ -109,7 +110,11 @@ def load_configuration(reference: str) -> Configuration:
 def npm_version(python_package: str) -> str:
     """Translate installed Python distribution versions to corresponding npm versions."""
     distribution = python_package.replace('.', '-') if python_package.startswith('dara.') else python_package
-    parsed = Version(version(distribution))
+    return _npm_version(version(distribution), distribution)
+
+
+def _npm_version(value: str, distribution: str) -> str:
+    parsed = Version(value)
     if parsed.post is not None or parsed.local is not None:
         raise ProjectError('dependency.version', f'{distribution} has no npm version mapping for {parsed}')
     if parsed.pre:
@@ -309,6 +314,65 @@ def _yaml_text(value: dict) -> str:
     return stream.getvalue()
 
 
+def workspace_projects(workspace: Path) -> dict[Path, dict]:
+    """Read repository package declarations without descending into dependency or output trees."""
+    projects = {}
+    for directory, children, files in os.walk(workspace, followlinks=False):
+        children[:] = sorted(
+            child
+            for child in children
+            if not child.startswith('.') and child not in ('node_modules', 'dist', 'build', '__pycache__', 'vendor')
+        )
+        if 'package.json' in files:
+            root = Path(directory)
+            if workspace_root(root) == workspace:
+                projects[root] = read_json(root / 'package.json')
+    return projects
+
+
+def _shared_catalog(root: Path, workspace: Path, manifest: FrontendManifest, config: dict) -> dict:
+    current = {requirement.name: requirement.specifier for requirement in manifest.package_requirements}
+    existing = config.get('catalogs', {}).get('dara', {})
+    retained = {}
+    projects = workspace_projects(workspace)
+    for other, package in projects.items():
+        if other == root:
+            continue
+        references = {
+            name: specifier
+            for section in ('dependencies', 'devDependencies', 'optionalDependencies')
+            for name, specifier in package.get(section, {}).items()
+        }
+        for name, specifier in references.items():
+            if (
+                name in existing
+                and isinstance(specifier, str)
+                and specifier.startswith(('catalog:dara', 'workspace:', 'file:', 'link:'))
+            ):
+                retained[name] = existing[name]
+        if '@darajs/vite-plugin' not in references:
+            continue
+        stamp = other / 'node_modules/.dara/installed.json'
+        environment = other / '.venv'
+        if not environment.exists() and stamp.exists():
+            recorded = read_json(stamp).get('pythonEnvironment')
+            if isinstance(recorded, str):
+                environment = Path(recorded)
+        locations = [*environment.glob('lib/python*/site-packages'), environment / 'Lib/site-packages']
+        for distribution in distributions(path=[str(location) for location in locations if location.is_dir()]):
+            if distribution.metadata['Name'].lower().replace('_', '-') == 'dara-core':
+                other_version = _npm_version(distribution.version, 'dara-core')
+                if other_version != manifest.dara_version:
+                    raise ProjectError(
+                        'workspace.version',
+                        f'{root} uses Dara {manifest.dara_version}, but {other} uses {other_version} in {environment}. '
+                        'All apps sharing the dara catalog must use the same Dara version.',
+                        'align the Python environments, then run dara lock in each app',
+                    )
+                break
+    return {**retained, **current}
+
+
 def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
     """Plan deterministic edits to Dara-owned entries; detect conflicts before any writes."""
     if (root / 'dara.config.json').exists():
@@ -330,7 +394,7 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
     original_workspace = read_yaml(workspace_path) if workspace_path.exists() else {}
     WorkspaceFields.parse(original_workspace, workspace_path)
     config = copy.deepcopy(original_workspace)
-    catalog = {r.name: r.specifier for r in manifest.package_requirements}
+    catalog = _shared_catalog(root, workspace, manifest, config)
     config.setdefault('catalogs', {})['dara'] = catalog
     for required in manifest.package_requirements:
         entries = dependencies[required.section]
@@ -426,6 +490,9 @@ def dependency_fingerprint(root: Path) -> str:
         workspace / 'node_modules' / '.modules.yaml',
     ]:
         digest.update(path.read_bytes() if path.exists() else b'missing')
+    for path, package in sorted(workspace_projects(workspace).items()):
+        digest.update(str(path.relative_to(workspace)).encode())
+        digest.update(json_text(package).encode())
     return digest.hexdigest()
 
 
@@ -468,7 +535,7 @@ def prepare_project(
             if install:
                 command = ['pnpm', 'install', '--frozen-lockfile' if agrees else '--no-frozen-lockfile']
                 if workspace != root:
-                    command += ['--filter', './' + root.relative_to(workspace).as_posix() + '...']
+                    command += ['--fail-if-no-match', '--filter', './' + root.relative_to(workspace).as_posix() + '...']
                 # Registry placeholders require the complete environment for installation only.
                 policy = run(
                     ['pnpm', 'config', 'get', 'strictDepBuilds'],
@@ -503,7 +570,7 @@ def prepare_project(
                 payload = json.loads(initialized.stdout)
                 if isinstance(payload, dict):
                     changed.extend(payload.get('created', []))
-            atomic_write(stamp, json_text({'digest': dependency_fingerprint(root)}))
+            atomic_write(stamp, json_text({'digest': dependency_fingerprint(root), 'pythonEnvironment': sys.prefix}))
         except Exception:
             if changed:
                 click.echo(
