@@ -1590,10 +1590,10 @@ importers:
         version: 3.25.76
     devDependencies:
       '@darajs/oxfmt-config':
-        specifier: 1.29.8
+        specifier: 1.29.10
         version: link:../oxfmt-config
       '@darajs/oxlint-config':
-        specifier: 1.29.8
+        specifier: 1.29.10
         version: link:../oxlint-config
       oxfmt:
         specifier: ^0.60.0
