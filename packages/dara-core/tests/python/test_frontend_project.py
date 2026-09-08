@@ -118,7 +118,7 @@ def test_preflight_conflict_does_not_write_files(tmp_path, manifest):
 
 
 def test_frozen_preparation_never_creates_project_files(tmp_path, manifest, monkeypatch):
-    monkeypatch.setattr(project, 'check_toolchain', lambda: {})
+    monkeypatch.setattr(project, 'check_toolchain', lambda **kwargs: {})
     run = Mock()
     monkeypatch.setattr(project.subprocess, 'run', run)
     with pytest.raises(ProjectError, match='run dara lock'):
@@ -164,3 +164,80 @@ def test_configuration_reference_comes_from_pyproject_with_override(tmp_path):
     (tmp_path / 'pyproject.toml').write_text('[tool.dara]\nconfig = "project.pages:application"\n')
     assert project.resolve_config(tmp_path) == 'project.pages:application'
     assert project.resolve_config(tmp_path, 'override:config') == 'override:config'
+
+
+@pytest.mark.parametrize(
+    ('filename', 'malformed', 'field'),
+    [
+        ('package.json', '{"devDependencies": []}', 'devDependencies'),
+        ('package.json', '{"dependencies": null}', 'dependencies'),
+        ('package.json', '{"optionalDependencies": false}', 'optionalDependencies'),
+        ('package.json', '{"devDependencies": {"react": 123}}', 'devDependencies.react'),
+        ('package.json', '{"dependencies": {"user-package": null}}', 'dependencies.user-package'),
+        ('package.json', '{"engines": null}', 'engines'),
+        ('package.json', '{"engines": {"node": 22}}', 'engines.node'),
+        ('package.json', '{"name": []}', 'name'),
+        ('pnpm-workspace.yaml', '[]', 'expected a mapping'),
+        ('pnpm-workspace.yaml', 'catalogs: null', 'catalogs'),
+        ('pnpm-workspace.yaml', 'catalogs:\n  dara: []', 'catalogs.dara'),
+        ('pnpm-workspace.yaml', 'catalogs:\n  dara:\n    react: 18', 'catalogs.dara.react'),
+        ('pnpm-workspace.yaml', 'catalogs: [', 'pnpm-workspace.yaml'),
+        ('pnpm-lock.yaml', '', 'expected a dependency lock document'),
+        ('pnpm-lock.yaml', '# unfinished edit\n', 'expected a dependency lock document'),
+        ('pnpm-lock.yaml', '[]', 'valid dictionary'),
+        ('pnpm-lock.yaml', 'importers: null', 'importers'),
+        ('pnpm-lock.yaml', 'importers:\n  .: []', 'importers..'),
+        ('pnpm-lock.yaml', 'importers:\n  .:\n    devDependencies: []', 'devDependencies'),
+        ('pnpm-lock.yaml', 'importers:\n  .:\n    devDependencies:\n      react: 123', 'react'),
+        ('pnpm-lock.yaml', 'importers:\n  .:\n    devDependencies:\n      react: {}', 'specifier'),
+        ('pnpm-lock.yaml', 'importers:\n  .:\n    devDependencies:\n      react:\n        specifier: 18', 'specifier'),
+        ('pnpm-lock.yaml', 'catalogs: null', 'catalogs'),
+        ('pnpm-lock.yaml', 'catalogs:\n  dara:\n    react: null', 'catalogs.dara.react'),
+        ('pnpm-lock.yaml', 'importers: [', 'pnpm-lock.yaml'),
+    ],
+)
+def test_preparation_reports_input_errors_and_recovers_after_correction(
+    tmp_path, manifest, monkeypatch, filename, malformed, field
+):
+    for path, content in project.dependency_plan(tmp_path, manifest).items():
+        path.write_text(content)
+    (tmp_path / 'pnpm-lock.yaml').write_text(
+        "lockfileVersion: '9.0'\n"
+        'catalogs:\n  dara:\n    react:\n      specifier: ^18.3.0\n      version: 18.3.1\n'
+        'importers:\n  .:\n    devDependencies:\n      react:\n        specifier: catalog:dara\n        version: 18.3.1\n'
+    )
+    original = {path: path.read_text() for path in tmp_path.iterdir()}
+    malformed_path = tmp_path / filename
+    malformed_path.write_text(malformed)
+    monkeypatch.setattr(project, 'check_toolchain', lambda **kwargs: {})
+    run = Mock(return_value=subprocess.CompletedProcess([], 0, stdout='', stderr=''))
+    plugin = Mock(return_value=subprocess.CompletedProcess([], 0, stdout='{"created": []}', stderr=''))
+    monkeypatch.setattr(project.subprocess, 'run', run)
+    monkeypatch.setattr(project, 'run_plugin', plugin)
+
+    with pytest.raises(ProjectError) as caught:
+        project.prepare_project(tmp_path, manifest)
+    assert caught.value.diagnostic.code == 'project.file'
+    assert str(malformed_path) in caught.value.diagnostic.message
+    assert field in caught.value.diagnostic.message
+    assert caught.value.diagnostic.fix == f'edit {malformed_path}'
+    run.assert_not_called()
+    plugin.assert_not_called()
+    assert not (tmp_path / 'node_modules/.dara/installed.json').exists()
+    for path, content in original.items():
+        assert path.read_text() == (malformed if path == malformed_path else content)
+
+    malformed_path.write_text(original[malformed_path])
+    assert project.prepare_project(tmp_path, manifest) == []
+    plugin.assert_called_once()
+    assert (tmp_path / 'node_modules/.dara/installed.json').is_file()
+
+
+@pytest.mark.parametrize('contents', ['tool = []', '[tool]\ndara = 123', '[tool.dara]\nconfig = false'])
+def test_configuration_rejects_malformed_nested_fields(tmp_path, contents):
+    path = tmp_path / 'pyproject.toml'
+    path.write_text(contents)
+    with pytest.raises(ProjectError) as caught:
+        project.resolve_config(tmp_path)
+    assert str(path) in caught.value.diagnostic.message
+    assert caught.value.diagnostic.fix == f'edit {path}'

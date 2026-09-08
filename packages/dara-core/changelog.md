@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Development now recovers from malformed project files, closes owned processes on interruption, and handles proxy disconnections without invalid responses.
+
 - Added app-root Vite preparation, supervised development, frozen builds and Python-only artifact serving with direct component/action imports.
 - Fixed bootstrap JSON strings escaping their HTML script element.
 

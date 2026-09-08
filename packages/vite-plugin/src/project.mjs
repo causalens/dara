@@ -198,9 +198,17 @@ export async function loadProject(appRoot, raw, command = "serve") {
     }
   }
   const typescript = checkTypescript(root);
-  const configs = await Promise.all(
-    ["serve", "build"].map((mode) => resolveProjectConfig(root, mode)),
-  );
+  // Vite and configuration modules read process-wide NODE_ENV. Resolve each mode
+  // in its own posture, then restore the active command before running plugins.
+  const configs = [];
+  try {
+    for (const mode of ["serve", "build"]) {
+      process.env.NODE_ENV = mode === "build" ? "production" : "development";
+      configs.push(await resolveProjectConfig(root, mode));
+    }
+  } finally {
+    process.env.NODE_ENV = command === "build" ? "production" : "development";
+  }
   const chosen = configs[command === "serve" ? 0 : 1];
   for (const config of configs) {
     if (

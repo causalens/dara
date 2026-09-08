@@ -31,6 +31,15 @@ from dara.core.js_tooling.models import (
     Requirement,
     StaticSource,
 )
+from dara.core.js_tooling.processes import ProcessOwner
+from dara.core.js_tooling.project_files import (
+    PackageFields,
+    PythonProjectFields,
+    WorkspaceFields,
+    read_json,
+    read_lockfile,
+    read_yaml,
+)
 from dara.core.js_tooling.source import source_package
 
 ENGINES = {'node': '>=22.12.0', 'pnpm': '>=12 <13'}
@@ -47,28 +56,6 @@ RUNTIME_REQUIREMENTS = {
     'typescript': '^7.0.0',
     'vite': '^8.1.0',
 }
-
-
-def read_json(path: Path) -> dict[str, Any]:
-    """Read a JSON object, reporting malformed project files at the CLI boundary."""
-    try:
-        value = json.loads(path.read_text())
-        if not isinstance(value, dict):
-            raise ValueError('expected an object')
-        return value
-    except (OSError, ValueError) as exc:
-        raise ProjectError('project.file', f'{path}: {exc}', 'edit ' + str(path)) from exc
-
-
-def read_yaml(path: Path) -> dict[str, Any]:
-    """Read workspace YAML while retaining user comments and formatting."""
-    try:
-        value = YAML().load(path.read_text()) or {}
-        if not isinstance(value, dict):
-            raise ValueError('expected a mapping')
-        return value
-    except Exception as exc:
-        raise ProjectError('project.file', f'{path}: {exc}', 'edit ' + str(path)) from exc
 
 
 def atomic_write(path: Path, content: str) -> None:
@@ -99,8 +86,8 @@ def resolve_config(root: Path, override: str | None = None) -> str:
         return override
     try:
         project = toml.load(root / 'pyproject.toml') if (root / 'pyproject.toml').exists() else {}
-        configured = project.get('tool', {}).get('dara', {}).get('config')
-        if configured is not None and (not isinstance(configured, str) or ':' not in configured):
+        configured = PythonProjectFields.parse(project, root / 'pyproject.toml').tool.dara.config
+        if configured is not None and ':' not in configured:
             raise ValueError('[tool.dara].config must be a module:object reference')
         return configured or f'{root.name.replace("-", "_")}.main:config'
     except (ValueError, OSError) as exc:
@@ -140,7 +127,8 @@ def derive_manifest(
     actions = {**CORE_ACTIONS, **{a.name: a for a in config.actions}}
     js_components = [c for c in components.values() if isinstance(c, JsComponentDef)]
     auth = config.auth_config.component_config.model_dump()
-    own_name = read_json(root / 'package.json').get('name') if (root / 'package.json').exists() else None
+    package_path = root / 'package.json'
+    own_name = PackageFields.parse(read_json(package_path), package_path).name if package_path.exists() else None
     packages = {'@darajs/core': 'dara.core', **{npm: py for py, npm in config.module_dependencies.items()}}
     for definition in [*js_components, *actions.values()]:
         npm = source_package(definition.js_source)
@@ -152,7 +140,7 @@ def derive_manifest(
         npm = source_package(component['js_source'])
         if npm and npm != own_name:
             packages.setdefault(npm, component['py_module'])
-    if isinstance(own_name, str):
+    if own_name is not None:
         packages.pop(own_name, None)
     dara_version = npm_version('dara.core')
     requirements = {
@@ -229,12 +217,13 @@ def write_manifest(root: Path, manifest: FrontendManifest, operation: str) -> Pa
     return path
 
 
-def check_toolchain() -> dict[str, str]:
+def check_toolchain(*, processes: ProcessOwner | None = None) -> dict[str, str]:
     """Check prerequisites on PATH; Dara never installs a runtime or package manager."""
     found = {}
+    run = processes.run if processes else subprocess.run
     for binary, required in ENGINES.items():
         try:
-            result = subprocess.run([binary, '--version'], capture_output=True, text=True, check=True)
+            result = run([binary, '--version'], capture_output=True, text=True, check=True)
             actual = result.stdout.strip().removeprefix('v')
             if not NpmSpec(required).match(SemVersion(actual)):
                 raise ValueError(f'found {actual}')
@@ -285,10 +274,15 @@ def runner_environment() -> dict[str, str]:
 
 
 def run_plugin(
-    root: Path, operation: str, manifest: FrontendManifest | None = None, *args: str
+    root: Path,
+    operation: str,
+    manifest: FrontendManifest | None = None,
+    *args: str,
+    processes: ProcessOwner | None = None,
 ) -> subprocess.CompletedProcess:
     """Invoke the installed plugin through pnpm, isolating its environment from registry secrets."""
-    result = subprocess.run(
+    run = processes.run if processes else subprocess.run
+    result = run(
         ['pnpm', '--silent', 'exec', 'dara-vite', operation, '--root', str(root), *args],
         cwd=root,
         input=json_text(manifest.model_dump(by_alias=True)) if manifest is not None else None,
@@ -332,31 +326,36 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
         if package_path.exists()
         else {'name': root.name.lower().replace('_', '-'), 'type': 'module', 'private': True}
     )
+    package_fields = PackageFields.parse(original_package, package_path)
+    dependencies = package_fields.dependency_sections
     package = copy.deepcopy(original_package)
     original_workspace = read_yaml(workspace_path) if workspace_path.exists() else {}
+    WorkspaceFields.parse(original_workspace, workspace_path)
     config = copy.deepcopy(original_workspace)
     catalog = {r.name: r.specifier for r in manifest.package_requirements}
     config.setdefault('catalogs', {})['dara'] = catalog
     for required in manifest.package_requirements:
-        entries = package.setdefault(required.section, {})
+        entries = dependencies[required.section]
         existing = entries.get(required.name)
         other_section = 'dependencies' if required.section == 'devDependencies' else 'devDependencies'
-        if required.name in package.get(other_section, {}):
+        if required.name in dependencies[other_section]:
             raise ProjectError(
                 'dependency.reference',
                 f'{required.name} belongs in {required.section} as catalog:dara; move the existing {other_section} entry',
             )
         if existing is None:
             entries[required.name] = 'catalog:dara'
+            package[required.section] = entries
         elif existing != 'catalog:dara' and not existing.startswith(('workspace:', 'file:', 'link:')):
             raise ProjectError(
                 'dependency.reference', f'{required.name} must reference catalog:dara, found {existing!r}'
             )
-    engines = package.setdefault('engines', {})
+    engines = package_fields.engines
     for binary, required in ENGINES.items():
         existing = engines.get(binary)
         if existing is None:
             engines[binary] = required
+            package['engines'] = engines
         elif existing != required:
             try:
                 spec = NpmSpec(existing)
@@ -379,6 +378,7 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
                 intersection = ' || '.join(f'{branch.strip()} {required}' for branch in existing.split('||'))
                 if not all(required in branch for branch in existing.split('||')):
                     engines[binary] = intersection
+                    package['engines'] = engines
             except ValueError as exc:
                 raise ProjectError(
                     'toolchain.engines', f'engines.{binary}={existing!r} conflicts with {required}'
@@ -397,31 +397,23 @@ def lockfile_agrees(root: Path) -> bool:
     lockpath = workspace / 'pnpm-lock.yaml'
     if not lockpath.exists() or not (root / 'package.json').exists():
         return False
-    # pnpm 12 may prepend an environment/toolchain document to its dependency lock.
-    documents = list(YAML().load_all(lockpath.read_text()))
-    lock = documents[-1]
-    if not isinstance(lock, dict):
-        return False
-    package = read_json(root / 'package.json')
-    importer = lock.get('importers', {}).get(root.relative_to(workspace).as_posix())
+    lock = read_lockfile(lockpath)
+    package_path = root / 'package.json'
+    package = PackageFields.parse(read_json(package_path), package_path)
+    importer = lock.importers.get(root.relative_to(workspace).as_posix())
     if importer is None:
         return False
-    for section in ('dependencies', 'devDependencies', 'optionalDependencies'):
-        declared = package.get(section, {})
-        installed = importer.get(section, {})
-        if set(declared) != set(installed) or any(
-            installed[name].get('specifier') != spec for name, spec in declared.items()
-        ):
+    for section, declared in package.dependency_sections.items():
+        installed = importer.dependency_sections[section]
+        if set(declared) != set(installed) or any(installed[name].specifier != spec for name, spec in declared.items()):
             return False
-    catalog = read_yaml(workspace / 'pnpm-workspace.yaml').get('catalogs', {}).get('dara', {})
-    locked = lock.get('catalogs', {}).get('dara', {})
+    workspace_path = workspace / 'pnpm-workspace.yaml'
+    catalog = WorkspaceFields.parse(read_yaml(workspace_path), workspace_path).catalogs.get('dara', {})
+    locked = lock.catalogs.get('dara', {})
     return all(
-        locked.get(name, {}).get('specifier') == spec
+        name in locked and locked[name].specifier == spec
         for name, spec in catalog.items()
-        if any(
-            name in package.get(section, {}) and package[section][name] == 'catalog:dara'
-            for section in ('dependencies', 'devDependencies')
-        )
+        if any(section.get(name) == 'catalog:dara' for section in (package.dependencies, package.devDependencies))
     )
 
 
@@ -439,14 +431,22 @@ def dependency_fingerprint(root: Path) -> str:
     return digest.hexdigest()
 
 
-def prepare_project(root: Path, manifest: FrontendManifest, *, frozen: bool = False, build: bool = False) -> list[str]:
+def prepare_project(
+    root: Path,
+    manifest: FrontendManifest,
+    *,
+    frozen: bool = False,
+    build: bool = False,
+    processes: ProcessOwner | None = None,
+) -> list[str]:
     """Prepare a project under a workspace lock; frozen operations never repair committed files."""
-    check_toolchain()
+    check_toolchain(processes=processes)
+    run = processes.run if processes else subprocess.run
     workspace = workspace_root(root)
     lock_path = workspace / 'node_modules' / '.dara' / 'prepare.lock'
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     changed = []
-    with FileLock(lock_path):
+    with processes.lock(lock_path) if processes else FileLock(lock_path):
         planned = dependency_plan(root, manifest)
         agrees = not planned and lockfile_agrees(root)
         if frozen and not agrees:
@@ -470,20 +470,24 @@ def prepare_project(root: Path, manifest: FrontendManifest, *, frozen: bool = Fa
                 if workspace != root:
                     command += ['--filter', str(root)]
                 # Registry placeholders require the complete environment for installation only.
-                policy = subprocess.run(
+                policy = run(
                     ['pnpm', 'config', 'get', 'strictDepBuilds'],
                     cwd=workspace,
                     text=True,
                     capture_output=True,
-                    check=True,
+                    check=False,
                 )
+                if policy.returncode:
+                    raise ProjectError(
+                        'dependency.install',
+                        f'pnpm could not read its installation policy: {policy.stderr.strip()}',
+                        'fix pnpm configuration, then run dara lock',
+                    )
                 environment = dict(os.environ)
                 if policy.stdout.strip() == 'undefined':
                     # Leave scripts unapproved and surface pnpm's diagnostic; respect an explicit policy.
                     environment['PNPM_CONFIG_STRICT_DEP_BUILDS'] = 'false'
-                result = subprocess.run(
-                    command, cwd=workspace, env=environment, text=True, capture_output=True, check=False
-                )
+                result = run(command, cwd=workspace, env=environment, text=True, capture_output=True, check=False)
                 for output in (result.stdout, result.stderr):
                     if output:
                         click.echo(output.rstrip(), err=True)
@@ -494,7 +498,7 @@ def prepare_project(root: Path, manifest: FrontendManifest, *, frozen: bool = Fa
                     )
                 if not agrees:
                     changed.append(str((workspace / 'pnpm-lock.yaml').relative_to(workspace)))
-            initialized = run_plugin(root, 'check-project' if frozen else 'init', manifest)
+            initialized = run_plugin(root, 'check-project' if frozen else 'init', manifest, processes=processes)
             if initialized.stdout.strip():
                 payload = json.loads(initialized.stdout)
                 if isinstance(payload, dict):
