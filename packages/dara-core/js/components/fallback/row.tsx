@@ -1,8 +1,8 @@
 import styled from '@darajs/styled-components';
 import { Dots } from '@darajs/ui-components';
 
-import { injectCss, useComponentStyles } from '@/shared/utils';
-import { type StyledComponentProps } from '@/types';
+import { injectCss, useComponentStyles } from '../../shared/utils';
+import { type StyledComponentProps } from '../../types';
 
 const RowDots = styled(Dots)`
     height: 2.5rem;

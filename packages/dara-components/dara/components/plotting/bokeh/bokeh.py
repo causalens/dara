@@ -49,7 +49,7 @@ class Bokeh(StyledComponentInstance):
     min_width props to the component.
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/bokeh'
 
     document: str
     events: list[tuple[str, Action]] | None = None

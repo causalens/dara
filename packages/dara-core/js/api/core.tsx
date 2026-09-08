@@ -1,7 +1,6 @@
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { handleAuthErrors } from '@/auth/auth';
-
+import { handleAuthErrors } from '../auth/auth';
 import { type RequestExtras, request } from './http';
 
 type TaskResult<T> = { status: 'not_found' } | { status: 'ok'; result: T };

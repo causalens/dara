@@ -48,6 +48,8 @@ class Textarea(FormComponent):
     :param resize: sets whether the textarea is resizable, and if so, in which directions
     """
 
+    js_source = '@darajs/components/textarea'
+
     autofocus: bool = False
     value: Variable[Any] | None = None
     onchange: Action | None = None

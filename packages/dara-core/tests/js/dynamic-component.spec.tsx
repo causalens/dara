@@ -4,17 +4,16 @@ import { HttpResponse, http } from 'msw';
 import * as React from 'react';
 
 import { FallbackCtx } from '@/shared/context';
-import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
+import { registerComponents } from '@/shared/dynamic-component/dynamic-component';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { preloadActions } from '@/shared/interactivity/use-action';
+import { registerActions } from '@/shared/interactivity/use-action';
 
 import { DynamicComponent, clearCaches_TEST, useAction, useVariable } from '../../js/shared';
 import { type Action, type DerivedVariable, type SingleVariable, type Variable } from '../../js/types';
 import { type DaraEventMap, type PyComponentInstance, type TriggerVariableImpl } from '../../js/types/core';
 import { server, wrappedRender } from './utils';
-import { mockActions, mockComponents } from './utils/test-server-handlers';
-import { importers } from './utils/wrapped-render';
+import { actionImplementations, componentImplementations } from './utils/wrapped-render';
 
 describe('DynamicComponent', () => {
     beforeAll(() => {
@@ -27,8 +26,8 @@ describe('DynamicComponent', () => {
         clearRegistries_TEST();
         clearCaches_TEST();
 
-        await preloadActions(importers, Object.values(mockActions));
-        await preloadComponents(importers, Object.values(mockComponents));
+        registerActions(actionImplementations);
+        registerComponents(componentImplementations);
     });
     afterEach(() => {
         vi.clearAllTimers();

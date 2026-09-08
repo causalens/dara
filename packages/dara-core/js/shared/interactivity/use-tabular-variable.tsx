@@ -4,10 +4,8 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { type Snapshot, useRecoilValue, useRecoilValueLoadable } from 'recoil';
 
-import type { RequestExtras } from '@/api/http';
-import type { WebSocketClientInterface } from '@/api/websocket';
-// eslint-disable-next-line import/no-cycle
-import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
+import type { RequestExtras } from '../../api/http';
+import type { WebSocketClientInterface } from '../../api/websocket';
 import {
     type DataFrame,
     type DerivedVariable,
@@ -19,8 +17,9 @@ import {
     isServerVariable,
     isSingleVariable,
     isVariable,
-} from '@/types';
-
+} from '../../types';
+// eslint-disable-next-line import/no-cycle
+import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '../context';
 import { normalizeRequest } from '../utils/normalization';
 import { createFetcher } from './filtering';
 // eslint-disable-next-line import/no-cycle

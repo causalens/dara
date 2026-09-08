@@ -1,0 +1,5 @@
+{
+  "name": "{{ cookiecutter.__project_slug }}",
+  "type": "module",
+  "private": true
+}

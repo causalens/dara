@@ -1,6 +1,6 @@
 import { type ComponentType, type ReactNode } from 'react';
 
-import type { AuthComponent, ModuleContent } from '@/types/core';
+import type { AuthComponent } from '../../types/core';
 
 const PRELOADED_COMPONENTS: Record<string, ReactNode> = {};
 
@@ -8,34 +8,14 @@ function getIdentifier(component: AuthComponent): string {
     return `${component.py_module}.${component.js_name}`;
 }
 
-export async function preloadAuthComponent(
-    importers: Record<string, () => Promise<ModuleContent>>,
-    component: AuthComponent
-): Promise<void> {
-    const importer = importers[component.py_module];
-
-    if (!importer) {
-        throw new Error(`Missing importer for module ${component.py_module}`);
+/** Populate the unauthenticated registry using its existing module/name identities. */
+export function registerAuthComponents(components: Record<string, ComponentType>): void {
+    for (const key of Object.keys(PRELOADED_COMPONENTS)) {
+        delete PRELOADED_COMPONENTS[key];
     }
-
-    let moduleContent: any = null;
-
-    try {
-        moduleContent = await importer();
-    } catch (err) {
-        throw new Error(`Failed to import module ${component.py_module}`, err as Error);
+    for (const [key, Component] of Object.entries(components)) {
+        PRELOADED_COMPONENTS[key] = <Component />;
     }
-    if (!moduleContent) {
-        throw new Error(`Failed to import module ${component.py_module}`);
-    }
-
-    const Component = moduleContent[component.js_name] as ComponentType<any> | null;
-
-    if (!Component) {
-        throw new Error(`Failed to import component ${component.js_name} from module ${component.py_module}`);
-    }
-
-    PRELOADED_COMPONENTS[getIdentifier(component)] = <Component />;
 }
 
 /**

@@ -2,11 +2,10 @@
 import * as React from 'react';
 import { useRecoilCallback } from 'recoil';
 
-import { cancelTask } from '@/api/core';
-import { type RequestExtras } from '@/api/http';
-import { type TriggerIndexValue, atomRegistry } from '@/shared/interactivity/store';
-import { type GlobalTaskContext } from '@/types/core';
-
+import { cancelTask } from '../../api/core';
+import { type RequestExtras } from '../../api/http';
+import { type GlobalTaskContext } from '../../types/core';
+import { type TriggerIndexValue, atomRegistry } from '../interactivity/store';
 import { useRequestExtras } from './request-extras-context';
 
 const GlobalTaskCtx = React.createContext<GlobalTaskContext | null>(null);

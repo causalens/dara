@@ -41,7 +41,7 @@ class CodeEditor(StyledComponentInstance):
     :param script: The script to render
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/code-editor'
 
     script: ClientVariable
 

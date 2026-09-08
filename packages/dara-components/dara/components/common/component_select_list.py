@@ -60,6 +60,8 @@ class ComponentSelectList(LayoutComponent):
      :param selected_items: The initial selected items, can be an list if multiSelect is true otherwise a string. This takes the titles of the items as value.
     """
 
+    js_source = '@darajs/components/component-select-list'
+
     items: list[ComponentItem]
     items_per_row: int | None = None
     multi_select: bool | None = None

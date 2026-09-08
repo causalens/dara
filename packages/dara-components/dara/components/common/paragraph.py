@@ -66,6 +66,8 @@ class Paragraph(LayoutComponent):
 
     """
 
+    js_source = '@darajs/components/paragraph'
+
     @field_validator('children')
     @classmethod
     def validate_children(cls, children):

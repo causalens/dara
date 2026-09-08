@@ -55,6 +55,8 @@ class Image(ContentComponent):
     :param src: The URL to the local or remote image
     """
 
+    js_source = '@darajs/components/image'
+
     src: str
 
     @field_validator('src')

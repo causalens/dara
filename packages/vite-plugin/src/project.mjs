@@ -1,0 +1,297 @@
+import fs from "node:fs";
+import path from "node:path";
+import { getTsconfig } from "get-tsconfig";
+import semver from "semver";
+import { createServer, loadConfigFromFile, resolveConfig } from "vite";
+import { parse as parseYaml } from "yaml";
+import { ProjectError, parseManifest, sourcePackage } from "./contract.mjs";
+import { atomicWrite, inside, readJson, workspaceRoot } from "./files.mjs";
+
+const defaults = {
+  "vite.config.ts": `import dara from '@darajs/vite-plugin';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [dara()] });\n`,
+  "tsconfig.json":
+    JSON.stringify({ extends: "@darajs/vite-plugin/tsconfig.json", include: ["js"] }, null, 2) +
+    "\n",
+  "js/index.tsx": "export {};\n",
+};
+
+/** Initialize only absent user files; existing configuration and app code remain user-owned. */
+export function initialize(root) {
+  const created = [];
+  for (const [name, contents] of Object.entries(defaults)) {
+    const file = path.join(root, name);
+    if (!fs.existsSync(file)) {
+      // Exclusive creation avoids racing a user who creates a file during preparation.
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      try {
+        fs.writeFileSync(file, contents, { flag: "wx" });
+        created.push(name);
+      } catch (error) {
+        if (error.code !== "EEXIST") {
+          throw error;
+        }
+      }
+    }
+  }
+  return created;
+}
+
+/** Validate the effective TS project, following JSONC, inheritance and the locked preset. */
+export function checkTypescript(root) {
+  let config;
+  try {
+    config = getTsconfig(root);
+  } catch (error) {
+    throw new ProjectError("typescript.config", error.message, "edit tsconfig.json");
+  }
+  if (!config || path.resolve(config.path) !== path.join(root, "tsconfig.json")) {
+    throw new ProjectError("typescript.config", "The app needs a root tsconfig.json");
+  }
+  const options = config.config.compilerOptions ?? {};
+  const required = {
+    moduleResolution: "bundler",
+    jsx: "react-jsx",
+    noEmit: true,
+    isolatedModules: true,
+  };
+  const conflicts = Object.entries(required)
+    .filter(([key, value]) => options[key] !== value)
+    .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+  if (!options.customConditions?.includes("dara-source")) {
+    conflicts.push('customConditions: ["dara-source"]');
+  }
+  if (!options.types?.includes("vite/client")) {
+    conflicts.push('types: ["vite/client"]');
+  }
+  if (conflicts.length) {
+    throw new ProjectError(
+      "typescript.config",
+      `tsconfig.json requires ${conflicts.join(", ")}`,
+      "edit tsconfig.json",
+    );
+  }
+  return config;
+}
+
+function checkDependencies(root, workspace, manifest, packageJson) {
+  const file = path.join(workspace, "pnpm-workspace.yaml");
+  if (!fs.existsSync(file)) {
+    throw new ProjectError("dependency.catalog", "Missing pnpm-workspace.yaml");
+  }
+  const catalog = parseYaml(fs.readFileSync(file, "utf8"))?.catalogs?.dara;
+  const inputs = new Set([path.join(root, "package.json"), file]);
+  for (const required of manifest.packageRequirements) {
+    if (catalog?.[required.name] !== required.specifier) {
+      throw new ProjectError(
+        "dependency.catalog",
+        `catalogs.dara.${required.name} must be ${required.specifier}`,
+      );
+    }
+    const reference = packageJson[required.section]?.[required.name];
+    if (
+      typeof reference !== "string" ||
+      (!reference.startsWith("workspace:") &&
+        !reference.startsWith("file:") &&
+        !reference.startsWith("link:") &&
+        reference !== "catalog:dara")
+    ) {
+      throw new ProjectError(
+        "dependency.reference",
+        `${required.name} needs a ${required.section} reference to catalog:dara`,
+      );
+    }
+    const installed = path.join(root, "node_modules", required.name, "package.json");
+    if (!fs.existsSync(installed)) {
+      throw new ProjectError("dependency.missing", `${required.name} is not installed`);
+    }
+    const actual = readJson(installed);
+    if (
+      actual.name !== required.name ||
+      !semver.satisfies(actual.version, required.specifier, { includePrerelease: true })
+    ) {
+      throw new ProjectError(
+        "dependency.version",
+        `${required.name}: installed ${actual.name}@${actual.version}, expected ${required.specifier}`,
+      );
+    }
+    if (reference !== "catalog:dara") {
+      const target = reference.startsWith("workspace:")
+        ? fs.realpathSync(path.dirname(installed))
+        : path.resolve(root, reference.replace(/^(file|link):/, ""));
+      if (!inside(workspace, fs.realpathSync(target))) {
+        throw new ProjectError(
+          "dependency.target",
+          `${required.name}: ${reference} must resolve inside ${workspace}`,
+        );
+      }
+    }
+    // Installed registry packages are represented by the lockfile; local source manifests are inputs.
+    const real = fs.realpathSync(installed);
+    if (!real.split(path.sep).includes("node_modules")) {
+      inputs.add(real);
+    }
+  }
+  return inputs;
+}
+
+async function resolveProjectConfig(root, command) {
+  const file = path.join(root, "vite.config.ts");
+  if (!fs.existsSync(file)) {
+    throw new ProjectError("vite.config", "Missing vite.config.ts");
+  }
+  const env = { command, mode: command === "serve" ? "development" : "production" };
+  const loaded = await loadConfigFromFile(env, file, root, "warn");
+  if (!loaded) {
+    throw new ProjectError("vite.config", `Unable to load ${file}`, "edit vite.config.ts");
+  }
+  const resolved = await resolveConfig(
+    { ...loaded.config, root, configFile: false },
+    command,
+    env.mode,
+  );
+  const plugins = resolved.plugins.filter((plugin) => plugin.name === "dara:app");
+  if (plugins.length !== 1) {
+    throw new ProjectError(
+      "vite.plugin",
+      'vite.config.ts must include exactly one dara() plugin: import dara from "@darajs/vite-plugin"',
+      "edit vite.config.ts",
+    );
+  }
+  const react = resolved.plugins.filter((plugin) =>
+    ["vite:react-babel", "vite:react-swc"].includes(plugin.name),
+  );
+  if (react.length > 1) {
+    throw new ProjectError(
+      "vite.react",
+      "dara() already includes the React plugin; remove the second React plugin",
+      "edit vite.config.ts",
+    );
+  }
+  return {
+    userConfig: loaded.config,
+    config: resolved,
+    api: plugins[0].api,
+    configInputs: [file, ...loaded.dependencies],
+  };
+}
+
+/** Load and validate the app once at the Node boundary; runners consume the returned project. */
+export async function loadProject(appRoot, raw, command = "serve") {
+  const root = fs.realpathSync(appRoot);
+  if (!semver.satisfies(process.version, ">=22.12.0")) {
+    throw new ProjectError(
+      "toolchain.runtime",
+      `Plugin is running on ${process.version}; Node >=22.12.0 is required`,
+      "install supported Node",
+    );
+  }
+  const manifest = parseManifest(raw);
+  const packageJson = readJson(path.join(root, "package.json"));
+  const workspace = workspaceRoot(root);
+  const dependencyInputs = checkDependencies(root, workspace, manifest, packageJson);
+  for (const name of Object.keys(defaults)) {
+    if (!fs.existsSync(path.join(root, name))) {
+      throw new ProjectError(
+        "project.missing",
+        `Missing ${name}; run dara lock and commit the result`,
+      );
+    }
+  }
+  const typescript = checkTypescript(root);
+  const configs = await Promise.all(
+    ["serve", "build"].map((mode) => resolveProjectConfig(root, mode)),
+  );
+  const chosen = configs[command === "serve" ? 0 : 1];
+  for (const config of configs) {
+    if (
+      config.userConfig.build?.outDir &&
+      path.resolve(root, config.userConfig.build.outDir) !== path.resolve(root, manifest.outDir)
+    ) {
+      throw new ProjectError(
+        "vite.output",
+        `build.outDir disagrees with Dara output ${manifest.outDir}`,
+        "edit vite.config.ts",
+      );
+    }
+    if (config.userConfig.root && path.resolve(root, config.userConfig.root) !== root) {
+      throw new ProjectError(
+        "vite.root",
+        "Vite root must be the Dara app root",
+        "edit vite.config.ts",
+      );
+    }
+  }
+  const project = {
+    root,
+    workspace,
+    manifest,
+    packageJson,
+    typescript,
+    ...chosen,
+    inputs: new Set([
+      ...dependencyInputs,
+      ...configs.flatMap((config) => config.configInputs),
+      typescript.path,
+    ]),
+    sourceFiles: new Set(),
+  };
+  project.api.project = project;
+  // Use Vite's real plugin container, so user resolvers and the app's exports participate.
+  project.api.resolving = true;
+  let resolver;
+  try {
+    resolver = await createServer({
+      ...project.userConfig,
+      root,
+      configFile: false,
+      logLevel: "silent",
+      server: { middlewareMode: true, watch: null, hmr: false },
+      optimizeDeps: { noDiscovery: true, include: [] },
+    });
+    const imports = [
+      { name: "Dara bootstrap", source: "@darajs/core/bootstrap" },
+      ...manifest.moduleDependencies.map((item) => ({ name: item.python, source: item.source })),
+      ...manifest.components,
+      ...manifest.actions,
+      ...manifest.auth,
+    ];
+    for (const item of imports) {
+      const local = sourcePackage(item.source) === null;
+      const specifier = local ? path.resolve(root, item.source) : item.source;
+      const resolved = await resolver.environments.client.pluginContainer.resolveId(
+        specifier,
+        path.join(root, "js/index.tsx"),
+      );
+      if (!resolved || resolved.external) {
+        throw new ProjectError(
+          "source.unresolved",
+          `${item.name}: cannot resolve ${item.source}`,
+          "edit js_source or build the workspace package",
+        );
+      }
+      const file = resolved.id.split("?")[0];
+      if (
+        local &&
+        (!fs.existsSync(file) || !inside(path.join(root, "js"), fs.realpathSync(file)))
+      ) {
+        throw new ProjectError(
+          "source.invalid",
+          `${item.name}: ${item.source} must resolve to a file inside js/`,
+          "edit js_source",
+        );
+      }
+      if (fs.existsSync(file)) {
+        project.sourceFiles.add(fs.realpathSync(file));
+      }
+    }
+  } finally {
+    await resolver?.close();
+    project.api.resolving = false;
+  }
+  return project;
+}
+
+/** Publish private runner state for the Python supervisor and proxy. */
+export function publishStatus(root, state) {
+  atomicWrite(path.join(root, "node_modules/.dara/dev-server.json"), JSON.stringify(state));
+}

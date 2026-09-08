@@ -24,3 +24,6 @@ dev = [
     "ruff>=0.12.2",
     "pyright>=1.1.400",
 ]
+
+[tool.dara]
+config = "{{ cookiecutter.__package_name }}.main:config"

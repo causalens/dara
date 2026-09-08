@@ -118,6 +118,8 @@ class Carousel(ContentComponent):
     :param onchange: Action triggered when the component changes states
     """
 
+    js_source = '@darajs/components/carousel'
+
     items: list[CarouselItem] | ClientVariable
     value: Variable[int] | None = None
     onchange: Action | None = None

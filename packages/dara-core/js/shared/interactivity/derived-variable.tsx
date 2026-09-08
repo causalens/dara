@@ -26,12 +26,10 @@ import {
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
-import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
-import { TaskError } from '@/api/websocket';
-import { handleAuthErrors } from '@/auth/auth';
-import { getUniqueIdentifier } from '@/shared/utils/hashing';
-import { normalizeRequest } from '@/shared/utils/normalization';
+import { type WebSocketClientInterface, fetchTaskResult, request } from '../../api';
+import { type RequestExtras, RequestExtrasSerializable } from '../../api/http';
+import { TaskError } from '../../api/websocket';
+import { handleAuthErrors } from '../../auth/auth';
 import {
     type DerivedVariable,
     type GlobalTaskContext,
@@ -43,9 +41,10 @@ import {
     isResolvedServerVariable,
     isResolvedSwitchVariable,
     isVariable,
-} from '@/types';
-
+} from '../../types';
 import { type Deferred, deferred, isDeferred } from '../utils/deferred';
+import { getUniqueIdentifier } from '../utils/hashing';
+import { normalizeRequest } from '../utils/normalization';
 // eslint-disable-next-line import/no-cycle
 import { cleanArgs, getOrRegisterTrigger, resolveNested, resolveVariable, resolveVariableStatic } from './internal';
 import {

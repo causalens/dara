@@ -47,6 +47,7 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
 from dara.core.interactivity.client_variable import ClientVariable
+from dara.core.js_tooling.source import JsSource
 
 
 class HttpMethod(Enum):
@@ -121,21 +122,12 @@ class ComponentInstance(BaseModel):
 
     uid: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
-    js_module: ClassVar[str | None] = None
-    """
-    JS module including the implementation of the component.
-
-    Required for non-local components.
-    """
+    js_source: ClassVar[str | None] = None
+    """Default-export module for this concrete JS component, resolved from the app."""
 
     py_component: ClassVar[str | None] = None
     """
     Python unique component name. If not set, defaults to the class name.
-    """
-
-    js_component: ClassVar[str | None] = None
-    """
-    JS component name. If not set, defaults to the class name.
     """
 
     required_routes: ClassVar[list[ApiRoute]] = []
@@ -431,17 +423,8 @@ ComponentInstanceType = ComponentInstance | Callable[..., ComponentInstance]
 class JsComponentDef(BaseModel):
     """Definition of a JS Component"""
 
-    js_module: str | None = None
-    """
-    JS module where the component implementation lives.
-
-    Not required for local components as they are located via dara.config.json
-    """
-
-    js_component: str | None = None
-    """
-    JS component name. If not set, defaults to `name` property.
-    """
+    js_source: JsSource
+    """Default-export module specifier for the implementation."""
 
     py_module: str
     """Name of the PY module with component definition, used for versioning"""

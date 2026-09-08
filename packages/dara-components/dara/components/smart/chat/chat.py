@@ -62,7 +62,8 @@ class Chat(StyledComponentInstance):
     :param value: A Variable which stores the chat's state
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/chat'
+
     required_routes = [on_new_message]
 
     value: NonDataVariable

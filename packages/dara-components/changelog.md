@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added direct ESM component entry points and explicit static asset declarations for the Vite pipeline.
+
 ## 1.29.8
 
 - Fixed `CodeEditor` crashing when its value contains CRLF line endings.

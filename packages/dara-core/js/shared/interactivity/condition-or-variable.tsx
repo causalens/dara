@@ -1,6 +1,5 @@
-import type { Condition, Variable } from '@/types/core';
-import { isCondition } from '@/types/utils';
-
+import type { Condition, Variable } from '../../types/core';
+import { isCondition } from '../../types/utils';
 import { isConditionTrue } from './condition';
 // eslint-disable-next-line import/no-cycle
 import { type UseVariableOptions, useVariable } from './use-variable';

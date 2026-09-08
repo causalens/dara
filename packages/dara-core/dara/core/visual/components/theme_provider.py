@@ -4,7 +4,9 @@ from dara.core.definitions import ComponentInstance, JsComponentDef, StyledCompo
 from dara.core.interactivity.client_variable import ClientVariable
 from dara.core.visual.themes.definitions import ThemeDef
 
-ThemeProviderDef = JsComponentDef(name='ThemeProvider', js_module='@darajs/core', py_module='dara.core')
+ThemeProviderDef = JsComponentDef(
+    name='ThemeProvider', js_source='@darajs/core/components/theme-provider', py_module='dara.core'
+)
 
 
 class ThemeProvider(StyledComponentInstance):
@@ -33,6 +35,8 @@ class ThemeProvider(StyledComponentInstance):
 
     config.router.add_page(path='theme', content=ThemePage)
     """
+
+    js_source = '@darajs/core/components/theme-provider'
 
     theme: ThemeDef | ClientVariable | Literal['light', 'dark']
     base: ClientVariable | Literal['light', 'dark'] = 'light'

@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 
-import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
-import { type ActionHandler, type TriggerVariableImpl } from '@/types/core';
+import { getOrRegisterTrigger } from '../shared/interactivity/triggers';
+import { type ActionHandler, type TriggerVariableImpl } from '../types/core';
 
 /**
  * Front-end handler for TriggerVariable action.

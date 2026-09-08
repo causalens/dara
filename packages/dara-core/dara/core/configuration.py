@@ -106,22 +106,17 @@ class Configuration(BaseModel):
             'dara.core': '@darajs/core',
         }
 
-        # Discover py modules with js modules to pull in
-        for comp_def in self.components:
-            if isinstance(comp_def, JsComponentDef) and comp_def.js_module is not None:
-                packages[comp_def.py_module] = comp_def.js_module
+        from dara.core.js_tooling.source import source_package
 
-        for act_def in self.actions:
-            if act_def.js_module is not None:
-                packages[act_def.py_module] = act_def.js_module
-
-        # Handle auth components
-        for comp in self.auth_config.component_config.model_dump().values():
-            packages[comp['py_module']] = comp['js_module']
-
-        # Include explicit modules
-        for py_module, js_module in self.module_dependencies.items():
-            packages[py_module] = js_module
+        for definition in [*[c for c in self.components if isinstance(c, JsComponentDef)], *self.actions]:
+            package = source_package(definition.js_source)
+            if package:
+                packages[definition.py_module] = package
+        for component in self.auth_config.component_config.model_dump().values():
+            package = source_package(component['js_source'])
+            if package:
+                packages[component['py_module']] = package
+        packages.update(self.module_dependencies)
 
         return packages
 
@@ -233,7 +228,7 @@ class ConfigurationBuilder:
     def auth_session_backend(self, backend: AuthSessionBackendConfig):
         self._auth_session_backend = backend
 
-    def add_action(self, action: type[ActionImpl], local: bool = False):
+    def add_action(self, action: type[ActionImpl]):
         """
         Register an Action with the application.
 
@@ -245,10 +240,8 @@ class ConfigurationBuilder:
         for non-local actionts. Actions are auto-discovered based on imports within your application.
 
         :param action: ActionImpl-subclass definition
-        :param local: whether the action is a local one.
-        For local actions js_module is not required, as their location is defined via dara.config.json
         """
-        act_def = create_action_definition(action, local)
+        act_def = create_action_definition(action)
         self._actions.append(act_def)
         return act_def
 
@@ -285,7 +278,7 @@ class ConfigurationBuilder:
         self.context_components.append(component)
         self.add_component(component.__class__)
 
-    def add_component(self, component: type[ComponentInstance], local: bool = False):
+    def add_component(self, component: type[ComponentInstance]):
         """
         Register a Component with the application.
 
@@ -297,10 +290,8 @@ class ConfigurationBuilder:
         for non-local components. Components are auto-discovered based on imports within your application.
 
         :param component: ComponentInstance-subclass definition
-        :param local: whether the component is a local one.
-        For local components js_module is not required, as their location is defined via dara.config.json
         """
-        component_def = create_component_definition(component, local)
+        component_def = create_component_definition(component)
 
         self._components.append(component_def)
 
@@ -597,13 +588,13 @@ class ConfigurationBuilder:
         components, actions = run_discovery(module)
 
         for comp_type in components:
-            # Don't auto register local components - without js_module
-            if comp_type.js_module is not None:
+            # Abstract and Python-rendered classes do not have a JS implementation.
+            if comp_type.js_source is not None:
                 self.add_component(comp_type)
 
         for act_type in actions:
-            # Don't auto register local actions - without js_module
-            if act_type.js_module is not None:
+            # Python-only actions do not have a frontend implementation.
+            if act_type.js_source is not None:
                 self.add_action(act_type)
 
     def _to_configuration(self):

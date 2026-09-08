@@ -8,25 +8,25 @@ import { ComponentType } from '../../../js/types';
 
 const mockComponents: Record<string, JsComponent> = {
     ProgressTracker: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'ProgressTracker',
         py_module: 'dara_core',
         type: ComponentType.JS,
     },
     TemplateRoot: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'TemplateRoot',
         py_module: 'dara_core',
         type: ComponentType.JS,
     },
     TestComponent: {
-        js_module: '@test',
+        js_source: '@test',
         name: 'TestComponent',
         py_module: 'test',
         type: ComponentType.JS,
     },
     TestPropsComponent: {
-        js_module: '@test',
+        js_source: '@test',
         name: 'TestPropsComponent',
         py_module: 'test',
         type: ComponentType.JS,
@@ -34,37 +34,37 @@ const mockComponents: Record<string, JsComponent> = {
 };
 const mockActions: Record<string, ActionDef> = {
     DownloadContent: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'DownloadContent',
         py_module: 'dara_core',
     },
     NavigateTo: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'NavigateTo',
         py_module: 'dara_core',
     },
     ResetVariables: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'ResetVariables',
         py_module: 'dara_core',
     },
     SideEffect: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'SideEffect',
         py_module: 'dara_core',
     },
     Track: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'Track',
         py_module: 'dara_core',
     },
     TriggerVariable: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'TriggerVariable',
         py_module: 'dara_core',
     },
     UpdateVariable: {
-        js_module: '@darajs/dara_core',
+        js_source: '@darajs/dara_core',
         name: 'UpdateVariable',
         py_module: 'dara_core',
     },

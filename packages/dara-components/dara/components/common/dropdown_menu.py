@@ -155,6 +155,8 @@ class DropdownMenu(BaseDashboardComponent):
     :param footer: Optional component to display at the bottom of the dropdown menu
     """
 
+    js_source = '@darajs/components/dropdown-menu'
+
     button: Button
     onclick: Action
     menu_items: list[list[MenuItem]] | ClientVariable

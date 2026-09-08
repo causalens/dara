@@ -1,7 +1,7 @@
 import styled, { useTheme } from '@darajs/styled-components';
 
-import CausalensDark from '@/assets/causalens-dark.svg';
-import CausalensLight from '@/assets/causalens-light.svg';
+import CausalensDark from '../assets/causalens-dark.svg';
+import CausalensLight from '../assets/causalens-light.svg';
 
 const BuiltWithLink = styled.a`
     display: flex;

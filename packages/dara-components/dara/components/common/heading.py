@@ -68,6 +68,8 @@ class Heading(ContentComponent):
     :param level: The level of heading to display, defaults to 1
     """
 
+    js_source = '@darajs/components/heading'
+
     heading: str | ClientVariable
     level: int = 1
 
