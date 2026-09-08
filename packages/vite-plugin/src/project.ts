@@ -11,7 +11,7 @@ import { createServer, loadConfigFromFile, resolveConfig } from "vite";
 import { parse as parseYaml } from "yaml";
 import { ProjectError, errorMessage, parseManifest, sourcePackage } from "./contract.js";
 import { checkUserConfig, type Serving } from "./ownership.js";
-import { atomicWrite, inside, readPackageJson, workspaceRoot } from "./files.js";
+import { atomicWrite, fileHash, inside, readPackageJson, workspaceRoot } from "./files.js";
 
 export interface DaraPluginApi {
   project: Project | null;
@@ -220,7 +220,29 @@ async function resolveProjectConfig(
   }
   const env = { command, mode: command === "serve" ? "development" : "production" };
   process.env["NODE_ENV"] = env.mode;
+  const initial = await loadConfigFromFile(env, file, root, "warn");
+  const envRoot = path.resolve(root, initial?.config.envDir ?? ".");
+  const envFiles = [".env", ".env.local", `.env.${env.mode}`, `.env.${env.mode}.local`].map(
+    (name) => path.join(envRoot, name),
+  );
+  const hashes = new Map(
+    [file, ...(initial?.dependencies ?? []), ...envFiles].map((input) => [
+      input,
+      fs.existsSync(input) ? fileHash(input) : null,
+    ]),
+  );
+  // Reload with the discovered dependency set fingerprinted before evaluation.
   const loaded = await loadConfigFromFile(env, file, root, "warn");
+  if (
+    loaded?.dependencies.some((input) => !hashes.has(input)) ||
+    [...hashes].some(([input, hash]) => (fs.existsSync(input) ? fileHash(input) : null) !== hash)
+  ) {
+    throw new ProjectError(
+      "build.changed",
+      `${file} or its imports changed during configuration loading`,
+      "retry the command",
+    );
+  }
   if (!loaded) {
     throw new ProjectError("vite.config", `Unable to load ${file}`, "edit vite.config.ts");
   }
@@ -255,6 +277,7 @@ async function resolveProjectConfig(
     config: resolved,
     api: plugin.api,
     configInputs: [file, ...loaded.dependencies],
+    configHashes: hashes,
   };
 }
 
@@ -374,7 +397,6 @@ export async function loadProject(
     manifest,
     packageJson,
     typescript,
-    initialHashes: typescript.hashes,
     ...chosen,
     inputs: new Set([
       ...dependencyInputs,
@@ -388,6 +410,10 @@ export async function loadProject(
     state: "waiting",
     base: "/static/",
     workspacePackages: graph.packages,
+    initialHashes: new Map([
+      ...typescript.hashes,
+      ...configs.flatMap((config) => [...config.configHashes]),
+    ]),
   };
   await checkLibraryOutput(project);
   return project;
