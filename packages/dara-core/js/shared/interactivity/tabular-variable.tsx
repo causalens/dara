@@ -114,7 +114,7 @@ export async function fetchTabularServerVariable({
     variable,
     // Explicitly unused, required for the callback dependency to ensure its identity changes
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    seqNumber,
+    seqNumber: _seqNumber,
     wsClient,
     extras,
     filters = null,

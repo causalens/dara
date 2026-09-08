@@ -99,7 +99,7 @@ const RetryButton = styled.button`
 `;
 
 interface ErrorDisplayProps extends Partial<FallbackProps> {
-    config?: ErrorHandlingConfig;
+    config?: ErrorHandlingConfig | undefined;
 }
 
 function ErrorDisplay(props: ErrorDisplayProps): JSX.Element {

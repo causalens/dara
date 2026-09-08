@@ -21,7 +21,7 @@ import { Button as UiButton } from '@darajs/ui-components';
 import { ComponentType } from '../constants';
 
 type OmitFromMappedType<Type, ToOmit> = {
-    [Property in keyof Type as Exclude<Property, ToOmit>]: Type[Property];
+    [Property in keyof Type as string extends Property ? never : Exclude<Property, ToOmit>]: Type[Property];
 };
 
 type ButtonProps = OmitFromMappedType<StyledComponentProps, 'children'> &

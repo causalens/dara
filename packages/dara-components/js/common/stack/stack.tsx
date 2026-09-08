@@ -15,7 +15,10 @@ import styled from '@darajs/styled-components';
 
 // The props are actually used deep within the useComponentStyles etc hooks
 /* eslint-disable react/no-unused-prop-types */
-interface StackProps extends LayoutComponentProps {
+type ExplicitLayoutProps = {
+    [Key in keyof LayoutComponentProps as string extends Key ? never : Key]: LayoutComponentProps[Key];
+};
+interface StackProps extends ExplicitLayoutProps {
     children: Array<ComponentInstance>;
     className: string;
     collapsed: Variable<boolean>;

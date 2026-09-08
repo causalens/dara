@@ -396,7 +396,7 @@ function backendStoreEffect<T>(
 export function getSessionKey(uid: string): string {
     // If we're within an IFrame (Jupyter)
     if (isEmbedded()) {
-        return `dara-session-${(window.frameElement as HTMLIFrameElement).dataset.daraPageId}-var-${uid}`;
+        return `dara-session-${(window.frameElement as HTMLIFrameElement).dataset['daraPageId']}-var-${uid}`;
     }
 
     return `dara-session-${getSessionIdentifier()}-var-${uid}`;

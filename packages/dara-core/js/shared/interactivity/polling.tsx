@@ -18,42 +18,42 @@ interface Subscriber {
 interface ActiveRun {
     done: Promise<void>;
     controller: AbortController;
-    detachExternalSignal?: () => void;
-    inputKey?: string;
+    detachExternalSignal?: (() => void) | undefined;
+    inputKey?: string | undefined;
     generation: number;
     end: () => void;
-    result?: Promise<unknown>;
+    result?: Promise<unknown> | undefined;
     cause: RunCause;
 }
 
 type RunState = { kind: 'idle' } | { kind: 'running'; run: ActiveRun } | { kind: 'starting' };
 
 interface Entry {
-    disposeTimer?: TimerHandle;
+    disposeTimer?: TimerHandle | undefined;
     failureCount: number;
     generation: number;
-    nextRunAt?: number;
+    nextRunAt?: number | undefined;
     owners: Set<string>;
     runAgain: boolean;
     runOnShow: boolean;
     state: RunState;
     subscribers: Map<symbol, Subscriber>;
-    timer?: TimerHandle;
+    timer?: TimerHandle | undefined;
 }
 
 interface PollerOptions {
-    clearTimeout?: (timer: TimerHandle) => void;
-    getVisibilityState?: () => DocumentVisibilityState;
-    jitterRatio?: number;
-    now?: () => number;
-    random?: () => number;
-    setTimeout?: (callback: () => void, delay: number) => TimerHandle;
-    visibilityTarget?: Pick<Document, 'addEventListener' | 'removeEventListener'>;
+    clearTimeout?: ((timer: TimerHandle) => void) | undefined;
+    getVisibilityState?: (() => DocumentVisibilityState) | undefined;
+    jitterRatio?: number | undefined;
+    now?: (() => number) | undefined;
+    random?: (() => number) | undefined;
+    setTimeout?: ((callback: () => void, delay: number) => TimerHandle) | undefined;
+    visibilityTarget?: Pick<Document, 'addEventListener' | 'removeEventListener'> | undefined;
 }
 
 interface PollOwner {
     claims: Map<string, string>;
-    disposeTimer?: TimerHandle;
+    disposeTimer?: TimerHandle | undefined;
     hooks: Map<string, string>;
     renderKeys: Set<string>;
     timers: Map<string, TimerHandle>;
@@ -72,7 +72,7 @@ type RunOutcome =
           status: 'success';
       }
     | {
-          retryAfterMs?: number;
+          retryAfterMs?: number | undefined;
           status: 'error';
       };
 
@@ -91,10 +91,10 @@ export type SavedValue<T> = { found: false } | { found: true; value: T };
 
 export interface PollRun<T> {
     cause: RunCause;
-    inputKey?: string;
+    inputKey?: string | undefined;
     key: string;
-    read?: () => SavedValue<T>;
-    signal?: AbortSignal;
+    read?: (() => SavedValue<T>) | undefined;
+    signal?: AbortSignal | undefined;
     work: (signal: AbortSignal) => Promise<T>;
     write: (value: T) => void;
 }
@@ -134,7 +134,7 @@ export class Poller {
     readonly #now: () => number;
     readonly #random: () => number;
     readonly #setTimeout: (callback: () => void, delay: number) => TimerHandle;
-    readonly #visibilityTarget?: Pick<Document, 'addEventListener' | 'removeEventListener'>;
+    readonly #visibilityTarget: Pick<Document, 'addEventListener' | 'removeEventListener'> | undefined;
     readonly #owners = new Map<string, PollOwner>();
 
     #listeningForVisibility = false;
@@ -439,7 +439,7 @@ export class Poller {
     }: {
         cause: RunCause;
         handle: RunHandle;
-        read?: () => SavedValue<T>;
+        read?: (() => SavedValue<T>) | undefined;
         work: (signal: AbortSignal) => Promise<T>;
         write: (value: T) => void;
     }): Promise<T> {

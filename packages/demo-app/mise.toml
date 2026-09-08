@@ -1,3 +1,7 @@
+[tools]
+node = "24.13.0"
+pnpm = "12.4.0"
+
 [tasks.lint]
 description = "Lint the playground application"
 run = "uv run --locked --package demo-app --group dev ruff check ."
