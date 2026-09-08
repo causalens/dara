@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-import { type WebSocketClientInterface } from '@/api/websocket';
+import { type WebSocketClientInterface } from '../../api/websocket';
 
 interface WebsocketCtx {
     client: WebSocketClientInterface;

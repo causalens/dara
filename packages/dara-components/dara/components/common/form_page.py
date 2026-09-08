@@ -48,6 +48,8 @@ class FormPage(FormComponent):
     :param title: The title of the form page
     """
 
+    js_source = '@darajs/components/form-page'
+
     title: str | None = None
 
     @field_validator('children')

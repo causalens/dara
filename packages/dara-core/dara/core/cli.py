@@ -1,266 +1,246 @@
-"""
-Copyright 2023 Impulse Innovations Limited
+"""Dara commands describe operations; only development prepares project files automatically."""
 
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-
-import logging
+import json
 import os
-import pathlib
-import subprocess
+import sys
+from contextlib import redirect_stdout
+from pathlib import Path
 
 import uvicorn
 
 import click
-from click.exceptions import UsageError
-from dara.core.configuration import ConfigurationBuilder
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
-from dara.core.internal.utils import find_module_path, import_config
-from dara.core.js_tooling.dev_server import DevServerInfo, DevServerSettings
-from dara.core.js_tooling.js_utils import JsConfig, setup_js_scaffolding
+from dara.core.js_tooling.models import ProjectError
+from dara.core.js_tooling.project import (
+    check_toolchain,
+    dependency_plan,
+    derive_manifest,
+    load_configuration,
+    lockfile_agrees,
+    prepare_project,
+    resolve_config,
+    run_plugin,
+    write_manifest,
+)
+from dara.core.js_tooling.runtime import validate_build
+from dara.core.js_tooling.supervisor import supervise
 
-LOG_CONFIG_PATH = os.path.join(pathlib.Path(__file__).parent, 'log_configs')
 
-DEFAULT_PORT = 8000
-DEFAULT_METRICS_PORT = 10000
-PORT_RANGE = 100
+class DaraGroup(click.Group):
+    """Translate shared project errors into command failures with stable repairing guidance."""
 
-logger = logging.getLogger(__name__)
+    def invoke(self, ctx):
+        """Keep domain diagnostics separate from Click's argument parsing."""
+        try:
+            return super().invoke(ctx)
+        except ProjectError as error:
+            raise click.ClickException(f'{error.diagnostic.code}: {error}. Fix: {error.diagnostic.fix}') from error
+
+
+@click.group(cls=DaraGroup)
+def cli():
+    """Develop, build and serve a Dara application."""
 
 
 def _resolve_config_path(config: str | None) -> str:
-    """Resolve an explicit config path or infer the conventional path from the current directory."""
-    if config is not None:
-        return config
-
-    folder_name = os.path.basename(os.getcwd()).replace('-', '_')
-    return f'{folder_name}.main:config'
+    return resolve_config(Path.cwd(), config)
 
 
-@click.group()
-def cli():
-    pass
+def _serving_options(function):
+    options = [
+        click.option('--config', help='Override [tool.dara].config with module:object'),
+        click.option('--port', type=click.IntRange(1, 65535)),
+        click.option('--host', default='0.0.0.0', show_default=True),
+        click.option('--base-url', default=lambda: os.environ.get('DARA_BASE_URL', '')),
+        click.option('--metrics-port', type=click.IntRange(1, 65535)),
+        click.option('--disable-metrics', is_flag=True),
+        click.option('--debug', default=lambda: os.environ.get('DARA_DEBUG_LOG_LEVEL', 'NONE')),
+        click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', 'NONE')),
+    ]
+    for option in reversed(options):
+        function = option(function)
+    return function
+
+
+def _serving(
+    command: str,
+    config: str | None,
+    host: str,
+    port: int | None,
+    base_url: str,
+    metrics_port: int | None,
+    disable_metrics: bool,
+    debug: str,
+    log: str,
+) -> tuple[str, dict]:
+    reference = _resolve_config_path(config)
+    if base_url and (not base_url.startswith('/') or any(c in base_url for c in ('?', '#', '\\'))):
+        raise click.UsageError('--base-url must be an absolute URL path, for example /apps/demo')
+    os.environ.update(
+        {
+            'DARA_COMMAND': command,
+            'DARA_CONFIG_PATH': reference,
+            'DARA_BASE_URL': base_url.rstrip('/'),
+            'DARA_DISABLE_METRICS': 'TRUE' if disable_metrics else 'FALSE',
+            'DARA_DEBUG_LOG_LEVEL': debug,
+            'DARA_DEV_LOG_LEVEL': log,
+        }
+    )
+    if not disable_metrics:
+        os.environ['DARA_METRICS_PORT'] = str(metrics_port or find_available_port(host, 10000, 10100))
+    return reference, {
+        'host': host,
+        'port': port or find_available_port(host, 8000, 8100),
+        'root_path': base_url.rstrip('/'),
+        'log_config': str(Path(__file__).parent / 'log_configs/logging.yaml'),
+    }
 
 
 @cli.command()
-@click.option('--reload', is_flag=True, help='Whether to reload the app on Python code changes')
-@click.option('--enable-hmr', is_flag=True, help='Whether to enable Hot Module Reloading for custom JS')
-@click.option('--production', is_flag=True, help='Whether to build the JS for production without custom JS')
-@click.option('--config', help='The path to the config for the application')
-@click.option('--port', help='The port to run on', type=int)
-@click.option('--metrics-port', help='The port for the metrics server to run on', type=int)
-@click.option('--disable-metrics', is_flag=True, help='Whether to disable the metrics server')
-@click.option('--host', default='0.0.0.0', help='The host to run on')  # nosec B104 # default for local dev
-@click.option('--rebuild', is_flag=True, help='Whether to force a rebuild of the app')
-@click.option('--require-sso', is_flag=True, help='Whether to enforce that an SSO auth config is used')
-@click.option('--docker', is_flag=True, help='Whether to run in Docker mode - assumes assets are prebuilt')
-@click.option('--debug', default=lambda: os.environ.get('DARA_DEBUG_LOG_LEVEL', None), help='Debug logger level to use')
-@click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', None), help='Dev logger level to use')
-@click.option('--reload-dir', multiple=True, help='Directories to watch for reload')
-@click.option('--skip-jsbuild', is_flag=True, help='Whether to skip building the JS assets')
-@click.option('--dev-port', type=click.IntRange(1, 65535), help='The port used by the Vite development server')
-@click.option(
-    '--base-url',
-    default=lambda: os.environ.get('DARA_BASE_URL', None),
-    help='An optional base_url for running a Dara app behind a proxy',
-)
-def start(
-    reload: bool,
-    enable_hmr: bool,
-    production: bool,
-    config: str | None,
-    port: int | None,
-    metrics_port: int | None,
-    disable_metrics: bool,
-    host: str,
-    rebuild: bool,
-    require_sso: bool,
-    docker: bool,
-    debug: str | None,
-    log: str | None,
-    reload_dir: list[str] | None,
-    skip_jsbuild: bool,
-    dev_port: int | None,
-    base_url: str | None,
+@_serving_options
+@click.option('--api-docs', is_flag=True, help='Expose API documentation in deployment posture')
+@click.option('--require-sso', is_flag=True, help='Require an SSO authentication configuration')
+def start(api_docs: bool, require_sso: bool, **options):
+    """Serve an existing build without Node, pnpm, installation or reload."""
+    _, serving = _serving('start', **options)
+    os.environ['DARA_API_DOCS'] = 'TRUE' if api_docs else 'FALSE'
+    os.environ['DARA_ENFORCE_SSO'] = 'TRUE' if require_sso else 'FALSE'
+    os.environ['DARA_LIVE_RELOAD'] = 'FALSE'
+    uvicorn.run('dara.core.main:start', factory=True, **serving)
+
+
+@cli.command()
+@_serving_options
+@click.option('--root', type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option('--frozen', is_flag=True, help='Report checked-in drift without repairing it')
+@click.option('--open', 'open_browser', is_flag=True, help='Open the browser once the app is ready')
+@click.option('--no-typecheck', is_flag=True, help='Skip the development TypeScript watcher')
+@click.option('--no-reload', is_flag=True, help='Run Python in this process for an IDE debugger')
+@click.option('--frontend-only', is_flag=True)
+@click.option('--backend-only', is_flag=True)
+@click.option('--reload-dir', 'reload_dirs', multiple=True, type=click.Path(exists=True, file_okay=False))
+def dev(
+    root: Path | None,
+    frozen: bool,
+    open_browser: bool,
+    no_typecheck: bool,
+    no_reload: bool,
+    frontend_only: bool,
+    backend_only: bool,
+    reload_dirs: tuple[str, ...],
+    **options,
 ):
-    if dev_port is not None and not enable_hmr:
-        raise UsageError('--dev-port requires --enable-hmr')
+    """Prepare the frontend and supervise Python, Vite, type checking and reload."""
+    if root:
+        os.chdir(root)
+    root = Path.cwd().resolve()
+    reference, serving = _serving('dev', **options)
+    os.environ['DARA_LIVE_RELOAD'] = 'FALSE' if no_reload or frontend_only else 'TRUE'
+    os.environ['DARA_ENFORCE_SSO'] = 'FALSE'
+    if not backend_only:
+        check_toolchain()
+    supervise(
+        root,
+        reference,
+        serving,
+        frozen=frozen,
+        no_typecheck=no_typecheck,
+        no_reload=no_reload,
+        frontend_only=frontend_only,
+        backend_only=backend_only,
+        open_browser=open_browser,
+        reload_dirs=reload_dirs,
+    )
 
-    config = _resolve_config_path(config)
 
-    # Set the config path env var so main can pick it up
-    os.environ['DARA_CONFIG_PATH'] = config
+def _manifest(config: str | None, output: str | None = None):
+    root = Path.cwd().resolve()
+    reference = resolve_config(root, config)
+    return root, derive_manifest(load_configuration(reference), root, reference, output)
 
-    # If not provided find an available one in the range
-    if port is None:
-        port = find_available_port(host, DEFAULT_PORT, DEFAULT_PORT + PORT_RANGE)
 
-    # disable the running of the metrics server
-    os.environ['DARA_DISABLE_METRICS'] = 'TRUE' if disable_metrics else 'FALSE'
+@cli.command()
+@click.option('--config')
+def lock(config: str | None):
+    """Prepare declared dependencies and missing project files without starting a server."""
+    root, manifest = _manifest(config)
+    prepare_project(root, manifest)
 
-    # Set the port for metrics to run on
-    if not disable_metrics:
-        # If not provided find an available one in the range
-        if metrics_port is None:
-            metrics_port = find_available_port(host, DEFAULT_METRICS_PORT, DEFAULT_METRICS_PORT + PORT_RANGE)
-        os.environ['DARA_METRICS_PORT'] = str(metrics_port)
 
-    # Force app to rebuild assets
-    if rebuild:
-        os.environ['DARA_JS_REBUILD'] = 'TRUE'
+@cli.command()
+@click.option('--config')
+@click.option('--output', type=click.Path(file_okay=False))
+@click.option('--no-deps-build', is_flag=True)
+def build(config: str | None, output: str | None, no_deps_build: bool):
+    """Build deployable output from frozen dependency files, without repairing them."""
+    root, manifest = _manifest(config, output)
+    prepare_project(root, manifest, frozen=True, build=True)
+    write_manifest(root, manifest, 'build')
+    result = run_plugin(root, 'build', None, *(['--no-deps-build'] if no_deps_build else []))
+    click.echo(result.stdout.strip())
 
-    if docker:
-        os.environ['DARA_DOCKER_MODE'] = 'TRUE'
-        os.environ['DARA_REQUIRE_SSO'] = 'TRUE'
 
-    if production:
-        os.environ['DARA_PRODUCTION_MODE'] = 'TRUE'
-
-    # This enables HotModuleReloading when enable_hmr=True
-    if enable_hmr:
-        if dev_port is not None:
-            os.environ['VITE_SERVER_PORT'] = str(dev_port)
-
-        os.environ['DARA_HMR_MODE'] = 'TRUE'
-        os.environ['VITE_HOT_RELOAD'] = 'True'
-        os.environ['VITE_IS_REACT'] = 'True'
+@cli.command()
+@click.option('--config')
+@click.option('--json', 'as_json', is_flag=True)
+def check(config: str | None, as_json: bool):
+    """Report project diagnostics without repairing files or installing dependencies."""
+    diagnostics = []
+    try:
+        tools = check_toolchain()
+        with redirect_stdout(sys.stderr):
+            root, manifest = _manifest(config)
+        if dependency_plan(root, manifest) or not lockfile_agrees(root):
+            raise ProjectError(
+                'dependency.drift', 'Project declarations and lockfile disagree; run dara lock and commit the result'
+            )
+        result = run_plugin(root, 'check', manifest)
+        runtime = json.loads(result.stdout)['runtime']
+        diagnostics.append(
+            {
+                'code': 'toolchain.ready',
+                'message': f'PATH node {tools["node"]}, pnpm {tools["pnpm"]}; plugin runtime {runtime}',
+                'fix': '',
+            }
+        )
+        if (Path(manifest.out_dir) / '.dara-build.json').exists():
+            validate_build(root, manifest)
+        diagnostics.append({'code': 'project.ready', 'message': 'Frontend project is consistent', 'fix': ''})
+    except ProjectError as error:
+        diagnostics.append(error.diagnostic.model_dump())
+    except Exception as error:
+        diagnostics.append(
+            {
+                'code': 'project.import',
+                'message': str(error),
+                'fix': 'fix the application configuration, then run dara check',
+            }
+        )
+    if as_json:
+        click.echo(json.dumps(diagnostics))
     else:
-        os.environ['DARA_HMR_MODE'] = 'FALSE'
-        os.environ['VITE_HOT_RELOAD'] = 'False'
-        os.environ['VITE_IS_REACT'] = 'False'
+        for diagnostic in diagnostics:
+            click.echo(
+                f'{diagnostic["code"]}: {diagnostic["message"]}'
+                + (f'. Fix: {diagnostic["fix"]}' if diagnostic['fix'] else '')
+            )
+    if any(d['fix'] for d in diagnostics):
+        raise click.exceptions.Exit(1)
 
-    # Tell frontend to restart on WS reconnection
-    if reload:
-        os.environ['DARA_LIVE_RELOAD'] = 'TRUE'
 
-    # Skip rebuild js assets
-    if skip_jsbuild:
-        os.environ['SKIP_JSBUILD'] = 'TRUE'
-
-    # Ensure the base_url is set as an env var as well
-    if base_url:
-        os.environ['DARA_BASE_URL'] = base_url
-        os.environ['VITE_STATIC_URL'] = f'{base_url}/static/'
-    else:
-        # Needs to match where the static files are mounted at in the router
-        os.environ['VITE_STATIC_URL'] = '/static/'
-
-    # Check that if production/dev mode is set, node is installed - unless we're in docker mode, or explicitly skipping jsbuild
-    if not docker and not skip_jsbuild and (production or enable_hmr):
-        exit_code = os.system('node -v')
-
-        if exit_code > 0:
-            raise SystemError('NodeJS is required in production mode.')
-
-    logging_config = os.path.join(LOG_CONFIG_PATH, 'logging.yaml')
-
-    os.environ['DARA_DEBUG_LOG_LEVEL'] = debug or 'NONE'
-    os.environ['DARA_DEV_LOG_LEVEL'] = log or 'NONE'
-
-    limit_max_requests = None
-
-    env_limit = os.environ.get('LIMIT_MAX_REQUESTS', None)
-    if env_limit is not None and env_limit.isnumeric():
-        limit_max_requests = int(env_limit)
-
-    # Set the flag to check at runtime
-    if require_sso:
-        os.environ['DARA_ENFORCE_SSO'] = 'TRUE'
-
-    dirs_to_watch = None
-
-    if reload:
-        # If specified, use the provided directories
-        if reload_dir:
-            dirs_to_watch = reload_dir
-        else:
-            # Otherwise try to infer the path to watch
-            try:
-                module_parent = find_module_path(config)
-                dirs_to_watch = [module_parent]
-            except Exception as e:
-                logger.warn(f'Could not infer path to watch: {str(e)}')
-
-    # Exclude node_modules to prevent watcher trying to parse node_modules its symlinks
-    uvicorn.run(
-        'dara.core.main:start',
-        host=host,
-        port=port,
-        reload=reload,
-        reload_dirs=dirs_to_watch,
-        log_config=logging_config,
-        limit_max_requests=limit_max_requests,
-        lifespan='on',
-        # This matches the default on the uvicorn cli
-        root_path='' if base_url is None else base_url,
+@cli.command(hidden=True)
+def setup_custom_js():
+    """Explain the removed optional custom-JS setup workflow."""
+    raise click.ClickException(
+        'Every app now has js/index.tsx. Run dara dev to prepare the project, or dara migrate for legacy configuration.'
     )
 
 
 @cli.command()
-def setup_custom_js():
-    setup_js_scaffolding()
-
-
-@cli.command()
-@click.option('--config', help='The path to the config for the application')
-@click.option('--port', type=click.IntRange(1, 65535), help='The port used by the Vite development server')
-def dev(config: str | None, port: int | None):
-    # Run vite dev command, printing output live
-    js_config = JsConfig.from_file()
-    config_path = _resolve_config_path(config)
-    _, app_config = import_config(config_path)
-
-    if not isinstance(app_config, ConfigurationBuilder):
-        raise UsageError(f'"config" object in {config_path} is not an instance of ConfigurationBuilder')
-
-    package_manager = 'npm'
-
-    if js_config and js_config.package_manager:
-        package_manager = js_config.package_manager
-
-    dev_server_settings = DevServerSettings(port=port) if port is not None else DevServerSettings()
-    vite_env = {
-        **os.environ,
-        **dev_server_settings.as_environment(),
-        'VITE_DARA_DEV_SERVER_INFO': DevServerInfo.from_static_files_dir(
-            app_config.static_files_dir,
-            settings=dev_server_settings,
-        ).encode(),
-    }
-
-    os.chdir(app_config.static_files_dir)
-    with subprocess.Popen(  # nosec B602 # package manager is validated
-        f'{package_manager} run dev',
-        env=vite_env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        shell=True,
-    ) as vite_process:
-        if vite_process.stdout is not None:
-            for line in vite_process.stdout:
-                decoded_line = line.decode('utf-8').strip()
-                if decoded_line != '':
-                    print(decoded_line)
-
-
-@cli.command()
-@click.option('--force', is_flag=True, help='Whether to forcefully re-create .env file even if it exists')
+@click.option('--force', is_flag=True, help='Re-create .env even if it exists')
 def generate_env(force: bool):
-    env_path = os.path.join(os.getcwd(), '.env')
-
-    if os.path.isfile(env_path) and not force:
-        raise UsageError('.env file already exists, use --force to re-create it')
-
+    """Generate the application's Python environment configuration."""
+    if Path('.env').is_file() and not force:
+        raise click.UsageError('.env file already exists, use --force to re-create it')
     generate_env_file()

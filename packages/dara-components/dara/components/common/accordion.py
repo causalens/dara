@@ -245,6 +245,8 @@ class Accordion(LayoutComponent):
      :param onchange: An action to triggered when the component's state changes
     """
 
+    js_source = '@darajs/components/accordion'
+
     initial: int | list[int] | None = 0
     value: Variable[int | list[int]] | int | list[int] | None = 0
     onchange: Action | None = None

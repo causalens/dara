@@ -127,7 +127,7 @@ class VisualEdgeEncoder(StyledComponentInstance):
     :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/visual-edge-encoder'
 
     additional_legends: list[GraphLegend] | None = None
     allow_selection_when_not_editable: bool | None = False

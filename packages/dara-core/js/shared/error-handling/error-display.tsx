@@ -3,10 +3,9 @@ import { type FallbackProps } from 'react-error-boundary';
 
 import styled from '@darajs/styled-components';
 
-import { injectCss, parseRawCss } from '@/shared/utils';
-import { type ErrorHandlingConfig, UserError } from '@/types/core';
-
+import { type ErrorHandlingConfig, UserError } from '../../types/core';
 import { useVariable } from '../interactivity';
+import { injectCss, parseRawCss } from '../utils';
 
 const StyledErrorDisplay = styled.div`
     display: flex;

@@ -80,6 +80,8 @@ class Modal(LayoutComponent):
     :param align: How to align the content of the modal, accepts any flexbox alignments
     """
 
+    js_source = '@darajs/components/modal'
+
     show: ClientVariable
     on_attempt_close: Action | None = None
     on_closed: Action | None = None

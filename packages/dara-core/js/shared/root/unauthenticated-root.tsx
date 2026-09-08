@@ -5,8 +5,7 @@ import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider } from '@darajs/styled-components';
 
-import { GlobalStyle } from '@/global-styles';
-
+import { GlobalStyle } from '../../global-styles';
 import { useConfig } from '../context/config-context';
 import { useVariable } from '../interactivity';
 import { PathParamSync, RouteMatchSync } from '../interactivity/persistence';

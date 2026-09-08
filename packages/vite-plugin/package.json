@@ -1,0 +1,36 @@
+{
+  "name": "@darajs/vite-plugin",
+  "version": "1.29.8",
+  "description": "Dara app-root Vite project loader and runners",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": { "types": "./src/index.d.ts", "default": "./src/index.mjs" },
+    "./tsconfig.json": "./tsconfig.json"
+  },
+  "bin": { "dara-vite": "./src/cli.mjs" },
+  "files": ["src", "tsconfig.json", "README.md"],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "lint": "oxlint src tests",
+    "format:check": "oxfmt src tests --check",
+    "format": "oxfmt src tests --write"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "chokidar": "^4.0.3",
+    "get-tsconfig": "^4.10.1",
+    "semver": "^7.7.2",
+    "vite": "^8.1.0",
+    "yaml": "^2.8.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@darajs/oxfmt-config": "1.29.8",
+    "@darajs/oxlint-config": "1.29.8",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0"
+  },
+  "engines": { "node": ">=22.12.0" },
+  "publishConfig": { "access": "public" }
+}

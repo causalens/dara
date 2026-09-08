@@ -2,10 +2,9 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
-import DefaultFallback from '@/components/fallback/default';
-import { useRouterContext } from '@/router/context';
-import Center from '@/shared/center/center';
-
+import DefaultFallback from '../../components/fallback/default';
+import { useRouterContext } from '../../router/context';
+import Center from '../../shared/center/center';
 import { parseLoginReferrer, requestSessionToken, verifySessionToken } from '../auth';
 
 /**

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added app-root Vite preparation, supervised development, frozen builds and Python-only artifact serving with direct component/action imports.
+
 ## 1.29.11
 
 - Fixed LRU list corruption and size accounting, skipped measuring entries discarded by pinned capacity, and prevented stale TTL expiry records from removing replacement values.

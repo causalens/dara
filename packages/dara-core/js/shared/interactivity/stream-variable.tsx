@@ -31,11 +31,10 @@ import { type AtomEffect, type RecoilState, type RecoilValue, atomFamily, select
 
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface } from '@/api';
-import { type RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
-import { handleAuthErrors } from '@/auth/auth';
-import { type GlobalTaskContext, type StreamVariable, UserError, isVariable } from '@/types';
-
+import { type WebSocketClientInterface } from '../../api';
+import { type RequestExtras, RequestExtrasSerializable, request } from '../../api/http';
+import { handleAuthErrors } from '../../auth/auth';
+import { type GlobalTaskContext, type StreamVariable, UserError, isVariable } from '../../types';
 import { getUniqueIdentifier } from '../utils/hashing';
 import { normalizeRequest } from '../utils/normalization';
 // eslint-disable-next-line import/no-cycle
@@ -464,7 +463,9 @@ function startStreamConnection(
                 return;
             }
 
-            const handledAuthError = await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
+            const handledAuthError = await handleAuthErrors(response, {
+                authenticationFailureRedirect: 'login',
+            });
             if (handledAuthError) {
                 controller.abort();
             }

@@ -1,20 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NProgress from 'nprogress';
+import type { ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RecoilRoot } from 'recoil';
 
 import { ErrorBoundary } from '@darajs/ui-components';
 
-import { ConfigContextProvider, GlobalTaskProvider } from '@/shared/context';
-
 import type { WebSocketClientInterface } from './api';
 import './index.css';
 import RouterRoot from './router/router-root';
 import { type Deferred, DirectionCtx, deferred } from './shared';
-import { preloadAuthComponent } from './shared/dynamic-component/dynamic-auth-component';
-import { preloadComponents } from './shared/dynamic-component/dynamic-component';
-import { preloadActions } from './shared/interactivity/use-action';
-import type { DaraData } from './types';
+import { ConfigContextProvider, GlobalTaskProvider } from './shared/context';
+import { registerAuthComponents } from './shared/dynamic-component/dynamic-auth-component';
+import { registerComponents } from './shared/dynamic-component/dynamic-component';
+import { registerActions } from './shared/interactivity/use-action';
+import type { ActionHandler, DaraData } from './types';
 
 declare global {
     interface Window {
@@ -45,15 +45,15 @@ export function Root(props: { daraData: DaraData; queryClient: QueryClient }): J
     );
 }
 
-/**
- * The main run function for the JS half of the application creates a div and binds the react app onto the tree. It sets
- * up a lot of context providers for the rest of the application. It accepts an object of importers as an argument. An
- * importer is a function that calls a dynamic import statement and allows arbitrary JS code to be loaded into the core
- * application code (DynamicComponent). This object needs to be defined in the client application.
- *
- * @param importers - the importers object.
- */
-async function run(importers: { [k: string]: () => Promise<any> }): Promise<void> {
+/** The single runtime entry contract shared by development and production builds. */
+export interface Implementations {
+    components: Record<string, ComponentType<any>>;
+    actions: Record<string, ActionHandler<any>>;
+    auth: Record<string, ComponentType>;
+}
+
+/** Bootstrap the app from statically imported implementations and Python's runtime data. */
+function run(implementations: Implementations): void {
     const queryClient = new QueryClient();
 
     const daraData: DaraData = JSON.parse(document.getElementById('__DARA_DATA__')!.textContent ?? '{}');
@@ -64,13 +64,9 @@ async function run(importers: { [k: string]: () => Promise<any> }): Promise<void
     // ensure we have a deferred WS client
     window.dara.ws = deferred();
 
-    await Promise.all([
-        // preload auth components to prevent flashing of extra spinners
-        ...Object.values(daraData.auth_components).map((component) => preloadAuthComponent(importers, component)),
-        // preload components and actions for the entire loaded registry
-        preloadComponents(importers, Object.values(daraData.components)),
-        preloadActions(importers, Object.values(daraData.actions)),
-    ]);
+    registerAuthComponents(implementations.auth);
+    registerComponents(implementations.components);
+    registerActions(implementations.actions);
 
     const container = document.getElementById('dara_root')!;
     const root = createRoot(container);

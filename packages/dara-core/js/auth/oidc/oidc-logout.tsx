@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
-import DefaultFallback from '@/components/fallback/default';
-import Center from '@/shared/center/center';
-
+import DefaultFallback from '../../components/fallback/default';
+import Center from '../../shared/center/center';
 import { revokeSession } from '../auth';
 import { runLogout } from '../session-state';
 

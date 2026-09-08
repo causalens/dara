@@ -25,30 +25,25 @@ def env_flag(name: str) -> bool:
 
 
 def is_backend_reload_enabled() -> bool:
-    """Return whether Python backend reload mode is enabled."""
-
-    return env_flag('DARA_LIVE_RELOAD')
-
-
-def is_hmr_enabled() -> bool:
-    """Return whether custom JS hot module reload mode is enabled."""
-
-    return env_flag('DARA_HMR_MODE')
-
-
-def is_docker_mode() -> bool:
-    """Return whether Dara is running in Docker mode."""
-
-    return env_flag('DARA_DOCKER_MODE')
-
-
-def is_production_mode() -> bool:
-    """Return whether Dara is running in production mode."""
-
-    return env_flag('DARA_PRODUCTION_MODE')
+    """Return whether the active development command runs a reloadable backend."""
+    return os.environ.get('DARA_COMMAND') == 'dev' and env_flag('DARA_LIVE_RELOAD')
 
 
 def is_deploy_mode() -> bool:
-    """Return whether Dara is running in a deployment mode."""
+    """Deployment posture comes exclusively from dara start, including local artifact serving."""
+    return os.environ.get('DARA_COMMAND') == 'start'
 
-    return is_docker_mode() or is_production_mode()
+
+def is_hmr_enabled() -> bool:
+    """Internal legacy helper, retained until the old build module is removed."""
+    return os.environ.get('DARA_COMMAND') == 'dev'
+
+
+def is_docker_mode() -> bool:
+    """Internal legacy helper, retained until the old build module is removed."""
+    return is_deploy_mode()
+
+
+def is_production_mode() -> bool:
+    """Internal legacy helper, retained until the old build module is removed."""
+    return is_deploy_mode()

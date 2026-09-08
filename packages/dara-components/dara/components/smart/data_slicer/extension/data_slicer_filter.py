@@ -58,7 +58,7 @@ class DataSlicerFilter(ComponentInstance):
     :param columns: variable holding list of columns
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/data-slicer-filter'
 
     filters: Variable[list[FilterInstance]]
     columns: AnyVariable

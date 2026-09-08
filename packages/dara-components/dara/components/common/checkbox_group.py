@@ -97,6 +97,8 @@ class CheckboxGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
+    js_source = '@darajs/components/checkbox-group'
+
     items: list[Item] | ClientVariable
     select_max: int | None = None
     select_min: int | None = None

@@ -1,4 +1,4 @@
-import { type ActionHandler, type NotifyImpl } from '@/types/core';
+import { type ActionHandler, type NotifyImpl } from '../types/core';
 
 const Notify: ActionHandler<NotifyImpl> = (ctx, actionImpl): void => {
     ctx.notificationCtx.pushNotification({

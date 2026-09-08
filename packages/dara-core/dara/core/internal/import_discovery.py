@@ -180,38 +180,25 @@ def _get_symbol_module(symbol: type[ComponentInstance] | type[ActionImpl]) -> st
     return comp_module
 
 
-def create_component_definition(component: type[ComponentInstance], local: bool = False):
-    """
-    Create a JsComponentDef for a given component class.
-
-    :param component: component to create definition for
-    :param local: whether the component is local.
-    For local components js_module is not required, as their location is defined via dara.config.json
-    """
-    if not local and component.js_module is None:
-        raise RuntimeError('Component must define its js_module if it is not a local component')
-
-    comp_module = 'LOCAL' if local else _get_symbol_module(component)
-
+def create_component_definition(component: type[ComponentInstance]):
+    """Parse a concrete component source while preserving its serialized runtime name."""
+    if component.js_source is None:
+        raise ValueError(
+            f'{component.__module__}.{component.__qualname__} must define js_source; run dara migrate for legacy declarations'
+        )
     return JsComponentDef(
         name=component.py_component or component.__name__,
-        py_module=comp_module,
-        js_component=component.js_component,
-        js_module=component.js_module,
+        py_module=_get_symbol_module(component),
+        js_source=component.js_source,
     )
 
 
-def create_action_definition(action: type[ActionImpl], local: bool = False):
-    """
-    Create a ActionDef for a given action class.
-
-    :param action: action to create definition for
-    :param local: whether the action is local
-    For local actions js_module is not required, as their location is defined via dara.config.json
-    """
-    if not local and action.js_module is None:
-        raise RuntimeError('Action must define its js_module if it is not a local component')
-
-    act_module = 'LOCAL' if local else _get_symbol_module(action)
-
-    return ActionDef(name=action.py_name or action.__name__, py_module=act_module, js_module=action.js_module)
+def create_action_definition(action: type[ActionImpl]):
+    """Parse an action source independently of its existing py_name override."""
+    if action.js_source is None:
+        raise ValueError(
+            f'{action.__module__}.{action.__qualname__} must define js_source; run dara migrate for legacy declarations'
+        )
+    return ActionDef(
+        name=action.py_name or action.__name__, py_module=_get_symbol_module(action), js_source=action.js_source
+    )

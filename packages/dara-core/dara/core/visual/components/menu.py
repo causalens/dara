@@ -20,12 +20,13 @@ from typing_extensions import deprecated
 
 from dara.core.definitions import ComponentInstance, JsComponentDef, TemplateRouterLink
 
-MenuDef = JsComponentDef(name='Menu', js_module='@darajs/core', py_module='dara.core')
+MenuDef = JsComponentDef(name='Menu', js_source='@darajs/core/components/menu', py_module='dara.core')
 
 
 @deprecated(
     'Legacy component used with templates and config.add_page API. Use dara.core.visual.components.MenuLink or NavLink instead.'
 )
 class Menu(ComponentInstance):
+    js_source = '@darajs/core/components/menu'
     routes: list[TemplateRouterLink]
     model_config = ConfigDict(extra='forbid')

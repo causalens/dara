@@ -244,7 +244,7 @@ class CausalGraphViewer(BaseGraphComponent):
     :param zoom_thresholds: Optional user-defined zoom thresholds. See `ZoomThresholds` for more details.
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/causal-graph-viewer'
 
     causal_graph: CausalGraph | DerivedVariable | Variable | dict | Skeleton
     editor_mode: EditorMode | None = None

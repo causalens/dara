@@ -1,9 +1,8 @@
 import { type RecoilState, type RecoilValue, atom } from 'recoil';
 
-import { RequestExtrasSerializable } from '@/api/http';
-import { getUniqueIdentifier } from '@/shared/utils/hashing';
-import { type AnyVariable, isDerivedVariable, isVariable } from '@/types';
-
+import { RequestExtrasSerializable } from '../../api/http';
+import { type AnyVariable, isDerivedVariable, isVariable } from '../../types';
+import { getUniqueIdentifier } from '../utils/hashing';
 import { clearPolling_TEST } from './polling';
 
 /**

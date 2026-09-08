@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-import { type ServerErrorMessage } from '@/api/websocket';
-import WebSocketCtx from '@/shared/context/websocket-context';
+import { type ServerErrorMessage } from '../../api/websocket';
+import WebSocketCtx from '../../shared/context/websocket-context';
 
 /**
  * Helper hook to subscribe to errors coming from the backend

@@ -112,9 +112,561 @@
   ],
   "publishConfig": {
     "access": "public",
-    "timeout": 60000
+    "timeout": 60000,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./setup": {
+        "types": "./dist/setup.d.ts",
+        "default": "./dist/setup.js"
+      },
+      "./bootstrap": {
+        "types": "./dist/run.d.ts",
+        "default": "./dist/run.js"
+      },
+      "./shared/root/authenticated-root": {
+        "types": "./dist/shared/root/authenticated-root.d.ts",
+        "default": "./dist/shared/root/authenticated-root.js"
+      },
+      "./devtools/backend-errors/backend-errors": {
+        "types": "./dist/devtools/backend-errors/backend-errors.d.ts",
+        "default": "./dist/devtools/backend-errors/backend-errors.js"
+      },
+      "./auth/basic/basic-auth-login": {
+        "types": "./dist/auth/basic/basic-auth-login.d.ts",
+        "default": "./dist/auth/basic/basic-auth-login.js"
+      },
+      "./auth/basic/basic-auth-logout": {
+        "types": "./dist/auth/basic/basic-auth-logout.d.ts",
+        "default": "./dist/auth/basic/basic-auth-logout.js"
+      },
+      "./shared/center/center": {
+        "types": "./dist/shared/center/center.d.ts",
+        "default": "./dist/shared/center/center.js"
+      },
+      "./actions/copy-to-clipboard": {
+        "types": "./dist/actions/copy-to-clipboard.d.ts",
+        "default": "./dist/actions/copy-to-clipboard.js"
+      },
+      "./components/fallback/custom": {
+        "types": "./dist/components/fallback/custom.d.ts",
+        "default": "./dist/components/fallback/custom.js"
+      },
+      "./auth/default/default-auth-login": {
+        "types": "./dist/auth/default/default-auth-login.d.ts",
+        "default": "./dist/auth/default/default-auth-login.js"
+      },
+      "./components/fallback/default": {
+        "types": "./dist/components/fallback/default.d.ts",
+        "default": "./dist/components/fallback/default.js"
+      },
+      "./devtools/devtools": {
+        "types": "./dist/devtools/devtools.d.ts",
+        "default": "./dist/devtools/devtools.js"
+      },
+      "./shared/context/direction-context": {
+        "types": "./dist/shared/context/direction-context.d.ts",
+        "default": "./dist/shared/context/direction-context.js"
+      },
+      "./shared/context/display-context": {
+        "types": "./dist/shared/context/display-context.d.ts",
+        "default": "./dist/shared/context/display-context.js"
+      },
+      "./actions/download-content": {
+        "types": "./dist/actions/download-content.d.ts",
+        "default": "./dist/actions/download-content.js"
+      },
+      "./actions/download-variable": {
+        "types": "./dist/actions/download-variable.d.ts",
+        "default": "./dist/actions/download-variable.js"
+      },
+      "./components/public-dynamic-component": {
+        "types": "./dist/components/public-dynamic-component.d.ts",
+        "default": "./dist/components/public-dynamic-component.js"
+      },
+      "./shared/error-handling/error-display": {
+        "types": "./dist/shared/error-handling/error-display.d.ts",
+        "default": "./dist/shared/error-handling/error-display.js"
+      },
+      "./shared/context/fallback-context": {
+        "types": "./dist/shared/context/fallback-context.d.ts",
+        "default": "./dist/shared/context/fallback-context.js"
+      },
+      "./components/for/for": {
+        "types": "./dist/components/for/for.d.ts",
+        "default": "./dist/components/for/for.js"
+      },
+      "./shared/context/global-task-context": {
+        "types": "./dist/shared/context/global-task-context.d.ts",
+        "default": "./dist/shared/context/global-task-context.js"
+      },
+      "./components/link": {
+        "types": "./dist/components/link.d.ts",
+        "default": "./dist/components/link.js"
+      },
+      "./components/match": {
+        "types": "./dist/components/match.d.ts",
+        "default": "./dist/components/match.js"
+      },
+      "./components/menu": {
+        "types": "./dist/components/menu.d.ts",
+        "default": "./dist/components/menu.js"
+      },
+      "./components/menu-link": {
+        "types": "./dist/components/menu-link.d.ts",
+        "default": "./dist/components/menu-link.js"
+      },
+      "./components/navigate": {
+        "types": "./dist/components/navigate.d.ts",
+        "default": "./dist/components/navigate.js"
+      },
+      "./actions/navigate-to": {
+        "types": "./dist/actions/navigate-to.d.ts",
+        "default": "./dist/actions/navigate-to.js"
+      },
+      "./actions/notify": {
+        "types": "./dist/actions/notify.d.ts",
+        "default": "./dist/actions/notify.js"
+      },
+      "./auth/oidc/oidc-login": {
+        "types": "./dist/auth/oidc/oidc-login.d.ts",
+        "default": "./dist/auth/oidc/oidc-login.js"
+      },
+      "./auth/oidc/oidc-logout": {
+        "types": "./dist/auth/oidc/oidc-logout.d.ts",
+        "default": "./dist/auth/oidc/oidc-logout.js"
+      },
+      "./auth/oidc/sso-callback": {
+        "types": "./dist/auth/oidc/sso-callback.d.ts",
+        "default": "./dist/auth/oidc/sso-callback.js"
+      },
+      "./components/outlet": {
+        "types": "./dist/components/outlet.d.ts",
+        "default": "./dist/components/outlet.js"
+      },
+      "./components/powered-by-causalens": {
+        "types": "./dist/components/powered-by-causalens.d.ts",
+        "default": "./dist/components/powered-by-causalens.js"
+      },
+      "./components/progress-tracker": {
+        "types": "./dist/components/progress-tracker.d.ts",
+        "default": "./dist/components/progress-tracker.js"
+      },
+      "./shared/context/request-extras-context": {
+        "types": "./dist/shared/context/request-extras-context.d.ts",
+        "default": "./dist/shared/context/request-extras-context.js"
+      },
+      "./actions/reset-variables": {
+        "types": "./dist/actions/reset-variables.d.ts",
+        "default": "./dist/actions/reset-variables.js"
+      },
+      "./router/route-content": {
+        "types": "./dist/router/route-content.d.ts",
+        "default": "./dist/router/route-content.js"
+      },
+      "./router/router-root": {
+        "types": "./dist/router/router-root.d.ts",
+        "default": "./dist/router/router-root.js"
+      },
+      "./components/fallback/row": {
+        "types": "./dist/components/fallback/row.d.ts",
+        "default": "./dist/components/fallback/row.js"
+      },
+      "./components/side-bar-frame": {
+        "types": "./dist/components/side-bar-frame.d.ts",
+        "default": "./dist/components/side-bar-frame.js"
+      },
+      "./components/theme-provider": {
+        "types": "./dist/components/theme-provider.d.ts",
+        "default": "./dist/components/theme-provider.js"
+      },
+      "./components/top-bar-frame": {
+        "types": "./dist/components/top-bar-frame.d.ts",
+        "default": "./dist/components/top-bar-frame.js"
+      },
+      "./actions/trigger-variable": {
+        "types": "./dist/actions/trigger-variable.d.ts",
+        "default": "./dist/actions/trigger-variable.js"
+      },
+      "./actions/update-variable": {
+        "types": "./dist/actions/update-variable.d.ts",
+        "default": "./dist/actions/update-variable.js"
+      },
+      "./shared/context/variable-context": {
+        "types": "./dist/shared/context/variable-context.d.ts",
+        "default": "./dist/shared/context/variable-context.js"
+      },
+      "./shared/context/websocket-context": {
+        "types": "./dist/shared/context/websocket-context.d.ts",
+        "default": "./dist/shared/context/websocket-context.js"
+      },
+      "./shared/wrapper/wrapper": {
+        "types": "./dist/shared/wrapper/wrapper.d.ts",
+        "default": "./dist/shared/wrapper/wrapper.js"
+      },
+      "./shared/utils/clean-session-cache": {
+        "types": "./dist/shared/utils/clean-session-cache.d.ts",
+        "default": "./dist/shared/utils/clean-session-cache.js"
+      },
+      "./shared/utils/get-icon": {
+        "types": "./dist/shared/utils/get-icon.d.ts",
+        "default": "./dist/shared/utils/get-icon.js"
+      },
+      "./shared/utils/is-js-component": {
+        "types": "./dist/shared/utils/is-js-component.d.ts",
+        "default": "./dist/shared/utils/is-js-component.js"
+      },
+      "./shared/utils/resolve-theme": {
+        "types": "./dist/shared/utils/resolve-theme.d.ts",
+        "default": "./dist/shared/utils/resolve-theme.js"
+      },
+      "./shared/interactivity/use-action": {
+        "types": "./dist/shared/interactivity/use-action.d.ts",
+        "default": "./dist/shared/interactivity/use-action.js"
+      },
+      "./shared/utils/use-component-styles": {
+        "types": "./dist/shared/utils/use-component-styles.d.ts",
+        "default": "./dist/shared/utils/use-component-styles.js"
+      },
+      "./shared/utils/use-defer-loadable": {
+        "types": "./dist/shared/utils/use-defer-loadable.d.ts",
+        "default": "./dist/shared/utils/use-defer-loadable.js"
+      },
+      "./shared/utils/use-interval": {
+        "types": "./dist/shared/utils/use-interval.d.ts",
+        "default": "./dist/shared/utils/use-interval.js"
+      },
+      "./shared/utils/use-previous": {
+        "types": "./dist/shared/utils/use-previous.d.ts",
+        "default": "./dist/shared/utils/use-previous.js"
+      },
+      "./shared/interactivity/use-refresh-selector": {
+        "types": "./dist/shared/interactivity/use-refresh-selector.d.ts",
+        "default": "./dist/shared/interactivity/use-refresh-selector.js"
+      },
+      "./shared/utils/use-url-sync": {
+        "types": "./dist/shared/utils/use-url-sync.d.ts",
+        "default": "./dist/shared/utils/use-url-sync.js"
+      },
+      "./shared/interactivity/use-variable-state": {
+        "types": "./dist/shared/interactivity/use-variable-state.d.ts",
+        "default": "./dist/shared/interactivity/use-variable-state.js"
+      },
+      "./shared/utils/use-window-title": {
+        "types": "./dist/shared/utils/use-window-title.d.ts",
+        "default": "./dist/shared/utils/use-window-title.js"
+      }
+    }
   },
   "engines": {
     "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./setup": {
+      "dara-source": "./js/setup.ts",
+      "types": "./dist/setup.d.ts",
+      "default": "./dist/setup.js"
+    },
+    "./bootstrap": {
+      "dara-source": "./js/run.tsx",
+      "types": "./dist/run.d.ts",
+      "default": "./dist/run.js"
+    },
+    "./shared/root/authenticated-root": {
+      "dara-source": "./js/shared/root/authenticated-root.tsx",
+      "types": "./dist/shared/root/authenticated-root.d.ts",
+      "default": "./dist/shared/root/authenticated-root.js"
+    },
+    "./devtools/backend-errors/backend-errors": {
+      "dara-source": "./js/devtools/backend-errors/backend-errors.tsx",
+      "types": "./dist/devtools/backend-errors/backend-errors.d.ts",
+      "default": "./dist/devtools/backend-errors/backend-errors.js"
+    },
+    "./auth/basic/basic-auth-login": {
+      "dara-source": "./js/auth/basic/basic-auth-login.tsx",
+      "types": "./dist/auth/basic/basic-auth-login.d.ts",
+      "default": "./dist/auth/basic/basic-auth-login.js"
+    },
+    "./auth/basic/basic-auth-logout": {
+      "dara-source": "./js/auth/basic/basic-auth-logout.tsx",
+      "types": "./dist/auth/basic/basic-auth-logout.d.ts",
+      "default": "./dist/auth/basic/basic-auth-logout.js"
+    },
+    "./shared/center/center": {
+      "dara-source": "./js/shared/center/center.tsx",
+      "types": "./dist/shared/center/center.d.ts",
+      "default": "./dist/shared/center/center.js"
+    },
+    "./actions/copy-to-clipboard": {
+      "dara-source": "./js/actions/copy-to-clipboard.tsx",
+      "types": "./dist/actions/copy-to-clipboard.d.ts",
+      "default": "./dist/actions/copy-to-clipboard.js"
+    },
+    "./components/fallback/custom": {
+      "dara-source": "./js/components/fallback/custom.tsx",
+      "types": "./dist/components/fallback/custom.d.ts",
+      "default": "./dist/components/fallback/custom.js"
+    },
+    "./auth/default/default-auth-login": {
+      "dara-source": "./js/auth/default/default-auth-login.tsx",
+      "types": "./dist/auth/default/default-auth-login.d.ts",
+      "default": "./dist/auth/default/default-auth-login.js"
+    },
+    "./components/fallback/default": {
+      "dara-source": "./js/components/fallback/default.tsx",
+      "types": "./dist/components/fallback/default.d.ts",
+      "default": "./dist/components/fallback/default.js"
+    },
+    "./devtools/devtools": {
+      "dara-source": "./js/devtools/devtools.tsx",
+      "types": "./dist/devtools/devtools.d.ts",
+      "default": "./dist/devtools/devtools.js"
+    },
+    "./shared/context/direction-context": {
+      "dara-source": "./js/shared/context/direction-context.tsx",
+      "types": "./dist/shared/context/direction-context.d.ts",
+      "default": "./dist/shared/context/direction-context.js"
+    },
+    "./shared/context/display-context": {
+      "dara-source": "./js/shared/context/display-context.tsx",
+      "types": "./dist/shared/context/display-context.d.ts",
+      "default": "./dist/shared/context/display-context.js"
+    },
+    "./actions/download-content": {
+      "dara-source": "./js/actions/download-content.tsx",
+      "types": "./dist/actions/download-content.d.ts",
+      "default": "./dist/actions/download-content.js"
+    },
+    "./actions/download-variable": {
+      "dara-source": "./js/actions/download-variable.tsx",
+      "types": "./dist/actions/download-variable.d.ts",
+      "default": "./dist/actions/download-variable.js"
+    },
+    "./components/public-dynamic-component": {
+      "dara-source": "./js/components/public-dynamic-component.tsx",
+      "types": "./dist/components/public-dynamic-component.d.ts",
+      "default": "./dist/components/public-dynamic-component.js"
+    },
+    "./shared/error-handling/error-display": {
+      "dara-source": "./js/shared/error-handling/error-display.tsx",
+      "types": "./dist/shared/error-handling/error-display.d.ts",
+      "default": "./dist/shared/error-handling/error-display.js"
+    },
+    "./shared/context/fallback-context": {
+      "dara-source": "./js/shared/context/fallback-context.tsx",
+      "types": "./dist/shared/context/fallback-context.d.ts",
+      "default": "./dist/shared/context/fallback-context.js"
+    },
+    "./components/for/for": {
+      "dara-source": "./js/components/for/for.tsx",
+      "types": "./dist/components/for/for.d.ts",
+      "default": "./dist/components/for/for.js"
+    },
+    "./shared/context/global-task-context": {
+      "dara-source": "./js/shared/context/global-task-context.tsx",
+      "types": "./dist/shared/context/global-task-context.d.ts",
+      "default": "./dist/shared/context/global-task-context.js"
+    },
+    "./components/link": {
+      "dara-source": "./js/components/link.tsx",
+      "types": "./dist/components/link.d.ts",
+      "default": "./dist/components/link.js"
+    },
+    "./components/match": {
+      "dara-source": "./js/components/match.tsx",
+      "types": "./dist/components/match.d.ts",
+      "default": "./dist/components/match.js"
+    },
+    "./components/menu": {
+      "dara-source": "./js/components/menu.tsx",
+      "types": "./dist/components/menu.d.ts",
+      "default": "./dist/components/menu.js"
+    },
+    "./components/menu-link": {
+      "dara-source": "./js/components/menu-link.tsx",
+      "types": "./dist/components/menu-link.d.ts",
+      "default": "./dist/components/menu-link.js"
+    },
+    "./components/navigate": {
+      "dara-source": "./js/components/navigate.tsx",
+      "types": "./dist/components/navigate.d.ts",
+      "default": "./dist/components/navigate.js"
+    },
+    "./actions/navigate-to": {
+      "dara-source": "./js/actions/navigate-to.tsx",
+      "types": "./dist/actions/navigate-to.d.ts",
+      "default": "./dist/actions/navigate-to.js"
+    },
+    "./actions/notify": {
+      "dara-source": "./js/actions/notify.tsx",
+      "types": "./dist/actions/notify.d.ts",
+      "default": "./dist/actions/notify.js"
+    },
+    "./auth/oidc/oidc-login": {
+      "dara-source": "./js/auth/oidc/oidc-login.tsx",
+      "types": "./dist/auth/oidc/oidc-login.d.ts",
+      "default": "./dist/auth/oidc/oidc-login.js"
+    },
+    "./auth/oidc/oidc-logout": {
+      "dara-source": "./js/auth/oidc/oidc-logout.tsx",
+      "types": "./dist/auth/oidc/oidc-logout.d.ts",
+      "default": "./dist/auth/oidc/oidc-logout.js"
+    },
+    "./auth/oidc/sso-callback": {
+      "dara-source": "./js/auth/oidc/sso-callback.tsx",
+      "types": "./dist/auth/oidc/sso-callback.d.ts",
+      "default": "./dist/auth/oidc/sso-callback.js"
+    },
+    "./components/outlet": {
+      "dara-source": "./js/components/outlet.tsx",
+      "types": "./dist/components/outlet.d.ts",
+      "default": "./dist/components/outlet.js"
+    },
+    "./components/powered-by-causalens": {
+      "dara-source": "./js/components/powered-by-causalens.tsx",
+      "types": "./dist/components/powered-by-causalens.d.ts",
+      "default": "./dist/components/powered-by-causalens.js"
+    },
+    "./components/progress-tracker": {
+      "dara-source": "./js/components/progress-tracker.tsx",
+      "types": "./dist/components/progress-tracker.d.ts",
+      "default": "./dist/components/progress-tracker.js"
+    },
+    "./shared/context/request-extras-context": {
+      "dara-source": "./js/shared/context/request-extras-context.tsx",
+      "types": "./dist/shared/context/request-extras-context.d.ts",
+      "default": "./dist/shared/context/request-extras-context.js"
+    },
+    "./actions/reset-variables": {
+      "dara-source": "./js/actions/reset-variables.tsx",
+      "types": "./dist/actions/reset-variables.d.ts",
+      "default": "./dist/actions/reset-variables.js"
+    },
+    "./router/route-content": {
+      "dara-source": "./js/router/route-content.tsx",
+      "types": "./dist/router/route-content.d.ts",
+      "default": "./dist/router/route-content.js"
+    },
+    "./router/router-root": {
+      "dara-source": "./js/router/router-root.tsx",
+      "types": "./dist/router/router-root.d.ts",
+      "default": "./dist/router/router-root.js"
+    },
+    "./components/fallback/row": {
+      "dara-source": "./js/components/fallback/row.tsx",
+      "types": "./dist/components/fallback/row.d.ts",
+      "default": "./dist/components/fallback/row.js"
+    },
+    "./components/side-bar-frame": {
+      "dara-source": "./js/components/side-bar-frame.tsx",
+      "types": "./dist/components/side-bar-frame.d.ts",
+      "default": "./dist/components/side-bar-frame.js"
+    },
+    "./components/theme-provider": {
+      "dara-source": "./js/components/theme-provider.tsx",
+      "types": "./dist/components/theme-provider.d.ts",
+      "default": "./dist/components/theme-provider.js"
+    },
+    "./components/top-bar-frame": {
+      "dara-source": "./js/components/top-bar-frame.tsx",
+      "types": "./dist/components/top-bar-frame.d.ts",
+      "default": "./dist/components/top-bar-frame.js"
+    },
+    "./actions/trigger-variable": {
+      "dara-source": "./js/actions/trigger-variable.tsx",
+      "types": "./dist/actions/trigger-variable.d.ts",
+      "default": "./dist/actions/trigger-variable.js"
+    },
+    "./actions/update-variable": {
+      "dara-source": "./js/actions/update-variable.tsx",
+      "types": "./dist/actions/update-variable.d.ts",
+      "default": "./dist/actions/update-variable.js"
+    },
+    "./shared/context/variable-context": {
+      "dara-source": "./js/shared/context/variable-context.tsx",
+      "types": "./dist/shared/context/variable-context.d.ts",
+      "default": "./dist/shared/context/variable-context.js"
+    },
+    "./shared/context/websocket-context": {
+      "dara-source": "./js/shared/context/websocket-context.tsx",
+      "types": "./dist/shared/context/websocket-context.d.ts",
+      "default": "./dist/shared/context/websocket-context.js"
+    },
+    "./shared/wrapper/wrapper": {
+      "dara-source": "./js/shared/wrapper/wrapper.tsx",
+      "types": "./dist/shared/wrapper/wrapper.d.ts",
+      "default": "./dist/shared/wrapper/wrapper.js"
+    },
+    "./shared/utils/clean-session-cache": {
+      "dara-source": "./js/shared/utils/clean-session-cache.tsx",
+      "types": "./dist/shared/utils/clean-session-cache.d.ts",
+      "default": "./dist/shared/utils/clean-session-cache.js"
+    },
+    "./shared/utils/get-icon": {
+      "dara-source": "./js/shared/utils/get-icon.tsx",
+      "types": "./dist/shared/utils/get-icon.d.ts",
+      "default": "./dist/shared/utils/get-icon.js"
+    },
+    "./shared/utils/is-js-component": {
+      "dara-source": "./js/shared/utils/is-js-component.tsx",
+      "types": "./dist/shared/utils/is-js-component.d.ts",
+      "default": "./dist/shared/utils/is-js-component.js"
+    },
+    "./shared/utils/resolve-theme": {
+      "dara-source": "./js/shared/utils/resolve-theme.tsx",
+      "types": "./dist/shared/utils/resolve-theme.d.ts",
+      "default": "./dist/shared/utils/resolve-theme.js"
+    },
+    "./shared/interactivity/use-action": {
+      "dara-source": "./js/shared/interactivity/use-action.tsx",
+      "types": "./dist/shared/interactivity/use-action.d.ts",
+      "default": "./dist/shared/interactivity/use-action.js"
+    },
+    "./shared/utils/use-component-styles": {
+      "dara-source": "./js/shared/utils/use-component-styles.tsx",
+      "types": "./dist/shared/utils/use-component-styles.d.ts",
+      "default": "./dist/shared/utils/use-component-styles.js"
+    },
+    "./shared/utils/use-defer-loadable": {
+      "dara-source": "./js/shared/utils/use-defer-loadable.tsx",
+      "types": "./dist/shared/utils/use-defer-loadable.d.ts",
+      "default": "./dist/shared/utils/use-defer-loadable.js"
+    },
+    "./shared/utils/use-interval": {
+      "dara-source": "./js/shared/utils/use-interval.tsx",
+      "types": "./dist/shared/utils/use-interval.d.ts",
+      "default": "./dist/shared/utils/use-interval.js"
+    },
+    "./shared/utils/use-previous": {
+      "dara-source": "./js/shared/utils/use-previous.tsx",
+      "types": "./dist/shared/utils/use-previous.d.ts",
+      "default": "./dist/shared/utils/use-previous.js"
+    },
+    "./shared/interactivity/use-refresh-selector": {
+      "dara-source": "./js/shared/interactivity/use-refresh-selector.tsx",
+      "types": "./dist/shared/interactivity/use-refresh-selector.d.ts",
+      "default": "./dist/shared/interactivity/use-refresh-selector.js"
+    },
+    "./shared/utils/use-url-sync": {
+      "dara-source": "./js/shared/utils/use-url-sync.tsx",
+      "types": "./dist/shared/utils/use-url-sync.d.ts",
+      "default": "./dist/shared/utils/use-url-sync.js"
+    },
+    "./shared/interactivity/use-variable-state": {
+      "dara-source": "./js/shared/interactivity/use-variable-state.tsx",
+      "types": "./dist/shared/interactivity/use-variable-state.d.ts",
+      "default": "./dist/shared/interactivity/use-variable-state.js"
+    },
+    "./shared/utils/use-window-title": {
+      "dara-source": "./js/shared/utils/use-window-title.tsx",
+      "types": "./dist/shared/utils/use-window-title.d.ts",
+      "default": "./dist/shared/utils/use-window-title.js"
+    }
   }
 }
