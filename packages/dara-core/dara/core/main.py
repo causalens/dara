@@ -544,7 +544,11 @@ def _start_application(config: Configuration):
             'build_mode': build_cache.build_config.mode,
             'build_dev': build_cache.build_config.dev,
         }
-        json_template_data = json.dumps(jsonable_encoder(template_data))
+        # HTML parsers recognize closing script tags even inside JSON strings. Escape
+        # HTML delimiters after serialization so bootstrap data cannot end its element.
+        json_template_data = json.dumps(jsonable_encoder(template_data)).translate(
+            str.maketrans({'<': r'\u003c', '>': r'\u003e', '&': r'\u0026', '\u2028': r'\u2028', '\u2029': r'\u2029'})
+        )
 
         # For any unmatched route then serve the app to the user if we have any pages to serve
         # (Required for the chosen routing system in the UI)
