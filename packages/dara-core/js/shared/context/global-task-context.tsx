@@ -17,7 +17,7 @@ export interface VariableTaskEntry {
     /** Task ID */
     taskId: string;
     /** Key of the trigger to increment in order to reset the associated selector */
-    triggerKey?: string;
+    triggerKey?: string | undefined;
 }
 
 interface GlobalTaskProviderProps {

@@ -1,30 +1,18 @@
 # Demo App
 
+## Development
 
+Install the Node and pnpm versions from `mise.toml` (`mise install` from this directory, or compatible tools on PATH), then run `uv run dara dev` from this directory. It prepares missing frontend files and runs Python, Vite and TypeScript behind one origin. Commit `package.json`, the root workspace catalog/lockfile and the app's Vite/TypeScript configuration after dependency changes.
 
-## How to run the app
+The Custom JavaScript page uses `js/counter.tsx` and `js/increment.ts`. Python registers the classes with `js_source`, preserving the runtime names `DemoCounter` and `DemoIncrement`. The component calls `useVariable` and `useAction` explicitly; `js/index.tsx` is reserved for app-wide side effects. Editing a component uses React refresh; Python edits refresh the page after the backend is ready.
 
-To run the application you can use the following command:
+`uv run dara lock` prepares without starting servers. `uv run dara check --json` checks without repairing files. `uv run dara build` checks types and builds from the frozen lockfile; `uv run dara start` serves the artifact without Node or pnpm. For this source-linked monorepo, use `--no-deps-build` only after the repository's `prepare-dev` task has produced the supporting package outputs.
 
-```bash
-uv run dara start
-```
+On hosts without native file watching, set `VITE_DEMO_POLLING=true` and `WATCHFILES_FORCE_POLLING=true`. The compiler falls back to checks triggered by Vite when its native watcher cannot start.
 
-For development purposes it is often useful to add the `--reload` flag which will automatically reload the application when changes are made to any of the Python files.
+For an IDE debugger, launch `dara dev --no-reload`; Python stays in the debugger process. To run a separate frontend task, use `dara dev --frontend-only` alongside `dara dev --backend-only --no-reload`. Both commands must use this app root and matching `--base-url` values. `--frozen` prevents development from repairing committed files. `--no-typecheck` is a development-only escape hatch.
 
-By default this will load the config from the `config` variable in `./demo_app/main.py` module.
-The default demo app runs without OIDC authentication. Local OIDC QA is opt-in via the helper scripts below.
-To see the list of available config options you can use the `--help` flag:
-
-```bash
-uv run dara start --help
-```
-
-To see other available commands you can run:
-
-```bash
-uv run dara
-```
+The default configuration is `demo_app.main:config`, set in `pyproject.toml`. The demo uses unauthenticated access by default; local OIDC QA is opt-in below.
 
 ## Local OIDC QA
 
@@ -41,7 +29,7 @@ In a second shell, source the demo-app env helper before starting the app. This 
 ```bash
 cd packages/demo-app
 source scripts/use-local-oidc.sh
-uv run dara start --reload
+uv run dara dev
 ```
 
 For fish:
@@ -49,7 +37,7 @@ For fish:
 ```fish
 cd packages/demo-app
 source scripts/use-local-oidc.fish
-uv run dara start --reload
+uv run dara dev
 ```
 
 Use `--userinfo` with either helper to enable `SSO_USE_USERINFO=true`.

@@ -643,7 +643,7 @@ export interface ActionContext extends CallbackInterface {
     /**
      * Callback invoked for any unhandled action
      */
-    onUnhandledAction?: ActionHandler;
+    onUnhandledAction?: ActionHandler | undefined;
 }
 
 /**

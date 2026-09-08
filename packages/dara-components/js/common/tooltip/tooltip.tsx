@@ -12,6 +12,7 @@ import { Tooltip as UITooltip } from '@darajs/ui-components';
 import Stack from '../stack/stack';
 
 interface TooltipProps extends StyledComponentProps {
+    children: [ComponentInstance<React.ComponentProps<typeof Stack>>];
     /** Content to render in the tooltip, can be any react renderable content */
     content: string | Variable<any> | ComponentInstance;
     /** Parameter to determine where to place the tooltip with respect to the children */
@@ -48,7 +49,7 @@ function Tooltip(props: TooltipProps): JSX.Element {
             styling={props.styling}
         >
             {/* Python side makes sure there's only one child and it is Stack */}
-            <Stack {...props.children![0]!.props} />
+            <Stack {...props.children[0].props} />
         </StyledTooltip>
     );
 }

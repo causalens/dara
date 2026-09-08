@@ -47,13 +47,13 @@ function ErrorPage(props: { code?: string }): JSX.Element {
 
     const code = props.code ?? query.get('code');
 
-    const errorConfig = code ? (errorMessages[code] ?? errorMessages.default!) : errorMessages.default!;
+    const errorConfig = code ? (errorMessages[code] ?? errorMessages['default']!) : errorMessages['default']!;
 
     return (
         <CenteredDivWithGap>
             <h1>{errorConfig.title}</h1>
             <p>{errorConfig.description}</p>
-            <Button href="/login" styling={errorConfig.styling}>
+            <Button href="/login" styling={errorConfig.styling ?? 'primary'}>
                 Retry
             </Button>
         </CenteredDivWithGap>

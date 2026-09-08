@@ -322,7 +322,7 @@ export async function fetchRouteData(
             ws_channel: wsChannel,
             params,
         } satisfies RouteDataRequestBody),
-        signal,
+        signal: signal ?? null,
     });
     await handleAuthErrors(response, { authenticationFailureRedirect: 'login' });
 

@@ -21,7 +21,7 @@ import type { StyledComponent } from 'styled-components';
 
 import styled, { type DefaultTheme } from '@darajs/styled-components';
 
-type IconProps = AsButtonProp & Omit<FontAwesomeIconProps, 'icon'>;
+type IconProps = AsButtonProp & Omit<FontAwesomeIconProps, 'icon' | 'ref'>;
 
 interface AsButtonProp {
     asButton?: boolean;

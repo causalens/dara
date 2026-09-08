@@ -1,3 +1,7 @@
+## NEXT
+
+- Aligned React types for strict application checks against workspace source.
+
 ---
 title: Changelog
 ---

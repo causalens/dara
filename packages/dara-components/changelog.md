@@ -1,3 +1,7 @@
+## NEXT
+
+- Exposed the public barrel under the workspace source condition.
+
 ---
 title: Changelog
 ---

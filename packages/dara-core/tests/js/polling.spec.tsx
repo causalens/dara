@@ -276,7 +276,7 @@ describe('Poller', () => {
         expect(fast).not.toHaveBeenCalled();
     });
 
-    it('uses the latest refresh callback without restarting its timer', () => {
+    it('uses the latest refresh callback without restarting its timer', async () => {
         const firstRefresh = vi.fn();
         const latestRefresh = vi.fn();
         const rendered = renderHook(
@@ -287,7 +287,7 @@ describe('Poller', () => {
         );
 
         rendered.rerender({ refresh: latestRefresh });
-        act(() => vi.advanceTimersByTime(1200));
+        await act(() => vi.advanceTimersByTime(1200));
 
         expect(firstRefresh).not.toHaveBeenCalled();
         expect(latestRefresh).toHaveBeenCalledTimes(1);

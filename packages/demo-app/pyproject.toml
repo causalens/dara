@@ -25,3 +25,6 @@ dev = [
     "pyright>=1.1.400,<2.0.0",
     "ruff==0.16.0",
 ]
+
+[tool.dara]
+config = "demo_app.main:config"
