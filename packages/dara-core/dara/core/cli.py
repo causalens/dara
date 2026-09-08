@@ -263,3 +263,27 @@ def generate_env(force: bool):
     if Path('.env').is_file() and not force:
         raise click.UsageError('.env file already exists, use --force to re-create it')
     generate_env_file()
+
+
+@cli.command()
+@click.option('--check', 'dry_run', is_flag=True, help='Show the proposed diff without writing files')
+def migrate(dry_run: bool):
+    """Convert supported legacy files without importing the app or installing dependencies."""
+    from dara.core.js_tooling.migration import plan_migration
+
+    plan = plan_migration(Path.cwd())
+    for change in plan.changes:
+        click.echo(change.diff(plan.root), nl=False)
+    written = [] if dry_run else plan.apply()
+    for notice in plan.notices:
+        click.echo(notice, err=True)
+    for issue in plan.issues:
+        click.echo(f'{issue.path}:{issue.line}: {issue.message}', err=True)
+    if dry_run:
+        click.echo(f'{len(plan.changes)} proposed file changes; no files written.')
+    elif written:
+        click.echo(f'Updated {len(written)} files. Review the diff, then run dara dev, dara check and dara build.')
+    else:
+        click.echo('No supported migration changes remain.')
+    if plan.issues or (dry_run and plan.changes):
+        raise click.exceptions.Exit(1)

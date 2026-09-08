@@ -84,6 +84,12 @@ def annotation_has_base_model(typ: Any) -> bool:
 # See https://github.com/pydantic/pydantic/issues/6381
 class SerializeAsAnyMeta(ModelMetaclass):
     def __new__(cls, name: str, bases: tuple[type], namespaces: dict[str, Any], **kwargs):
+        removed = {'js_module', 'js_component'}.intersection(namespaces)
+        if removed and any(hasattr(base, 'js_source') for base in bases):
+            raise TypeError(
+                f'{name} uses removed JavaScript metadata {sorted(removed)}. '
+                'Run dara migrate and declare js_source as a default-export module.'
+            )
         annotations: dict = namespaces.get('__annotations__', {}).copy()
 
         for base in bases:
