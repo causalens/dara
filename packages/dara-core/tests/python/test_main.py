@@ -262,6 +262,37 @@ async def test_dara_data_properjs(monkeypatch: pytest.MonkeyPatch, config: Confi
                     await _check_dara_data(client)
 
 
+@pytest.mark.parametrize('deploy', [False, True])
+async def test_bootstrap_data_cannot_escape_script(
+    config: Configuration, monkeypatch: pytest.MonkeyPatch, deploy: bool
+):
+    """Untrusted bootstrap strings survive HTML parsing without creating executable markup."""
+    from fastapi_vite_dara.loader import ViteLoader
+
+    value = '</ScRiPt><script id="injected">alert(1)</script><!-- & > \u2028\u2029'
+    config.title = value
+    if deploy:
+        monkeypatch.setenv('DARA_DOCKER_MODE', 'TRUE')
+    else:
+        monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+
+    loader = Mock()
+    loader.generate_vite_ws_client.return_value = ''
+    loader.generate_vite_asset.return_value = ''
+    loader.generate_vite_react_hmr.return_value = ''
+    with patch('dara.core.main.rebuild_js'), patch.object(ViteLoader, '__new__', return_value=loader):
+        async with AsyncClient(_start_application(config)) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    parser = DaraDataParser()
+    parser.feed(response.text)
+    assert parser.dara_data['title'] == value
+    assert '<script id="injected">' not in response.text
+    script = response.text.split('id="__DARA_DATA__"', 1)[1].split('>', 1)[1].split('</script>', 1)[0]
+    assert not any(char in script for char in '<>&\u2028\u2029')
+
+
 async def test_dev_server_handshake_renders_one_mismatch_page(
     monkeypatch: pytest.MonkeyPatch,
     config: Configuration,
