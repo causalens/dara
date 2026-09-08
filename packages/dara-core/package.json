@@ -19,7 +19,7 @@
     "Krzysztof Bielikowicz <krzysztof@causalens.com>"
   ],
   "scripts": {
-    "build": "rimraf dist && rimraf dara/core/umd && vite build && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias && cp -R dist/umd/. dara/core/_assets/auto_js/",
+    "build": "rimraf dist && mkdir -p dist && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias",
     "prepare-dev": "mkdir -p dist && tsc && cp -R js/assets dist/ && cp js/index.css dist/ && tsc-alias",
     "build-dev": "mkdir -p dist && cp js/index.css dist/ && cp -R js/assets dist/ && tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
     "clean": "rimraf api assets components shared types *.js.map *.d.ts '!(*.config).js' *.css",
@@ -31,7 +31,7 @@
     "package": "yarn build && yarn publish --no-git-tag-version",
     "test-watch": "vitest",
     "test": "vitest --run",
-    "test:e2e": "start-server-and-test 'uv run --locked dara start --config cypress.dara.main:config' http://127.0.0.1:8000/static/index.js 'cypress run --e2e'"
+    "test:e2e": "uv run --locked python cypress/run.py"
   },
   "devDependencies": {
     "@darajs/oxfmt-config": "1.29.10",
@@ -365,6 +365,7 @@
   },
   "exports": {
     ".": {
+      "dara-source": "./js/index.tsx",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },

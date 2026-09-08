@@ -16,7 +16,7 @@
   "jsnext:main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && vite build && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
-    "prepare-dev": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "prepare-dev": "pnpm run build",
     "lint": "oxlint --type-aware --type-check src tests && stylelint './src/**/*.{ts,tsx}'",
     "format": "oxfmt src --write",
     "format:check": "oxfmt src --check",

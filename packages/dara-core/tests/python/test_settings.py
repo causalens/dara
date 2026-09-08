@@ -19,7 +19,7 @@ def _clear_runtime_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv('JWT_SECRET', raising=False)
     monkeypatch.delenv('DARA_BASE_URL', raising=False)
     monkeypatch.delenv('AUTH_SESSION_MAX_AGE_SECONDS', raising=False)
-    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.delenv('DARA_COMMAND', raising=False)
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     monkeypatch.delenv('DARA_CONFIG_PATH', raising=False)
     monkeypatch.delenv('DARA_OTEL_ENABLED', raising=False)
@@ -261,7 +261,7 @@ def test_settings_unwritable_dev_secret_storage_warns_and_does_not_mutate_cwd(mo
 def test_settings_production_missing_jwt_secret_warns_and_uses_process_fallback(monkeypatch, tmp_path, caplog):
     _clear_runtime_env(monkeypatch)
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv('DARA_DOCKER_MODE', 'TRUE')
+    monkeypatch.setenv('DARA_COMMAND', 'start')
     caplog.set_level(logging.WARNING, logger='dara.dev')
 
     settings = get_settings()

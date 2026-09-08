@@ -38,20 +38,39 @@ class DaraGroup(click.Group):
             raise click.ClickException(f'{error.diagnostic.code}: {error}. Fix: {error.diagnostic.fix}') from error
 
 
+class StartCommand(click.Command):
+    """Name the replacement operation for removed deployment switches."""
+
+    def parse_args(self, ctx, args):
+        """Reject legacy switches before Click loses their migration context."""
+        replacements = {
+            '--production': 'run dara build, then dara start; start always uses deployment posture',
+            '--docker': 'use dara start; add --api-docs only when API documentation is needed',
+            '--enable-hmr': 'use dara dev for supervised development and HMR',
+            '--dev-port': 'use dara dev; the frontend shares the Python origin',
+            '--rebuild': 'run dara build, then dara start',
+            '--skip-jsbuild': 'run dara build, then dara start; start never builds JavaScript',
+            '--reload': 'use dara dev, where Python reload is enabled by default',
+            '--reload-dir': 'use dara dev --reload-dir',
+        }
+        for argument in args:
+            option = argument.split('=', 1)[0]
+            if option in replacements:
+                raise click.UsageError(f'{option} was removed: {replacements[option]}', ctx)
+        return super().parse_args(ctx, args)
+
+
 @click.group(cls=DaraGroup)
 def cli():
     """Develop, build and serve a Dara application."""
-
-
-def _resolve_config_path(config: str | None) -> str:
-    return resolve_config(Path.cwd(), config)
 
 
 def _serving_options(function):
     options = [
         click.option('--config', help='Override [tool.dara].config with module:object'),
         click.option('--port', type=click.IntRange(1, 65535)),
-        click.option('--host', default='0.0.0.0', show_default=True),
+        # Preserve the public server default; --host selects a narrower interface.
+        click.option('--host', default='0.0.0.0', show_default=True),  # nosec B104
         click.option('--base-url', default=lambda: os.environ.get('DARA_BASE_URL', '')),
         click.option('--metrics-port', type=click.IntRange(1, 65535)),
         click.option('--disable-metrics', is_flag=True),
@@ -74,7 +93,7 @@ def _serving(
     debug: str,
     log: str,
 ) -> tuple[str, dict]:
-    reference = _resolve_config_path(config)
+    reference = resolve_config(Path.cwd(), config)
     if base_url and (not base_url.startswith('/') or any(c in base_url for c in ('?', '#', '\\'))):
         raise click.UsageError('--base-url must be an absolute URL path, for example /apps/demo')
     os.environ.update(
@@ -97,7 +116,7 @@ def _serving(
     }
 
 
-@cli.command()
+@cli.command(cls=StartCommand)
 @_serving_options
 @click.option('--api-docs', is_flag=True, help='Expose API documentation in deployment posture')
 @click.option('--require-sso', is_flag=True, help='Require an SSO authentication configuration')

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Forward chevron refs to the SVG element so compiled declarations support existing consumers.
+
 ## 1.26.12
 
 - Internal: Removed unused build and test tooling dependencies.

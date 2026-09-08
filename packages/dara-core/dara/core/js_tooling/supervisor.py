@@ -11,10 +11,10 @@ import webbrowser
 from pathlib import Path
 
 import uvicorn
-from filelock import FileLock
 
 import click
 from dara.core.js_tooling.models import FrontendManifest, ProjectError
+from dara.core.js_tooling.processes import ProcessCancelled, ProcessOwner
 from dara.core.js_tooling.project import (
     atomic_write,
     dependency_fingerprint,
@@ -26,25 +26,6 @@ from dara.core.js_tooling.project import (
     write_manifest,
 )
 from dara.core.js_tooling.runtime import frontend_status
-
-
-def _stop(process: subprocess.Popen | None) -> None:
-    if process is None or process.poll() is not None:
-        return
-    try:
-        if os.name == 'posix':
-            os.killpg(process.pid, signal.SIGTERM)
-        else:
-            process.terminate()
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        if os.name == 'posix':
-            os.killpg(process.pid, signal.SIGKILL)
-        else:
-            process.kill()
-        process.wait()
-    except ProcessLookupError:
-        pass
 
 
 def supervise(
@@ -69,20 +50,25 @@ def supervise(
     status_path = private / 'dev-server.json'
     owner_path = private / 'supervisor.json'
     ready_path = private / 'backend-ready.json'
-    stop = threading.Event()
-    children: dict[str, subprocess.Popen | None] = {'backend': None, 'frontend': None}
+    processes = ProcessOwner()
+    stop = processes.cancelled
+    backend: subprocess.Popen[str] | None = None
+    frontend: subprocess.Popen[str] | None = None
     token = str(uuid.uuid4())
+    owns_frontend = False
     seed: FrontendManifest | None = None
     if frontend_only:
         seed = derive_manifest(load_configuration(reference), root, reference)
-    if not backend_only:
+
+    def claim_frontend() -> None:
+        nonlocal owns_frontend
         # Another live frontend supervisor must not be silently displaced.
-        with FileLock(private / 'supervisor.lock'):
+        with processes.lock(private / 'supervisor.lock'):
             if owner_path.exists():
                 try:
                     previous = read_json(owner_path)
                     os.kill(previous['pid'], 0)
-                except (OSError, KeyError, ProjectError):
+                except (OSError, KeyError, TypeError, ProjectError):
                     pass
                 else:
                     raise ProjectError(
@@ -92,6 +78,7 @@ def supervise(
                     )
             status_path.unlink(missing_ok=True)
             atomic_write(owner_path, json.dumps({'pid': os.getpid(), 'token': token}))
+            owns_frontend = True
             if seed is not None:
                 write_manifest(root, seed, 'dev')
             else:
@@ -105,6 +92,7 @@ def supervise(
         click.echo(f'{error.diagnostic.code}: {error}. {error.diagnostic.fix}', err=True)
 
     def frontend_loop() -> None:
+        nonlocal frontend
         attempted = None
         opened = False
         exited = False
@@ -125,10 +113,10 @@ def supervise(
                 if signature != attempted:
                     attempted = signature
                     # No ready entry is exposed while installation changes its dependency graph.
-                    _stop(children['frontend'])
-                    children['frontend'] = None
                     status_path.unlink(missing_ok=True)
-                    prepare_project(root, current, frozen=frozen)
+                    processes.stop(frontend)
+                    frontend = None
+                    prepare_project(root, current, frozen=frozen, processes=processes)
                     config_contents = [(root / name).read_text() for name in ('vite.config.ts', 'tsconfig.json')]
                     attempted = (signature[0], dependency_fingerprint(root), tuple(config_contents))
                     command = [
@@ -146,11 +134,9 @@ def supervise(
                     ]
                     if no_typecheck:
                         command.append('--no-typecheck')
-                    children['frontend'] = subprocess.Popen(
-                        command, cwd=root, env=runner_environment(), start_new_session=True, stdout=sys.stderr
-                    )
+                    frontend = processes.start(command, cwd=root, env=runner_environment(), stdout=sys.stderr)
                     exited = False
-                process = children['frontend']
+                process = frontend
                 if process and process.poll() is not None and not exited:
                     exited = True
                     blocked(
@@ -167,23 +153,32 @@ def supervise(
                     and ready_path.exists()
                     and frontend_status(root).get('state') == 'ready'
                 ):
-                    host = serving['host'] if serving['host'] not in ('0.0.0.0', '::') else 'localhost'
+                    # Choose a browser address for wildcard binds; this opens no listener.
+                    host = serving['host'] if serving['host'] not in ('0.0.0.0', '::') else 'localhost'  # nosec B104
                     webbrowser.open(f'http://{host}:{serving["port"]}{serving.get("root_path", "")}')
                     opened = True
+            except ProcessCancelled:
+                return
             except ProjectError as error:
                 blocked(error)
             except (ValueError, OSError) as error:
                 blocked(ProjectError('frontend.prepare', str(error), 'dara check'))
 
+    def interrupt(_signum, _frame) -> None:
+        # Do not interrupt process creation between spawning and registering a child.
+        stop.set()
+
+    previous_signals = {sig: signal.signal(sig, interrupt) for sig in (signal.SIGINT, signal.SIGTERM)}
     thread = None
     try:
         if not backend_only:
-            thread = threading.Thread(target=frontend_loop, name='dara-frontend', daemon=True)
+            claim_frontend()
+            thread = threading.Thread(target=frontend_loop, name='dara-frontend')
             thread.start()
         if not frontend_only:
             if no_reload:
                 # The server remains in this process for IDE debugger breakpoints.
-                uvicorn.run('dara.core.main:start', factory=True, **serving)
+                uvicorn.run('dara.core.main:start', factory=True, timeout_graceful_shutdown=5, **serving)
                 return
             command = [
                 sys.executable,
@@ -206,22 +201,20 @@ def supervise(
             for directory in reload_dirs or (str(root),):
                 command += ['--reload-dir', directory]
             command += ['--reload-exclude', 'node_modules', '--reload-exclude', '.venv']
-            children['backend'] = subprocess.Popen(command, cwd=root, start_new_session=True)
+            backend = processes.start(command, cwd=root)
         while not stop.wait(0.2):
-            if children['backend'] is not None and children['backend'].poll() is not None:
-                if children['backend'].returncode:
-                    raise ProjectError(
-                        'backend.exited', f'Python supervisor exited {children["backend"].returncode}', 'dara dev'
-                    )
+            if backend is not None and backend.poll() is not None:
+                if backend.returncode:
+                    raise ProjectError('backend.exited', f'Python supervisor exited {backend.returncode}', 'dara dev')
                 break
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ProcessCancelled):
         pass
     finally:
-        stop.set()
+        processes.close()
         if thread:
-            thread.join(timeout=6)
-        _stop(children['frontend'])
-        _stop(children['backend'])
-        if not backend_only:
+            thread.join()
+        if owns_frontend:
             status_path.unlink(missing_ok=True)
             owner_path.unlink(missing_ok=True)
+        for sig, previous in previous_signals.items():
+            signal.signal(sig, previous)
