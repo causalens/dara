@@ -268,3 +268,55 @@ def test_configuration_rejects_malformed_nested_fields(tmp_path, contents):
         project.resolve_config(tmp_path)
     assert str(path) in caught.value.diagnostic.message
     assert caught.value.diagnostic.fix == f'edit {path}'
+
+
+def test_preparing_one_workspace_app_keeps_catalog_entries_used_by_another(tmp_path, manifest):
+    workspace = tmp_path
+    app = workspace / 'apps/a'
+    other = workspace / 'apps/b'
+    app.mkdir(parents=True)
+    other.mkdir(parents=True)
+    (workspace / 'pnpm-workspace.yaml').write_text(
+        'packages: ["apps/*"]\ncatalogs:\n  dara:\n    widgets: ^1.0.0\n    unused: ^2.0.0\n'
+    )
+    (other / 'package.json').write_text(json.dumps({'name': 'b', 'dependencies': {'widgets': 'catalog:dara'}}))
+    for file, content in project.dependency_plan(app, manifest).items():
+        project.atomic_write(file, content)
+    catalog = project.read_yaml(workspace / 'pnpm-workspace.yaml')['catalogs']['dara']
+    assert catalog == {'widgets': '^1.0.0', 'react': '^18.3.0'}
+    assert not project.dependency_plan(app, manifest)
+
+
+def test_workspace_dara_version_conflict_names_both_apps_before_writing(tmp_path, manifest):
+    app = tmp_path / 'apps/a'
+    other = tmp_path / 'apps/b'
+    app.mkdir(parents=True)
+    other.mkdir(parents=True)
+    (tmp_path / 'pnpm-workspace.yaml').write_text('packages: ["apps/*"]\n')
+    (other / 'package.json').write_text(
+        json.dumps({'name': 'b', 'devDependencies': {'@darajs/vite-plugin': 'catalog:dara'}})
+    )
+    metadata = other / '.venv/lib/python3.11/site-packages/dara_core-1.0.0.dist-info'
+    metadata.mkdir(parents=True)
+    (metadata / 'METADATA').write_text('Metadata-Version: 2.1\nName: dara-core\nVersion: 1.0.0\n')
+    with pytest.raises(ProjectError, match='All apps sharing') as error:
+        project.dependency_plan(app, manifest)
+    assert str(app) in str(error.value) and str(other) in str(error.value)
+    assert not (app / 'package.json').exists()
+    (metadata / 'METADATA').write_text('Metadata-Version: 2.1\nName: dara-core\nVersion: 2.0.0\n')
+    assert project.dependency_plan(app, manifest)
+
+
+@pytest.mark.parametrize('app_at_workspace_root', [False, True])
+def test_workspace_library_dependency_edit_changes_the_install_fingerprint(tmp_path, app_at_workspace_root):
+    app = tmp_path if app_at_workspace_root else tmp_path / 'app'
+    library = tmp_path / 'library'
+    app.mkdir(exist_ok=True)
+    library.mkdir()
+    (tmp_path / 'pnpm-workspace.yaml').write_text('packages: ["*"]\n')
+    (app / 'package.json').write_text('{"name":"app"}')
+    file = library / 'package.json'
+    file.write_text('{"name":"library","dependencies":{}}')
+    before = project.dependency_fingerprint(app)
+    file.write_text('{"name":"library","dependencies":{"new":"^1.0.0"}}')
+    assert project.dependency_fingerprint(app) != before
