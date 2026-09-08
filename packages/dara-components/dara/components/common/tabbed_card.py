@@ -61,6 +61,8 @@ class TabbedCard(LayoutComponent):
     :param selected_tab: Optional selected tab mapped to a variable so that the selected tab can be easily accessed
     """
 
+    js_source = '@darajs/components/tabbed-card'
+
     initial_tab: str | None = None
     selected_tab: ClientVariable | None = None
 

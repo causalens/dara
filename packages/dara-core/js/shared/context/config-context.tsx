@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react';
 
-import type { Config } from '@/types';
+import type { Config } from '../../types';
 
 interface ConfigContext {
     config: Config;

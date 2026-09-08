@@ -51,6 +51,8 @@ class Card(LayoutComponent):
     :param align: How to align the content of the card, accepts any flexbox alignments
     """
 
+    js_source = '@darajs/components/card'
+
     subtitle: str | ClientVariable | None = None
     title: str | ClientVariable | None = None
     accent: bool = False

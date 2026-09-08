@@ -80,6 +80,8 @@ class Form(LayoutComponent):
     :param align: How to align the content of the form, accepts any flexbox alignments
     """
 
+    js_source = '@darajs/components/form'
+
     value: Variable[dict] | None = None
     onsubmit: Action | None = None
 

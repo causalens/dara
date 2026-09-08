@@ -121,6 +121,8 @@ class UpdateVariableImpl(ActionImpl):
     :param value: the new value for the variable
     """
 
+    js_source = '@darajs/core/actions/update-variable'
+
     py_name = 'UpdateVariable'
 
     variable: Variable | ServerVariable
@@ -151,7 +153,9 @@ class UpdateVariableImpl(ActionImpl):
         return await super().execute(ctx)
 
 
-UpdateVariableDef = ActionDef(name='UpdateVariable', js_module='@darajs/core', py_module='dara.core')
+UpdateVariableDef = ActionDef(
+    name='UpdateVariable', js_source='@darajs/core/actions/update-variable', py_module='dara.core'
+)
 
 
 class UpdateVariableInputs(ActionInputs):
@@ -288,7 +292,9 @@ class UpdateVariable(AnnotatedAction):
         )
 
 
-TriggerVariableDef = ActionDef(name='TriggerVariable', js_module='@darajs/core', py_module='dara.core')
+TriggerVariableDef = ActionDef(
+    name='TriggerVariable', js_source='@darajs/core/actions/trigger-variable', py_module='dara.core'
+)
 
 
 class TriggerVariable(ActionImpl):
@@ -329,11 +335,13 @@ class TriggerVariable(ActionImpl):
     ```
     """
 
+    js_source = '@darajs/core/actions/trigger-variable'
+
     variable: DerivedVariable
     force: bool = True
 
 
-NavigateToDef = ActionDef(name='NavigateTo', js_module='@darajs/core', py_module='dara.core')
+NavigateToDef = ActionDef(name='NavigateTo', js_source='@darajs/core/actions/navigate-to', py_module='dara.core')
 
 
 class NavigateToImpl(ActionImpl):
@@ -368,6 +376,8 @@ class NavigateToImpl(ActionImpl):
 
     ```
     """
+
+    js_source = '@darajs/core/actions/navigate-to'
 
     py_name = 'NavigateTo'
 
@@ -483,7 +493,9 @@ def Logout():
     return NavigateToImpl(url='/logout', new_tab=False)
 
 
-ResetVariablesDef = ActionDef(name='ResetVariables', js_module='@darajs/core', py_module='dara.core')
+ResetVariablesDef = ActionDef(
+    name='ResetVariables', js_source='@darajs/core/actions/reset-variables', py_module='dara.core'
+)
 
 
 class ResetVariables(ActionImpl):
@@ -521,6 +533,8 @@ class ResetVariables(ActionImpl):
     :param variables: list of variables to reset
     """
 
+    js_source = '@darajs/core/actions/reset-variables'
+
     variables: list[AnyVariable]
 
 
@@ -541,7 +555,7 @@ NotificationStatusString = Literal[
 ]
 
 
-NotifyDef = ActionDef(name='Notify', js_module='@darajs/core', py_module='dara.core')
+NotifyDef = ActionDef(name='Notify', js_source='@darajs/core/actions/notify', py_module='dara.core')
 
 
 class Notify(ActionImpl):
@@ -572,6 +586,8 @@ class Notify(ActionImpl):
 
     ```
     """
+
+    js_source = '@darajs/core/actions/notify'
 
     key: str | None = None
     message: str
@@ -608,12 +624,16 @@ class DownloadContentImpl(ActionImpl):
     ```
     """
 
+    js_source = '@darajs/core/actions/download-content'
+
     code: str
 
     py_name = 'DownloadContent'
 
 
-DownloadContentDef = ActionDef(name='DownloadContent', js_module='@darajs/core', py_module='dara.core')
+DownloadContentDef = ActionDef(
+    name='DownloadContent', js_source='@darajs/core/actions/download-content', py_module='dara.core'
+)
 
 
 @deprecated('Use @action instead')
@@ -691,7 +711,9 @@ def DownloadContent(
 DownloadContent.Ctx = ComponentActionContext  # type: ignore
 """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
-DownloadVariableDef = ActionDef(name='DownloadVariable', js_module='@darajs/core', py_module='dara.core')
+DownloadVariableDef = ActionDef(
+    name='DownloadVariable', js_source='@darajs/core/actions/download-variable', py_module='dara.core'
+)
 
 
 class DownloadVariable(ActionImpl):
@@ -723,12 +745,16 @@ class DownloadVariable(ActionImpl):
     ```
     """
 
+    js_source = '@darajs/core/actions/download-variable'
+
     variable: AnyVariable
     file_name: str | None = None
     type: Literal['csv', 'xlsx', 'json'] = 'csv'
 
 
-CopyToClipboardDef = ActionDef(name='CopyToClipboard', js_module='@darajs/core', py_module='dara.core')
+CopyToClipboardDef = ActionDef(
+    name='CopyToClipboard', js_source='@darajs/core/actions/copy-to-clipboard', py_module='dara.core'
+)
 
 
 class BatchStart(ActionImpl):
@@ -771,6 +797,8 @@ class CopyToClipboard(ActionImpl):
 
     config.router.add_page(path='copy-to-clipboard', content=test_page)
     """
+
+    js_source = '@darajs/core/actions/copy-to-clipboard'
 
     value: str | ClientVariable
 

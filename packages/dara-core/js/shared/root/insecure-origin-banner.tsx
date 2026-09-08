@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 
 import styled from '@darajs/styled-components';
 
-import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '@/auth/origin-security';
+import { getAuthOriginRecommendation, shouldWarnAboutInsecureAuthContext } from '../../auth/origin-security';
 
 const Banner = styled.div`
     position: fixed;

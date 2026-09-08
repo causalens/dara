@@ -12,7 +12,7 @@ from dara.core.definitions import (
 from dara.core.interactivity import ClientVariable
 from dara.core.visual.components import RawString
 
-OutletDef = JsComponentDef(name='Outlet', js_module='@darajs/core', py_module='dara.core')
+OutletDef = JsComponentDef(name='Outlet', js_source='@darajs/core/components/outlet', py_module='dara.core')
 
 
 class Outlet(ComponentInstance):
@@ -20,8 +20,10 @@ class Outlet(ComponentInstance):
     Outlet component is a placeholder for the content of the current route.
     """
 
+    js_source = '@darajs/core/components/outlet'
 
-NavigateDef = JsComponentDef(name='Navigate', js_module='@darajs/core', py_module='dara.core')
+
+NavigateDef = JsComponentDef(name='Navigate', js_source='@darajs/core/components/navigate', py_module='dara.core')
 
 
 class Navigate(ComponentInstance):
@@ -37,6 +39,8 @@ class Navigate(ComponentInstance):
         return Navigate(to='/some-route')
     ```
     """
+
+    js_source = '@darajs/core/components/navigate'
 
     to: str | RouterPath | ClientVariable
 
@@ -72,13 +76,15 @@ class Navigate(ComponentInstance):
     """
 
 
-LinkDef = JsComponentDef(name='Link', js_module='@darajs/core', py_module='dara.core')
+LinkDef = JsComponentDef(name='Link', js_source='@darajs/core/components/link', py_module='dara.core')
 
 
 class Link(StyledComponentInstance):
     """
     Link component is a wrapper around the NavLink component that displays a link to the specified route.
     """
+
+    js_source = '@darajs/core/components/link'
 
     case_sensitive: bool = False
 
@@ -157,7 +163,7 @@ class Link(StyledComponentInstance):
         super().__init__(**kwargs)
 
 
-MenuLinkDef = JsComponentDef(name='MenuLink', js_module='@darajs/core', py_module='dara.core')
+MenuLinkDef = JsComponentDef(name='MenuLink', js_source='@darajs/core/components/menu-link', py_module='dara.core')
 
 
 class MenuLink(Link):
@@ -184,6 +190,8 @@ class MenuLink(Link):
     root = router.add_layout(content=RootLayout)
     ```
     """
+
+    js_source = '@darajs/core/components/menu-link'
 
     def __init__(self, *children: ComponentInstance, **kwargs):
         els = list(children)

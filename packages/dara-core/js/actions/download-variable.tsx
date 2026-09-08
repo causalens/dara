@@ -3,8 +3,8 @@ import { saveAs } from 'file-saver';
 
 import { Status } from '@darajs/ui-utils';
 
-import { getTabularVariableValue } from '@/shared';
-import { type ActionHandler, type DataFrame, type DownloadVariableImpl } from '@/types/core';
+import { getTabularVariableValue } from '../shared';
+import { type ActionHandler, type DataFrame, type DownloadVariableImpl } from '../types/core';
 
 const COL_PATTERN = /^__col__\d+__(.+)$/;
 const INDEX_PATTERN = /^__index__\d+__(.+)$/;
@@ -142,7 +142,9 @@ const createXLFromMatrix = async (name: string, matrix: any[][]): Promise<Blob> 
 
     const buff = await wb.xlsx.writeBuffer();
 
-    const blob = new Blob([buff], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const blob = new Blob([buff], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
 
     return blob;
 };

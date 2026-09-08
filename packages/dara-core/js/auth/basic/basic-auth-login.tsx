@@ -6,10 +6,9 @@ import { useLocation, useNavigate } from 'react-router';
 import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import DefaultFallback from '@/components/fallback/default';
-import { useRouterContext } from '@/router/context';
-import Center from '@/shared/center/center';
-
+import DefaultFallback from '../../components/fallback/default';
+import { useRouterContext } from '../../router/context';
+import Center from '../../shared/center/center';
 import { parseLoginReferrer, requestSessionToken, verifySessionToken } from '../auth';
 
 const Wrapper = styled.div`

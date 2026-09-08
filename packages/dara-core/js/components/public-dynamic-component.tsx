@@ -1,6 +1,6 @@
-import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
-import { useVariable } from '@/shared/interactivity';
-import type { BaseComponentProps, ComponentInstance, Variable } from '@/types';
+import DynamicComponent from '../shared/dynamic-component/dynamic-component';
+import { useVariable } from '../shared/interactivity';
+import type { BaseComponentProps, ComponentInstance, Variable } from '../types';
 
 interface PublicDynamicComponentProps extends BaseComponentProps {
     component: ComponentInstance | Variable<ComponentInstance>;

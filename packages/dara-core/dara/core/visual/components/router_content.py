@@ -23,9 +23,12 @@ from dara.core.definitions import (
     TemplateRouterContent,
 )
 
-RouterContentDef = JsComponentDef(name='RouterContent', js_module='@darajs/core', py_module='dara.core')
+RouterContentDef = JsComponentDef(
+    name='RouterContent', js_source='@darajs/core/components/outlet', py_module='dara.core'
+)
 
 
 class RouterContent(ComponentInstance):
+    js_source = '@darajs/core/components/outlet'
     routes: list[TemplateRouterContent]
     model_config = ConfigDict(extra='forbid')

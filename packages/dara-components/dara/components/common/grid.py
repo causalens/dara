@@ -65,6 +65,8 @@ class Column(LayoutComponent):
     :param hug: Whether to hug the content, defaults to False
     """
 
+    js_source = '@darajs/components/column'
+
     # TODO: :param order: optional number denoting the order of priority of the columns, with 1 being first to appear, and 12 the last to be added.
 
     span: int | ScreenBreakpoints | None = None
@@ -99,6 +101,8 @@ class Row(LayoutComponent):
     :param align: How to align the content of the row, accepts any flexbox alignments
     """
 
+    js_source = '@darajs/components/row'
+
     column_gap: int | None = None
 
     def __init__(self, *args: ComponentInstance | None, **kwargs):
@@ -118,6 +122,8 @@ class Grid(LayoutComponent):
     Rows will automatically calculate their widths and wrap on the page as needed.
     It also allows for responsive desiness by defining column span breakpoints.
     """
+
+    js_source = '@darajs/components/grid'
 
     row_gap: str = '0.75rem'
     breakpoints: ScreenBreakpoints | None = ScreenBreakpoints()

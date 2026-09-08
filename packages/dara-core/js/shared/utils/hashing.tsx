@@ -1,5 +1,5 @@
-import { type AnyVariable, type NestedKey } from '@/types/core';
-import { isLoopVariable } from '@/types/utils';
+import { type AnyVariable, type NestedKey } from '../../types/core';
+import { isLoopVariable } from '../../types/utils';
 
 /**
  * Serialize a nested key for identifier computation.

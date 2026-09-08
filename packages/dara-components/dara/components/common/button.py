@@ -123,6 +123,8 @@ class Button(LayoutComponent):
     :param stop_click_propagation: Whether to stop the click event from propagating to the parent element, defaults to true
     """
 
+    js_source = '@darajs/components/button'
+
     disabled: Condition | ClientVariable | bool | None = None
     loading: Condition | ClientVariable | bool | None = None
     onclick: Action | None = None

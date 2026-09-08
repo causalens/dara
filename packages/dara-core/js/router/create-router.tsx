@@ -2,10 +2,13 @@ import * as React from 'react';
 import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 import type { Snapshot } from 'recoil';
 
-import { resolveReferrer, verifySessionToken } from '@/auth';
-import { DefaultFallbackStatic } from '@/components/fallback/default';
-import ErrorStatusCodePage from '@/pages/error-status-code-page';
-import RouteErrorBoundary from '@/pages/route-error-boundary';
+import { resolveReferrer, verifySessionToken } from '../auth';
+import { DefaultFallbackStatic } from '../components/fallback/default';
+import ErrorStatusCodePage from '../pages/error-status-code-page';
+import RouteErrorBoundary from '../pages/route-error-boundary';
+import DynamicAuthComponent from '../shared/dynamic-component/dynamic-auth-component';
+import AuthenticatedRoot, { createAuthenticatedRootLoader } from '../shared/root/authenticated-root';
+import UnauthenticatedRoot from '../shared/root/unauthenticated-root';
 import {
     type DaraData,
     type IndexRouteDefinition,
@@ -15,11 +18,7 @@ import {
     type RouteDefinition,
     type RouteMatch,
     type Variable,
-} from '@/types/core';
-
-import DynamicAuthComponent from '../shared/dynamic-component/dynamic-auth-component';
-import AuthenticatedRoot, { createAuthenticatedRootLoader } from '../shared/root/authenticated-root';
-import UnauthenticatedRoot from '../shared/root/unauthenticated-root';
+} from '../types/core';
 import RouteContent, { createRouteLoader } from './route-content';
 
 /**

@@ -12,7 +12,7 @@ import { filter, take } from 'rxjs/operators';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
+import { registerComponents } from '@/shared/dynamic-component/dynamic-component';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
 import type { PyComponentInstance } from '@/types';
 
@@ -22,8 +22,7 @@ import { DynamicComponent, WebSocketCtx, clearCaches_TEST } from '../../js/share
 import { GlobalTaskProvider, useTaskContext } from '../../js/shared/context';
 import { Wrapper, server } from './utils';
 import MockWebSocketClient from './utils/mock-web-socket-client';
-import { mockComponents } from './utils/test-server-handlers';
-import { importers } from './utils/wrapped-render';
+import { componentImplementations } from './utils/wrapped-render';
 
 const vuid = 'VUID';
 const tuid = 'TASKID';
@@ -146,7 +145,7 @@ describe('ProgressTracker', () => {
         vi.useFakeTimers();
         clearRegistries_TEST();
         clearCaches_TEST();
-        await preloadComponents(importers, Object.values(mockComponents));
+        registerComponents(componentImplementations);
     });
 
     afterEach(() => {

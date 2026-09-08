@@ -61,6 +61,8 @@ class Anchor(ModifierComponent):
     :param new_tab: whether to open the link in a new tab
     """
 
+    js_source = '@darajs/components/anchor'
+
     href: str | None = None
     name: str | None = None
     clean: bool = False

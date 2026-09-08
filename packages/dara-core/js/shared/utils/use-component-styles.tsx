@@ -3,9 +3,8 @@ import * as React from 'react';
 
 import { useDeepCompare } from '@darajs/ui-utils';
 
-import { default as DisplayCtx, type DisplayCtxValue } from '@/shared/context/display-context';
-import { type StyledComponentProps } from '@/types';
-
+import { type StyledComponentProps } from '../../types';
+import { default as DisplayCtx, type DisplayCtxValue } from '../context/display-context';
 import { useVariable } from '../interactivity/use-variable';
 
 interface FlexProps {

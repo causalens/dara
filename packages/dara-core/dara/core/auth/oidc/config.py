@@ -53,11 +53,17 @@ from .settings import DEFAULT_ID_TOKEN_SIGNING_ALG, OIDCSettings, get_oidc_setti
 from .transaction_store import oidc_transaction_store
 from .utils import InstrumentedPyJWKClient, decode_id_token_async, get_token_from_idp
 
-OIDCAuthLogin = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogin')
+OIDCAuthLogin = AuthComponent(
+    js_source='@darajs/core/auth/oidc/oidc-login', py_module='dara.core', js_name='OIDCAuthLogin'
+)
 
-OIDCAuthLogout = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthLogout')
+OIDCAuthLogout = AuthComponent(
+    js_source='@darajs/core/auth/oidc/oidc-logout', py_module='dara.core', js_name='OIDCAuthLogout'
+)
 
-OIDCAuthSSOCallback = AuthComponent(js_module='@darajs/core', py_module='dara.core', js_name='OIDCAuthSSOCallback')
+OIDCAuthSSOCallback = AuthComponent(
+    js_source='@darajs/core/auth/oidc/sso-callback', py_module='dara.core', js_name='OIDCAuthSSOCallback'
+)
 
 USERINFO_ERROR = OTHER_AUTH_ERROR('Identity provider userinfo failed')
 UNSUPPORTED_JWKS_SIGNING_ALG_PREFIXES = ('HS',)

@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Added app-root Vite preparation, supervised development, frozen builds and Python-only artifact serving with direct component/action imports.
+- Fixed bootstrap JSON strings escaping their HTML script element.
+
 ## 1.29.9
 
 - Fixed stale authentication requests interrupting logout and sending users back through a login/logout loop.

@@ -12,8 +12,7 @@ import { useEffect } from 'react';
 
 import { useDeepCompare } from '@darajs/ui-utils';
 
-import { type RequestExtras } from '@/api/http';
-
+import { type RequestExtras } from '../../api/http';
 import { subscribeStream } from './stream-usage-tracker';
 
 /**

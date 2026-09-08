@@ -3,13 +3,12 @@ import * as React from 'react';
 import { Await, type LoaderFunctionArgs, useLoaderData, useMatches } from 'react-router';
 import { type Snapshot } from 'recoil';
 
-import { DefaultFallbackStatic } from '@/components/fallback/default';
-import { depsRegistry } from '@/shared';
-import { type ComponentInstance, type RouteDefinition } from '@/types';
-
+import { DefaultFallbackStatic } from '../components/fallback/default';
+import { depsRegistry } from '../shared';
 import DynamicComponent from '../shared/dynamic-component/dynamic-component';
 import { useExecuteAction } from '../shared/interactivity/use-action';
 import { useWindowTitle } from '../shared/utils';
+import { type ComponentInstance, type RouteDefinition } from '../types';
 import { type LoaderData, fetchRouteData, getFromPreloadCache } from './fetching';
 
 export interface LoaderResult {

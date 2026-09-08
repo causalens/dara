@@ -72,6 +72,8 @@ class Tooltip(ModifierComponent):
     :param styling: Defines the style of the tooltip, can be 'default' or 'error'
     """
 
+    js_source = '@darajs/components/tooltip'
+
     content: str | ComponentInstance | ClientVariable
     placement: str = 'auto'
     styling: str = 'default'

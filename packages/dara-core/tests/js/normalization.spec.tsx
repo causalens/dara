@@ -1,8 +1,7 @@
-/* eslint-disable no-await-in-loop */
-import { describe, expect, it } from "vitest";
-
 import fs from 'fs/promises';
 import path from 'path';
+/* eslint-disable no-await-in-loop */
+import { describe, expect, it } from 'vitest';
 
 import { denormalize, normalizeRequest } from '../../js/shared/utils/normalization';
 import { readTemplateJson } from './utils/test-data-utils';
@@ -37,7 +36,9 @@ describe('Normalization', () => {
 
     it('Normalizes request data correctly', async () => {
         const availableDataFolders = (
-            await fs.readdir(path.join(__dirname, '../data/request_normalization'), { withFileTypes: true })
+            await fs.readdir(path.join(__dirname, '../data/request_normalization'), {
+                withFileTypes: true,
+            })
         )
             .filter((dirent) => dirent.isDirectory())
             .map((dirent) => dirent.name)

@@ -19,9 +19,15 @@ from typing import ClassVar, Optional, Union  # noqa: F401
 
 from dara.core.definitions import BaseFallback, ComponentInstance, JsComponentDef, StyledComponentInstance  # noqa: F401
 
-DefaultFallbackDef = JsComponentDef(name='DefaultFallback', js_module='@darajs/core', py_module='dara.core')
-RowFallbackDef = JsComponentDef(name='RowFallback', js_module='@darajs/core', py_module='dara.core')
-CustomFallbackDef = JsComponentDef(name='CustomFallback', js_module='@darajs/core', py_module='dara.core')
+DefaultFallbackDef = JsComponentDef(
+    name='DefaultFallback', js_source='@darajs/core/components/fallback/default', py_module='dara.core'
+)
+RowFallbackDef = JsComponentDef(
+    name='RowFallback', js_source='@darajs/core/components/fallback/row', py_module='dara.core'
+)
+CustomFallbackDef = JsComponentDef(
+    name='CustomFallback', js_source='@darajs/core/components/fallback/custom', py_module='dara.core'
+)
 
 
 class Fallback:

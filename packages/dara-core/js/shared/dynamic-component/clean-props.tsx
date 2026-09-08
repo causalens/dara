@@ -1,4 +1,4 @@
-import { type BaseComponentProps, type ComponentInstance } from '@/types';
+import { type BaseComponentProps, type ComponentInstance } from '../../types';
 
 /**
  * Clean properties for a component.
@@ -6,7 +6,9 @@ import { type BaseComponentProps, type ComponentInstance } from '@/types';
 export function cleanProps(props: BaseComponentProps): BaseComponentProps {
     // filter out null/undefined children
     if ('children' in props && Array.isArray(props.children)) {
-        const propsCopy = { ...props } as BaseComponentProps & { children: Array<ComponentInstance | null> };
+        const propsCopy = { ...props } as BaseComponentProps & {
+            children: Array<ComponentInstance | null>;
+        };
         propsCopy.children = props.children.filter(Boolean);
 
         return propsCopy;

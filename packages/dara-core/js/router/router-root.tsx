@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { RouterProvider } from 'react-router/dom';
 import { useRecoilCallback } from 'recoil';
 
-import type { DaraData } from '@/types';
-
+import type { DaraData } from '../types';
 import { RouterContextProvider } from './context';
 import { createRouter } from './create-router';
 

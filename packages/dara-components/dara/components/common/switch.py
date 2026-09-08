@@ -42,6 +42,8 @@ class Switch(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
+    js_source = '@darajs/components/switch'
+
     value: Variable[bool] | None = None
     onchange: Action | None = None
     id: str | None = None

@@ -37,4 +37,6 @@ class HtmlRaw(ContentComponent):
     :param html: The raw html to display, should be string
     """
 
+    js_source = '@darajs/components/html-raw'
+
     html: str

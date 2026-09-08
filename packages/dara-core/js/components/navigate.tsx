@@ -1,7 +1,7 @@
 import { Navigate as RRNavigate, type NavigateProps as RRNavigateProps } from 'react-router';
 
-import { useVariable } from '@/shared/interactivity';
-import type { Variable } from '@/types';
+import { useVariable } from '../shared/interactivity';
+import type { Variable } from '../types';
 
 type MaybeVariable<T> = T | Variable<T>;
 
