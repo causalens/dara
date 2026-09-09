@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { parseArgs } from "node:util";
+import { z } from "zod";
 import { checkTypes, buildProject } from "./build.js";
 import { ProjectError, diagnostic } from "./contract.js";
 import { serveProject } from "./dev.js";
@@ -12,19 +13,28 @@ console.log = console.error;
 console.info = console.error;
 console.debug = console.error;
 
-const { values, positionals } = parseArgs({
-  allowPositionals: true,
-  options: {
-    root: { type: "string" },
-    "base-url": { type: "string", default: "" },
-    "no-typecheck": { type: "boolean" },
-    "no-deps-build": { type: "boolean" },
-    token: { type: "string" },
-  },
-});
-const root = path.resolve(values.root ?? process.cwd());
-const operation = positionals[0];
+const commandSchema = z.tuple([z.enum(["serve", "init", "check", "check-project", "build"])]);
 try {
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: {
+      root: { type: "string" },
+      "base-url": { type: "string", default: "" },
+      "no-typecheck": { type: "boolean" },
+      "no-deps-build": { type: "boolean" },
+      token: { type: "string" },
+    },
+  });
+  const root = path.resolve(values.root ?? process.cwd());
+  const command = commandSchema.safeParse(positionals);
+  if (!command.success) {
+    throw new ProjectError(
+      "command.unknown",
+      `Expected one plugin operation: ${command.error.message}`,
+      "dara check",
+    );
+  }
+  const [operation] = command.data;
   if (operation === "serve") {
     await serveProject(root, {
       baseUrl: values["base-url"],
@@ -32,13 +42,6 @@ try {
       ...(values.token === undefined ? {} : { token: values.token }),
     });
   } else {
-    if (!operation || !["init", "check", "check-project", "build"].includes(operation)) {
-      throw new ProjectError(
-        "command.unknown",
-        `Unknown plugin operation ${operation}`,
-        "dara check",
-      );
-    }
     const created = operation === "init" ? initialize(root) : [];
     let raw;
     if (operation === "build") {

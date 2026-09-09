@@ -6,7 +6,14 @@ import type { DaraOptions } from "./contract.js";
 import type { DaraPluginApi } from "./project.js";
 export type { DaraOptions } from "./contract.js";
 import react from "@vitejs/plugin-react";
-import { ProjectError, generateEntry, resolvedEntry, shared, virtualEntry } from "./contract.js";
+import {
+  ProjectError,
+  generateEntry,
+  parseOptions,
+  resolvedEntry,
+  shared,
+  virtualEntry,
+} from "./contract.js";
 import { assetMiddleware } from "./assets.js";
 import { fileHash } from "./files.js";
 
@@ -30,7 +37,8 @@ ${scripts.map((file) => `<script type="module" src="{{ static_url }}/${file}"></
 }
 
 /** Vite integration and input declarations shared by all Dara applications. */
-export default function dara(options: DaraOptions = {}): PluginOption[] {
+export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
+  const options = parseOptions(rawOptions);
   const api: DaraPluginApi = { project: null, resolving: false, options };
   return [
     react(),
