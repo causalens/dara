@@ -14,3 +14,5 @@ export default defineConfig({ plugins: [dara()] });
 Dara includes React support and owns the entry, asset base, output and development endpoints. Other Vite plugins and aliases remain application configuration. Use `dara({ inputs: ['theme.json'], directories: ['generated'], environment: ['VITE_BRAND'] })` to declare additional inputs read by custom build plugins. The project TypeScript configuration extends `@darajs/vite-plugin/tsconfig.json`.
 
 Node >=22.12 and pnpm 12 are required to prepare, check, develop or build. The Python and plugin versions must match. Generated artifacts include a private `.dara-build.json` marker that Python checks before serving; do not edit it or expose it as a static file.
+
+The plugin itself uses TypeScript 7 with strict checking and NodeNext modules. `pnpm --filter @darajs/vite-plugin build` emits Node ESM and declarations into `dist`; `pnpm --filter @darajs/vite-plugin test` compiles and runs the tests against that output. The exported `tsconfig.json` is the separate application preset.

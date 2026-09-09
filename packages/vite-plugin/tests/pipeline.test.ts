@@ -2,19 +2,21 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { TestContext } from "node:test";
+import type { Manifest } from "../dist/contract.js";
 import { test } from "node:test";
-import { collectAssets } from "../src/assets.mjs";
-import { inputSnapshot, publishBuild, verifySnapshot } from "../src/build.mjs";
-import { generateEntry, parseManifest, sourcePackage, version } from "../src/contract.mjs";
-import { initialize } from "../src/project.mjs";
+import { collectAssets } from "../dist/assets.js";
+import { inputSnapshot, publishBuild, verifySnapshot } from "../dist/build.js";
+import { generateEntry, parseManifest, sourcePackage, version } from "../dist/contract.js";
+import { initialize } from "../dist/project.js";
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "dara-pipeline-")));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;
 }
 
-function manifest(overrides = {}) {
+function manifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
     schema: 1,
     configuration: "app.main:config",
@@ -33,7 +35,7 @@ function manifest(overrides = {}) {
 }
 
 await test("manifest version and source syntax fail before resolution", () => {
-  assert.throws(() => parseManifest(manifest({ schema: 2 })), /schema/);
+  assert.throws(() => parseManifest({ ...manifest(), schema: 2 }), /schema/);
   assert.throws(() => parseManifest(manifest({ daraVersion: "0.0.0" })), /does not match/);
   for (const source of ["../secret", "./js/../../secret", "https://host/module", "@pkg/a/../b"]) {
     assert.throws(() => sourcePackage(source), /js_source/);
@@ -85,7 +87,8 @@ await test("static namespace collision names both competing registrations", (t) 
           ],
         }),
       ),
-    (error) => error.message.includes(first) && error.message.includes(second),
+    (error) =>
+      error instanceof Error && error.message.includes(first) && error.message.includes(second),
   );
 });
 
@@ -120,9 +123,9 @@ await test("input snapshots catch additions and byte changes during compilation"
   const project = {
     root,
     workspace: root,
-    inputs: new Set(),
-    sourceFiles: new Set(),
-    assets: new Map(),
+    inputs: new Set<string>(),
+    sourceFiles: new Set<string>(),
+    assets: new Map<string, string>(),
     manifest: manifest(),
     api: { options: {} },
   };

@@ -1,12 +1,21 @@
 import fs from "node:fs";
+import { z } from "zod";
 import path from "node:path";
+import type { PluginOption } from "vite";
+import type { DaraOptions } from "./contract.js";
+import type { DaraPluginApi } from "./project.js";
+export type { DaraOptions } from "./contract.js";
 import react from "@vitejs/plugin-react";
-import { ProjectError, generateEntry, resolvedEntry, shared, virtualEntry } from "./contract.mjs";
-import { assetMiddleware } from "./assets.mjs";
-import { fileHash } from "./files.mjs";
+import { ProjectError, generateEntry, resolvedEntry, shared, virtualEntry } from "./contract.js";
+import { assetMiddleware } from "./assets.js";
+import { fileHash } from "./files.js";
 
 /** HTML belongs to Vite; Python fills runtime JSON and URL placeholders when serving it. */
-export function htmlTemplate(scripts, styles = [], development = false) {
+export function htmlTemplate(
+  scripts: string[],
+  styles: string[] = [],
+  development = false,
+): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dara</title><base href="{{ base_url }}/"><link rel="icon" href="{{ static_url }}/favicon.ico">
@@ -21,8 +30,8 @@ ${scripts.map((file) => `<script type="module" src="{{ static_url }}/${file}"></
 }
 
 /** Vite integration and input declarations shared by all Dara applications. */
-export default function dara(options = {}) {
-  const api = { project: null, resolving: false, options };
+export default function dara(options: DaraOptions = {}): PluginOption[] {
+  const api: DaraPluginApi = { project: null, resolving: false, options };
   return [
     react(),
     {
@@ -38,7 +47,7 @@ export default function dara(options = {}) {
               "edit vite.config.ts",
             );
           }
-          if (config.publicDir && config.publicDir !== false) {
+          if (config.publicDir) {
             throw new ProjectError(
               "vite.public",
               "Use static/ or add_static_folder instead of Vite publicDir",
@@ -103,13 +112,15 @@ export default function dara(options = {}) {
           return null;
         }
         const key = "./" + source.slice(project.packageJson.name.length + 1);
-        let entry = project.packageJson.exports?.[key];
+        const parsed = z.record(z.unknown()).safeParse(project.packageJson["exports"]);
+        const exports = parsed.success ? parsed.data : {};
+        let entry = exports[key];
         if (!entry) {
-          for (const [pattern, value] of Object.entries(project.packageJson.exports ?? {})) {
+          for (const [pattern, value] of Object.entries(exports)) {
             if (!pattern.includes("*")) {
               continue;
             }
-            const [prefix, suffix] = pattern.split("*");
+            const [prefix = "", suffix = ""] = pattern.split("*");
             if (key.startsWith(prefix) && key.endsWith(suffix)) {
               const match = key.slice(prefix.length, suffix ? -suffix.length : undefined);
               entry = JSON.parse(JSON.stringify(value).replaceAll("*", match));
@@ -117,10 +128,19 @@ export default function dara(options = {}) {
             }
           }
         }
-        const select = (value) =>
-          typeof value === "string"
-            ? value
-            : value && select(value["dara-source"] ?? value.import ?? value.default);
+        const select = (value: unknown): string | undefined => {
+          if (typeof value === "string") {
+            return value;
+          }
+          const selection = z.record(z.unknown()).safeParse(value);
+          return selection.success
+            ? select(
+                selection.data["dara-source"] ??
+                  selection.data["import"] ??
+                  selection.data["default"],
+              )
+            : undefined;
+        };
         const target = select(entry);
         if (!target) {
           throw new ProjectError(
@@ -133,7 +153,7 @@ export default function dara(options = {}) {
       },
       load(id) {
         if (id !== resolvedEntry) {
-          const file = id.split("?")[0];
+          const file = id.split("?")[0] ?? id;
           if (
             api.project?.observedHashes &&
             path.isAbsolute(file) &&
@@ -165,7 +185,7 @@ export default function dara(options = {}) {
         server.middlewares.use((request, response, next) => {
           let segments;
           try {
-            segments = decodeURIComponent(new URL(request.url, "http://localhost").pathname)
+            segments = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname)
               .replaceAll("\\", "/")
               .split("/");
           } catch {
@@ -175,7 +195,7 @@ export default function dara(options = {}) {
           }
           if (
             segments.some((part) => part.startsWith(".dara")) ||
-            ["index.html", "index.dev.html"].includes(segments.at(-1))
+            ["index.html", "index.dev.html"].includes(segments.at(-1) ?? "")
           ) {
             response.statusCode = 404;
             response.end();
@@ -214,7 +234,7 @@ export default function dara(options = {}) {
         });
         if (api.project) {
           for (const id of this.getModuleIds()) {
-            const file = id.split("?")[0];
+            const file = id.split("?")[0] ?? id;
             if (path.isAbsolute(file) && fs.existsSync(file)) {
               api.project.sourceFiles.add(fs.realpathSync(file));
             }

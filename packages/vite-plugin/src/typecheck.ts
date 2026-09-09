@@ -1,16 +1,44 @@
 import path from "node:path";
+import type { ChildProcessByStdio } from "node:child_process";
+import type { Readable } from "node:stream";
+import type { ErrorPayload, HotPayload } from "vite";
+import type { Diagnostic } from "./contract.js";
 import { spawn } from "node:child_process";
-import { compilerExecutable } from "./compiler.mjs";
-import { ProjectError } from "./contract.mjs";
+import { compilerExecutable } from "./compiler.js";
+import { ProjectError, diagnostic } from "./contract.js";
+
+/** The event and message protocol consumed by the checker, independent of Vite's transport. */
+export interface TypecheckServer {
+  ws: {
+    send(payload: HotPayload): void;
+    on(
+      event: "connection",
+      listener: (client: { send(payload: HotPayload): void }) => void,
+    ): unknown;
+    off(
+      event: "connection",
+      listener: (client: { send(payload: HotPayload): void }) => void,
+    ): unknown;
+  };
+  watcher: {
+    on(event: "all", listener: (event: string, file: string) => void): unknown;
+    off(event: "all", listener: (event: string, file: string) => void): unknown;
+  };
+}
+
+interface CompilerProcess {
+  child: ChildProcessByStdio<null, Readable, Readable>;
+  closed: Promise<void>;
+}
 
 /** Stop a direct native compiler within a bounded grace period. */
-async function stopCompiler(process) {
+async function stopCompiler(process: CompilerProcess | undefined) {
   if (!process) {
     return;
   }
   process.child.kill("SIGTERM");
   const escalation = setTimeout(() => process.child.kill("SIGKILL"), 1000);
-  let deadline;
+  let deadline: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([
       process.closed,
@@ -35,21 +63,25 @@ async function stopCompiler(process) {
 }
 
 /** Own compiler checks, replay diagnostics and use Vite changes if native watching fails. */
-export function startTypecheck(root, server, blocked) {
+export function startTypecheck(
+  root: string,
+  server: TypecheckServer,
+  blocked: (diagnostic: Diagnostic) => void,
+) {
   const executable = compilerExecutable(root);
   let stopped = false;
   let mode = "watch";
-  let running;
+  let running: CompilerProcess | undefined;
   let pending = false;
-  let timer;
-  let lastError;
-  const connected = (client) => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let lastError: ErrorPayload | undefined;
+  const connected = (client: { send(payload: HotPayload): void }) => {
     if (lastError) {
       client.send(lastError);
     }
   };
   server.ws.on("connection", connected);
-  const publish = (output, success) => {
+  const publish = (output: string, success: boolean) => {
     if (success) {
       lastError = undefined;
       server.ws.send({ type: "custom", event: "dara:typecheck-clear", data: {} });
@@ -79,11 +111,14 @@ export function startTypecheck(root, server, blocked) {
       detached: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    const owned = { child, closed: new Promise((resolve) => child.once("close", resolve)) };
+    const owned = {
+      child,
+      closed: new Promise<void>((resolve) => child.once("close", () => resolve())),
+    };
     running = owned;
     let output = "";
-    let spawnError;
-    const report = (data) => {
+    let spawnError: Error | undefined;
+    const report = (data: Buffer) => {
       const chunk = data.toString();
       process.stderr.write(`[typescript] ${chunk}`);
       output += chunk;
@@ -97,7 +132,7 @@ export function startTypecheck(root, server, blocked) {
         process.stderr.write(
           "[typescript] Native watching failed; using Vite changes for serialized type checks.\n",
         );
-        void stopCompiler(owned).catch((error) => blocked(error.diagnostic));
+        void stopCompiler(owned).catch((error: unknown) => blocked(diagnostic(error)));
       } else if (watching && mode === "watch" && /Found \d+ errors?\. Watching/.test(output)) {
         publish(output, output.includes("Found 0 errors"));
         output = "";
@@ -129,7 +164,7 @@ export function startTypecheck(root, server, blocked) {
       }
     });
   };
-  const changed = (_event, file) => {
+  const changed = (_event: string, file: string) => {
     if (mode === "check" && /\.(?:[cm]?tsx?|json)$/.test(file)) {
       clearTimeout(timer);
       timer = setTimeout(run, 150);

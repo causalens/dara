@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { checkTypes, buildProject } from "./build.mjs";
-import { ProjectError } from "./contract.mjs";
-import { serveProject } from "./dev.mjs";
-import { initialize, loadProject } from "./project.mjs";
-import { readJson } from "./files.mjs";
+import { checkTypes, buildProject } from "./build.js";
+import { ProjectError, diagnostic } from "./contract.js";
+import { serveProject } from "./dev.js";
+import { initialize, loadProject } from "./project.js";
+import { readJson } from "./files.js";
 
 // Configuration may log while loading. Reserve stdout for the runner protocol.
 console.log = console.error;
@@ -28,11 +28,11 @@ try {
   if (operation === "serve") {
     await serveProject(root, {
       baseUrl: values["base-url"],
-      noTypecheck: values["no-typecheck"],
-      token: values.token,
+      noTypecheck: values["no-typecheck"] ?? false,
+      ...(values.token === undefined ? {} : { token: values.token }),
     });
   } else {
-    if (!["init", "check", "check-project", "build"].includes(operation)) {
+    if (!operation || !["init", "check", "check-project", "build"].includes(operation)) {
       throw new ProjectError(
         "command.unknown",
         `Unknown plugin operation ${operation}`,
@@ -56,15 +56,11 @@ try {
     }
     const result =
       operation === "build"
-        ? await buildProject(project, { noDepsBuild: values["no-deps-build"] })
+        ? await buildProject(project, { noDepsBuild: values["no-deps-build"] ?? false })
         : { created, runtime: process.version };
     process.stdout.write(JSON.stringify(result) + "\n");
   }
 } catch (error) {
-  process.stdout.write(
-    JSON.stringify([
-      error.diagnostic ?? { code: "frontend.runner", message: error.message, fix: "dara check" },
-    ]) + "\n",
-  );
+  process.stdout.write(JSON.stringify([diagnostic(error)]) + "\n");
   process.exitCode = 1;
 }

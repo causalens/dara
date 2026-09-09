@@ -1,11 +1,50 @@
 import fs from "node:fs";
 import path from "node:path";
+import { z } from "zod";
+import type { Plugin, ResolvedConfig, UserConfig, ViteDevServer } from "vite";
+import type { DaraOptions, Diagnostic, Manifest } from "./contract.js";
+import type { PackageJson } from "./files.js";
 import { getTsconfig } from "get-tsconfig";
 import semver from "semver";
 import { createServer, loadConfigFromFile, resolveConfig } from "vite";
 import { parse as parseYaml } from "yaml";
-import { ProjectError, parseManifest, sourcePackage } from "./contract.mjs";
-import { atomicWrite, inside, readJson, workspaceRoot } from "./files.mjs";
+import { ProjectError, errorMessage, parseManifest, sourcePackage } from "./contract.js";
+import { atomicWrite, inside, readPackageJson, workspaceRoot } from "./files.js";
+
+export interface DaraPluginApi {
+  project: Project | null;
+  resolving: boolean;
+  options: DaraOptions;
+}
+
+export type DaraPlugin = Plugin<DaraPluginApi> & { api: DaraPluginApi };
+
+export interface ProjectConfig {
+  userConfig: UserConfig;
+  config: ResolvedConfig;
+  api: DaraPluginApi;
+  configInputs: string[];
+}
+
+export interface Project extends ProjectConfig {
+  root: string;
+  workspace: string;
+  manifest: Manifest;
+  packageJson: PackageJson;
+  typescript: NonNullable<ReturnType<typeof getTsconfig>>;
+  inputs: Set<string>;
+  sourceFiles: Set<string>;
+  assets: Map<string, string>;
+  state: "waiting" | "ready" | "blocked";
+  base: string;
+  observedHashes?: Map<string, string>;
+  server?: ViteDevServer;
+}
+
+export type RuntimeStatus =
+  | { state: "waiting" }
+  | { state: "ready"; runtime: string }
+  | { state: "blocked"; diagnostic: Diagnostic };
 
 const defaults = {
   "vite.config.ts": `import dara from '@darajs/vite-plugin';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [dara()] });\n`,
@@ -16,7 +55,7 @@ const defaults = {
 };
 
 /** Initialize only absent user files; existing configuration and app code remain user-owned. */
-export function initialize(root) {
+export function initialize(root: string): string[] {
   const created = [];
   for (const [name, contents] of Object.entries(defaults)) {
     const file = path.join(root, name);
@@ -27,7 +66,7 @@ export function initialize(root) {
         fs.writeFileSync(file, contents, { flag: "wx" });
         created.push(name);
       } catch (error) {
-        if (error.code !== "EEXIST") {
+        if (!(error instanceof Error && "code" in error && error.code === "EEXIST")) {
           throw error;
         }
       }
@@ -37,25 +76,27 @@ export function initialize(root) {
 }
 
 /** Validate the effective TS project, following JSONC, inheritance and the locked preset. */
-export function checkTypescript(root) {
+export function checkTypescript(root: string) {
   let config;
   try {
     config = getTsconfig(root);
   } catch (error) {
-    throw new ProjectError("typescript.config", error.message, "edit tsconfig.json");
+    throw new ProjectError("typescript.config", errorMessage(error), "edit tsconfig.json");
   }
   if (!config || path.resolve(config.path) !== path.join(root, "tsconfig.json")) {
     throw new ProjectError("typescript.config", "The app needs a root tsconfig.json");
   }
   const options = config.config.compilerOptions ?? {};
-  const required = {
+  const required: Partial<typeof options> = {
     moduleResolution: "bundler",
     jsx: "react-jsx",
     noEmit: true,
     isolatedModules: true,
   };
   const conflicts = Object.entries(required)
-    .filter(([key, value]) => options[key] !== value)
+    .filter(
+      ([key, value]) => Object.entries(options).find(([option]) => option === key)?.[1] !== value,
+    )
     .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
   if (!options.customConditions?.includes("dara-source")) {
     conflicts.push('customConditions: ["dara-source"]');
@@ -73,12 +114,21 @@ export function checkTypescript(root) {
   return config;
 }
 
-function checkDependencies(root, workspace, manifest, packageJson) {
+function checkDependencies(
+  root: string,
+  workspace: string,
+  manifest: Manifest,
+  packageJson: PackageJson,
+) {
   const file = path.join(workspace, "pnpm-workspace.yaml");
   if (!fs.existsSync(file)) {
     throw new ProjectError("dependency.catalog", "Missing pnpm-workspace.yaml");
   }
-  const catalog = parseYaml(fs.readFileSync(file, "utf8"))?.catalogs?.dara;
+  const catalog = z
+    .object({
+      catalogs: z.object({ dara: z.record(z.string()).optional() }).optional(),
+    })
+    .parse(parseYaml(fs.readFileSync(file, "utf8"))).catalogs?.dara;
   const inputs = new Set([path.join(root, "package.json"), file]);
   for (const required of manifest.packageRequirements) {
     if (catalog?.[required.name] !== required.specifier) {
@@ -104,9 +154,10 @@ function checkDependencies(root, workspace, manifest, packageJson) {
     if (!fs.existsSync(installed)) {
       throw new ProjectError("dependency.missing", `${required.name} is not installed`);
     }
-    const actual = readJson(installed);
+    const actual = readPackageJson(installed);
     if (
       actual.name !== required.name ||
+      !actual.version ||
       !semver.satisfies(actual.version, required.specifier, { includePrerelease: true })
     ) {
       throw new ProjectError(
@@ -134,12 +185,16 @@ function checkDependencies(root, workspace, manifest, packageJson) {
   return inputs;
 }
 
-async function resolveProjectConfig(root, command) {
+async function resolveProjectConfig(
+  root: string,
+  command: "serve" | "build",
+): Promise<ProjectConfig> {
   const file = path.join(root, "vite.config.ts");
   if (!fs.existsSync(file)) {
     throw new ProjectError("vite.config", "Missing vite.config.ts");
   }
   const env = { command, mode: command === "serve" ? "development" : "production" };
+  process.env["NODE_ENV"] = env.mode;
   const loaded = await loadConfigFromFile(env, file, root, "warn");
   if (!loaded) {
     throw new ProjectError("vite.config", `Unable to load ${file}`, "edit vite.config.ts");
@@ -149,16 +204,19 @@ async function resolveProjectConfig(root, command) {
     command,
     env.mode,
   );
-  const plugins = resolved.plugins.filter((plugin) => plugin.name === "dara:app");
-  if (plugins.length !== 1) {
+  const plugins = resolved.plugins.filter(
+    (plugin): plugin is DaraPlugin => plugin.name === "dara:app",
+  );
+  const [plugin] = plugins;
+  if (plugins.length !== 1 || !plugin) {
     throw new ProjectError(
       "vite.plugin",
       'vite.config.ts must include exactly one dara() plugin: import dara from "@darajs/vite-plugin"',
       "edit vite.config.ts",
     );
   }
-  const react = resolved.plugins.filter((plugin) =>
-    ["vite:react-babel", "vite:react-swc"].includes(plugin.name),
+  const react = resolved.plugins.filter((candidate) =>
+    ["vite:react-babel", "vite:react-swc"].includes(candidate.name),
   );
   if (react.length > 1) {
     throw new ProjectError(
@@ -170,13 +228,17 @@ async function resolveProjectConfig(root, command) {
   return {
     userConfig: loaded.config,
     config: resolved,
-    api: plugins[0].api,
+    api: plugin.api,
     configInputs: [file, ...loaded.dependencies],
   };
 }
 
 /** Load and validate the app once at the Node boundary; runners consume the returned project. */
-export async function loadProject(appRoot, raw, command = "serve") {
+export async function loadProject(
+  appRoot: string,
+  raw: unknown,
+  command: "serve" | "build" = "serve",
+): Promise<Project> {
   const root = fs.realpathSync(appRoot);
   if (!semver.satisfies(process.version, ">=22.12.0")) {
     throw new ProjectError(
@@ -186,7 +248,7 @@ export async function loadProject(appRoot, raw, command = "serve") {
     );
   }
   const manifest = parseManifest(raw);
-  const packageJson = readJson(path.join(root, "package.json"));
+  const packageJson = readPackageJson(path.join(root, "package.json"));
   const workspace = workspaceRoot(root);
   const dependencyInputs = checkDependencies(root, workspace, manifest, packageJson);
   for (const name of Object.keys(defaults)) {
@@ -200,14 +262,14 @@ export async function loadProject(appRoot, raw, command = "serve") {
   const typescript = checkTypescript(root);
   // Vite and configuration modules read process-wide NODE_ENV. Resolve each mode
   // in its own posture, then restore the active command before running plugins.
-  const configs = [];
+  let configs: [ProjectConfig, ProjectConfig];
   try {
-    for (const mode of ["serve", "build"]) {
-      process.env.NODE_ENV = mode === "build" ? "production" : "development";
-      configs.push(await resolveProjectConfig(root, mode));
-    }
+    configs = [
+      await resolveProjectConfig(root, "serve"),
+      await resolveProjectConfig(root, "build"),
+    ];
   } finally {
-    process.env.NODE_ENV = command === "build" ? "production" : "development";
+    process.env["NODE_ENV"] = command === "build" ? "production" : "development";
   }
   const chosen = configs[command === "serve" ? 0 : 1];
   for (const config of configs) {
@@ -229,7 +291,7 @@ export async function loadProject(appRoot, raw, command = "serve") {
       );
     }
   }
-  const project = {
+  const project: Project = {
     root,
     workspace,
     manifest,
@@ -241,7 +303,10 @@ export async function loadProject(appRoot, raw, command = "serve") {
       ...configs.flatMap((config) => config.configInputs),
       typescript.path,
     ]),
-    sourceFiles: new Set(),
+    sourceFiles: new Set<string>(),
+    assets: new Map<string, string>(),
+    state: "waiting",
+    base: "/static/",
   };
   project.api.project = project;
   // Use Vite's real plugin container, so user resolvers and the app's exports participate.
@@ -256,6 +321,14 @@ export async function loadProject(appRoot, raw, command = "serve") {
       server: { middlewareMode: true, watch: null, hmr: false },
       optimizeDeps: { noDiscovery: true, include: [] },
     });
+    const client = resolver.environments["client"];
+    if (!client) {
+      throw new ProjectError(
+        "vite.environment",
+        "Vite did not create its client environment",
+        "edit vite.config.ts",
+      );
+    }
     const imports = [
       { name: "Dara bootstrap", source: "@darajs/core/bootstrap" },
       ...manifest.moduleDependencies.map((item) => ({ name: item.python, source: item.source })),
@@ -266,7 +339,7 @@ export async function loadProject(appRoot, raw, command = "serve") {
     for (const item of imports) {
       const local = sourcePackage(item.source) === null;
       const specifier = local ? path.resolve(root, item.source) : item.source;
-      const resolved = await resolver.environments.client.pluginContainer.resolveId(
+      const resolved = await client.pluginContainer.resolveId(
         specifier,
         path.join(root, "js/index.tsx"),
       );
@@ -277,7 +350,7 @@ export async function loadProject(appRoot, raw, command = "serve") {
           "edit js_source or build the workspace package",
         );
       }
-      const file = resolved.id.split("?")[0];
+      const file = resolved.id.split("?")[0] ?? resolved.id;
       if (
         local &&
         (!fs.existsSync(file) || !inside(path.join(root, "js"), fs.realpathSync(file)))
@@ -300,6 +373,9 @@ export async function loadProject(appRoot, raw, command = "serve") {
 }
 
 /** Publish private runner state for the Python supervisor and proxy. */
-export function publishStatus(root, state) {
+export function publishStatus(
+  root: string,
+  state: RuntimeStatus & { token: string; origin: string | undefined },
+) {
   atomicWrite(path.join(root, "node_modules/.dara/dev-server.json"), JSON.stringify(state));
 }

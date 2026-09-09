@@ -3,9 +3,23 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 
-export const version = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url)),
-).version;
+export const version = z
+  .object({ version: z.string() })
+  .parse(JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"))).version;
+
+export interface Diagnostic {
+  code: string;
+  message: string;
+  fix: string;
+}
+
+/** Additional inputs read by custom build plugins rather than ordinary module imports. */
+export interface DaraOptions {
+  inputs?: string[];
+  directories?: string[];
+  environment?: string[];
+}
+
 export const shared = [
   "@darajs/core",
   "react",
@@ -21,16 +35,34 @@ export const resolvedEntry = "\0virtual:dara-entry";
 
 /** Diagnostic codes are stable across all four runners and the Python CLI. */
 export class ProjectError extends Error {
-  constructor(code, message, fix = "dara lock") {
+  readonly diagnostic: Diagnostic;
+
+  constructor(code: string, message: string, fix = "dara lock") {
     super(message);
     this.diagnostic = { code, message, fix };
   }
 }
 
+/** Describe an exception from user configuration or external tooling. */
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Preserve structured project failures and normalize errors at process boundaries. */
+export function diagnostic(error: unknown): Diagnostic {
+  return error instanceof ProjectError
+    ? error.diagnostic
+    : { code: "frontend.runner", message: errorMessage(error), fix: "dara check" };
+}
+
 /** Parse an import specifier without interpreting package code or trusting traversal paths. */
-export function sourcePackage(source) {
+export function sourcePackage(source: unknown): string | null {
   if (typeof source !== "string" || source.includes("\\")) {
-    throw new ProjectError("source.invalid", `Invalid js_source: ${source}`, "edit js_source");
+    throw new ProjectError(
+      "source.invalid",
+      `Invalid js_source: ${String(source)}`,
+      "edit js_source",
+    );
   }
   if (source.startsWith("./")) {
     if (path.posix.normalize(source).startsWith("js/")) {
@@ -41,7 +73,10 @@ export function sourcePackage(source) {
     !source.startsWith(".") &&
     !source.split("/").some((p) => p === ".." || p === ".")
   ) {
-    return source.startsWith("@") ? source.split("/").slice(0, 2).join("/") : source.split("/")[0];
+    return source
+      .split("/")
+      .slice(0, source.startsWith("@") ? 2 : 1)
+      .join("/");
   }
   throw new ProjectError(
     "source.invalid",
@@ -54,7 +89,7 @@ const source = z.string().superRefine((value, ctx) => {
   try {
     sourcePackage(value);
   } catch (error) {
-    ctx.addIssue({ code: "custom", message: error.message });
+    ctx.addIssue({ code: "custom", message: errorMessage(error) });
   }
 });
 const implementation = z.object({ name: z.string().min(1), source }).strict();
@@ -87,7 +122,9 @@ const schema = z
   .strict();
 
 /** Parse the complete manifest before acting on any registered sources or requirements. */
-export function parseManifest(raw) {
+export type Manifest = z.infer<typeof schema>;
+
+export function parseManifest(raw: unknown): Manifest {
   const result = schema.safeParse(raw);
   if (!result.success) {
     throw new ProjectError(
@@ -102,8 +139,8 @@ export function parseManifest(raw) {
       `Python Dara ${result.data.daraVersion} does not match plugin ${version}`,
     );
   }
-  for (const key of ["components", "actions", "auth"]) {
-    const seen = new Map();
+  for (const key of ["components", "actions", "auth"] as const) {
+    const seen = new Map<string, string>();
     for (const entry of result.data[key]) {
       if (seen.has(entry.name) && seen.get(entry.name) !== entry.source) {
         throw new ProjectError(
@@ -119,15 +156,15 @@ export function parseManifest(raw) {
 }
 
 /** Hash canonical JSON identically to the Python marker validator. */
-export function digest(value) {
-  const canonical = (item) =>
+export function digest(value: unknown): string {
+  const canonical = (item: unknown): unknown =>
     Array.isArray(item)
       ? item.map(canonical)
       : item && typeof item === "object"
         ? Object.fromEntries(
-            Object.keys(item)
-              .sort()
-              .map((key) => [key, canonical(item[key])]),
+            Object.entries(item)
+              .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+              .map(([key, member]) => [key, canonical(member)]),
           )
         : item;
   return createHash("sha256")
@@ -136,22 +173,24 @@ export function digest(value) {
 }
 
 /** Select the portable runtime contract, excluding machine-specific asset paths. */
-export function portable(manifest) {
+export function portable(manifest: Manifest) {
   return Object.fromEntries(
-    [
-      "schema",
-      "daraVersion",
-      "packageRequirements",
-      "moduleDependencies",
-      "components",
-      "actions",
-      "auth",
-    ].map((key) => [key, manifest[key]]),
+    (
+      [
+        "schema",
+        "daraVersion",
+        "packageRequirements",
+        "moduleDependencies",
+        "components",
+        "actions",
+        "auth",
+      ] satisfies (keyof Manifest)[]
+    ).map((key) => [key, manifest[key]]),
   );
 }
 
 /** Build direct imports and maps; serialization prevents source and name injection. */
-export function generateEntry(manifest) {
+export function generateEntry(manifest: Manifest): string {
   const js = [
     "import bootstrap from '@darajs/core/bootstrap';",
     ...manifest.moduleDependencies.map((item) => `import ${JSON.stringify(item.source)};`),
@@ -159,7 +198,7 @@ export function generateEntry(manifest) {
   ];
   const maps = [];
   let index = 0;
-  for (const category of ["components", "actions", "auth"]) {
+  for (const category of ["components", "actions", "auth"] as const) {
     const entries = [];
     for (const item of manifest[category]) {
       const binding = `implementation${index++}`;
