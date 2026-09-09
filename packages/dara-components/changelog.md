@@ -4,11 +4,8 @@ title: Changelog
 
 ## NEXT
 
-- Default omitted grid hug values to false in the display context.
-
-- Keep workspace component and public imports on the same source modules to preserve shared React contexts.
-
-- Added direct ESM component entry points and explicit static asset declarations for the Vite pipeline.
+- Breaking: component implementations are published as ESM entry points such as `@darajs/components/button` for the Dara 2.0 frontend pipeline.
+- Omitted grid hug values now default to false in the display context.
 
 ## 1.29.8
 
