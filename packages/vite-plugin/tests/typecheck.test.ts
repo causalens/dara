@@ -191,7 +191,8 @@ await test(
         `#!${process.execPath}
 const fs = require('node:fs');
 ${stubborn ? "process.on('SIGTERM', () => {}); setInterval(() => {}, 50);" : "process.exitCode = 1;"}
-fs.writeFileSync('compiler.pid', String(process.pid));
+fs.writeFileSync('compiler.pid.tmp', String(process.pid));
+fs.renameSync('compiler.pid.tmp', 'compiler.pid');
 `,
         { mode: 0o755 },
       );
