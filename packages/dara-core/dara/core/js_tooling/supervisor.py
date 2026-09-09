@@ -132,8 +132,14 @@ def supervise(
                     for name in ('vite.config.ts', 'tsconfig.json')
                 ]
                 signature = (
-                    json.dumps([r.model_dump() for r in current.package_requirements]),
-                    dependency_fingerprint(root),
+                    json.dumps(
+                        {
+                            'requirements': [r.model_dump() for r in current.package_requirements],
+                            'pythonPackages': current.python_packages,
+                        },
+                        sort_keys=True,
+                    ),
+                    dependency_fingerprint(root, processes=processes),
                     tuple(config_contents),
                 )
                 if signature != attempted:
@@ -145,7 +151,11 @@ def supervise(
                     prepare_project(root, current, frozen=frozen, processes=processes)
                     failures = 0
                     config_contents = [(root / name).read_text() for name in ('vite.config.ts', 'tsconfig.json')]
-                    attempted = (signature[0], dependency_fingerprint(root), tuple(config_contents))
+                    attempted = (
+                        signature[0],
+                        dependency_fingerprint(root, processes=processes),
+                        tuple(config_contents),
+                    )
                     command = [
                         'pnpm',
                         '--silent',

@@ -1,10 +1,10 @@
-import path from "node:path";
+import type { CompilerProject } from "./compiler.js";
 import type { ChildProcessByStdio } from "node:child_process";
 import type { Readable } from "node:stream";
 import type { ErrorPayload, HotPayload } from "vite";
 import type { Diagnostic } from "./contract.js";
 import { spawn } from "node:child_process";
-import { compilerExecutable } from "./compiler.js";
+import { compilerArguments, compilerExecutable } from "./compiler.js";
 import { ProjectError, diagnostic } from "./contract.js";
 
 /** The event and message protocol consumed by the checker, independent of Vite's transport. */
@@ -64,11 +64,13 @@ async function stopCompiler(process: CompilerProcess | undefined) {
 
 /** Own compiler checks, replay diagnostics and use Vite changes if native watching fails. */
 export function startTypecheck(
-  root: string,
+  project: CompilerProject,
   server: TypecheckServer,
   blocked: (diagnostic: Diagnostic) => void,
 ) {
+  const { root } = project;
   const executable = compilerExecutable(root);
+  const compilerArgs = compilerArguments(project, "dev");
   let stopped = false;
   let mode = "watch";
   let running: CompilerProcess | undefined;
@@ -100,7 +102,7 @@ export function startTypecheck(
     }
     pending = false;
     const watching = mode === "watch";
-    const args = ["--project", path.join(root, "tsconfig.json"), "--noEmit", "--pretty", "false"];
+    const args = [...compilerArgs];
     if (watching) {
       args.push("--watch", "--preserveWatchOutput");
     }

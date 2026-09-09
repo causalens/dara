@@ -36,6 +36,7 @@ export interface Project extends ProjectConfig {
   typescript: NonNullable<ReturnType<typeof getTsconfig>>;
   inputs: Set<string>;
   sourceFiles: Set<string>;
+  workspacePackages: ReturnType<typeof workspaceGraph>["packages"];
   assets: Map<string, string>;
   state: "waiting" | "ready" | "blocked";
   base: string;
@@ -241,6 +242,52 @@ async function resolveProjectConfig(
   };
 }
 
+async function checkLibraryOutput(project: Project) {
+  const { root, manifest } = project;
+  const file = path.join(root, "vite.lib.config.ts");
+  if (!fs.existsSync(file)) {
+    return;
+  }
+  const nodeEnv = process.env["NODE_ENV"];
+  let loaded;
+  let library;
+  try {
+    process.env["NODE_ENV"] = "production";
+    loaded = await loadConfigFromFile({ command: "build", mode: "production" }, file, root, "warn");
+    if (!loaded) {
+      throw new ProjectError("workspace.library", `Cannot load ${file}`, "edit vite.lib.config.ts");
+    }
+    library = await resolveConfig(
+      {
+        ...loaded.config,
+        root: path.resolve(root, loaded.config.root ?? "."),
+        configFile: false,
+      },
+      "build",
+      "production",
+    );
+  } finally {
+    if (nodeEnv === undefined) {
+      delete process.env["NODE_ENV"];
+    } else {
+      process.env["NODE_ENV"] = nodeEnv;
+    }
+  }
+  const libraryOutput = path.resolve(library.root, library.build.outDir);
+  const appOutput = path.resolve(root, manifest.outDir);
+  if (inside(libraryOutput, appOutput) || inside(appOutput, libraryOutput)) {
+    throw new ProjectError(
+      "workspace.output",
+      `Library output ${libraryOutput} overlaps app output ${appOutput}`,
+      "choose separate app and library output directories",
+    );
+  }
+  project.inputs.add(file);
+  for (const dependency of loaded.dependencies) {
+    project.inputs.add(dependency);
+  }
+}
+
 /** Load and validate the app once at the Node boundary; runners consume the returned project. */
 export async function loadProject(
   appRoot: string,
@@ -320,35 +367,13 @@ export async function loadProject(
     base: "/static/",
     workspacePackages: graph.packages,
   };
-  const libraryFile = path.join(root, "vite.lib.config.ts");
-  if (fs.existsSync(libraryFile)) {
-    const library = await loadConfigFromFile(
-      { command: "build", mode: "production" },
-      libraryFile,
-      root,
-      "warn",
-    );
-    if (!library) {
-      throw new ProjectError(
-        "workspace.library",
-        `Cannot load ${libraryFile}`,
-        "edit vite.lib.config.ts",
-      );
-    }
-    const libraryOutput = path.resolve(root, library.config.build?.outDir ?? "dist");
-    const appOutput = path.resolve(root, manifest.outDir);
-    if (inside(libraryOutput, appOutput) || inside(appOutput, libraryOutput)) {
-      throw new ProjectError(
-        "workspace.output",
-        `Library output ${libraryOutput} overlaps app output ${appOutput}`,
-        "choose separate app and library output directories",
-      );
-    }
-    project.inputs.add(libraryFile);
-    for (const file of library.dependencies) {
-      project.inputs.add(file);
-    }
-  }
+  await checkLibraryOutput(project);
+  return project;
+}
+
+/** Resolve registered imports only after the active runner has prepared their dependencies. */
+export async function resolveProjectSources(project: Project) {
+  const { root, manifest } = project;
   project.api.project = project;
   // Use Vite's real plugin container, so user resolvers and the app's exports participate.
   project.api.resolving = true;

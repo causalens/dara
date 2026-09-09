@@ -1,8 +1,42 @@
+import type { Project } from "./project.js";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { readPackageJson } from "./files.js";
 import { ProjectError, errorMessage } from "./contract.js";
+import { atomicWrite } from "./files.js";
+
+export type CompilerProject = Pick<Project, "root" | "sourceFiles"> & {
+  typescript: Pick<Project["typescript"], "config">;
+};
+
+/** Add registered source modules through a private type entry without replacing the user's project. */
+export function compilerArguments(project: CompilerProject, mode = "check") {
+  const { root, sourceFiles, typescript } = project;
+  const files = [...sourceFiles]
+    .filter((file) => /\.(?:[cm]?ts|tsx)$/.test(file))
+    .sort((left, right) => left.localeCompare(right));
+  const entry = `./node_modules/.dara/registrations.${mode}.d.ts`;
+  const filename = path.join(root, entry);
+  const contents =
+    files.map((file) => `import ${JSON.stringify(file.replaceAll("\\", "/"))};\n`).join("") ||
+    "export {};\n";
+  if (!fs.existsSync(filename) || fs.readFileSync(filename, "utf8") !== contents) {
+    atomicWrite(filename, contents);
+  }
+  // The loader requires an explicit effective types list including vite/client.
+  // Appending our entry therefore preserves every ambient type the app selected.
+  const types = [...(typescript.config.compilerOptions?.types ?? []), filename];
+  return [
+    "--project",
+    path.join(root, "tsconfig.json"),
+    "--noEmit",
+    "--pretty",
+    "false",
+    "--types",
+    types.join(","),
+  ];
+}
 
 /** Resolve TypeScript 7's native compiler from the app's locked platform package. */
 export function compilerExecutable(root: string): string {

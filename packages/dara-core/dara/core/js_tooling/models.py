@@ -68,6 +68,8 @@ class FrontendManifest(Contract):
     configuration: str
     dara_version: str
     package_requirements: list[Requirement]
+    # Preparation evidence only; npm-to-Python ownership is not part of runtime compatibility.
+    python_packages: dict[str, str] = Field(default_factory=dict)
     module_dependencies: list[ModuleDependency]
     components: list[Implementation]
     actions: list[Implementation]
