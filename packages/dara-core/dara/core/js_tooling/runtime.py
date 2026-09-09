@@ -4,9 +4,10 @@ import hashlib
 import html
 import json
 import os
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, unquote_to_bytes, urlparse
 
 import anyio
 import httpx
@@ -14,9 +15,13 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.requests import ClientDisconnect
 from starlette.templating import Jinja2Templates
-from websockets.asyncio.client import connect
-from websockets.exceptions import ConnectionClosed
+from starlette.types import Receive, Scope, Send
+from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
+from websockets.asyncio.client import ClientConnection, connect
+from websockets.exceptions import ConnectionClosed, InvalidHandshake, ProtocolError
+from websockets.frames import Close
 
 from dara.core.js_tooling.models import FrontendManifest, ProjectError
 from dara.core.js_tooling.project import read_json, workspace_root
@@ -178,15 +183,74 @@ def frontend_status(root: Path) -> dict:
         return {'state': 'waiting'}
 
 
+# Bounds idle upstream operations while allowing Vite's initial compilation to take time.
+_PROXY_TIMEOUT = httpx.Timeout(connect=10, read=120, write=60, pool=10)
+_WEBSOCKET_OPEN_TIMEOUT = 10
+_WEBSOCKET_CLOSE_TIMEOUT = 2
+
+
+def _proxy_url(scope: Scope, origin: str, prefix: str) -> httpx.URL:
+    """Remove the ASGI mount without decoding the upstream path or its query string."""
+    raw_path = scope.get('raw_path')
+    if raw_path is None:
+        raw_path = quote(scope['path'], safe='/').encode('ascii')
+    root = scope.get('root_path', '').encode('utf-8')
+    # One decoded byte can occupy either one raw byte or a three-byte percent escape.
+    # Count bytes so encoded mount names and Unicode work without re-encoding the suffix.
+    end = 0
+    for _ in root:
+        end += 3 if raw_path[end : end + 1] == b'%' else 1
+    if unquote_to_bytes(raw_path[:end]) == root:
+        raw_path = raw_path[end:]
+    # Keep the suffix's separator too: the mount boundary itself may be encoded as %2F.
+    path = quote(prefix.removesuffix('/'), safe='/').encode('ascii') + (raw_path or b'/')
+    query = scope.get('query_string', b'')
+    return httpx.URL(origin).copy_with(raw_path=path + (b'?' + query if query else b''))
+
+
+def _proxy_headers(headers: list[tuple[bytes, bytes]], *, websocket: bool = False) -> list[tuple[bytes, bytes]]:
+    """Preserve duplicate end-to-end headers while stripping connection-local fields."""
+    excluded = {
+        b'host',
+        b'connection',
+        b'upgrade',
+        b'keep-alive',
+        b'proxy-authenticate',
+        b'proxy-authorization',
+        b'te',
+        b'trailer',
+        b'transfer-encoding',
+    }
+    for key, value in headers:
+        if key.lower() == b'connection':
+            excluded.update(token.strip().lower() for token in value.split(b','))
+    return [
+        (key.lower(), value)
+        for key, value in headers
+        if key.lower() not in excluded and not (websocket and key.lower().startswith(b'sec-websocket-'))
+    ]
+
+
+def _close_status(code: int | None, reason: str = '') -> Close:
+    """Translate local disconnect indicators into a close frame legal on the other connection."""
+    close = Close(1000 if code == 1005 else code or 1011, reason.encode('utf-8')[:123].decode('utf-8', errors='ignore'))
+    try:
+        close.check()
+    except ProtocolError:
+        return Close(1011, 'Frontend connection interrupted')
+    return close
+
+
 class FrontendProxy:
     """Forward HTTP and HMR websocket traffic through the Python origin."""
 
     def __init__(self, root: Path, base_url: str):
+        """Bind forwarding to this app's supervised frontend and public static prefix."""
         self.root = root
         self.prefix = base_url.rstrip('/') + '/static/'
 
-    async def __call__(self, scope, receive, send):
-        """Stream requests and responses, preserving websocket subprotocols and close events."""
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Stream frontend traffic and release both connections when either side disconnects."""
         state = frontend_status(self.root)
         if state.get('state') != 'ready':
             if scope['type'] == 'websocket':
@@ -196,95 +260,155 @@ class FrontendProxy:
                     'Frontend preparation is pending. Open the application for diagnostics.', status_code=503
                 )(scope, receive, send)
             return
-        path = scope['path']
-        relative = path.removeprefix(scope.get('root_path', '')).lstrip('/')
-        url = state['origin'] + self.prefix + relative
-        if scope.get('query_string'):
-            url += '?' + scope['query_string'].decode('ascii')
-        excluded = {
-            b'host',
-            b'connection',
-            b'upgrade',
-            b'keep-alive',
-            b'proxy-authenticate',
-            b'proxy-authorization',
-            b'te',
-            b'trailer',
-            b'transfer-encoding',
-        }
-        headers = [
-            (key.decode('latin-1'), value.decode('latin-1'))
-            for key, value in scope['headers']
-            if key.lower() not in excluded and not key.lower().startswith(b'sec-websocket-')
-        ]
+        url = _proxy_url(scope, state['origin'], self.prefix)
         if scope['type'] == 'websocket':
-            await receive()
-            try:
-                async with connect(
-                    url.replace('http:', 'ws:', 1),
-                    additional_headers=headers,
-                    subprotocols=scope.get('subprotocols'),
-                    proxy=None,
-                    max_size=None,
-                ) as upstream:
-                    await send({'type': 'websocket.accept', 'subprotocol': upstream.subprotocol})
-                    async with anyio.create_task_group() as group:
-
-                        async def to_upstream():
-                            while True:
-                                message = await receive()
-                                if message['type'] == 'websocket.disconnect':
-                                    await upstream.close()
-                                    group.cancel_scope.cancel()
-                                    return
-                                await upstream.send(
-                                    message.get('text') if message.get('text') is not None else message['bytes']
-                                )
-
-                        async def to_browser():
-                            try:
-                                async for data in upstream:
-                                    await send(
-                                        {'type': 'websocket.send', 'text' if isinstance(data, str) else 'bytes': data}
-                                    )
-                            finally:
-                                await send({'type': 'websocket.close', 'code': upstream.close_code or 1000})
-                                group.cancel_scope.cancel()
-
-                        group.start_soon(to_upstream)
-                        group.start_soon(to_browser)
-            except (OSError, ConnectionClosed):
-                await send({'type': 'websocket.close', 'code': 1013})
+            await self._websocket(scope, receive, send, url)
         else:
-            request = Request(scope, receive)
-            # Vite may stream responses, but connecting and forwarding uploads are bounded.
-            async with httpx.AsyncClient(
-                trust_env=False, timeout=httpx.Timeout(connect=10, read=None, write=60, pool=10)
-            ) as client:
+            await self._http(scope, receive, send, url)
+
+    async def _websocket(self, scope: Scope, receive: Receive, send: Send, url: httpx.URL) -> None:
+        socket = WebSocket(scope, receive, send)
+        if (await socket.receive())['type'] == 'websocket.disconnect':
+            return
+        upstream: ClientConnection | None = None
+        closing = Close(1013, 'Frontend unavailable')
+        try:
+            upstream = await connect(
+                str(url.copy_with(scheme='ws')),
+                additional_headers=[
+                    (key.decode('latin-1'), value.decode('latin-1'))
+                    for key, value in _proxy_headers(scope['headers'], websocket=True)
+                ],
+                subprotocols=scope.get('subprotocols'),
+                proxy=None,
+                open_timeout=_WEBSOCKET_OPEN_TIMEOUT,
+                close_timeout=_WEBSOCKET_CLOSE_TIMEOUT,
+                # Compiler diagnostics may be large, but must not allocate unbounded messages.
+                max_size=16 * 1024 * 1024,
+            )
+            await socket.accept(subprotocol=upstream.subprotocol)
+            async with anyio.create_task_group() as group:
+
+                async def to_upstream():
+                    nonlocal closing
+                    try:
+                        while True:
+                            message = await socket.receive()
+                            if message['type'] == 'websocket.disconnect':
+                                closing = _close_status(message.get('code'), message.get('reason', ''))
+                                return
+                            await upstream.send(
+                                message['text'] if message.get('text') is not None else message['bytes']
+                            )
+                    except ConnectionClosed:
+                        closing = _close_status(upstream.close_code, upstream.close_reason or '')
+                    except (OSError, WebSocketDisconnect):
+                        closing = Close(1011, 'Browser disconnected')
+                    finally:
+                        group.cancel_scope.cancel()
+
+                async def to_browser():
+                    nonlocal closing
+                    try:
+                        async for data in upstream:
+                            if isinstance(data, str):
+                                await socket.send_text(data)
+                            else:
+                                await socket.send_bytes(data)
+                        closing = _close_status(upstream.close_code, upstream.close_reason or '')
+                    except ConnectionClosed:
+                        closing = _close_status(upstream.close_code, upstream.close_reason or '')
+                    except (OSError, WebSocketDisconnect):
+                        closing = Close(1011, 'Browser disconnected')
+                    finally:
+                        group.cancel_scope.cancel()
+
+                group.start_soon(to_upstream)
+                group.start_soon(to_browser)
+        except (OSError, InvalidHandshake, WebSocketDisconnect):
+            # A refused/timed-out upgrade is a normal race during a frontend restart.
+            pass
+        finally:
+            # One owner closes each side, outside the cancelled forwarding tasks.
+            # Shield bounded cleanup even when the ASGI server cancels this request.
+            if upstream is not None:
+                with anyio.move_on_after(_WEBSOCKET_CLOSE_TIMEOUT + 1, shield=True):
+                    await upstream.close(closing.code, closing.reason)
+            if WebSocketState.DISCONNECTED not in (socket.client_state, socket.application_state):
+                with (
+                    anyio.move_on_after(_WEBSOCKET_CLOSE_TIMEOUT + 1, shield=True),
+                    suppress(OSError, WebSocketDisconnect),
+                ):
+                    await socket.close(closing.code, closing.reason)
+
+    async def _http(self, scope: Scope, receive: Receive, send: Send, url: httpx.URL) -> None:
+        body_finished = anyio.Event()
+
+        async def receive_body():
+            # HTTPX's write timeout covers socket writes, not waiting for the next upload chunk.
+            with anyio.fail_after(_PROXY_TIMEOUT.write):
+                message = await receive()
+            if message['type'] == 'http.request' and not message.get('more_body', False):
+                body_finished.set()
+            return message
+
+        request = Request(scope, receive_body)
+        client = httpx.AsyncClient(trust_env=False, timeout=_PROXY_TIMEOUT)
+        response: httpx.Response | None = None
+        stream_error: httpx.HTTPError | None = None
+        try:
+            async with anyio.create_task_group() as group:
+
+                async def watch_disconnect():
+                    # Only the upload reader owns receive until its last body message.
+                    await body_finished.wait()
+                    while (await receive())['type'] != 'http.disconnect':
+                        pass
+                    group.cancel_scope.cancel()
+
+                group.start_soon(watch_disconnect)
                 try:
-                    response = await client.send(
-                        client.build_request(request.method, url, headers=headers, content=request.stream()),
-                        stream=True,
-                    )
-                except httpx.HTTPError:
-                    await HTMLResponse('Frontend disconnected; waiting for recovery.', status_code=503)(
-                        scope, receive, send
-                    )
-                    return
-                try:
-                    response_headers = [
-                        (key, value) for key, value in response.headers.raw if key.lower() not in excluded
-                    ]
+                    try:
+                        response = await client.send(
+                            client.build_request(
+                                request.method, url, headers=_proxy_headers(scope['headers']), content=request.stream()
+                            ),
+                            stream=True,
+                        )
+                    except TimeoutError:
+                        await HTMLResponse('Frontend upload timed out.', status_code=408)(scope, receive, send)
+                        return
+                    except httpx.HTTPError:
+                        await HTMLResponse('Frontend disconnected; waiting for recovery.', status_code=503)(
+                            scope, receive, send
+                        )
+                        return
                     await send(
-                        {'type': 'http.response.start', 'status': response.status_code, 'headers': response_headers}
+                        {
+                            'type': 'http.response.start',
+                            'status': response.status_code,
+                            'headers': _proxy_headers(response.headers.raw),
+                        }
                     )
                     async for chunk in response.aiter_raw():
                         await send({'type': 'http.response.body', 'body': chunk, 'more_body': True})
                     await send({'type': 'http.response.body', 'body': b''})
+                except (ClientDisconnect, OSError):
+                    pass
+                except httpx.HTTPError as error:
+                    # A failed stream must abort its existing response, never send a second one.
+                    stream_error = error
                 finally:
-                    # After headers are sent, an upstream failure must abort the response.
-                    # Sending a fallback would start a second, invalid ASGI response.
-                    await response.aclose()
+                    group.cancel_scope.cancel()
+        finally:
+            with anyio.move_on_after(5, shield=True):
+                try:
+                    if response is not None:
+                        await response.aclose()
+                finally:
+                    await client.aclose()
+        if stream_error is not None:
+            raise stream_error
 
 
 def render_frontend(request: Request, root: Path, output: Path, context: dict, development: bool):
