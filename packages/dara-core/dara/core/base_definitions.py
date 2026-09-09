@@ -725,6 +725,6 @@ class AssetManifest(BaseModel):
         """Explain the replacement for asset manifests from the removed UMD pipeline."""
         if isinstance(value, dict) and {'autojs_assets', 'common_assets', 'tag_order', 'depends_on'} & value.keys():
             raise ValueError(
-                'Legacy asset manifest: replace asset lists and tag ordering with static_assets; run dara migrate'
+                'Legacy asset manifest: replace asset lists and tag ordering with static_assets; see the Dara 2.0 migration guide'
             )
         return value
