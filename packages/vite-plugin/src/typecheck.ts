@@ -133,9 +133,18 @@ export function startTypecheck(
           "[typescript] Native watching failed; using Vite changes for serialized type checks.\n",
         );
         void stopCompiler(owned).catch((error: unknown) => blocked(diagnostic(error)));
-      } else if (watching && mode === "watch" && /Found \d+ errors?\. Watching/.test(output)) {
-        publish(output, output.includes("Found 0 errors"));
-        output = "";
+      } else if (watching && mode === "watch") {
+        // Pipe chunks can combine multiple compilations or split a summary.
+        // Consume each completed report so the last compilation owns the overlay.
+        let summary;
+        while (
+          (summary = /Found (\d+) errors?\. Watching for file changes\.(?:\r?\n|$)/.exec(output))
+        ) {
+          const end = summary.index + summary[0].length;
+          publish(output.slice(0, end), summary[1] === "0");
+          output = output.slice(end);
+        }
+
       }
     };
     child.stdout.on("data", report);
