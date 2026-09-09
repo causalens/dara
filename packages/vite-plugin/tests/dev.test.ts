@@ -91,6 +91,50 @@ async function until<T>(read: () => T | Promise<T>, description: string): Promis
   throw new Error(`Timed out waiting for ${description}`);
 }
 
+await test("a manifest that registers a new source restarts Vite so dependency scanning covers it", async (t) => {
+  const { root, manifest } = fixture(t);
+  configure(root, "sources");
+  fs.mkdirSync(path.join(root, "js"), { recursive: true });
+  fs.writeFileSync(path.join(root, "js/widget.tsx"), "export default () => null;\n");
+  const manifestFile = path.join(root, "node_modules/.dara/manifest.dev.json");
+  const child = spawn(
+    process.execPath,
+    [path.join(pluginRoot, "dist/cli.js"), "serve", "--root", root, "--no-typecheck"],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let logs = "";
+  child.stdout.on("data", (chunk) => (logs += chunk));
+  child.stderr.on("data", (chunk) => (logs += chunk));
+  const exited = once(child, "exit");
+  const statusFile = path.join(root, "node_modules/.dara/dev-server.json");
+  const status = () =>
+    fs.existsSync(statusFile) ? JSON.parse(fs.readFileSync(statusFile, "utf8")) : undefined;
+  try {
+    const first = await until(
+      () => status()?.state === "ready" && status(),
+      `initial server: ${logs}`,
+    );
+    fs.writeFileSync(manifestFile, JSON.stringify(manifest));
+    await until(
+      () => fs.statSync(statusFile).mtimeMs > fs.statSync(manifestFile).mtimeMs && status(),
+      "unchanged sources are refreshed in place",
+    );
+    assert.equal(status().origin, first.origin, "same source set keeps the Vite server");
+    fs.writeFileSync(
+      manifestFile,
+      JSON.stringify({ ...manifest, components: [{ name: "Widget", source: "./js/widget.tsx" }] }),
+    );
+    const second = await until(
+      () => status()?.state === "ready" && status().origin !== first.origin && status(),
+      `restart after a new registered source: ${logs}`,
+    );
+    assert.notEqual(second.origin, first.origin);
+  } finally {
+    child.kill("SIGTERM");
+    await exited;
+  }
+});
+
 await test("configuration validation keeps each operation's NODE_ENV posture", async (t) => {
   const { root, manifest } = fixture(t);
   configure(root, "posture");
