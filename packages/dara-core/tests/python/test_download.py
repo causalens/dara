@@ -132,7 +132,8 @@ async def test_download_content_extras(_uid):
         action_results = await get_action_results(websocket, exec_uid)
 
         assert len(action_results) == 1
-        # Returned action is NavigateTo the download url with the code embedded
+        # The compatibility wrapper uses normal navigation, with no separate download handler.
+        assert action_results[0]['name'] == 'NavigateTo'
         url = action_results[0].get('url')
         code = url.split('?code=')[1]
 

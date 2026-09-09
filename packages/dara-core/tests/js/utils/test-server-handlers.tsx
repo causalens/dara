@@ -33,11 +33,6 @@ const mockComponents: Record<string, JsComponent> = {
     },
 };
 const mockActions: Record<string, ActionDef> = {
-    DownloadContent: {
-        js_source: '@darajs/dara_core',
-        name: 'DownloadContent',
-        py_module: 'dara_core',
-    },
     NavigateTo: {
         js_source: '@darajs/dara_core',
         name: 'NavigateTo',
