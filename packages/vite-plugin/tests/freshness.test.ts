@@ -278,7 +278,7 @@ await test("asset identities take precedence over application roots and retain f
   ]);
 });
 
-test("static responses resolve MIME types and retain HEAD and unknown-type behavior", async (t) => {
+await test("static responses resolve MIME types and retain HEAD and unknown-type behavior", async (t) => {
   const root = fixture(t);
   const cases: [string, string][] = [
     ["module.mjs", "text/javascript"],
