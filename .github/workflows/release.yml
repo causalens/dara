@@ -143,6 +143,8 @@ jobs:
           else
             ./tooling/scripts/bump_python_versions.sh "$version"
             pnpm lerna version "$version" --no-private --no-git-tag-version --force-publish --exact --yes
+            # Refresh every workspace importer; dara lock only installs the filtered app graphs.
+            pnpm install --lockfile-only
             mise run lock-frontends
             tooling/changelog-parser/main.js "$version" >/tmp/release-changelog.json
 
