@@ -7,16 +7,13 @@ import { ProjectError, diagnostic } from "./contract.js";
 import { serveProject } from "./dev.js";
 import { initialize, loadProject } from "./project.js";
 import { readJson } from "./files.js";
-import { analyzeMigration } from "./migration.js";
 
 // Configuration may log while loading. Reserve stdout for the runner protocol.
 console.log = console.error;
 console.info = console.error;
 console.debug = console.error;
 
-const commandSchema = z.tuple([
-  z.enum(["serve", "init", "check", "check-project", "build", "analyze-migration"]),
-]);
+const commandSchema = z.tuple([z.enum(["serve", "init", "check", "check-project", "build"])]);
 try {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -44,12 +41,6 @@ try {
       noTypecheck: values["no-typecheck"] ?? false,
       ...(values.token === undefined ? {} : { token: values.token }),
     });
-  } else if (operation === "analyze-migration") {
-    let data = "";
-    for await (const chunk of process.stdin) {
-      data += chunk;
-    }
-    process.stdout.write(JSON.stringify(await analyzeMigration(JSON.parse(data))) + "\n");
   } else {
     const created = operation === "init" ? initialize(root) : [];
     let raw;

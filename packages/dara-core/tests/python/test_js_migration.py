@@ -1,257 +1,196 @@
-"""Migration produces a reviewable diff without executing untrusted legacy application code."""
+"""Automatic migration handles project settings; source and script edits belong to agents."""
 
 import json
+import stat
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from click.testing import CliRunner
 from dara.core.cli import cli
-from dara.core.js_tooling.migration import plan_migration
-
-pytestmark = pytest.mark.usefixtures('migration_analyzer')
-
-
-def project(root: Path, *, named=False):
-    (root / 'js').mkdir()
-    (root / 'js/index.tsx').write_text(
-        "import './global.css';\nexport { " + ('Counter' if named else 'default as Counter') + " } from './counter';\n"
-    )
-    (root / 'js/global.css').write_text('body { margin: 0; }\n')
-    (root / 'js/counter.tsx').write_text(
-        'export ' + ('' if named else 'default ') + 'function Counter() { return null; }\n'
-    )
-    (root / 'dara.config.json').write_text(
-        json.dumps({'local_entry': './js', 'extra_dependencies': {'nanoid': '^3'}, 'package_manager': 'npm'})
-    )
-    (root / 'pyproject.toml').write_text('# keep this comment\n[tool.poetry]\nname = "example"\n')
-    (root / 'main.py').write_text('''from dara.core import ComponentInstance, ConfigurationBuilder
-raise RuntimeError("The migration must never import me")
-config = ConfigurationBuilder()
-
-class Counter(ComponentInstance):
-    """Keep this documentation."""
-    js_module = None  # keep this comment too
-    js_component = 'Counter'
-    py_component = 'ExistingCounter'
-
-config.add_component(Counter, local=True)
-''')
-    return root
+from dara.core.js_tooling import migration
+from dara.core.js_tooling.models import ProjectError
 
 
-def contents(root):
+def legacy(root: Path, **settings):
+    """Write the small legacy configuration accepted by ordinary preparation."""
+    path = root / 'dara.config.json'
+    path.write_text(json.dumps({'local_entry': './js', 'extra_dependencies': {'example': '^1'}, **settings}))
+    return path
+
+
+def snapshot(root: Path):
     return {path.relative_to(root): path.read_bytes() for path in root.rglob('*') if path.is_file()}
 
 
-def test_planning_preserves_every_byte_and_does_not_import(tmp_path):
-    project(tmp_path)
-    before = contents(tmp_path)
-    plan = plan_migration(tmp_path)
-    assert plan.changes
-    assert any('js_source' in (change.after or '') for change in plan.changes)
-    assert contents(tmp_path) == before
-
-
-def test_default_export_migration_preserves_registrations_names_comments_and_setup(tmp_path):
-    project(tmp_path)
-    entry = (tmp_path / 'js/index.tsx').read_bytes()
-    plan = plan_migration(tmp_path)
-    assert not plan.issues
-    plan.apply()
-    text = (tmp_path / 'main.py').read_text()
-    assert "js_source = './js/counter.tsx'  # keep this comment too" in text
-    assert "py_component = 'ExistingCounter'" in text
-    assert 'config.add_component(Counter)' in text
-    assert (tmp_path / 'js/index.tsx').read_bytes() == entry
+def test_configuration_conversion_preserves_sources_scripts_and_unrelated_package_fields(tmp_path, capsys, monkeypatch):
+    legacy(tmp_path, package_manager='yarn')
+    package = tmp_path / 'package.json'
+    package.write_text('{"name":"app","scripts":{"dev":"dara start --reload"},"private":true,"custom":42}')
+    package.chmod(0o640)
+    preserved = {
+        'main.py': "class Chart:\n    js_source = './js/chart.tsx'\n",
+        'pyproject.toml': '[tool.dara]\nconfig="main:config"\n',
+        'dev.sh': 'dara start --reload --enable-hmr\n',
+        'yarn.lock': '# retained for review\n',
+    }
+    for name, content in preserved.items():
+        (tmp_path / name).write_text(content)
+    monkeypatch.setenv('PATH', '')
+    migration.migrate_legacy_config(tmp_path)
+    assert json.loads(package.read_text()) == {
+        'name': 'app',
+        'scripts': {'dev': 'dara start --reload'},
+        'private': True,
+        'custom': 42,
+        'dependencies': {'example': '^1'},
+    }
+    assert stat.S_IMODE(package.stat().st_mode) == 0o640
     assert not (tmp_path / 'dara.config.json').exists()
-    assert '[tool.dara]\nconfig = "main:config"' in (tmp_path / 'pyproject.toml').read_text()
-    assert json.loads((tmp_path / 'package.json').read_text())['dependencies']['nanoid'] == '^3'
-    assert not plan_migration(tmp_path).changes
+    for name, content in preserved.items():
+        assert (tmp_path / name).read_text() == content
+    output = capsys.readouterr().err
+    assert 'Legacy Dara configuration detected' in output
+    assert 'Migrated legacy configuration' in output
+    assert 'yarn.lock is preserved' in output
+    before = snapshot(tmp_path)
+    assert migration.migrate_legacy_config(tmp_path) == []
+    assert snapshot(tmp_path) == before
+    assert capsys.readouterr().err == ''
 
 
-def test_named_export_adapter_is_deterministic_and_partial_migration_is_repeatable(tmp_path):
-    project(tmp_path, named=True)
-    legacy = tmp_path / 'dara.config.json'
-    data = json.loads(legacy.read_text())
-    data['custom_vite'] = True
-    legacy.write_text(json.dumps(data))
-    plan = plan_migration(tmp_path)
-    assert any('custom_vite' in issue.message for issue in plan.issues)
-    plan.apply()
-    assert legacy.exists()
-    adapters = list((tmp_path / 'js/dara-adapters').glob('*.ts'))
-    assert len(adapters) == 1
-    assert 'export { "Counter" as default } from "../counter.tsx";' in adapters[0].read_text()
-    assert not plan_migration(tmp_path).changes
-    del data['custom_vite']
-    legacy.write_text(json.dumps(data))
-    plan_migration(tmp_path).apply()
-    assert not legacy.exists()
-    assert not plan_migration(tmp_path).changes
-
-
-def test_ambiguous_entry_and_dynamic_metadata_are_reported_without_guessing(tmp_path):
-    project(tmp_path)
-    (tmp_path / 'js/index.tsx').write_text("export * from './counter';\nconsole.log('side effect');\n")
-    source = tmp_path / 'main.py'
-    source.write_text(source.read_text().replace('js_module = None', 'js_module = choose_module()'))
-    plan = plan_migration(tmp_path)
-    assert any('Entry contains' in issue.message for issue in plan.issues)
-    assert any('dynamic metadata' in issue.message for issue in plan.issues)
-    assert all(change.path != source for change in plan.changes)
-    plan.apply()
-    assert (tmp_path / 'dara.config.json').exists()
-
-
-def test_dependency_conflict_keeps_user_requirement_and_legacy_file(tmp_path):
-    project(tmp_path)
-    (tmp_path / 'package.json').write_text(
-        '{"dependencies":{"nanoid":"^5"},"scripts":{"dev":"dara start --reload --enable-hmr --port 9000"}}'
-    )
-    plan = plan_migration(tmp_path)
-    assert any('nanoid' in issue.message for issue in plan.issues)
-    plan.apply()
+def test_missing_package_manifest_receives_legacy_dependencies(tmp_path):
+    legacy(tmp_path)
+    migration.migrate_legacy_config(tmp_path)
     package = json.loads((tmp_path / 'package.json').read_text())
-    assert package['dependencies']['nanoid'] == '^5'
-    assert package['scripts']['dev'] == 'dara dev --port 9000'
-    assert (tmp_path / 'dara.config.json').exists()
+    assert package['dependencies'] == {'example': '^1'}
+    assert package['private'] is True
+    assert package['type'] == 'module'
 
 
-def test_concurrent_edit_is_not_overwritten_or_followed_by_deletions(tmp_path):
-    project(tmp_path)
-    plan = plan_migration(tmp_path)
-    source = tmp_path / 'main.py'
-    source.write_text(source.read_text() + '# concurrent edit\n')
-    plan.apply()
-    assert source.read_text().endswith('# concurrent edit\n')
-    assert (tmp_path / 'dara.config.json').exists()
-    assert any('changed during migration' in issue.message for issue in plan.issues)
+@pytest.mark.parametrize('section', ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'])
+def test_matching_existing_requirement_is_not_duplicated_or_reformatted(tmp_path, section):
+    legacy(tmp_path)
+    package = tmp_path / 'package.json'
+    before = json.dumps({section: {'example': '^1'}}, separators=(',', ':')).encode()
+    package.write_bytes(before)
+    migration.migrate_legacy_config(tmp_path)
+    assert package.read_bytes() == before
 
 
-def test_known_source_tree_moves_with_relative_imports_and_style_imports_intact(tmp_path):
-    project(tmp_path)
-    (tmp_path / 'js').rename(tmp_path / 'frontend')
-    legacy = tmp_path / 'dara.config.json'
-    legacy.write_text(legacy.read_text().replace('./js', './frontend'))
-    plan = plan_migration(tmp_path)
-    assert not plan.issues
-    plan.apply()
-    assert (tmp_path / 'js/global.css').read_text() == 'body { margin: 0; }\n'
-    assert not (tmp_path / 'frontend/index.tsx').exists()
-    assert "js_source = './js/counter.tsx'" in (tmp_path / 'main.py').read_text()
-    assert not plan_migration(tmp_path).changes
+@pytest.mark.parametrize('section', ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'])
+def test_dependency_conflicts_change_nothing(tmp_path, section):
+    legacy(tmp_path)
+    (tmp_path / 'package.json').write_text(json.dumps({section: {'example': '^2'}}))
+    before = snapshot(tmp_path)
+    with pytest.raises(ProjectError, match='package.json has') as error:
+        migration.migrate_legacy_config(tmp_path)
+    assert 'dara-2-migration' in error.value.diagnostic.fix
+    assert snapshot(tmp_path) == before
 
 
-def test_local_registration_without_metadata_preserves_class_docstring(tmp_path):
-    project(tmp_path)
-    source = tmp_path / 'main.py'
-    source.write_text(
-        source.read_text()
-        .replace('    js_module = None  # keep this comment too\n', '')
-        .replace("    js_component = 'Counter'\n", '')
-        .replace("    py_component = 'ExistingCounter'", "    py_component = 'Counter'")
+@pytest.mark.parametrize(
+    'settings',
+    [
+        {'local_entry': './frontend'},
+        {'package_manager': 'custom'},
+        {'extra_dependencies': []},
+        {'custom_setting': True},
+    ],
+)
+def test_custom_configuration_is_left_for_the_skill(tmp_path, settings):
+    legacy(tmp_path, **settings)
+    before = snapshot(tmp_path)
+    with pytest.raises(ProjectError) as error:
+        migration.migrate_legacy_config(tmp_path)
+    assert error.value.diagnostic.code == 'migration.manual'
+    assert 'skills/dara-2-migration' in error.value.diagnostic.fix
+    assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize('name', ['dara.config.json', 'package.json'])
+@pytest.mark.parametrize('content', ['[]', '{broken', 'null', ''])
+def test_malformed_documents_are_not_replaced(tmp_path, name, content):
+    legacy(tmp_path)
+    (tmp_path / name).write_text(content)
+    before = snapshot(tmp_path)
+    with pytest.raises(ProjectError):
+        migration.migrate_legacy_config(tmp_path)
+    assert snapshot(tmp_path) == before
+
+
+def test_frozen_preparation_reports_migration_without_writing(tmp_path, capsys):
+    legacy(tmp_path)
+    before = snapshot(tmp_path)
+    with pytest.raises(ProjectError) as error:
+        migration.migrate_legacy_config(tmp_path, frozen=True)
+    assert error.value.diagnostic.code == 'migration.required'
+    assert snapshot(tmp_path) == before
+    assert capsys.readouterr().err == ''
+
+
+@pytest.mark.parametrize('name', ['package.json', 'dara.config.json'])
+def test_linked_configuration_is_not_replaced(tmp_path, name):
+    legacy(tmp_path)
+    target = tmp_path / 'owned-elsewhere.json'
+    target.write_text('{}')
+    (tmp_path / name).unlink(missing_ok=True)
+    (tmp_path / name).symlink_to(target)
+    with pytest.raises(ProjectError, match='app-owned file'):
+        migration.migrate_legacy_config(tmp_path)
+    assert target.read_text() == '{}'
+    assert (tmp_path / name).is_symlink()
+
+
+def test_interrupted_copy_preserves_configuration_and_can_be_retried(tmp_path, capsys):
+    path = legacy(tmp_path)
+    with (
+        patch.object(migration.os, 'replace', side_effect=OSError('interrupted')),
+        pytest.raises(ProjectError, match='interrupted'),
+    ):
+        migration.migrate_legacy_config(tmp_path)
+    assert path.exists()
+    assert not (tmp_path / 'package.json').exists()
+    assert 'Migrated legacy configuration' not in capsys.readouterr().err
+    migration.migrate_legacy_config(tmp_path)
+    assert json.loads((tmp_path / 'package.json').read_text())['dependencies'] == {'example': '^1'}
+    assert not path.exists()
+
+
+def test_concurrent_edit_after_copy_retains_the_changed_legacy_file(tmp_path):
+    path = legacy(tmp_path)
+    replace = migration._replace
+
+    def edit_during_copy(*args):
+        replace(*args)
+        path.write_text('{"extra_dependencies":{"example":"^2"}}')
+
+    with (
+        patch.object(migration, '_replace', side_effect=edit_during_copy),
+        pytest.raises(ProjectError, match='changed during migration'),
+    ):
+        migration.migrate_legacy_config(tmp_path)
+    assert json.loads(path.read_text())['extra_dependencies'] == {'example': '^2'}
+    assert json.loads((tmp_path / 'package.json').read_text())['dependencies'] == {'example': '^1'}
+
+
+def test_lock_requires_source_migration_before_any_configuration_edits(tmp_path, monkeypatch):
+    legacy(tmp_path)
+    (tmp_path / 'pyproject.toml').write_text('[tool.dara]\nconfig="legacy_source:config"\n')
+    (tmp_path / 'legacy_source.py').write_text(
+        'from dara.core import ComponentInstance, ConfigurationBuilder\n'
+        'class Chart(ComponentInstance):\n    js_module = None\n'
+        'config = ConfigurationBuilder()\n'
     )
-    plan = plan_migration(tmp_path)
-    assert not plan.issues
-    plan.apply()
-    assert '"""Keep this documentation."""\n    js_source' in source.read_text()
-
-
-def test_installed_package_exports_are_migrated_without_executing_package_code(tmp_path):
-    project(tmp_path)
-    package = tmp_path / 'node_modules/@acme/widgets'
-    package.mkdir(parents=True)
-    (package / 'package.json').write_text(
-        json.dumps({'name': '@acme/widgets', 'exports': {'.': './index.js', './counter': {'default': './counter.js'}}})
-    )
-    (package / 'index.js').write_text("export { default as Counter } from './counter.js';\n")
-    (package / 'counter.js').write_text("export default function Counter() { throw Error('Never executed'); }\n")
-    source = tmp_path / 'main.py'
-    source.write_text(source.read_text().replace('js_module = None', "js_module = '@acme/widgets'"))
-    plan = plan_migration(tmp_path)
-    assert not plan.issues
-    plan.apply()
-    assert "js_source = '@acme/widgets/counter'" in source.read_text()
-
-
-def test_action_migration_keeps_its_runtime_name_and_registration(tmp_path):
-    project(tmp_path)
-    source = tmp_path / 'main.py'
-    source.write_text(
-        source.read_text()
-        + "\nfrom dara.core.base_definitions import ActionImpl\n\nclass Increment(ActionImpl):\n    js_module = None\n    py_name = 'ExistingIncrement'\n\nconfig.add_action(Increment, local=True)\n"
-    )
-    entry = tmp_path / 'js/index.tsx'
-    entry.write_text(entry.read_text() + "export { increment as ExistingIncrement } from './increment';\n")
-    (tmp_path / 'js/increment.ts').write_text('export const increment = () => undefined;\n')
-    plan = plan_migration(tmp_path)
-    assert not plan.issues
-    plan.apply()
-    assert "py_name = 'ExistingIncrement'" in source.read_text()
-    assert 'config.add_action(Increment)' in source.read_text()
-    assert len(list((tmp_path / 'js/dara-adapters').glob('*.ts'))) == 1
-
-
-def test_interrupted_copy_can_be_replanned_without_duplicate_or_lost_sources(tmp_path):
-    project(tmp_path)
-    (tmp_path / 'js').rename(tmp_path / 'frontend')
-    legacy = tmp_path / 'dara.config.json'
-    legacy.write_text(legacy.read_text().replace('./js', './frontend'))
-    plan = plan_migration(tmp_path)
-    # Simulate interruption after creation of the first destination.
-    first = plan.changes[0]
-    assert first.before is None and first.after is not None
-    first.path.parent.mkdir(parents=True, exist_ok=True)
-    first.path.write_text(first.after)
-    retry = plan_migration(tmp_path)
-    assert not retry.issues
-    retry.apply()
-    assert (tmp_path / 'js/counter.tsx').exists()
-    assert not legacy.exists()
-    assert not plan_migration(tmp_path).changes
-
-
-def test_dynamic_import_side_effect_is_not_treated_as_a_static_import(tmp_path):
-    project(tmp_path)
-    entry = tmp_path / 'js/index.tsx'
-    entry.write_text("import('./side-effect');\n" + entry.read_text())
-    plan = plan_migration(tmp_path)
-    assert any('Entry contains' in issue.message for issue in plan.issues)
-    plan.apply()
-    assert (tmp_path / 'dara.config.json').exists()
-
-
-def test_removed_declarations_and_local_option_point_to_migration():
-    import pytest
-
-    from dara.core import ComponentInstance, ConfigurationBuilder
-
-    with pytest.raises(TypeError, match='dara lock'):
-        type('Legacy', (ComponentInstance,), {'js_module': None})
-
-    class Current(ComponentInstance):
-        js_source = './js/current.tsx'
-
-    with pytest.raises(TypeError, match='dara lock'):
-        ConfigurationBuilder().add_component(Current, local=True)
-
-
-def test_script_edits_keep_executable_permissions(tmp_path):
-    project(tmp_path)
-    script = tmp_path / 'dev.sh'
-    script.write_text('#!/bin/sh\ndara start --reload --enable-hmr\n')
-    script.chmod(0o755)
-    plan_migration(tmp_path).apply()
-    assert script.stat().st_mode & 0o777 == 0o755
-    assert script.read_text() == '#!/bin/sh\ndara dev\n'
-
-
-def test_exporting_a_previously_declared_action_gets_an_adapter(tmp_path):
-    project(tmp_path, named=True)
-    source = tmp_path / 'js/counter.tsx'
-    source.write_text('const Counter = () => null;\nexport { Counter };\n')
-    plan = plan_migration(tmp_path)
-    assert not plan.issues
-    plan.apply()
-    assert len(list((tmp_path / 'js/dara-adapters').glob('*.ts'))) == 1
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    before = snapshot(tmp_path)
+    with patch('dara.core.cli.prepare_project') as prepare:
+        result = CliRunner().invoke(cli, ['lock'])
+    assert result.exit_code != 0
+    assert 'dara-2-migration' in str(result.exception.__cause__)
+    prepare.assert_not_called()
+    after = snapshot(tmp_path)
+    assert all(after[path] == content for path, content in before.items())
+    assert not (tmp_path / 'package.json').exists()
