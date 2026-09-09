@@ -1,12 +1,10 @@
-## NEXT
-
-- Aligned React types for strict application checks against workspace source.
-
 ---
 title: Changelog
 ---
 
 ## NEXT
+
+- Aligned React types for strict application checks against workspace source.
 
 - Forward chevron refs to the SVG element so compiled declarations support existing consumers.
 

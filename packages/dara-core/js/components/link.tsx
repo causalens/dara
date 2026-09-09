@@ -9,7 +9,13 @@ import DynamicComponent from '../shared/dynamic-component/dynamic-component';
 import { useVariable } from '../shared/interactivity';
 import useComponentStyles from '../shared/utils/use-component-styles';
 import { getVariableHookSignature } from '../shared/utils/variable-hook-signature';
-import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable } from '../types';
+import {
+    type ComponentInstance,
+    type DeclaredProps,
+    type RouterPath,
+    type StyledComponentProps,
+    type Variable,
+} from '../types';
 
 type MaybeVariable<T> = T | Variable<T>;
 
@@ -28,9 +34,8 @@ export interface LinkProps
     referrer_policy?: NavLinkProps['referrerPolicy'];
 }
 
-type ResolvedLinkProps = { [Key in keyof LinkProps as Exclude<Key, 'to'>]: LinkProps[Key] } & {
+type ResolvedLinkProps = Omit<DeclaredProps<LinkProps>, 'to'> & {
     to: string | Partial<RouterPath>;
-    children: Array<ComponentInstance>;
 };
 
 function getResolvedToHookKey(to: string | Partial<RouterPath>): string {
@@ -148,11 +153,11 @@ function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
     return (
         <DisplayCtx.Provider value={{ component: 'anchor', direction: displayCtx.direction }}>
             <StyledNavLink
-                id={props['id_']}
+                id={props.id_}
                 className={props.className ?? ''}
                 to={to}
                 end={props.end ?? false}
-                caseSensitive={props['case_sensitive']}
+                caseSensitive={props.case_sensitive}
                 replace={props.replace ?? false}
                 relative={props.relative ?? 'route'}
                 $activeCss={css + activeCss}
@@ -164,10 +169,10 @@ function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
                 onFocus={props.prefetch ? handleFocus : undefined}
                 onTouchStart={props.prefetch ? handleTouchStart : undefined}
                 // core AnchorElementAttributes
-                download={props['download']}
-                referrerPolicy={props['referrer_policy']}
-                target={props['target']}
-                rel={props['rel']}
+                download={props.download}
+                referrerPolicy={props.referrer_policy}
+                target={props.target}
+                rel={props.rel}
             >
                 {props.children.map((child, idx) => (
                     <DynamicComponent component={child} key={idx} />
