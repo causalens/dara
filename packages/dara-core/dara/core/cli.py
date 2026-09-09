@@ -252,7 +252,7 @@ def check(config: str | None, as_json: bool):
 def setup_custom_js():
     """Explain the removed optional custom-JS setup workflow."""
     raise click.ClickException(
-        'Every app now has js/index.tsx. Run dara dev to prepare the project, or dara migrate for legacy configuration.'
+        'Every app now has js/index.tsx. Run dara dev to prepare the project; see the Dara 2.0 migration guide for legacy configuration.'
     )
 
 

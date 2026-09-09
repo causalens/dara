@@ -184,7 +184,7 @@ def create_component_definition(component: type[ComponentInstance]):
     """Parse a concrete component source while preserving its serialized runtime name."""
     if component.js_source is None:
         raise ValueError(
-            f'{component.__module__}.{component.__qualname__} must define js_source; run dara migrate for legacy declarations'
+            f'{component.__module__}.{component.__qualname__} must define js_source; see the Dara 2.0 migration guide for legacy declarations'
         )
     return JsComponentDef(
         name=component.py_component or component.__name__,
@@ -197,7 +197,7 @@ def create_action_definition(action: type[ActionImpl]):
     """Parse an action source independently of its existing py_name override."""
     if action.js_source is None:
         raise ValueError(
-            f'{action.__module__}.{action.__qualname__} must define js_source; run dara migrate for legacy declarations'
+            f'{action.__module__}.{action.__qualname__} must define js_source; see the Dara 2.0 migration guide for legacy declarations'
         )
     return ActionDef(
         name=action.py_name or action.__name__, py_module=_get_symbol_module(action), js_source=action.js_source

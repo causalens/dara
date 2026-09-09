@@ -314,7 +314,7 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
         raise ProjectError(
             'migration.required',
             'Legacy dara.config.json found; review the migration before preparing this project',
-            'dara migrate',
+            'see the Dara 2.0 migration guide',
         )
     workspace = workspace_root(root)
     package_path, workspace_path = root / 'package.json', workspace / 'pnpm-workspace.yaml'
