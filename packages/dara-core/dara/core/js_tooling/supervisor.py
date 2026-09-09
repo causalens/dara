@@ -27,6 +27,10 @@ from dara.core.js_tooling.project import (
 )
 from dara.core.js_tooling.runtime import frontend_status
 
+# Installation and unexpected preparation failures are retried with these delays, then dara dev exits.
+RETRY_DELAYS = (2.0, 5.0, 10.0)
+RETRIED_CODES = frozenset({'dependency.install', 'frontend.prepare'})
+
 
 def supervise(
     root: Path,
@@ -57,6 +61,7 @@ def supervise(
     token = str(uuid.uuid4())
     owns_frontend = False
     seed: FrontendManifest | None = None
+    fatal: list[ProjectError] = []
     if frontend_only:
         seed = derive_manifest(load_configuration(reference), root, reference)
 
@@ -94,8 +99,29 @@ def supervise(
     def frontend_loop() -> None:
         nonlocal frontend
         attempted = None
+        failures = 0
         opened = False
         exited = False
+
+        def retry(error: ProjectError) -> bool:
+            """Retry infrastructure failures with backoff; give up by stopping the whole supervisor."""
+            nonlocal attempted, failures
+            if error.diagnostic.code not in RETRIED_CODES:
+                return False
+            failures += 1
+            blocked(error)
+            if failures > len(RETRY_DELAYS):
+                fatal.append(error)
+                stop.set()
+                # Unblock a foreground uvicorn (--no-reload) the same way an operator would.
+                signal.raise_signal(signal.SIGTERM)
+                return True
+            delay = RETRY_DELAYS[failures - 1]
+            click.echo(f'Retrying frontend preparation in {delay:g}s ({failures}/{len(RETRY_DELAYS)})', err=True)
+            attempted = None
+            stop.wait(delay)
+            return True
+
         while not stop.wait(0.2):
             try:
                 current = FrontendManifest.model_validate(read_json(manifest_path)) if manifest_path.exists() else seed
@@ -117,6 +143,7 @@ def supervise(
                     processes.stop(frontend)
                     frontend = None
                     prepare_project(root, current, frozen=frozen, processes=processes)
+                    failures = 0
                     config_contents = [(root / name).read_text() for name in ('vite.config.ts', 'tsconfig.json')]
                     attempted = (signature[0], dependency_fingerprint(root), tuple(config_contents))
                     command = [
@@ -160,9 +187,12 @@ def supervise(
             except ProcessCancelled:
                 return
             except ProjectError as error:
-                blocked(error)
+                if not retry(error):
+                    blocked(error)
             except (ValueError, OSError) as error:
-                blocked(ProjectError('frontend.prepare', str(error), 'dara check'))
+                wrapped = ProjectError('frontend.prepare', str(error), 'dara check')
+                if not retry(wrapped):
+                    blocked(wrapped)
 
     def interrupt(_signum, _frame) -> None:
         # Do not interrupt process creation between spawning and registering a child.
@@ -218,3 +248,5 @@ def supervise(
             owner_path.unlink(missing_ok=True)
         for sig, previous in previous_signals.items():
             signal.signal(sig, previous)
+    if fatal:
+        raise fatal[0]
