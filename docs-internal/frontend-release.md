@@ -8,11 +8,15 @@ The matrix covers:
 
 - Two apps and a library's own app sharing a catalog and lockfile, source exports, independent builds, React interaction and HMR state preservation.
 - Actual packed component, setup and bootstrap exports, with no source-only conditions or UMD files in the published packages.
+- Required setup runs before components render, while unused exports remain unevaluated.
+- Frozen checks and builds preserve dependency documents, exclude private credentials from Vite, and keep credentials and registry configuration out of deployed output.
 - Python wheels installed into a fresh virtual environment, without generated UMD assets.
 - Unmodified generator output, a migrated local component, a separate consumer of the packed library, and a JavaScript consumer with no Dara dependency.
 - `dara build --output .release-output`, followed by copying that output into an artifact-only runtime and starting with an empty `PATH`.
 
 `mise run package` builds the `dara-core` and `dara-components` wheels with `uv build` into the repository-root `dist/`, and `mise run publish-python` publishes from there. Each npm package uses its own `dist/`; keeping wheels out of package directories prevents a Python wheel from entering an npm tarball.
+
+`mise run publish-npm` uses native pnpm publishing so the tarballs receive the same `publishConfig.exports` overrides as the release fixture's `pnpm pack` artifacts. It publishes sequentially in dependency order and skips versions already in the registry, allowing a failed release to resume. Run `mise run publish-npm -- --dry-run` to rehearse packing without uploading packages.
 
 When bumping release versions, run `mise run lock-frontends` after both Python and npm metadata have changed. This reconciles the demo and Cypress app catalogs before the release commit. CI checks and production builds consume those committed files without repairing them.
 

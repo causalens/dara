@@ -82,8 +82,10 @@ run = "mise run '//packages/...:format-js-check'"
 [tasks.publish-python]
 run = "./tooling/scripts/publish-python.sh"
 
+# Native pnpm packing applies publishConfig exports; versions already in the registry are skipped.
+# Extra arguments are forwarded, e.g. `mise run publish-npm -- --dry-run`.
 [tasks.publish-npm]
-run = "rm -f .npmrc && pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --concurrency 1 --throttle-size 1 --throttle-delay 5"
+run = "rm -f .npmrc && pnpm --recursive --sort --workspace-concurrency 1 publish --no-git-checks"
 
 [tasks.publish]
 description = "Publish Python wheels and npm packages"
