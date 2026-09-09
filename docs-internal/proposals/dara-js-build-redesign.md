@@ -171,13 +171,13 @@ A missing or stale build makes `dara start` fail with `run dara build`. Using a 
 
 ## Command reference
 
-| Command                                                                                          | Behaviour                                                                                                                                                                                                                                                                               |
-| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command                                                                                          | Behaviour                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `dara dev [--frozen] [--open] [--no-typecheck] [--no-reload] [--frontend-only] [--backend-only]` | Supervises the reloadable Python server, project preparation, Vite and the TypeScript watcher. Loads the app, converts understood legacy settings, then creates missing project files and synchronizes declared requirements unless frozen. Python owns the development manifest and proxies `/static/` and HMR. Never writes production output. |
-| `dara lock`                                                                                      | Loads the configuration, converts understood legacy settings, then prepares the project and dependencies without starting either server or running a build. Review and commit the resulting changes.                                                                                                                      |
-| `dara build [--output <dir>] [--no-deps-build]`                                                  | Imports the app, writes the build manifest and performs a frozen install. The runner validates configuration, builds workspace dependencies, checks TypeScript, builds into staging and publishes completed output with its marker. Never repairs checked-in files.                     |
-| `dara start [--api-docs] [--require-sso]`                                                        | Validates and serves existing output with deploy posture, without a JS toolchain or reload.                                                                                                                                                                                             |
-| `dara check [--json]`                                                                            | Checks dependency agreement, configuration, registered sources, TypeScript and existing build output without repairing files. Exits nonzero with guidance for failures; JSON diagnostics have stable codes.                                                                             |
+| `dara lock`                                                                                      | Loads the configuration, converts understood legacy settings, then prepares the project and dependencies without starting either server or running a build. Review and commit the resulting changes.                                                                                                                                             |
+| `dara build [--output <dir>] [--no-deps-build]`                                                  | Imports the app, writes the build manifest and performs a frozen install. The runner validates configuration, builds workspace dependencies, checks TypeScript, builds into staging and publishes completed output with its marker. Never repairs checked-in files.                                                                              |
+| `dara start [--api-docs] [--require-sso]`                                                        | Validates and serves existing output with deploy posture, without a JS toolchain or reload.                                                                                                                                                                                                                                                      |
+| `dara check [--json]`                                                                            | Checks dependency agreement, configuration, registered sources, TypeScript and existing build output without repairing files. Exits nonzero with guidance for failures; JSON diagnostics have stable codes.                                                                                                                                      |
 
 Every command that imports the app accepts `--config <module:config>` as an override of `[tool.dara]`. `dara start` keeps `--port`, `--host`, `--base-url`, `--metrics-port`, `--disable-metrics` and the logging options; `dara dev` accepts the same serving options plus `--reload-dir`.
 
@@ -292,7 +292,7 @@ The root `vite.config.ts` and `tsconfig.json` describe the Dara app. An app that
 
 ### Registration compatibility
 
-The build consumes the registrations produced by existing runtime discovery, `@discover`, `@py_component` and explicit `add_component` and `add_action` calls. Definition construction changes to record `js_source` instead of the removed resolution fields. This does not require AST traversal, improved component-instance discovery, tree walking or retained class descriptors. Dependencies missed by current discovery still need explicit registration before the build; production does not discover and compile new JS on demand.
+The build consumes the registrations produced by existing runtime discovery, `@discover`, `@py_component` and explicit `add_component`, `add_components(module)` and `add_action` calls. `add_components` registers every public component class exported by a module, for applications that assemble pages dynamically. Definition construction changes to record `js_source` instead of the removed resolution fields. This does not require AST traversal, improved component-instance discovery, tree walking or retained class descriptors. Dependencies missed by current discovery still need explicit registration before the build; production does not discover and compile new JS on demand.
 
 The frontend manifest and generated maps use each registry entry's existing `name`, matching serialized component instances and JS action payloads. Preserve existing naming overrides, including `py_component` and `py_name`. For example, `NavigateToImpl` currently serializes as `NavigateTo`. A module specifier selects the default export independently of that runtime name, so moving away from barrel export names does not require changing Python serialization.
 
@@ -447,6 +447,12 @@ Python derives machine-specific manifests from the imported configuration and in
       "source": "@darajs/core/actions/navigate-to"
     }
   ],
+  "auth": [
+    {
+      "name": "@darajs/core/auth/basic/login",
+      "source": "@darajs/core/auth/basic/login"
+    }
+  ],
   "static": [
     {
       "package": "dara.components",
@@ -459,6 +465,8 @@ Python derives machine-specific manifests from the imported configuration and in
   "outDir": "./dist"
 }
 ```
+
+The `auth` list is a separate registry keyed by `js_source`: login, logout and extra authentication routes render before the authenticated component registry is available, and a source shared by several routes appears once.
 
 The `static`, `appStatic` and `favicon` entries carry the sources described under [Static assets](#static-assets). Python resolves `outDir` using the precedence in the command reference before it writes the manifest. The manifests carry no URLs: Python applies the runtime base URL when it renders the template, and Vite's address travels through `dev-server.json`.
 
@@ -916,7 +924,7 @@ Each slice is usable end to end before the next starts.
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | 1   | With the documented tool prerequisites installed, a generated app runs on first `dara dev`, creates its missing files, recovers from an edit error, passes type checking, builds and serves its artifact. This proves shared preparation, the supervisor and proxy, the minimal built-in registry and the manifest and marker contracts together. | `create-dara-app` output                          |
 | 2   | A local custom component and action work alongside built-ins through existing discovery or explicit registration. Their current serialized names resolve through the generated maps. Python reload, JS HMR and a new dependency update the running app. Current explicit variable hooks remain supported.                                         | `packages/demo-app`                               |
-| 3 | An existing downstream app follows the migration skill, then runs `dara lock` to convert legacy settings and prepare dependencies. It passes checking, development and production build. Repeated preparation makes no further migration edits. | A representative downstream app with custom JS |
+| 3   | An existing downstream app follows the migration skill, then runs `dara lock` to convert legacy settings and prepare dependencies. It passes checking, development and production build. Repeated preparation makes no further migration edits.                                                                                                   | A representative downstream app with custom JS    |
 | 4   | Two apps share a catalog and lockfile, use source from a workspace library, and build independently. The packed library also works through compiled exports in a separate Dara app and a JavaScript consumer.                                                                                                                                     | A monorepo whose app also publishes a library     |
 | 5   | Package and application static assets, including existing vendored visualization files, survive build, artifact-only deployment and source freshness checks.                                                                                                                                                                                      | Demo app visualization pages                      |
 | 6   | A clean CI checkout runs `dara check --json` and a frozen production build. Release tooling calls the new commands, downstream packages migrate, and the UMD pipeline, legacy flags and removed internals are deleted for Dara 2.0.                                                                                                               | Dara package suite and downstream release fixture |
