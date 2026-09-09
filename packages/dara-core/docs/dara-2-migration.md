@@ -2,11 +2,15 @@
 title: Dara 2.0 migration guide
 ---
 
-Dara 2.0 introduces a new development and build workflow. Start with automatic migration, then update your scripts and deployment steps.
+Dara 2.0 introduces a new development and build workflow. Update application sources and scripts first, then let Dara convert the remaining project settings.
 
 ## Upgrade and migrate
 
+For an agent-assisted migration, point your coding agent at the [dara-2-migration skill](https://github.com/causalens/dara/tree/master/skills/dara-2-migration). You can also copy that entire folder, including its reference files, into your agent's skill directory. It covers application code, commands, custom packages and verification. The steps below summarize the same workflow for a manual migration.
+
 Upgrade your Dara Python packages together to 2.0, and check that any third-party Dara packages support it. Development and builds require Node.js >=22.12.0 and pnpm 12, including for apps without custom JavaScript.
+
+Set `[tool.dara] config = "my_app.main:config"` in the application's `pyproject.toml`, using your actual configuration reference. Update custom JavaScript declarations and commands as described below. The application must load with Dara 2.0 declarations before automatic conversion runs.
 
 From your application's root, in its Python environment, run:
 
@@ -14,18 +18,16 @@ From your application's root, in its Python environment, run:
 dara lock
 ```
 
-This migrates supported legacy configuration and custom JavaScript declarations, prepares the frontend files, and installs dependencies. It announces migration and reports any follow-up steps. `dara dev` also performs automatic migration when starting development.
+This copies `extra_dependencies` from understood `dara.config.json` files into `package.json`, reports conflicting requirements, and removes the converted legacy file. It preserves existing dependency declarations and keeps old npm/Yarn lockfiles for review. Unknown settings or source directories need manual changes before conversion. `dara dev` performs the same conversion during preparation; frozen development reports required changes without applying them.
 
-If manual changes are needed, migration stops before editing source files and tells you what to change. Make those changes and rerun `dara lock`.
-
-Review `git diff`, then validate and build:
+Preparation also creates missing frontend project files and installs dependencies. It does not rewrite Python or JavaScript sources, infer configuration entries, move directories or update scripts. Review `git diff`, then validate and build:
 
 ```shell
 dara check
 dara build
 ```
 
-Commit the migrated sources, generated project configuration and `pnpm-lock.yaml`.
+Exercise affected pages and interactions in development and with `dara start` serving the built output. Commit the migrated sources, generated project configuration and `pnpm-lock.yaml` after verification.
 
 ## Update commands and scripts
 

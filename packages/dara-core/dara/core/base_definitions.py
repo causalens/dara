@@ -51,7 +51,7 @@ from pydantic import (
 )
 from pydantic._internal._model_construction import ModelMetaclass
 
-from dara.core.js_tooling.source import JsSource
+from dara.core.js_tooling.source import MIGRATION_SKILL, JsSource
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionCtx
@@ -88,7 +88,7 @@ class SerializeAsAnyMeta(ModelMetaclass):
         if removed and any(hasattr(base, 'js_source') for base in bases):
             raise TypeError(
                 f'{name} uses removed JavaScript metadata {sorted(removed)}. '
-                'Run dara lock and declare js_source as a default-export module.'
+                f'Declare js_source as a default-export module. {MIGRATION_SKILL}'
             )
         annotations: dict = namespaces.get('__annotations__', {}).copy()
 
@@ -731,6 +731,6 @@ class AssetManifest(BaseModel):
         """Explain the replacement for asset manifests from the removed UMD pipeline."""
         if isinstance(value, dict) and {'autojs_assets', 'common_assets', 'tag_order', 'depends_on'} & value.keys():
             raise ValueError(
-                'Legacy asset manifest: replace asset lists and tag ordering with static_assets; run dara lock'
+                f'Legacy asset manifest: replace asset lists and tag ordering with static_assets. {MIGRATION_SKILL}'
             )
         return value
