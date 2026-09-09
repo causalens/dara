@@ -100,7 +100,7 @@ def _query_members(root: Path, processes: ProcessOwner | None = None) -> tuple[P
             capture_output=True,
             text=True,
             check=False,
-            timeout=30,
+            timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ProjectError(

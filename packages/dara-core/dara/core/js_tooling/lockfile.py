@@ -73,7 +73,7 @@ def verify_lockfile(workspace: WorkspaceSnapshot, *, processes: ProcessOwner | N
                 text=True,
                 capture_output=True,
                 check=False,
-                timeout=30,
+                timeout=300,
             )
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ProjectError(
