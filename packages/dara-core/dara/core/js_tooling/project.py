@@ -23,6 +23,7 @@ from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import CORE_ACTIONS, CORE_COMPONENTS
 from dara.core.definitions import JsComponentDef
 from dara.core.internal.utils import import_config
+from dara.core.js_tooling.migration import migrate_legacy_config
 from dara.core.js_tooling.models import (
     FrontendManifest,
     Implementation,
@@ -444,6 +445,8 @@ def prepare_project(
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     changed = []
     with processes.lock(lock_path) if processes else FileLock(lock_path):
+        if not build:
+            changed.extend(str(path.relative_to(workspace)) for path in migrate_legacy_config(root, frozen=frozen))
         planned = dependency_plan(root, manifest)
         agrees = not planned and lockfile_agrees(root)
         if frozen and not agrees:

@@ -58,6 +58,7 @@ from dara.core.internal.import_discovery import (
 )
 from dara.core.internal.registry_lookup import CustomRegistryLookup
 from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
+from dara.core.js_tooling.source import MIGRATION_SKILL
 from dara.core.logging import dev_logger
 from dara.core.router import Router
 from dara.core.visual.components import RawString
@@ -242,7 +243,9 @@ class ConfigurationBuilder:
         :param action: ActionImpl-subclass definition
         """
         if removed_options:
-            raise TypeError('add_action no longer accepts local=. Run dara lock; keep the registration with js_source.')
+            raise TypeError(
+                f'add_action no longer accepts local=. Keep the registration with js_source. {MIGRATION_SKILL}'
+            )
         act_def = create_action_definition(action)
         self._actions.append(act_def)
         return act_def
@@ -295,7 +298,7 @@ class ConfigurationBuilder:
         """
         if removed_options:
             raise TypeError(
-                'add_component no longer accepts local=. Run dara lock; keep the registration with js_source.'
+                f'add_component no longer accepts local=. Keep the registration with js_source. {MIGRATION_SKILL}'
             )
         component_def = create_component_definition(component)
 

@@ -11,7 +11,6 @@ import uvicorn
 import click
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
-from dara.core.js_tooling.migration import migrate_before_prepare
 from dara.core.js_tooling.models import ProjectError
 from dara.core.js_tooling.project import (
     check_toolchain,
@@ -25,6 +24,7 @@ from dara.core.js_tooling.project import (
     write_manifest,
 )
 from dara.core.js_tooling.runtime import validate_build
+from dara.core.js_tooling.source import MIGRATION_SKILL
 from dara.core.js_tooling.supervisor import supervise
 
 
@@ -155,8 +155,6 @@ def dev(
     if root:
         os.chdir(root)
     root = Path.cwd().resolve()
-    if not backend_only:
-        migrate_before_prepare(root, frozen=frozen)
     reference, serving = _serving('dev', **options)
     os.environ['DARA_LIVE_RELOAD'] = 'FALSE' if no_reload or frontend_only else 'TRUE'
     os.environ['DARA_ENFORCE_SSO'] = 'FALSE'
@@ -186,7 +184,6 @@ def _manifest(config: str | None, output: str | None = None):
 @click.option('--config')
 def lock(config: str | None):
     """Prepare declared dependencies and missing project files without starting a server."""
-    migrate_before_prepare(Path.cwd().resolve())
     root, manifest = _manifest(config)
     prepare_project(root, manifest)
 
@@ -256,7 +253,7 @@ def check(config: str | None, as_json: bool):
 def setup_custom_js():
     """Explain the removed optional custom-JS setup workflow."""
     raise click.ClickException(
-        'Every app now has js/index.tsx. Run dara dev or dara lock to migrate supported legacy files and prepare the project.'
+        f'Every app now has js/index.tsx. Run dara dev to prepare the project. {MIGRATION_SKILL}'
     )
 
 

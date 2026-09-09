@@ -6,6 +6,10 @@ from typing import Annotated
 
 from pydantic import AfterValidator
 
+MIGRATION_SKILL = (
+    'Use the dara-2-migration skill: https://github.com/causalens/dara/tree/master/skills/dara-2-migration'
+)
+
 _PACKAGE = re.compile(r'^(?:@[a-z0-9._-]+/)?[a-z0-9._-]+(?:/[\w./-]+)?$')
 
 
@@ -19,7 +23,7 @@ def parse_js_source(value: str) -> str:
         if all(part not in ('.', '..') for part in value.split('/')):
             return value
     raise ValueError(
-        f'Invalid js_source {value!r}: use a package subpath or a relative path under ./js/; run dara lock for legacy declarations'
+        f'Invalid js_source {value!r}: use a package subpath or a relative path under ./js/. {MIGRATION_SKILL}'
     )
 
 
