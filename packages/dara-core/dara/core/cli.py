@@ -13,6 +13,7 @@ import uvicorn
 import click
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
+from dara.core.js_tooling.artifacts import validate_build
 from dara.core.js_tooling.models import ProjectError
 from dara.core.js_tooling.project import (
     ENGINES,
@@ -27,7 +28,6 @@ from dara.core.js_tooling.project import (
     run_plugin,
     write_manifest,
 )
-from dara.core.js_tooling.runtime import validate_build
 from dara.core.js_tooling.source import MIGRATION_SKILL
 from dara.core.js_tooling.supervisor import supervise
 

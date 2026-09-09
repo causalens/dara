@@ -8,7 +8,8 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { fileHash } from "../dist/files.js";
 import { collectAssets } from "../dist/assets.js";
-import { inputSnapshot, publishBuild, verifySnapshot } from "../dist/build.js";
+import { inputSnapshot, verifySnapshot } from "../dist/inputs.js";
+import { publishBuild } from "../dist/publication.js";
 import {
   generateEntry,
   parseManifest,
