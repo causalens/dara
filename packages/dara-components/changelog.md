@@ -1,7 +1,3 @@
-## NEXT
-
-- Exposed the public barrel under the workspace source condition.
-
 ---
 title: Changelog
 ---
@@ -10,6 +6,7 @@ title: Changelog
 
 - Breaking: component implementations are published as ESM entry points such as `@darajs/components/button` for the Dara 2.0 frontend pipeline.
 - Omitted grid hug values now default to false in the display context.
+- Button and Stack prop types now include the shared styling props.
 
 ## 1.29.8
 
