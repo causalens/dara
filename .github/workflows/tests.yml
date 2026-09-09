@@ -75,6 +75,18 @@ jobs:
           key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
       - name: Install Python workspace
         run: mise run uv-sync
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install JS dependencies
+        run: mise run deps-project
+      # The proxy integration tests drive the real Vite runner.
+      - name: Build the Vite plugin
+        run: pnpm --filter @darajs/vite-plugin run prepare-dev
       - name: Run Python tests
         run: mise run test
       - name: Prune uv cache
