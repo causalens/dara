@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
@@ -99,7 +99,7 @@ async function until<T>(read: () => T | Promise<T>, description: string): Promis
   throw new Error(`Timed out waiting for ${description}`);
 }
 
-async function waitForShutdown(child, exited, logs) {
+async function waitForShutdown(child: ChildProcess, exited: Promise<unknown[]>, logs: string) {
   const deadline = setTimeout(() => child.kill("SIGKILL"), 5000);
   try {
     const [code, signal] = await exited;
@@ -480,7 +480,7 @@ await test("shutdown waits for an in-flight configuration refresh before closing
   configure(root, "initial");
   const child = spawn(
     process.execPath,
-    [path.join(pluginRoot, "src/cli.mjs"), "serve", "--root", root, "--no-typecheck"],
+    [path.join(pluginRoot, "dist/cli.js"), "serve", "--root", root, "--no-typecheck"],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
   let logs = "";
