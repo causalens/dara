@@ -141,4 +141,3 @@ await test("malformed sibling manifests fail at the manifest boundary", (t) => {
     );
   }
 });
-

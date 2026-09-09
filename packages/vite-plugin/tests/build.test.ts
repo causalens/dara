@@ -97,6 +97,14 @@ fs.appendFileSync('build-events', 'typecheck\\n');
   fs.chmodSync(path.join(root, executable), 0o755);
   initialize(root);
   write(
+    "tsconfig.json",
+    JSON.stringify({
+      compilerOptions: JSON.parse(fs.readFileSync(path.join(pluginRoot, "tsconfig.json"), "utf8"))
+        .compilerOptions,
+      include: ["js"],
+    }),
+  );
+  write(
     "vite.config.ts",
     "import dara from '@darajs/vite-plugin'; export default {plugins:[dara()]};\n",
   );
