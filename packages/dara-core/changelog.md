@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Removed the obsolete `DownloadContentImpl` implementation and frontend registration; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
+
 - Hardened development proxy forwarding for encoded URLs, interrupted WebSockets, stalled HTTP responses and browser disconnects.
 
 - Removed auth component `js_name`; authentication screens now use their default-export `js_source` as the registry key.

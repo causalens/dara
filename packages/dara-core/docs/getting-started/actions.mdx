@@ -728,7 +728,6 @@ The following action implementation objects are available:
 - `dara.core.interactivity.actions.Logout` - shortcut for `NavigateToImpl(url='/logout')`
 - `dara.core.interactivity.actions.ResetVariables`
 - `dara.core.interactivity.actions.Notify`
-- `dara.core.interactivity.actions.DownloadContentImpl`
 - `dara.core.interactivity.actions.DownloadVariable`
 - `dara.core.interactivity.actions.CopyToClipboard`
 
@@ -954,7 +953,7 @@ config.router.add_page(path='download-content', content=test_page)
 
 To migrate to the new API, you can use the [`download_file` method](#download_file) of the injected context within an `@action`-decorated function.
 
-For simpler cases (e.g. static file paths) you can use the `dara.core.interactivity.actions.DownloadContentImpl` action implementation object directly.
+Use `ctx.download_file()` for static file paths as well; it creates the download URL and opens it through the standard navigation action.
 
 ### `SideEffect`
 

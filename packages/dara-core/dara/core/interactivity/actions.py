@@ -599,43 +599,6 @@ class Notify(ActionImpl):
     """@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 
-class DownloadContentImpl(ActionImpl):
-    """
-    Download action, downloads a given file
-
-    ```python
-
-    from dara.core import ConfigurationBuilder, DownloadContentImpl
-    from dara.components.components import Button, Stack
-
-
-    config = ConfigurationBuilder()
-
-    def test_page():
-        return Stack(
-            Button(
-                'Download File', onclick=DownloadContentImpl(path='/path/to/file', cleanup_file=False)
-            ),
-        )
-
-
-    config.router.add_page(path='download-content', content=test_page)
-
-    ```
-    """
-
-    js_source = '@darajs/core/actions/download-content'
-
-    code: str
-
-    py_name = 'DownloadContent'
-
-
-DownloadContentDef = ActionDef(
-    name='DownloadContent', js_source='@darajs/core/actions/download-content', py_module='dara.core'
-)
-
-
 @deprecated('Use @action instead')
 def DownloadContent(
     resolver: Callable[[ComponentActionContext], str],

@@ -174,10 +174,6 @@
         "types": "./dist/shared/context/display-context.d.ts",
         "default": "./dist/shared/context/display-context.js"
       },
-      "./actions/download-content": {
-        "types": "./dist/actions/download-content.d.ts",
-        "default": "./dist/actions/download-content.js"
-      },
       "./actions/download-variable": {
         "types": "./dist/actions/download-variable.d.ts",
         "default": "./dist/actions/download-variable.js"
@@ -438,11 +434,6 @@
       "dara-source": "./js/shared/context/display-context.tsx",
       "types": "./dist/shared/context/display-context.d.ts",
       "default": "./dist/shared/context/display-context.js"
-    },
-    "./actions/download-content": {
-      "dara-source": "./js/actions/download-content.tsx",
-      "types": "./dist/actions/download-content.d.ts",
-      "default": "./dist/actions/download-content.js"
     },
     "./actions/download-variable": {
       "dara-source": "./js/actions/download-variable.tsx",
