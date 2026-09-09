@@ -152,6 +152,7 @@ jobs:
         if: steps.cypress-cache.outputs.cache-hit != 'true'
         run: pnpm --dir packages/dara-core exec cypress install
       - name: Check packed frontend release artifacts
+        timeout-minutes: 30
         run: uv run --locked python tooling/scripts/check_frontend_release.py --browser --output "$RUNNER_TEMP/dara-release-check"
       - name: Upload release fixture logs
         if: failure()
