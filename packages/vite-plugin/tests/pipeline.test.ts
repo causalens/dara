@@ -31,6 +31,7 @@ function manifest(overrides: Partial<Manifest> = {}): Manifest {
     configuration: "app.main:config",
     daraVersion: version,
     packageRequirements: [],
+    pythonPackages: {},
     moduleDependencies: [],
     components: [],
     actions: [],
