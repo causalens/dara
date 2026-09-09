@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { createServer } from "node:http";
+import { once } from "node:events";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { test, type TestContext } from "node:test";
-import { collectAssets, copyAssets } from "../dist/assets.js";
+import { assetMiddleware, collectAssets, copyAssets } from "../dist/assets.js";
 import { inputSnapshot, verifySnapshot } from "../dist/inputs.js";
 import { publishBuild, recoverBuilds } from "../dist/publication.js";
 import { digest, version, parseOptions } from "../dist/contract.js";
@@ -274,4 +276,44 @@ await test("asset identities take precedence over application roots and retain f
   assert.deepEqual(portableInputs(project, project.manifest.favicon), [
     { root: "favicon", path: "." },
   ]);
+});
+
+test("static responses resolve MIME types and retain HEAD and unknown-type behavior", async (t) => {
+  const root = fixture(t);
+  const cases: [string, string][] = [
+    ["module.mjs", "text/javascript"],
+    ["image.AVIF", "image/avif"],
+    ["data.csv", "text/csv"],
+    ["font.woff2", "font/woff2"],
+    ["payload.unknown-extension", "application/octet-stream"],
+    ["no-extension", "application/octet-stream"],
+  ];
+  const assets = new Map(cases.map(([name]) => [name, write(root, name, "asset body")]));
+  const middleware = assetMiddleware({ assets, base: "/dashboard/static/" });
+  const server = createServer((req, res) =>
+    middleware(req, res, () => {
+      res.statusCode = 404;
+      res.end();
+    }),
+  );
+  t.after(
+    () =>
+      new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      ),
+  );
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const base = `http://127.0.0.1:${address.port}/dashboard/static/`;
+  for (const [name, type] of cases) {
+    for (const method of ["GET", "HEAD"]) {
+      const response = await fetch(base + name, { method });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("content-type"), type, name);
+      assert.equal(response.headers.get("cache-control"), "no-cache");
+      assert.equal(await response.text(), method === "HEAD" ? "" : "asset body");
+    }
+  }
 });
