@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { lookup } from "mrmime";
 import type { Connect } from "vite";
 import type { Project } from "./project.js";
 import type { Manifest } from "./contract.js";
@@ -143,26 +144,7 @@ export function assetMiddleware(
       response.end();
       return;
     }
-    const extension = path.extname(file);
-    const types: Record<string, string> = {
-      ".js": "text/javascript",
-      ".css": "text/css",
-      ".json": "application/json",
-      ".svg": "image/svg+xml",
-      ".ico": "image/x-icon",
-      ".png": "image/png",
-      ".html": "text/html",
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".gif": "image/gif",
-      ".webp": "image/webp",
-      ".woff": "font/woff",
-      ".woff2": "font/woff2",
-      ".ttf": "font/ttf",
-      ".wasm": "application/wasm",
-      ".pdf": "application/pdf",
-    };
-    response.setHeader("Content-Type", types[extension] ?? "application/octet-stream");
+    response.setHeader("Content-Type", lookup(file) ?? "application/octet-stream");
     response.setHeader("Cache-Control", "no-cache");
     if (request.method === "HEAD") {
       response.end();
