@@ -24,10 +24,6 @@ class _LegacyConfig(ProjectFields):
     extra_dependencies: dict[str, str] = Field(default_factory=dict)
 
 
-class _Package(PackageFields):
-    peerDependencies: dict[str, str] = Field(default_factory=dict)
-
-
 @dataclass(frozen=True)
 class _Snapshot:
     content: bytes | None
@@ -63,12 +59,16 @@ def _unchanged(path: Path, before: _Snapshot) -> None:
 
 
 def _replace(path: Path, text: str, mode: int | None) -> None:
+    """Write atomically, keeping the existing mode or the process umask default for a new file."""
     fd, temporary = tempfile.mkstemp(prefix=f'.{path.name}.', dir=path.parent)
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as stream:
             stream.write(text)
-        if mode is not None:
-            Path(temporary).chmod(mode)
+        if mode is None:
+            umask = os.umask(0)
+            os.umask(umask)
+            mode = 0o666 & ~umask
+        Path(temporary).chmod(mode)
         os.replace(temporary, path)
     finally:
         Path(temporary).unlink(missing_ok=True)
@@ -93,8 +93,9 @@ def migrate_legacy_config(root: Path, *, frozen: bool = False) -> list[Path]:
         raise ProjectError('migration.manual', str(error), MIGRATION_SKILL) from error
     package_before = _read(package_path)
     package = package_before.document(package_path)
-    fields = _Package.parse(package, package_path)
-    sections = [*fields.dependency_sections.values(), fields.peerDependencies]
+    fields = PackageFields.parse(package, package_path)
+    # Peer dependencies are requirements on the consumer, not installed dependencies of this app.
+    sections = list(fields.dependency_sections.values())
     additions = {}
     for name, requirement in legacy.extra_dependencies.items():
         existing = [section[name] for section in sections if name in section]
@@ -117,7 +118,7 @@ def migrate_legacy_config(root: Path, *, frozen: bool = False) -> list[Path]:
     try:
         if additions:
             _unchanged(package_path, package_before)
-            _replace(package_path, json.dumps(package, indent=2) + '\n', package_before.mode)
+            _replace(package_path, json.dumps(package, indent=2, ensure_ascii=False) + '\n', package_before.mode)
             changed.append(package_path)
         # Keep the original configuration until its dependencies have been copied successfully.
         _unchanged(legacy_path, legacy_before)
@@ -126,6 +127,11 @@ def migrate_legacy_config(root: Path, *, frozen: bool = False) -> list[Path]:
     except OSError as error:
         raise ProjectError('migration.write', str(error), 'review git diff and rerun dara lock') from error
     click.echo('Migrated legacy configuration; review git diff and commit the changes.', err=True)
+    if legacy.package_manager != 'pnpm':
+        click.echo(
+            f'Migration note: package_manager {legacy.package_manager} is not carried over; Dara 2 prepares the app with pnpm.',
+            err=True,
+        )
     for name in ('package-lock.json', 'yarn.lock'):
         if (root / name).exists():
             click.echo(f'Migration note: {name} is preserved. Review pnpm-lock.yaml before removing it.', err=True)
