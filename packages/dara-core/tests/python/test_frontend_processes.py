@@ -153,3 +153,48 @@ def test_waiting_for_preparation_lock_is_cancellable(tmp_path):
         worker.join(timeout=2)
         assert not worker.is_alive()
         assert cancelled.is_set()
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='Exercise POSIX signals and process groups')
+def test_repeated_installation_failures_stop_the_supervisor(tmp_path):
+    binaries = tmp_path / 'bin'
+    binaries.mkdir()
+    pnpm = binaries / 'pnpm'
+    pnpm.write_text(
+        f'#!{sys.executable}\n'
+        + """import sys
+args = sys.argv[1:]
+if args[:2] == ['config', 'get']:
+    print('undefined')
+elif 'install' in args:
+    print('ERR_PNPM_FETCH registry unreachable', file=sys.stderr)
+    sys.exit(1)
+"""
+    )
+    pnpm.chmod(0o755)
+    script = """from pathlib import Path
+from dara.core.js_tooling import supervisor, project
+from dara.core.js_tooling.models import FrontendManifest
+root = Path.cwd()
+manifest = FrontendManifest(configuration='app:config', dara_version='2.0.0', package_requirements=[], module_dependencies=[], components=[], actions=[], out_dir=str(root / 'dist'))
+supervisor.load_configuration = lambda reference: None
+supervisor.derive_manifest = lambda *args: manifest
+supervisor.RETRY_DELAYS = (0.1, 0.1)
+project.check_toolchain = lambda **kwargs: {}
+supervisor.supervise(root, 'app:config', {}, frontend_only=True)
+"""
+    result = subprocess.run(
+        [sys.executable, '-c', script],
+        cwd=tmp_path,
+        env={**os.environ, 'PATH': str(binaries) + os.pathsep + os.environ['PATH']},
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert result.stderr.count('Retrying frontend preparation') == 2
+    assert 'dependency.install' in result.stderr
+    assert 'ProjectError' in result.stderr
+    assert not (tmp_path / 'node_modules/.dara/supervisor.json').exists()
+    assert not (tmp_path / 'node_modules/.dara/dev-server.json').exists()
