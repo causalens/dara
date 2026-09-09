@@ -111,11 +111,11 @@ def test_nested_marker_is_an_output_inventory_change(built_project):
         validate_build(root, manifest)
 
 
-def test_new_optional_config_and_environment_invalidate_checkout(built_project, monkeypatch):
+def test_new_environment_invalidates_checkout_but_env_files_do_not(built_project, monkeypatch):
     root, manifest = built_project
     marker_path = root / 'dist/.dara-build.json'
     marker = json.loads(marker_path.read_text())
-    marker['inputs'].append({'root': 'app', 'path': '.env.production', 'hash': None})
+    assert not any(entry['path'].startswith('.env') for entry in marker['inputs'])
     marker['environment'] = {'DARA_FRESHNESS_TEST': _digest(None)}
     marker_path.write_text(json.dumps(marker))
     monkeypatch.delenv('DARA_FRESHNESS_TEST', raising=False)
@@ -124,9 +124,9 @@ def test_new_optional_config_and_environment_invalidate_checkout(built_project, 
     with pytest.raises(ProjectError, match='Changed build environment'):
         validate_build(root, manifest)
     monkeypatch.delenv('DARA_FRESHNESS_TEST')
+    # Env files are runtime configuration, like the process environment.
     (root / '.env.production').write_text('PUBLIC_COLOR=blue')
-    with pytest.raises(ProjectError, match='Changed or missing input'):
-        validate_build(root, manifest)
+    validate_build(root, manifest)
 
 
 def test_internal_directory_links_match_builder_inventory(built_project):
