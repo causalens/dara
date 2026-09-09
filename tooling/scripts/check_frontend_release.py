@@ -5,10 +5,7 @@ Use --browser after installing the repository's Cypress binary to exercise rende
 """
 
 import argparse
-import base64
 import contextlib
-import hashlib
-import http.server
 import json
 import os
 import shutil
@@ -17,10 +14,8 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import threading
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -163,69 +158,6 @@ class ReleaseCheck:
             if workspace.exists()
             else 'overrides: ' + json.dumps(overrides) + '\n'
         )
-
-    @contextlib.contextmanager
-    def migration_registry(self, app: Path):
-        """Bootstrap the packed analyzer from a fresh cache before app dependencies exist."""
-        packages = {}
-        archives = {}
-        for name, archive in self.packages.items():
-            payload = archive.read_bytes()
-            with tarfile.open(archive) as packed:
-                manifest = json.load(packed.extractfile('package/package.json'))
-            packages[name] = (manifest, archive.name, payload)
-            archives[archive.name] = payload
-
-        class Registry(http.server.BaseHTTPRequestHandler):
-            def do_GET(self):
-                """Serve only this fixture's package metadata and packed archives."""
-                requested = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path).strip('/')
-                if requested.startswith('tarballs/') and requested.removeprefix('tarballs/') in archives:
-                    body = archives[requested.removeprefix('tarballs/')]
-                elif requested in packages:
-                    manifest, filename, payload = packages[requested]
-                    release = {
-                        **manifest,
-                        'dist': {
-                            'tarball': f'http://127.0.0.1:{self.server.server_port}/tarballs/{filename}',
-                            'integrity': 'sha512-' + base64.b64encode(hashlib.sha512(payload).digest()).decode(),
-                        },
-                    }
-                    body = json.dumps(
-                        {
-                            'name': requested,
-                            'dist-tags': {'latest': manifest['version']},
-                            'versions': {manifest['version']: release},
-                        }
-                    ).encode()
-                else:
-                    self.send_error(404)
-                    return
-                self.send_response(200)
-                self.send_header('Content-Length', str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-
-            def log_message(self, *_):
-                """Keep registry request noise out of release command logs."""
-
-        server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Registry)
-        worker = threading.Thread(target=server.serve_forever, daemon=True)
-        worker.start()
-        npmrc = app / '.npmrc'
-        npmrc.write_text(npmrc.read_text() + f'@darajs:registry=http://127.0.0.1:{server.server_port}/\n')
-        previous_cache = self.environment.get('XDG_CACHE_HOME')
-        self.environment['XDG_CACHE_HOME'] = str(self.root / 'migration-tool-cache')
-        try:
-            yield
-        finally:
-            if previous_cache is None:
-                self.environment.pop('XDG_CACHE_HOME', None)
-            else:
-                self.environment['XDG_CACHE_HOME'] = previous_cache
-            server.shutdown()
-            server.server_close()
-            worker.join()
 
     def app(self, root: Path, label: str, *, library=False):
         """Create a minimal application using the real library declaration."""
@@ -494,19 +426,31 @@ class ReleaseCheck:
             migrated / 'dara.config.json', {'local_entry': './js', 'extra_dependencies': {}, 'package_manager': 'npm'}
         )
         self.vendor(migrated)
-        with self.migration_registry(migrated):
-            output = self.run([*self.cli, 'lock'], migrated, environment=self.environment_for(migrated))
-            assert 'Legacy Dara configuration detected; applying automatic migration.' in output, output
-            assert 'Migrated' in output and 'review git diff and commit' in output, output
-            assert not (migrated / 'dara.config.json').exists()
-            assert 'js_source' in (migrated / 'app/main.py').read_text()
-            before = dependency_documents(migrated)
-            source = (migrated / 'app/main.py').read_bytes()
-            repeated = self.run([*self.cli, 'lock'], migrated, environment=self.environment_for(migrated))
-            assert 'Migrated' not in repeated and 'applying automatic migration' not in repeated, repeated
-            assert dependency_documents(migrated) == before, 'repeated preparation changed dependency documents'
-            assert (migrated / 'app/main.py').read_bytes() == source, 'repeated preparation changed migrated source'
-            self.build(migrated)
+        source_path = migrated / 'app/main.py'
+        legacy_source = source_path.read_text()
+        output = self.run([*self.cli, 'lock'], migrated, environment=self.environment_for(migrated), expected=1)
+        assert 'dara-2-migration' in output, output
+        assert source_path.read_text() == legacy_source
+        assert (migrated / 'dara.config.json').exists()
+        # Apply the source changes described by the migration skill before preparing the project.
+        source_path.write_text(
+            legacy_source.replace('    label: str', "    js_source = './js/gauge.tsx'\n    label: str").replace(
+                'Gauge, local=True', 'Gauge'
+            )
+        )
+        (migrated / 'js/index.tsx').write_text("import './setup';\n")
+        source = source_path.read_bytes()
+        output = self.run([*self.cli, 'lock'], migrated, environment=self.environment_for(migrated))
+        assert 'Legacy Dara configuration detected; migrating project settings.' in output, output
+        assert 'Migrated' in output and 'review git diff and commit' in output, output
+        assert not (migrated / 'dara.config.json').exists()
+        assert source_path.read_bytes() == source, 'preparation changed migrated source'
+        before = dependency_documents(migrated)
+        repeated = self.run([*self.cli, 'lock'], migrated, environment=self.environment_for(migrated))
+        assert 'Migrated' not in repeated and 'migrating project settings' not in repeated, repeated
+        assert dependency_documents(migrated) == before, 'repeated preparation changed dependency documents'
+        assert source_path.read_bytes() == source, 'repeated preparation changed migrated source'
+        self.build(migrated)
         with self.server(migrated) as url:
             self.browser_check(url, 'Source widget: migrated', scenario='counter')
         packed = self.root / 'packed-consumer'
