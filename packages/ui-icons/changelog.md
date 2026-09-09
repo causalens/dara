@@ -4,9 +4,8 @@ title: Changelog
 
 ## NEXT
 
-- Aligned React types for strict application checks against workspace source.
-
-- Forward chevron refs to the SVG element so compiled declarations support existing consumers.
+- Aligned the `@types/react` dependency range with `@darajs/core`.
+- Chevron icons forward refs to the SVG element.
 
 ## 1.26.12
 
