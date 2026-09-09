@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Hardened development proxy forwarding for encoded URLs, interrupted WebSockets, stalled HTTP responses and browser disconnects.
+
 - Removed auth component `js_name`; authentication screens now use their default-export `js_source` as the registry key.
 
 - Added `ConfigurationBuilder.add_components(module)` to register public component classes from a module for dynamically rendered applications.
