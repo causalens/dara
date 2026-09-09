@@ -58,7 +58,7 @@ const ButtonBar = styled.div`
 `;
 
 function isProductionBuild(config: Config): boolean {
-    return config.build_mode === 'PRODUCTION' && !config.build_dev;
+    return !config.build_dev;
 }
 
 function RouteErrorBoundary(): React.ReactNode {

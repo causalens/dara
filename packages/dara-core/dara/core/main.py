@@ -537,7 +537,6 @@ def _start_application(config: Configuration):
             # For backwards compatibility
             'powered_by_causalens': config.powered_by_causalens,
             'router': config.router,
-            'build_mode': 'PRODUCTION',
             'build_dev': development,
         }
         json_template_data = _script_json(jsonable_encoder(template_data))
