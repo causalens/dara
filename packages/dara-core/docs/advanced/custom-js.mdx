@@ -152,6 +152,8 @@ Externalize React and its runtime subpaths from library bundles, and emit declar
 
 ## Static assets
 
+For application files and `config.add_static_folder(...)`, see [Static assets](./static-assets.md).
+
 Application `static/` files are served at `/static/`. Package assets use `/static/<python-module>/`. Register them through the existing `dara_assets` entry point using `AssetManifest(base_path=..., static_assets=[StaticAsset(source='common', target='.')])`. File paths are relative to `base_path` and cannot escape their namespace. Assets retain their URLs across development and production, including applications mounted under a base URL.
 
 Script ordering and generated library tags are replaced by module imports. Genuine vendored files such as plotting libraries remain static assets and are loaded by their components. Development watches static roots; conflicting destinations produce a diagnostic and resume serving after the collision is fixed.
