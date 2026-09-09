@@ -5,7 +5,10 @@ Use --browser after installing the repository's Cypress binary to exercise rende
 """
 
 import argparse
+import base64
 import contextlib
+import hashlib
+import http.server
 import json
 import os
 import shutil
@@ -14,8 +17,10 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -158,6 +163,69 @@ class ReleaseCheck:
             if workspace.exists()
             else 'overrides: ' + json.dumps(overrides) + '\n'
         )
+
+    @contextlib.contextmanager
+    def migration_registry(self, app: Path):
+        """Bootstrap the packed analyzer from a fresh cache before app dependencies exist."""
+        packages = {}
+        archives = {}
+        for name, archive in self.packages.items():
+            payload = archive.read_bytes()
+            with tarfile.open(archive) as packed:
+                manifest = json.load(packed.extractfile('package/package.json'))
+            packages[name] = (manifest, archive.name, payload)
+            archives[archive.name] = payload
+
+        class Registry(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                """Serve only this fixture's package metadata and packed archives."""
+                requested = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path).strip('/')
+                if requested.startswith('tarballs/') and requested.removeprefix('tarballs/') in archives:
+                    body = archives[requested.removeprefix('tarballs/')]
+                elif requested in packages:
+                    manifest, filename, payload = packages[requested]
+                    release = {
+                        **manifest,
+                        'dist': {
+                            'tarball': f'http://127.0.0.1:{self.server.server_port}/tarballs/{filename}',
+                            'integrity': 'sha512-' + base64.b64encode(hashlib.sha512(payload).digest()).decode(),
+                        },
+                    }
+                    body = json.dumps(
+                        {
+                            'name': requested,
+                            'dist-tags': {'latest': manifest['version']},
+                            'versions': {manifest['version']: release},
+                        }
+                    ).encode()
+                else:
+                    self.send_error(404)
+                    return
+                self.send_response(200)
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *_):
+                """Keep registry request noise out of release command logs."""
+
+        server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Registry)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        npmrc = app / '.npmrc'
+        npmrc.write_text(npmrc.read_text() + f'@darajs:registry=http://127.0.0.1:{server.server_port}/\n')
+        previous_cache = self.environment.get('XDG_CACHE_HOME')
+        self.environment['XDG_CACHE_HOME'] = str(self.root / 'migration-tool-cache')
+        try:
+            yield
+        finally:
+            if previous_cache is None:
+                self.environment.pop('XDG_CACHE_HOME', None)
+            else:
+                self.environment['XDG_CACHE_HOME'] = previous_cache
+            server.shutdown()
+            server.server_close()
+            worker.join()
 
     def app(self, root: Path, label: str, *, library=False):
         """Create a minimal application using the real library declaration."""
@@ -425,11 +493,29 @@ class ReleaseCheck:
         write_json(
             migrated / 'dara.config.json', {'local_entry': './js', 'extra_dependencies': {}, 'package_manager': 'npm'}
         )
-        self.run([*self.cli, 'migrate', '--check'], migrated, expected=1)
-        self.run([*self.cli, 'migrate'], migrated)
-        self.run([*self.cli, 'migrate'], migrated)
         self.vendor(migrated)
-        self.build(migrated)
+        with self.migration_registry(migrated):
+
+            def sources():
+                return {
+                    path.relative_to(migrated): path.read_bytes()
+                    for path in migrated.rglob('*')
+                    if path.is_file() and 'vendor' not in path.relative_to(migrated).parts
+                }
+
+            before = sources()
+            preview = self.run(
+                [*self.cli, 'migrate', '--check'], migrated, environment=self.environment_for(migrated), expected=1
+            )
+            assert 'js_source' in preview and 'no files written' in preview, preview
+            assert '--- ' in preview and '+++ ' in preview, preview
+            assert sources() == before, 'migration preview changed application files'
+            assert not (migrated / 'node_modules').exists(), 'analysis installed application dependencies'
+            self.build(migrated)  # lock automatically applies the migration before importing the old app.
+            assert not (migrated / 'dara.config.json').exists()
+            assert 'js_source' in (migrated / 'app/main.py').read_text()
+            repeated = self.run([*self.cli, 'migrate'], migrated, environment=self.environment_for(migrated))
+            assert 'No supported migration changes remain.' in repeated
         with self.server(migrated) as url:
             self.browser_check(url, 'Source widget: migrated', scenario='counter')
         packed = self.root / 'packed-consumer'
