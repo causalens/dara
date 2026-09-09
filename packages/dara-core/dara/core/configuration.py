@@ -438,7 +438,7 @@ class ConfigurationBuilder:
     def add_package_tags_processor(self, processor: Callable):
         """Reject the removed tag pipeline with guidance instead of silently dropping setup."""
         raise ValueError(
-            'add_package_tags_processor was removed. Run dara lock; import scripts and styles from js/index.tsx or package setup.'
+            f'add_package_tags_processor was removed. Import scripts and styles from js/index.tsx or package setup. {MIGRATION_SKILL}'
         )
 
     @deprecated('Use `config.router.add_page` instead.')
@@ -644,7 +644,7 @@ class ConfigurationBuilder:
         } & vars(self).keys()
         if removed:
             raise ValueError(
-                f'Removed frontend settings: {", ".join(sorted(removed))}. Run dara lock; import application setup and styles from js/index.tsx.'
+                f'Removed frontend settings: {", ".join(sorted(removed))}. Import application setup and styles from js/index.tsx. {MIGRATION_SKILL}'
             )
         if len(self._errors) > 0:
             raise ValueError('This configuration has errors: \n' + '\n'.join(self._errors))
