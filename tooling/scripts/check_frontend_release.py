@@ -495,27 +495,18 @@ class ReleaseCheck:
         )
         self.vendor(migrated)
         with self.migration_registry(migrated):
-
-            def sources():
-                return {
-                    path.relative_to(migrated): path.read_bytes()
-                    for path in migrated.rglob('*')
-                    if path.is_file() and 'vendor' not in path.relative_to(migrated).parts
-                }
-
-            before = sources()
-            preview = self.run(
-                [*self.cli, 'migrate', '--check'], migrated, environment=self.environment_for(migrated), expected=1
-            )
-            assert 'js_source' in preview and 'no files written' in preview, preview
-            assert '--- ' in preview and '+++ ' in preview, preview
-            assert sources() == before, 'migration preview changed application files'
-            assert not (migrated / 'node_modules').exists(), 'analysis installed application dependencies'
-            self.build(migrated)  # lock automatically applies the migration before importing the old app.
+            output = self.run([*self.cli, 'lock'], migrated, environment=self.environment_for(migrated))
+            assert 'Legacy Dara configuration detected; applying automatic migration.' in output, output
+            assert 'Migrated' in output and 'review git diff and commit' in output, output
             assert not (migrated / 'dara.config.json').exists()
             assert 'js_source' in (migrated / 'app/main.py').read_text()
-            repeated = self.run([*self.cli, 'migrate'], migrated, environment=self.environment_for(migrated))
-            assert 'No supported migration changes remain.' in repeated
+            before = dependency_documents(migrated)
+            source = (migrated / 'app/main.py').read_bytes()
+            repeated = self.run([*self.cli, 'lock'], migrated, environment=self.environment_for(migrated))
+            assert 'Migrated' not in repeated and 'applying automatic migration' not in repeated, repeated
+            assert dependency_documents(migrated) == before, 'repeated preparation changed dependency documents'
+            assert (migrated / 'app/main.py').read_bytes() == source, 'repeated preparation changed migrated source'
+            self.build(migrated)
         with self.server(migrated) as url:
             self.browser_check(url, 'Source widget: migrated', scenario='counter')
         packed = self.root / 'packed-consumer'
