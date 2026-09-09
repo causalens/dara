@@ -74,8 +74,9 @@ from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
+from dara.core.js_tooling.artifacts import validate_build
 from dara.core.js_tooling.project import atomic_write, derive_manifest, write_manifest
-from dara.core.js_tooling.runtime import ArtifactFiles, FrontendProxy, frontend_status, render_frontend, validate_build
+from dara.core.js_tooling.runtime import ArtifactFiles, FrontendProxy, frontend_status, render_frontend
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 from dara.core.router import convert_template_to_router

@@ -7,7 +7,9 @@ import { ProjectError } from "./contract.js";
 import { inside, treeFiles } from "./files.js";
 
 /** Expand registered assets into one collision-checked output namespace. */
-export function collectAssets(manifest: Manifest): Map<string, string> {
+export function collectAssets(
+  manifest: Pick<Manifest, "static" | "appStatic"> & Partial<Pick<Manifest, "favicon">>,
+): Map<string, string> {
   const files = new Map<string, string>();
   const namespaces = new Set(manifest.static.map((item) => item.package));
   const add = (destination: string, source: string, application = false) => {
@@ -199,7 +201,7 @@ export function copyAssets(project: Pick<Project, "assets">, staging: string) {
 }
 
 /** Watch registered roots, including missing files, so static additions and deletions recover live. */
-export function assetRoots(manifest) {
+export function assetRoots(manifest: Manifest) {
   return [
     ...new Set([
       ...manifest.static.map((asset) => asset.source),

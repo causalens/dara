@@ -7,7 +7,8 @@ import type { Manifest } from "../dist/contract.js";
 import { test } from "node:test";
 import { fileHash } from "../dist/files.js";
 import { collectAssets } from "../dist/assets.js";
-import { inputSnapshot, publishBuild, verifySnapshot } from "../dist/build.js";
+import { inputSnapshot, verifySnapshot } from "../dist/inputs.js";
+import { publishBuild } from "../dist/publication.js";
 import {
   generateEntry,
   parseManifest,
