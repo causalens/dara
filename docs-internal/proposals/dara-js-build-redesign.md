@@ -187,7 +187,7 @@ Every command that imports the app accepts `--config <module:config>` as an over
 
 If requirements and the lockfile agree, preparation reuses the lockfile and performs a frozen install only when local dependencies need restoring. If declared requirements changed or no lockfile exists, it runs pnpm's normal install to reconcile them. It never runs a blanket dependency update. An unchanged rerun produces no checked-in diff. Dependency changes may legitimately update the lockfile and affected transitive packages; the report names both the reason and changed files.
 
-The supervisor also watches dependency declarations and receives requirements from new development manifests. It serializes preparation runs, keeps the frontend unavailable while its installed dependencies are changing, and restarts the frontend runner when installation changes its toolchain or dependency graph. Normal Python reloads that leave dependency requirements unchanged keep Vite running. A preparation failure stays visible and can be retried after the relevant files are fixed; frozen mode reports the mismatch instead of repairing it.
+The supervisor also watches dependency declarations and receives requirements from new development manifests. It serializes preparation runs, keeps the frontend unavailable while its installed dependencies are changing, and restarts the frontend runner when installation changes its toolchain or dependency graph. Normal Python reloads that leave dependency requirements unchanged keep Vite running. A diagnostic about project files stays visible and preparation reruns once the relevant files change. An installation failure is retried with a short backoff; if it keeps failing, `dara dev` exits with the diagnostic rather than idling. Frozen mode reports the mismatch instead of repairing it.
 
 Only the supervisor performs automatic preparation; the Python worker and Vite plugin do not install dependencies. A workspace lock serializes catalog and install mutations from multiple Dara processes. Before writing a shared catalog, preparation checks the workspace's declared Dara requirements and reports conflicting apps. It does not resolve disagreement by letting the last command overwrite another app's requirements.
 
@@ -1015,6 +1015,10 @@ When the route template arrives in `fetchRouteData`, identify its component name
 A later experiment could add component names to route metadata so JavaScript requests can start alongside the route-data request, before the template arrives. This requires dependency information that accounts for Python-rendered and conditional content, with explicit declarations or conservative fallbacks for dependencies that cannot be known ahead of time. The existing `DependencyGraph` is insufficient for this purpose.
 
 Measure a page with a heavy visualization or editor against one that does not use it, including initial requests, hover-to-navigation behavior and navigation latency. Verify that preloading and rendering share loads, that navigation without prefetch still works, and that late-discovered components and failed imports use the defined fallback and retry behavior. A bundle analysis command would help evaluate the result. These experiments remain deferred until after 2.0.
+
+### Arbitrary npm packages as component sources
+
+In 2.0 every non-local `js_source` package maps to the Python package that declares it, and the catalog pins its version from the installed Python distribution. A component whose implementation lives in a plain npm library, such as `@mui/material/Button`, therefore needs a thin Python package that ships or depends on it. A later release could let an app declare such packages directly in `package.json` and treat them as user-managed: preparation would skip the Python version mapping for packages the app already declares, and `dara check` would report packages that are neither declared nor mapped.
 
 ### State-preserving Python reload
 
