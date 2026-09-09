@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Default omitted grid hug values to false in the display context.
+
 - Keep workspace component and public imports on the same source modules to preserve shared React contexts.
 
 - Added direct ESM component entry points and explicit static asset declarations for the Vite pipeline.

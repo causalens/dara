@@ -1,78 +1,23 @@
 import assert from "node:assert/strict";
+import type { HotPayload } from "vite";
+import { ProjectError, type Diagnostic } from "../dist/contract.js";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { startTypecheck } from "../src/typecheck.mjs";
-import { compilerExecutable } from "../src/compiler.mjs";
+import { startTypecheck } from "../dist/typecheck.js";
+import { compilerExecutable } from "../dist/compiler.js";
 
-await test(
-  "native watch failure switches to checks that recover on Vite changes",
-  { skip: process.platform === "win32" },
-  async (t) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dara-watch-fallback-"));
-    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    fs.writeFileSync(
-      compilerFixture(root),
-      `#!${process.execPath}
-const fs = require('node:fs');
-if (process.argv.includes('--watch')) {
-  console.error('error starting FSEvents stream');
-  setInterval(() => {}, 50);
-} else if (!fs.existsSync('fixed')) {
-  console.error('index.ts(1,1): error TS2322: incompatible type');
-  process.exitCode = 1;
+class TestSocket extends EventEmitter {
+  send: (message: HotPayload) => void = () => {};
 }
-`,
-      { mode: 0o755 },
-    );
-    const ws = new EventEmitter();
-    const watcher = new EventEmitter();
-    const sent = [];
-    ws.send = (message) => sent.push(message);
-    const errors = [];
-    const stop = startTypecheck(root, { ws, watcher }, (error) => errors.push(error));
-    try {
-      await until(() => sent.some((message) => message.type === "error"));
-      fs.writeFileSync(path.join(root, "fixed"), "");
-      watcher.emit("all", "change", path.join(root, "js/index.ts"));
-      await until(() => sent.some((message) => message.event === "dara:typecheck-clear"));
-      assert.deepEqual(errors, []);
-    } finally {
-      await stop();
-    }
-    assert.equal(watcher.listenerCount("all"), 0);
-  },
-);
 
-await test("native compiler adapter selects locked Windows, macOS and Linux packages", () => {
-  const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
-  try {
-    for (const platform of ["win32", "darwin", "linux"]) {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "dara-compiler-"));
-      try {
-        const executable = compilerFixture(root, platform);
-        fs.writeFileSync(executable, "native compiler fixture");
-        Object.defineProperty(process, "platform", { value: platform });
-        assert.equal(compilerExecutable(root), fs.realpathSync(executable));
-        fs.rmSync(executable);
-        assert.throws(
-          () => compilerExecutable(root),
-          (error) =>
-            error.diagnostic.code === "typescript.runner" && error.diagnostic.fix === "dara lock",
-        );
-      } finally {
-        Object.defineProperty(process, "platform", descriptor);
-        fs.rmSync(root, { recursive: true, force: true });
-      }
-    }
-  } finally {
-    Object.defineProperty(process, "platform", descriptor);
-  }
-});
-
-function compilerFixture(root, platform = process.platform, arch = process.arch) {
+function compilerFixture(
+  root: string,
+  platform: NodeJS.Platform = process.platform,
+  arch = process.arch,
+) {
   const name = `@typescript/typescript-${platform}-${arch}`;
   const compiler = path.join(root, "node_modules/typescript");
   const native = path.join(root, "node_modules", name);
@@ -96,13 +41,85 @@ function compilerFixture(root, platform = process.platform, arch = process.arch)
   return path.join(native, "lib", platform === "win32" ? "tsc.exe" : "tsc");
 }
 
-async function until(predicate) {
+async function until(predicate: () => boolean) {
   const deadline = Date.now() + 5000;
   while (!predicate()) {
     assert.ok(Date.now() < deadline, "compiler should respond within five seconds");
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
 }
+
+await test(
+  "native watch failure switches to checks that recover on Vite changes",
+  { skip: process.platform === "win32" },
+  async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dara-watch-fallback-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    fs.writeFileSync(
+      compilerFixture(root),
+      `#!${process.execPath}
+const fs = require('node:fs');
+if (process.argv.includes('--watch')) {
+  console.error('error starting FSEvents stream');
+  setInterval(() => {}, 50);
+} else if (!fs.existsSync('fixed')) {
+  console.error('index.ts(1,1): error TS2322: incompatible type');
+  process.exitCode = 1;
+}
+`,
+      { mode: 0o755 },
+    );
+    const ws = new TestSocket();
+    const watcher = new EventEmitter();
+    const sent: HotPayload[] = [];
+    ws.send = (message) => sent.push(message);
+    const errors: Diagnostic[] = [];
+    const stop = startTypecheck(root, { ws, watcher }, (error) => errors.push(error));
+    try {
+      await until(() => sent.some((message) => message.type === "error"));
+      fs.writeFileSync(path.join(root, "fixed"), "");
+      watcher.emit("all", "change", path.join(root, "js/index.ts"));
+      await until(() =>
+        sent.some(
+          (message) => message.type === "custom" && message.event === "dara:typecheck-clear",
+        ),
+      );
+      assert.deepEqual(errors, []);
+    } finally {
+      await stop();
+    }
+    assert.equal(watcher.listenerCount("all"), 0);
+  },
+);
+
+await test("native compiler adapter selects locked Windows, macOS and Linux packages", () => {
+  const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  assert(descriptor);
+  try {
+    for (const platform of ["win32", "darwin", "linux"] as const) {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "dara-compiler-"));
+      try {
+        const executable = compilerFixture(root, platform);
+        fs.writeFileSync(executable, "native compiler fixture");
+        Object.defineProperty(process, "platform", { value: platform });
+        assert.equal(compilerExecutable(root), fs.realpathSync(executable));
+        fs.rmSync(executable);
+        assert.throws(
+          () => compilerExecutable(root),
+          (error) =>
+            error instanceof ProjectError &&
+            error.diagnostic.code === "typescript.runner" &&
+            error.diagnostic.fix === "dara lock",
+        );
+      } finally {
+        Object.defineProperty(process, "platform", descriptor);
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    }
+  } finally {
+    Object.defineProperty(process, "platform", descriptor);
+  }
+});
 
 await test(
   "type checker replays existing errors, clears them and stops its compiler process",
@@ -130,22 +147,27 @@ setInterval(() => {
 `,
       { mode: 0o755 },
     );
-    const ws = new EventEmitter();
-    const sent = [];
+    const ws = new TestSocket();
+    const sent: HotPayload[] = [];
     ws.send = (message) => sent.push(message);
-    const errors = [];
+    const errors: Diagnostic[] = [];
     const stop = startTypecheck(root, { ws, watcher: new EventEmitter() }, (diagnostic) =>
       errors.push(diagnostic),
     );
     try {
       await until(() => sent.length > 0);
-      assert.equal(sent[0].type, "error");
-      const replay = [];
-      ws.emit("connection", { send: (message) => replay.push(message) });
+      assert.equal(sent[0]?.type, "error");
+      const replay: HotPayload[] = [];
+      const client = { send: (message: HotPayload) => replay.push(message) };
+      ws.emit("connection", client);
       assert.deepEqual(replay, [sent[0]], "a late browser sees the current failure");
       fs.writeFileSync(path.join(root, "fixed"), "");
-      await until(() => sent.some((message) => message.event === "dara:typecheck-clear"));
-      ws.emit("connection", { send: (message) => replay.push(message) });
+      await until(() =>
+        sent.some(
+          (message) => message.type === "custom" && message.event === "dara:typecheck-clear",
+        ),
+      );
+      ws.emit("connection", client);
       assert.equal(replay.length, 1, "the old diagnostic is not replayed after recovery");
     } finally {
       await stop();
@@ -173,9 +195,9 @@ fs.writeFileSync('compiler.pid', String(process.pid));
 `,
         { mode: 0o755 },
       );
-      const ws = new EventEmitter();
+      const ws = new TestSocket();
       ws.send = () => {};
-      const errors = [];
+      const errors: Diagnostic[] = [];
       const stop = startTypecheck(root, { ws, watcher: new EventEmitter() }, (error) =>
         errors.push(error),
       );

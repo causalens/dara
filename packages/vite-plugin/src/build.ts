@@ -1,16 +1,17 @@
 import fs from "node:fs";
+import type { Project } from "./project.js";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { build } from "vite";
-import { ProjectError, digest, portable, version, virtualEntry } from "./contract.mjs";
-import { collectAssets, copyAssets } from "./assets.mjs";
-import { atomicWrite, fileHash, inside, treeFiles } from "./files.mjs";
-import { compilerExecutable } from "./compiler.mjs";
+import { ProjectError, errorMessage, digest, portable, version, virtualEntry } from "./contract.js";
+import { collectAssets, copyAssets } from "./assets.js";
+import { atomicWrite, fileHash, inside, treeFiles } from "./files.js";
+import { compilerExecutable } from "./compiler.js";
 
 /** Run a package executable with arguments and forward diagnostics without using a shell. */
-export async function runCommand(command, args, cwd) {
-  return new Promise((resolve, reject) => {
+export async function runCommand(command: string, args: string[], cwd: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -34,7 +35,7 @@ export async function runCommand(command, args, cwd) {
 }
 
 /** Type errors prevent publishing any production output. */
-export async function checkTypes(project) {
+export async function checkTypes(project: Project) {
   await runCommand(
     compilerExecutable(project.root),
     ["--project", path.join(project.root, "tsconfig.json"), "--noEmit", "--pretty", "false"],
@@ -42,7 +43,7 @@ export async function checkTypes(project) {
   );
 }
 
-function roots(project) {
+function roots(project: Project): Record<string, string> {
   return {
     app: project.root,
     workspace: project.workspace,
@@ -56,7 +57,7 @@ function roots(project) {
   };
 }
 
-function portableInput(project, file) {
+function portableInput(project: Project, file: string) {
   const locations = roots(project);
   // More specific asset roots take precedence over the app/workspace roots.
   for (const key of [
@@ -65,6 +66,9 @@ function portableInput(project, file) {
     "workspace",
   ]) {
     const root = locations[key];
+    if (root === undefined) {
+      continue;
+    }
     if (inside(root, file)) {
       return { root: key, path: path.relative(root, file).replaceAll(path.sep, "/") || "." };
     }
@@ -77,7 +81,12 @@ function portableInput(project, file) {
 }
 
 /** Inventory known input trees before compilation so additions and removals cannot be hidden. */
-export function inputSnapshot(project) {
+export function inputSnapshot(
+  project: Pick<
+    Project,
+    "root" | "workspace" | "inputs" | "sourceFiles" | "assets" | "manifest"
+  > & { api: Pick<Project["api"], "options"> },
+) {
   const files = new Set([...project.inputs, ...project.sourceFiles, ...project.assets.values()]);
   const directories = [
     path.join(project.root, "js"),
@@ -98,14 +107,14 @@ export function inputSnapshot(project) {
   const lockfile = path.join(project.workspace, "pnpm-lock.yaml");
   files.add(lockfile);
   // Extends chains can include package presets; root-level and repository configs must be present.
-  const addConfig = (file) => {
+  const addConfig = (file: string): void => {
     if (!fs.existsSync(file)) {
       return;
     }
     files.add(file);
     const raw = fs.readFileSync(file, "utf8");
     const match = raw.match(/"extends"\s*:\s*"([^"\n]+)"/);
-    if (match?.[1].startsWith(".")) {
+    if (match?.[1]?.startsWith(".")) {
       addConfig(
         path.resolve(
           path.dirname(file),
@@ -129,7 +138,7 @@ export function inputSnapshot(project) {
 }
 
 /** Verify inputs stayed stable while Vite and custom build plugins were reading them. */
-export function verifySnapshot(snapshot) {
+export function verifySnapshot(snapshot: ReturnType<typeof inputSnapshot>) {
   for (const [file, hash] of snapshot.hashes) {
     if (!fs.existsSync(file) || fileHash(file) !== hash) {
       throw new ProjectError(
@@ -154,7 +163,7 @@ export function verifySnapshot(snapshot) {
 }
 
 /** Replace completed output with recovery on failed directory renames, including Windows. */
-export function publishBuild(staging, output, rename = fs.renameSync) {
+export function publishBuild(staging: string, output: string, rename = fs.renameSync) {
   const backup = `${output}.dara-backup-${randomUUID()}`;
   const replacing = fs.existsSync(output);
   if (replacing) {
@@ -169,14 +178,14 @@ export function publishBuild(staging, output, rename = fs.renameSync) {
       } catch (restore) {
         throw new ProjectError(
           "build.recovery",
-          `Publish failed (${error.message}); restore failed (${restore.message}). Recover previous output from ${backup}; staging remains at ${staging}`,
+          `Publish failed (${errorMessage(error)}); restore failed (${errorMessage(restore)}). Recover previous output from ${backup}; staging remains at ${staging}`,
           "restore the reported backup, then run dara build",
         );
       }
     }
     throw new ProjectError(
       "build.publish",
-      `Publish failed: ${error.message}. Staging remains at ${staging}; previous output was preserved`,
+      `Publish failed: ${errorMessage(error)}. Staging remains at ${staging}; previous output was preserved`,
       "dara build",
     );
   }
@@ -186,7 +195,10 @@ export function publishBuild(staging, output, rename = fs.renameSync) {
 }
 
 /** Build in a sibling staging directory and write the private marker last. */
-export async function buildProject(project, { noDepsBuild = false } = {}) {
+export async function buildProject(
+  project: Project,
+  { noDepsBuild = false }: { noDepsBuild?: boolean } = {},
+) {
   const output = path.resolve(project.root, project.manifest.outDir);
   if (
     inside(output, project.root) ||

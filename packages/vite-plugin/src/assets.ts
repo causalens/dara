@@ -1,13 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ProjectError } from "./contract.mjs";
-import { inside, treeFiles } from "./files.mjs";
+import type { Connect } from "vite";
+import type { Project } from "./project.js";
+import type { Manifest } from "./contract.js";
+import { ProjectError } from "./contract.js";
+import { inside, treeFiles } from "./files.js";
 
 /** Expand registered assets into one collision-checked output namespace. */
-export function collectAssets(manifest) {
-  const files = new Map();
+export function collectAssets(manifest: Manifest): Map<string, string> {
+  const files = new Map<string, string>();
   const namespaces = new Set(manifest.static.map((item) => item.package));
-  const add = (destination, source, application = false) => {
+  const add = (destination: string, source: string, application = false) => {
     const target = destination.replaceAll(path.sep, "/");
     if (
       target.startsWith("/") ||
@@ -28,7 +31,7 @@ export function collectAssets(manifest) {
         "edit static registrations",
       );
     }
-    if (application && namespaces.has(target.split("/")[0])) {
+    if (application && namespaces.has(target.split("/")[0] ?? "")) {
       throw new ProjectError(
         "asset.collision",
         `${source} collides with package namespace ${target.split("/")[0]}`,
@@ -112,11 +115,13 @@ export function collectAssets(manifest) {
 }
 
 /** Serve declared static files only; Vite handles JavaScript imports through its normal graph. */
-export function assetMiddleware(project) {
+export function assetMiddleware(
+  project: Pick<Project, "assets" | "base">,
+): Connect.NextHandleFunction {
   return (request, response, next) => {
     let url;
     try {
-      url = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+      url = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
     } catch {
       response.statusCode = 400;
       response.end();
@@ -137,7 +142,7 @@ export function assetMiddleware(project) {
       return;
     }
     const extension = path.extname(file);
-    const types = {
+    const types: Record<string, string> = {
       ".js": "text/javascript",
       ".css": "text/css",
       ".json": "application/json",
@@ -161,7 +166,7 @@ export function assetMiddleware(project) {
 }
 
 /** Copy assets into staging while rejecting collisions with Vite's emitted files. */
-export function copyAssets(project, staging) {
+export function copyAssets(project: Pick<Project, "assets">, staging: string) {
   for (const [target, source] of project.assets) {
     const destination = path.resolve(staging, target);
     if (!inside(staging, destination) || fs.existsSync(destination)) {

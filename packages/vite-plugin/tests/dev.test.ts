@@ -4,14 +4,17 @@ import { once } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { TestContext } from "node:test";
+import type { HotPayload } from "vite";
+import { errorMessage } from "../dist/contract.js";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { version } from "../src/contract.mjs";
-import { initialize, loadProject } from "../src/project.mjs";
+import { version } from "../dist/contract.js";
+import { initialize, loadProject } from "../dist/project.js";
 
 const pluginRoot = fileURLToPath(new URL("..", import.meta.url));
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "dara-dev-")));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, "node_modules/@darajs/core"), { recursive: true });
@@ -56,12 +59,12 @@ function fixture(t) {
   return { root, manifest };
 }
 
-function configure(root, value) {
+function configure(root: string, value: string) {
   fs.writeFileSync(
     path.join(root, "vite.config.ts"),
     `
 import dara from '@darajs/vite-plugin';
-const value = ${JSON.stringify(value)} + '-' + process.env.NODE_ENV;
+const value = ${JSON.stringify(value)} + '-' + process.env["NODE_ENV"];
 export default {
   plugins: [dara(), { name: 'test-probe', configureServer(server) {
     server.middlewares.use((request, response, next) => {
@@ -69,13 +72,13 @@ export default {
       else next();
     });
   }}],
-  define: { APP_POSTURE: JSON.stringify(process.env.NODE_ENV) },
+  define: { APP_POSTURE: JSON.stringify(process.env["NODE_ENV"]) },
 };
 `,
   );
 }
 
-async function until(read, description) {
+async function until<T>(read: () => T | Promise<T>, description: string): Promise<NonNullable<T>> {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
     const result = await read();
@@ -90,15 +93,15 @@ async function until(read, description) {
 await test("configuration validation keeps each operation's NODE_ENV posture", async (t) => {
   const { root, manifest } = fixture(t);
   configure(root, "posture");
-  for (const command of ["build", "serve"]) {
+  for (const command of ["build", "serve"] as const) {
     const project = await loadProject(root, manifest, command);
     const production = command === "build";
     assert.equal(project.config.isProduction, production);
     assert.equal(
-      project.userConfig.define.APP_POSTURE,
+      project.userConfig.define?.["APP_POSTURE"],
       JSON.stringify(production ? "production" : "development"),
     );
-    assert.equal(process.env.NODE_ENV, production ? "production" : "development");
+    assert.equal(process.env["NODE_ENV"], production ? "production" : "development");
   }
 });
 
@@ -107,7 +110,7 @@ await test("development reloads configuration, recovers from errors and protects
   configure(root, "first");
   const child = spawn(
     process.execPath,
-    [path.join(pluginRoot, "src/cli.mjs"), "serve", "--root", root, "--no-typecheck"],
+    [path.join(pluginRoot, "dist/cli.js"), "serve", "--root", root, "--no-typecheck"],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
   let logs = "";
@@ -128,12 +131,13 @@ await test("development reloads configuration, recovers from errors and protects
     );
     assert.equal(await (await fetch(first.origin + "/static/probe")).text(), "first-development");
     const clientSource = await (await fetch(first.origin + "/static/@vite/client")).text();
-    const wsToken = clientSource.match(/const wsToken = "([^"]+)"/)[1];
+    const wsToken = clientSource.match(/const wsToken = "([^"]+)"/)?.[1];
+    assert(wsToken);
     const socket = new WebSocket(
       first.origin.replace("http:", "ws:") + "/static/@dara/hmr?token=" + wsToken,
       "vite-hmr",
     );
-    const messages = [];
+    const messages: HotPayload[] = [];
     socket.addEventListener("message", (event) => messages.push(JSON.parse(event.data)));
     await once(socket, "open");
     fs.writeFileSync(path.join(root, "node_modules/.dara/backend-ready.json"), "{}");
@@ -187,7 +191,7 @@ await test("development reloads configuration, recovers from errors and protects
       }
     }, "configuration recovery");
   } catch (error) {
-    throw new Error(`${error.message}\n${logs}`, { cause: error });
+    throw new Error(`${errorMessage(error)}\n${logs}`, { cause: error });
   } finally {
     child.kill("SIGTERM");
     await exited;
