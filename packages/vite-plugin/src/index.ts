@@ -5,7 +5,6 @@ import type { DaraOptions } from "./contract.js";
 import type { DaraPluginApi } from "./project.js";
 export type { DaraOptions } from "./contract.js";
 import react from "@vitejs/plugin-react";
-import { defaultClientConditions } from "vite";
 import { selfReference } from "./exports.js";
 import { convertPathToPattern } from "tinyglobby";
 import { defaultClientConditions } from "vite";
