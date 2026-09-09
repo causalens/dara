@@ -437,7 +437,9 @@ class ConfigurationBuilder:
 
     def add_package_tags_processor(self, processor: Callable):
         """Reject the removed tag pipeline with guidance instead of silently dropping setup."""
-        raise ValueError('add_package_tags_processor was removed. Run dara migrate; import scripts and styles from js/index.tsx or package setup.')
+        raise ValueError(
+            'add_package_tags_processor was removed. Run dara migrate; import scripts and styles from js/index.tsx or package setup.'
+        )
 
     @deprecated('Use `config.router.add_page` instead.')
     def add_page(
@@ -634,7 +636,12 @@ class ConfigurationBuilder:
         Convert the ConfigurationBuilder to a Configuration class ready for the application to work from.
         """
 
-        removed = {'template_extra_js', '_template_extra_js', 'package_tag_processors', '_package_tags_processors'} & vars(self).keys()
+        removed = {
+            'template_extra_js',
+            '_template_extra_js',
+            'package_tag_processors',
+            '_package_tags_processors',
+        } & vars(self).keys()
         if removed:
             raise ValueError(
                 f'Removed frontend settings: {", ".join(sorted(removed))}. Run dara migrate; import application setup and styles from js/index.tsx.'

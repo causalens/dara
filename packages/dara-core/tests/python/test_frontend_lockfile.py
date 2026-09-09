@@ -1,7 +1,6 @@
 """PnPM verifies effective declarations without normalizing the user's project."""
 
 import subprocess
-from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -14,7 +13,9 @@ from dara.core.js_tooling.workspace import read_workspace
 @pytest.fixture
 def snapshot(tmp_path):
     (tmp_path / 'package.json').write_text('{"name":"app","dependencies":{"widgets":"catalog:dara"}}')
-    (tmp_path / 'pnpm-workspace.yaml').write_text('# policy\npackageExtensions: {}\noverrides:\n  widgets: file:./vendor/widgets.tgz\ncatalogs:\n  dara:\n    widgets: ^1.0.0\n')
+    (tmp_path / 'pnpm-workspace.yaml').write_text(
+        '# policy\npackageExtensions: {}\noverrides:\n  widgets: file:./vendor/widgets.tgz\ncatalogs:\n  dara:\n    widgets: ^1.0.0\n'
+    )
     (tmp_path / 'pnpm-lock.yaml').write_text('# preserve this comment\n\nlockfileVersion: "9.0"\nimporters: {.: {}}\n')
     vendor = tmp_path / 'vendor'
     vendor.mkdir()

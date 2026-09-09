@@ -144,7 +144,7 @@ A library checkout can expose source for Dara and compiled output for ordinary c
 }
 ```
 
-Both Vite and TypeScript resolve `dara-source`. Use relative internal imports and compile source under the consuming app's settings. Development does not build sibling libraries. Production builds reachable workspace dependencies in pnpm order; use `dara build --no-deps-build` when the repository has already built them.
+Both Vite and TypeScript resolve `dara-source`. Wildcard source exports use a dedicated source directory, such as `./js/*.tsx`; exact source exports may live at the package root. Use relative internal imports and compile source under the consuming app's settings. Development does not build sibling libraries. Production builds reachable workspace dependencies in pnpm order; use `dara build --no-deps-build` when the repository has already built them.
 
 A package that is also a Dara app keeps `vite.config.ts` and `tsconfig.json` for the app, and separate `vite.lib.config.ts` and `tsconfig.lib.json` files for publication. Outputs must not overlap: use `dist/` for the app and `dist-lib/` for the library. npm self-references work in the library's own app without a dependency on itself.
 
@@ -166,4 +166,4 @@ Keep the complete output, including its private `.dara-build.json` marker. Start
 
 Run `dara migrate --check` to preview changes, then `dara migrate`. Review the resulting diff and any reported manual steps. Follow with `dara dev`, `dara check` and `dara build`.
 
-The migration replaces `dara.config.json`, local registration flags, legacy module declarations. Legacy asset manifests and HTML tag processors receive manual migration guidance. Ambiguous dynamic configuration is reported for manual migration. Replace `setup-custom-js` and the two-process HMR workflow with `dara dev`; replace `start --production` or `start --rebuild` with `dara build` followed by `dara start`. Existing component identities, import discovery and prop binding remain unchanged.
+The migration replaces `dara.config.json`, local registration flags and legacy module declarations. Legacy asset manifests and HTML tag processors receive manual migration guidance. Ambiguous dynamic configuration is reported for manual migration. Replace `setup-custom-js` and the two-process HMR workflow with `dara dev`; replace `start --production` or `start --rebuild` with `dara build` followed by `dara start`. Existing component identities, import discovery and prop binding remain unchanged.

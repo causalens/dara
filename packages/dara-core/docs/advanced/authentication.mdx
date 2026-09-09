@@ -43,7 +43,7 @@ By default, Dara chooses the backend for the current runtime:
 
 -   Normal runtime uses `InMemoryAuthSessionBackend`. Sessions are process-local and users must log in again after a server restart.
 -   Local `dara dev` uses `FileAuthSessionBackend`. Sessions are written to local disk so code reloads do not force repeated logins during development.
--   Docker and production modes keep using the in-memory backend unless you explicitly configure another backend.
+-   `dara start` uses the in-memory backend unless you explicitly configure another backend.
 
 You can configure the backend directly on `ConfigurationBuilder`:
 

@@ -19,19 +19,26 @@ import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
+from typing import Literal
 
 from cookiecutter.main import cookiecutter
 
+from dara.core.js_tooling.processes import ProcessOwner
+
 REPO = Path(__file__).resolve().parents[2]
 TEMPLATE = REPO / 'packages/create-dara-app/create_dara_app/templates/default'
+BROWSER_SPEC = REPO / 'tooling/frontend-release/release.cy.js'
+PRIVATE_SENTINEL = 'dara-release-private-credential-sentinel'
+SETUP = "Object.defineProperty(globalThis, '__releaseSetup', {value: 'installed', configurable: true});\n"
 GAUGE = """import {useState} from 'react';
 export default function Gauge({label}: {label:string}) {
+  if (Reflect.get(globalThis, '__releaseSetup') !== 'installed') throw new Error('Missing package setup');
   const [count,setCount]=useState(0);
   return <section><h1>Source widget: {label}</h1>
     <button onClick={()=>setCount(count+1)}>Count: {count}</button></section>;
 }
 """
-VITE = "import {defineConfig} from 'vite';\nimport dara from '@darajs/vite-plugin';\nexport default defineConfig(({mode})=>{if(process.env.NODE_ENV!==mode)throw new Error('Wrong config environment');return {plugins:[dara()],server:{watch:{usePolling:true}}};});\n"
+VITE = "import {defineConfig} from 'vite';\nimport dara from '@darajs/vite-plugin';\nexport default defineConfig(({mode})=>{if(process.env.DARA_RELEASE_REGISTRY_TOKEN)throw new Error('Private credential reached Vite');if(process.env.NODE_ENV!==mode)throw new Error('Wrong config environment');return {plugins:[dara()],server:{watch:{usePolling:true}}};});\n"
 
 
 def write_json(path: Path, value):
@@ -40,34 +47,61 @@ def write_json(path: Path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
 
 
+def dependency_documents(app: Path) -> dict[Path, bytes]:
+    """Snapshot checked-in dependency documents, including every workspace importer."""
+    root = next((folder for folder in [app, *app.parents] if (folder / 'pnpm-workspace.yaml').exists()), app)
+    documents = {}
+    for current, directories, files in os.walk(root):
+        directories[:] = [name for name in directories if name not in ('node_modules', '.git', 'vendor')]
+        for name in files:
+            if name in ('package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml', '.npmrc'):
+                file = Path(current) / name
+                documents[file] = file.read_bytes()
+    return documents
+
+
+def assert_clean_output(output: Path) -> None:
+    """Reject registry configuration and the private credential sentinel in deployed bytes."""
+    assert (output / '.dara-build.json').is_file(), output
+    for file in output.rglob('*'):
+        if file.is_file():
+            assert file.name != '.npmrc', f'Registry configuration in output: {file}'
+            assert PRIVATE_SENTINEL.encode() not in file.read_bytes(), f'Private credential in output: {file}'
+
+
 class ReleaseCheck:
     """Own isolated consumers and command logs for one reproducible release check."""
 
     def __init__(self, root: Path, browser: bool):
         self.root = root
         self.browser = browser
-        self.packages = {}
+        self.packages: dict[str, Path] = {}
+        self.processes = ProcessOwner()
         self.log_number = 0
         self.environment = dict(os.environ)
         self.environment.pop('ELECTRON_RUN_AS_NODE', None)
         self.environment.pop('PYTHONPATH', None)
-        self.environment.update(JWT_SECRET='release-fixture-secret-at-least-32-characters', DARA_POOL_MAX_WORKERS='2')
+        self.environment.update(
+            JWT_SECRET='release-fixture-secret-at-least-32-characters',
+            DARA_POOL_MAX_WORKERS='2',
+            DARA_RELEASE_REGISTRY_TOKEN=PRIVATE_SENTINEL,
+        )
         self.python = root / 'python/bin/python'
         self.cli = [str(self.python), '-c', 'from dara.core.cli import cli; cli()']
         (root / 'logs').mkdir(parents=True, exist_ok=True)
 
-    def run(self, command, cwd: Path, *, environment=None, expected=0):
+    def run(self, command, cwd: Path, *, environment=None, expected=0, timeout=600):
         """Run a command with a bounded lifetime and retain its complete output."""
         self.log_number += 1
         log = self.root / f'logs/{self.log_number:03d}.log'
         with log.open('w') as output:
-            result = subprocess.run(
+            result = self.processes.run(
                 [str(argument) for argument in command],
                 cwd=cwd,
                 env=environment or self.environment,
                 stdout=output,
                 stderr=subprocess.STDOUT,
-                timeout=600,
+                timeout=timeout,
             )
         if result.returncode != expected:
             raise RuntimeError(f'{command} exited {result.returncode}; see {log}')
@@ -116,6 +150,7 @@ class ReleaseCheck:
         for tarball in self.packages.values():
             shutil.copyfile(tarball, root / 'vendor' / tarball.name)
         overrides = {name: f'file:vendor/{tarball.name}' for name, tarball in self.packages.items()}
+        (root / '.npmrc').write_text('//release-fixture.invalid/:_authToken=${DARA_RELEASE_REGISTRY_TOKEN}\n')
         workspace = root / 'pnpm-workspace.yaml'
         # JSON flow mappings are valid YAML and preserve scoped names without custom escaping.
         workspace.write_text(
@@ -131,7 +166,7 @@ class ReleaseCheck:
         (root / module / '__init__.py').touch()
         (root / module / 'main.py').write_text(
             'from dara.core import ConfigurationBuilder\nfrom widgets import Gauge\n'
-            f'config = ConfigurationBuilder()\nconfig.router.add_page(path="/", content=Gauge(label={label!r}))\n'
+            f'config = ConfigurationBuilder()\nconfig.add_module_dependency("widgets", "@example/widgets")\nconfig.router.add_page(path="/", content=Gauge(label={label!r}))\n'
         )
         (root / 'js').mkdir(exist_ok=True)
         (root / 'js/index.tsx').write_text('export {};\n')
@@ -177,7 +212,7 @@ class ReleaseCheck:
             command.append('--no-reload')
         log = self.root / 'logs' / f'server-{port}.log'
         with log.open('w') as output:
-            process = subprocess.Popen(
+            process = self.processes.start(
                 command,
                 cwd=app,
                 env=self.environment_for(app, artifact=artifact),
@@ -203,36 +238,29 @@ class ReleaseCheck:
                     raise RuntimeError(f'Server did not become ready; see {log}')
                 yield url
             finally:
-                process.terminate()
-                try:
-                    process.wait(timeout=15)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait()
+                self.processes.stop(process)
 
-    def browser_check(self, url: str, text: str, *, source: Path | None = None):
-        """Check the rendered artifact, and optionally preserve React state through a source edit."""
-        with urllib.request.urlopen(url) as response:
+    def browser_check(
+        self, url: str, text: str, *, scenario: Literal['page', 'counter'] = 'page', source: Path | None = None
+    ):
+        """Check a declared browser scenario, preserving React state when a source edit is requested."""
+        with urllib.request.urlopen(url, timeout=10) as response:
             assert b'<html' in response.read().lower()
         if not self.browser:
             return
         spec = self.root / 'release.cy.js'
-        steps = f"cy.visit('/login'); cy.contains({json.dumps(text)}, {{timeout:30000}}).should('be.visible');"
-        if 'widget:' in text:
-            steps += "cy.contains('button', 'Count: 0').click(); cy.contains('button', 'Count: 1');"
+        shutil.copyfile(BROWSER_SPEC, spec)
         original = source.read_text() if source else None
+        case = {'kind': scenario, 'text': text}
         if source:
-            steps += f'cy.writeFile({json.dumps(str(source))}, {json.dumps(original.replace("Source widget", "Edited widget"))});'
-            steps += "cy.contains('Edited widget', {timeout:30000}); cy.contains('button', 'Count: 1');"
-        spec.write_text(
-            f"describe('release artifact', () => {{ it('renders and interacts', () => {{ {steps} }}); }});\n"
-        )
+            case['edit'] = {'path': str(source), 'contents': original.replace('Source widget', 'Edited widget')}
         config = self.root / 'cypress.config.cjs'
         config.write_text(
             'module.exports = '
             + json.dumps(
                 {
                     'video': False,
+                    'env': {'releaseCase': case},
                     'e2e': {'baseUrl': url, 'supportFile': False, 'specPattern': str(spec)},
                 }
             )
@@ -264,8 +292,12 @@ class ReleaseCheck:
         """Prepare once, then verify frozen checking and production compilation."""
         environment = self.environment_for(app)
         self.run([*self.cli, 'lock'], app, environment=environment)
+        before = dependency_documents(app)
         self.run([*self.cli, 'check', '--json'], app, environment=environment)
+        assert dependency_documents(app) == before, 'dara check changed dependency documents'
         self.run([*self.cli, 'build', *(['--output', output] if output else [])], app, environment=environment)
+        assert dependency_documents(app) == before, 'dara build changed dependency documents'
+        assert_clean_output(app / (output or 'dist'))
 
     def workspace(self):
         """Exercise two apps, a library's own app, source HMR and actual npm publication."""
@@ -300,7 +332,8 @@ class ReleaseCheck:
             root,
         )
         (library / 'js/gauge.tsx').write_text(GAUGE)
-        (library / 'js/setup.ts').write_text('export {};\n')
+        (library / 'js/setup.ts').write_text(SETUP)
+        (library / 'js/unused.ts').write_text("throw new Error('Unused component evaluated'); export default 1;\n")
         package = json.loads((library / 'package.json').read_text())
         package.update(
             scripts={'build': 'vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json'},
@@ -312,7 +345,7 @@ class ReleaseCheck:
                     'types': f'./dist-lib/{name.split(".")[0]}.d.ts',
                     'default': f'./dist-lib/{name.split(".")[0]}.js',
                 }
-                for key, name in {'./gauge': 'gauge.tsx', './setup': 'setup.ts'}.items()
+                for key, name in {'./gauge': 'gauge.tsx', './setup': 'setup.ts', './unused': 'unused.ts'}.items()
             },
         )
         package['publishConfig'] = {
@@ -323,7 +356,7 @@ class ReleaseCheck:
         write_json(library / 'package.json', package)
         (library / 'vite.lib.config.ts').write_text(
             "import {defineConfig} from 'vite';\nexport default defineConfig({build:{outDir:'dist-lib',"
-            "lib:{entry:{gauge:'js/gauge.tsx',setup:'js/setup.ts'},formats:['es']},"
+            "lib:{entry:{gauge:'js/gauge.tsx',setup:'js/setup.ts',unused:'js/unused.ts'},formats:['es']},"
             'rolldownOptions:{external:(id)=>/^react(?:\\/|$)/.test(id)}}});\n'
         )
         write_json(
@@ -345,9 +378,9 @@ class ReleaseCheck:
             self.app(app, name)
             self.build(app)
             with self.server(app) as url:
-                self.browser_check(url, f'Source widget: {name}')
+                self.browser_check(url, f'Source widget: {name}', scenario='counter')
         with self.server(root / 'apps/a', dev=True) as url:
-            self.browser_check(url, 'Source widget: a', source=library / 'js/gauge.tsx')
+            self.browser_check(url, 'Source widget: a', scenario='counter', source=library / 'js/gauge.tsx')
         self.build(library)
         self.run(['pnpm', 'pack', '--pack-destination', self.root / 'vendor'], library)
         self.packages['@example/widgets'] = self.root / 'vendor/example-widgets-1.0.0.tgz'
@@ -387,7 +420,8 @@ class ReleaseCheck:
             "config.router.add_page(path='/', content=Gauge(label='migrated'))\n"
         )
         (migrated / 'js/gauge.tsx').write_text(GAUGE)
-        (migrated / 'js/index.tsx').write_text("export {default as Gauge} from './gauge';\n")
+        (migrated / 'js/setup.ts').write_text(SETUP)
+        (migrated / 'js/index.tsx').write_text("import './setup'; export {default as Gauge} from './gauge';\n")
         write_json(
             migrated / 'dara.config.json', {'local_entry': './js', 'extra_dependencies': {}, 'package_manager': 'npm'}
         )
@@ -397,7 +431,7 @@ class ReleaseCheck:
         self.vendor(migrated)
         self.build(migrated)
         with self.server(migrated) as url:
-            self.browser_check(url, 'Source widget: migrated')
+            self.browser_check(url, 'Source widget: migrated', scenario='counter')
         packed = self.root / 'packed-consumer'
         self.app(packed, 'packed')
         package = json.loads((packed / 'package.json').read_text())
@@ -406,7 +440,7 @@ class ReleaseCheck:
         self.vendor(packed)
         self.build(packed)
         with self.server(packed) as url:
-            self.browser_check(url, 'Source widget: packed')
+            self.browser_check(url, 'Source widget: packed', scenario='counter')
         consumer = self.root / 'javascript-only'
         consumer.mkdir()
         self.vendor(consumer)
@@ -427,6 +461,8 @@ class ReleaseCheck:
             "import assert from 'node:assert/strict';\nimport {existsSync} from 'node:fs';\n"
             "import {createElement} from 'react';\nimport {renderToString} from 'react-dom/server';\n"
             "import Gauge from '@example/widgets/gauge';\n"
+            "import '@example/widgets/setup';\n"
+            "assert(import.meta.resolve('@example/widgets/setup').endsWith('/dist-lib/setup.js'));\n"
             "assert(import.meta.resolve('@example/widgets/gauge').endsWith('/dist-lib/gauge.js'));\n"
             "assert(!existsSync('node_modules/@darajs/core'));\n"
             "assert(renderToString(createElement(Gauge,{label:'plain JS'})).includes('plain JS'));\n"
@@ -447,9 +483,12 @@ def main():
     root.mkdir(parents=True, exist_ok=True)
     print(f'Release fixtures and logs: {root}', flush=True)
     check = ReleaseCheck(root, args.browser)
-    check.pack_framework()
-    check.workspace()
-    check.standalone_apps()
+    try:
+        check.pack_framework()
+        check.workspace()
+        check.standalone_apps()
+    finally:
+        check.processes.close()
     print('Packed wheels, npm exports, workspace apps, migration and artifact-only startup passed.', flush=True)
 
 
