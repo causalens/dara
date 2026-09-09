@@ -80,7 +80,7 @@ def test_named_export_adapter_is_deterministic_and_partial_migration_is_repeatab
     assert legacy.exists()
     adapters = list((tmp_path / 'js/dara-adapters').glob('*.ts'))
     assert len(adapters) == 1
-    assert 'export { Counter as default } from "../counter";' in adapters[0].read_text()
+    assert 'export { Counter as default } from "../counter.tsx";' in adapters[0].read_text()
     assert not plan_migration(tmp_path).changes
     del data['custom_vite']
     legacy.write_text(json.dumps(data))
@@ -178,7 +178,7 @@ def test_action_migration_keeps_its_runtime_name_and_registration(tmp_path):
     source = tmp_path / 'main.py'
     source.write_text(
         source.read_text()
-        + "\nclass Increment(ActionImpl):\n    js_module = None\n    py_name = 'ExistingIncrement'\n\nconfig.add_action(Increment, local=True)\n"
+        + "\nfrom dara.core.base_definitions import ActionImpl\n\nclass Increment(ActionImpl):\n    js_module = None\n    py_name = 'ExistingIncrement'\n\nconfig.add_action(Increment, local=True)\n"
     )
     entry = tmp_path / 'js/index.tsx'
     entry.write_text(entry.read_text() + "export { increment as ExistingIncrement } from './increment';\n")
