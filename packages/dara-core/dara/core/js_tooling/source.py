@@ -19,7 +19,7 @@ def parse_js_source(value: str) -> str:
         if all(part not in ('.', '..') for part in value.split('/')):
             return value
     raise ValueError(
-        f'Invalid js_source {value!r}: use a package subpath or a relative path under ./js/; see the Dara 2.0 migration guide for legacy declarations'
+        f'Invalid js_source {value!r}: use a package subpath or a relative path under ./js/; run dara lock for legacy declarations'
     )
 
 
