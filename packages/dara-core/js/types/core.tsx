@@ -28,7 +28,6 @@ interface ConfigTheme {
  */
 export interface AuthComponent {
     js_source: string;
-    js_name: string;
     py_module: string;
 }
 

@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Removed auth component `js_name`; authentication screens now use their default-export `js_source` as the registry key.
+
 - Added `ConfigurationBuilder.add_components(module)` to register public component classes from a module for dynamically rendered applications.
 
 - Development now recovers from malformed project files, closes owned processes on interruption, and handles proxy disconnections without invalid responses.

@@ -7,7 +7,10 @@ from unittest.mock import Mock
 
 import pytest
 
+from dara.core.auth.base import AuthComponent, AuthComponentConfig
+from dara.core.auth.basic import DefaultAuthConfig
 from dara.core.base_definitions import ActionImpl, AssetManifest, StaticAsset
+from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.internal.import_discovery import create_action_definition, create_component_definition
 from dara.core.js_tooling import project
@@ -59,6 +62,31 @@ def test_source_and_serialized_identity_are_independent():
     assert action.name == NavigateImpl().model_dump()['name'] == 'ExistingNavigate'
     assert component.js_source == './js/charts/chart.tsx'
     assert action.js_source == '@widgets/actions/navigate'
+
+
+def test_auth_routes_use_source_identity_and_share_implementations(tmp_path, monkeypatch):
+    login = AuthComponent(js_source='@custom/auth/login', py_module='custom_auth')
+    logout = AuthComponent(js_source='./js/logout.tsx', py_module='app')
+
+    class CustomAuth(DefaultAuthConfig):
+        component_config = AuthComponentConfig(login=login, logout=logout, extra={'callback': login})
+
+    builder = ConfigurationBuilder()
+    builder.auth_config = CustomAuth()
+    monkeypatch.setattr(project, 'npm_version', lambda package: '2.0.0')
+    monkeypatch.setattr(project, 'entry_points', lambda **kwargs: [])
+
+    config = builder._to_configuration()
+    manifest = project.derive_manifest(config, tmp_path, 'app:config')
+    routes = config.auth_config.component_config.model_dump()
+
+    assert routes == {'login': login, 'logout': logout, 'callback': login}
+    assert [(item.name, item.source) for item in manifest.auth] == [
+        ('./js/logout.tsx', './js/logout.tsx'),
+        ('@custom/auth/login', '@custom/auth/login'),
+    ]
+    assert all(route['js_source'] in {item.name for item in manifest.auth} for route in routes.values())
+    assert manifest.python_packages['@custom/auth'] == 'custom_auth'
 
 
 def test_registered_concrete_class_needs_a_source():
