@@ -5,6 +5,7 @@ import html
 import json
 import os
 from contextlib import suppress
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote_to_bytes, urlparse
@@ -428,5 +429,10 @@ def render_frontend(request: Request, root: Path, output: Path, context: dict, d
         name = 'index.dev.html'
     else:
         directory, name = output, 'index.html'
-    templates = Jinja2Templates(directory=str(directory))
-    return templates.TemplateResponse(request, name, context=context)
+    return _templates(str(directory)).TemplateResponse(request, name, context=context)
+
+
+@lru_cache(maxsize=4)
+def _templates(directory: str) -> Jinja2Templates:
+    """Reuse one Jinja environment per template directory instead of rebuilding it for every page request."""
+    return Jinja2Templates(directory=directory)
