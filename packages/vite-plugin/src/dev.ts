@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import { z } from "zod";
 import type { Server } from "node:http";
-import type { Project, RuntimeStatus } from "./project.js";
+import type { Project } from "./project.js";
+import type { RuntimeStatus } from "./contract.js";
 import type { ViteDevServer } from "vite";
 import path from "node:path";
 import { randomUUID } from "node:crypto";

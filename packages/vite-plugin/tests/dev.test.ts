@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import type { TestContext } from "node:test";
 import type { HotPayload } from "vite";
-import { errorMessage } from "../dist/contract.js";
+import { errorMessage, ProjectError } from "../dist/contract.js";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { version } from "../dist/contract.js";
@@ -103,6 +103,46 @@ await test("configuration validation keeps each operation's NODE_ENV posture", a
     );
     assert.equal(process.env["NODE_ENV"], production ? "production" : "development");
   }
+});
+
+await test("JavaScript plugin options are parsed before configuring the project", async (t) => {
+  const { root, manifest } = fixture(t);
+  for (const options of [
+    "null",
+    "{ inputs: 42 }",
+    "{ environment: [false] }",
+    "{ input: ['data.json'] }",
+  ]) {
+    fs.writeFileSync(
+      path.join(root, "vite.config.ts"),
+      `import dara from '@darajs/vite-plugin';\nexport default { plugins: [dara(${options})] };\n`,
+    );
+    await assert.rejects(
+      loadProject(root, manifest),
+      (error: unknown) => error instanceof ProjectError && error.diagnostic.code === "vite.options",
+    );
+  }
+});
+
+await test("effective TypeScript options are parsed after config inheritance", async (t) => {
+  const { root, manifest } = fixture(t);
+  fs.copyFileSync(path.join(pluginRoot, "tsconfig.json"), path.join(root, "tsconfig.preset.json"));
+  fs.writeFileSync(
+    path.join(root, "tsconfig.json"),
+    JSON.stringify({
+      extends: "./tsconfig.preset.json",
+      compilerOptions: { noEmit: false, customConditions: [], types: [] },
+      include: ["js"],
+    }),
+  );
+  await assert.rejects(loadProject(root, manifest), (error: unknown) => {
+    assert.ok(error instanceof ProjectError);
+    assert.equal(error.diagnostic.code, "typescript.config");
+    for (const option of ["noEmit", "customConditions", "types"]) {
+      assert.match(error.message, new RegExp(option));
+    }
+    return true;
+  });
 });
 
 await test("development reloads configuration, recovers from errors and protects private state", async (t) => {

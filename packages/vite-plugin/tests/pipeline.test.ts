@@ -7,7 +7,13 @@ import type { Manifest } from "../dist/contract.js";
 import { test } from "node:test";
 import { collectAssets } from "../dist/assets.js";
 import { inputSnapshot, publishBuild, verifySnapshot } from "../dist/build.js";
-import { generateEntry, parseManifest, sourcePackage, version } from "../dist/contract.js";
+import {
+  generateEntry,
+  parseManifest,
+  parseOptions,
+  sourcePackage,
+  version,
+} from "../dist/contract.js";
 import { initialize } from "../dist/project.js";
 
 function fixture(t: TestContext) {
@@ -127,7 +133,7 @@ await test("input snapshots catch additions and byte changes during compilation"
     sourceFiles: new Set<string>(),
     assets: new Map<string, string>(),
     manifest: manifest(),
-    api: { options: {} },
+    api: { options: parseOptions({}) },
   };
   const snapshot = inputSnapshot(project);
   verifySnapshot(snapshot);

@@ -7,18 +7,31 @@ export const version = z
   .object({ version: z.string() })
   .parse(JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"))).version;
 
-export interface Diagnostic {
-  code: string;
-  message: string;
-  fix: string;
-}
+const diagnosticSchema = z
+  .object({ code: z.string(), message: z.string(), fix: z.string() })
+  .strict();
+
+export type Diagnostic = z.infer<typeof diagnosticSchema>;
+
+const runtimeStatusSchema = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("waiting") }).strict(),
+  z.object({ state: z.literal("ready"), runtime: z.string() }).strict(),
+  z.object({ state: z.literal("blocked"), diagnostic: diagnosticSchema }).strict(),
+]);
+
+export type RuntimeStatus = z.infer<typeof runtimeStatusSchema>;
+
+const optionsSchema = z
+  .object({
+    inputs: z.array(z.string().min(1)).default([]),
+    directories: z.array(z.string().min(1)).default([]),
+    environment: z.array(z.string().min(1)).default([]),
+  })
+  .strict();
 
 /** Additional inputs read by custom build plugins rather than ordinary module imports. */
-export interface DaraOptions {
-  inputs?: string[];
-  directories?: string[];
-  environment?: string[];
-}
+export type DaraOptions = z.input<typeof optionsSchema>;
+export type ParsedDaraOptions = z.output<typeof optionsSchema>;
 
 export const shared = [
   "@darajs/core",
@@ -43,6 +56,15 @@ export class ProjectError extends Error {
   }
 }
 
+/** Normalize user declarations once at the public plugin boundary. */
+export function parseOptions(value: unknown): ParsedDaraOptions {
+  const result = optionsSchema.safeParse(value);
+  if (!result.success) {
+    throw new ProjectError("vite.options", result.error.message, "edit dara() input declarations");
+  }
+  return result.data;
+}
+
 /** Describe an exception from user configuration or external tooling. */
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -55,43 +77,38 @@ export function diagnostic(error: unknown): Diagnostic {
     : { code: "frontend.runner", message: errorMessage(error), fix: "dara check" };
 }
 
-/** Parse an import specifier without interpreting package code or trusting traversal paths. */
-export function sourcePackage(source: unknown): string | null {
-  if (typeof source !== "string" || source.includes("\\")) {
+const source = z
+  .string()
+  .refine(
+    (value) =>
+      !value.includes("\\") &&
+      (value.startsWith("./")
+        ? path.posix.normalize(value).startsWith("js/")
+        : /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+(?:\/[\w./-]+)?$/.test(value) &&
+          !value.startsWith(".") &&
+          !value.split("/").some((part) => part === ".." || part === ".")),
+    { message: "expected a package import or ./js/ file" },
+  );
+
+/** Parse an import specifier before extracting its package identity. */
+export function sourcePackage(value: unknown): string | null {
+  const result = source.safeParse(value);
+  if (!result.success) {
     throw new ProjectError(
       "source.invalid",
-      `Invalid js_source: ${String(source)}`,
+      `Invalid js_source: ${result.error.message}`,
       "edit js_source",
     );
   }
-  if (source.startsWith("./")) {
-    if (path.posix.normalize(source).startsWith("js/")) {
-      return null;
-    }
-  } else if (
-    /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+(?:\/[\w./-]+)?$/.test(source) &&
-    !source.startsWith(".") &&
-    !source.split("/").some((p) => p === ".." || p === ".")
-  ) {
-    return source
-      .split("/")
-      .slice(0, source.startsWith("@") ? 2 : 1)
-      .join("/");
-  }
-  throw new ProjectError(
-    "source.invalid",
-    `Invalid js_source: ${source}; expected a package import or ./js/ file`,
-    "edit js_source",
-  );
+  const specifier = result.data;
+  return specifier.startsWith("./")
+    ? null
+    : specifier
+        .split("/")
+        .slice(0, specifier.startsWith("@") ? 2 : 1)
+        .join("/");
 }
 
-const source = z.string().superRefine((value, ctx) => {
-  try {
-    sourcePackage(value);
-  } catch (error) {
-    ctx.addIssue({ code: "custom", message: errorMessage(error) });
-  }
-});
 const implementation = z.object({ name: z.string().min(1), source }).strict();
 const requirement = z
   .object({

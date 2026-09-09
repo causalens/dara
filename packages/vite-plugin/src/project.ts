@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import type { Plugin, ResolvedConfig, UserConfig, ViteDevServer } from "vite";
-import type { DaraOptions, Diagnostic, Manifest } from "./contract.js";
+import type { ParsedDaraOptions, Manifest, RuntimeStatus } from "./contract.js";
 import type { PackageJson } from "./files.js";
 import { getTsconfig } from "get-tsconfig";
 import semver from "semver";
@@ -14,7 +14,7 @@ import { atomicWrite, inside, readPackageJson, workspaceRoot } from "./files.js"
 export interface DaraPluginApi {
   project: Project | null;
   resolving: boolean;
-  options: DaraOptions;
+  options: ParsedDaraOptions;
 }
 
 export type DaraPlugin = Plugin<DaraPluginApi> & { api: DaraPluginApi };
@@ -41,11 +41,6 @@ export interface Project extends ProjectConfig {
   server?: ViteDevServer;
 }
 
-export type RuntimeStatus =
-  | { state: "waiting" }
-  | { state: "ready"; runtime: string }
-  | { state: "blocked"; diagnostic: Diagnostic };
-
 const defaults = {
   "vite.config.ts": `import dara from '@darajs/vite-plugin';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [dara()] });\n`,
   "tsconfig.json":
@@ -53,6 +48,21 @@ const defaults = {
     "\n",
   "js/index.tsx": "export {};\n",
 };
+
+const typescriptOptionsSchema = z
+  .object({
+    moduleResolution: z.literal("bundler"),
+    jsx: z.literal("react-jsx"),
+    noEmit: z.literal(true),
+    isolatedModules: z.literal(true),
+    customConditions: z.array(z.string()).refine((values) => values.includes("dara-source"), {
+      message: 'must include "dara-source"',
+    }),
+    types: z.array(z.string()).refine((values) => values.includes("vite/client"), {
+      message: 'must include "vite/client"',
+    }),
+  })
+  .passthrough();
 
 /** Initialize only absent user files; existing configuration and app code remain user-owned. */
 export function initialize(root: string): string[] {
@@ -86,28 +96,11 @@ export function checkTypescript(root: string) {
   if (!config || path.resolve(config.path) !== path.join(root, "tsconfig.json")) {
     throw new ProjectError("typescript.config", "The app needs a root tsconfig.json");
   }
-  const options = config.config.compilerOptions ?? {};
-  const required: Partial<typeof options> = {
-    moduleResolution: "bundler",
-    jsx: "react-jsx",
-    noEmit: true,
-    isolatedModules: true,
-  };
-  const conflicts = Object.entries(required)
-    .filter(
-      ([key, value]) => Object.entries(options).find(([option]) => option === key)?.[1] !== value,
-    )
-    .map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
-  if (!options.customConditions?.includes("dara-source")) {
-    conflicts.push('customConditions: ["dara-source"]');
-  }
-  if (!options.types?.includes("vite/client")) {
-    conflicts.push('types: ["vite/client"]');
-  }
-  if (conflicts.length) {
+  const options = typescriptOptionsSchema.safeParse(config.config.compilerOptions ?? {});
+  if (!options.success) {
     throw new ProjectError(
       "typescript.config",
-      `tsconfig.json requires ${conflicts.join(", ")}`,
+      `tsconfig.json: ${options.error.message}`,
       "edit tsconfig.json",
     );
   }
