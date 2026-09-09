@@ -81,7 +81,13 @@ export async function serveProject(
         configFiles.add(file);
       }
       watcher.add([...configFiles]);
-      if (restart) {
+      // Vite scans dependencies from the registered sources once per server, so a manifest
+      // that adds or removes sources restarts Vite instead of forcing a full reload on first render.
+      const sourcesChanged =
+        project !== undefined &&
+        (project.sourceFiles.size !== next.sourceFiles.size ||
+          [...next.sourceFiles].some((file) => !project!.sourceFiles.has(file)));
+      if (restart || sourcesChanged) {
         state({ state: "waiting" });
         await closeRuntime();
       }
