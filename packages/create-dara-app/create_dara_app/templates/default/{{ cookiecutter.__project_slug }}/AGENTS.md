@@ -8,4 +8,4 @@ Custom JS components and actions default-export their implementation from a file
 
 Run `dara check --json` for structured diagnostics. `dara lock` prepares changes without starting a server. `dara dev --frozen` reports dependency drift without repairing checked-in files. `dara build` requires frozen inputs and passing TypeScript checks; `dara start` serves the output without a JS toolchain.
 
-Use `dara migrate --check` to inspect migration of legacy configuration, then `dara migrate` and review its changes. The legacy pipeline and mode flags are removed in Dara 2.0.
+For legacy applications, `dara lock` and `dara dev` apply supported migration before importing the app. Unresolved plans stop before source edits: resolve the reported manual steps and rerun the command. Review `git diff` after preparation. There is no separate migration or preview command. `dara dev --frozen` never applies migration, and `--backend-only` skips it. The legacy pipeline and mode flags are removed in Dara 2.0.
