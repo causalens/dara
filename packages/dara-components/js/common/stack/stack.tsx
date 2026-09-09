@@ -3,6 +3,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 
 import {
     type ComponentInstance,
+    type DeclaredProps,
     DisplayCtx,
     DynamicComponent,
     type LayoutComponentProps,
@@ -15,15 +16,11 @@ import styled from '@darajs/styled-components';
 
 // The props are actually used deep within the useComponentStyles etc hooks
 /* eslint-disable react/no-unused-prop-types */
-type ExplicitLayoutProps = {
-    [Key in keyof LayoutComponentProps as string extends Key ? never : Key]: LayoutComponentProps[Key];
-};
-interface StackProps extends ExplicitLayoutProps {
+interface StackProps extends DeclaredProps<LayoutComponentProps> {
     children: Array<ComponentInstance>;
     className: string;
     collapsed: Variable<boolean>;
     direction: 'horizontal' | 'vertical';
-    hug?: boolean;
     scroll: boolean;
 }
 

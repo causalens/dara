@@ -8,9 +8,9 @@ import { default as DisplayCtx, type DisplayCtxValue } from '../context/display-
 import { useVariable } from '../interactivity/use-variable';
 
 interface FlexProps {
-    flexBasis?: string;
-    flexGrow?: string;
-    flexShrink?: string;
+    flexBasis: React.CSSProperties['flexBasis'];
+    flexGrow: React.CSSProperties['flexGrow'];
+    flexShrink: React.CSSProperties['flexShrink'];
 }
 
 /**
@@ -28,9 +28,9 @@ interface CustomCSSProperties extends React.CSSProperties {
  * @param useDisplayContext whether or not to consider width/height in conjunction with displayCtx for some components such as Modal, these do not care for the context of their parent
  */
 function flexStyles(props: StyledComponentProps, displayCtx: DisplayCtxValue, useDisplayContext: boolean): FlexProps {
-    let flexBasis = props['basis'];
-    let flexShrink = props['shrink'];
-    let flexGrow = props['grow'];
+    let flexBasis = props.basis ?? undefined;
+    let flexShrink = props.shrink ?? undefined;
+    let flexGrow = props.grow ?? undefined;
 
     if (useDisplayContext) {
         // In a horizontal Stack setting the width should also set the flex-basis
@@ -48,7 +48,7 @@ function flexStyles(props: StyledComponentProps, displayCtx: DisplayCtxValue, us
     }
     // If hug is set, then the flex-basis should be set to content
     // Otherwise we check if the parent is a component that has hug set to true, and its children should inherit
-    if (props['hug'] || (props['hug'] !== false && displayCtx['hug'])) {
+    if (props.hug || (props.hug !== false && displayCtx.hug)) {
         flexBasis ??= 'content';
         flexShrink ??= '1';
         flexGrow ??= '0';
@@ -98,14 +98,14 @@ export default function useComponentStyles(
             fontSize: props.font_size,
             fontStyle: props.italic ? 'italic' : 'normal',
             fontWeight: props.bold ? 'bold' : 'normal',
-            gap: props['gap'],
+            gap: props.gap,
             height: props.height,
             margin: props.margin,
-            maxHeight: props['max_height'],
+            maxHeight: props.max_height,
             maxWidth: props.max_width,
-            minHeight: props['min_height'],
+            minHeight: props.min_height,
             minWidth: props.min_width,
-            overflow: props['overflow'],
+            overflow: props.overflow,
             padding: props.padding,
             position: props.position,
             textDecoration: props.underline ? 'underline' : 'none',

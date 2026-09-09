@@ -215,3 +215,40 @@ fs.renameSync('compiler.pid.tmp', 'compiler.pid');
     }
   },
 );
+
+await test(
+  "watch output keeps the latest result when pipe chunks combine compilations",
+  { skip: process.platform === "win32" },
+  async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dara-checker-reports-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    fs.writeFileSync(
+      compilerFixture(root),
+      `#!${process.execPath}
+process.stdout.write('Found 0 errors. Watching for file changes.\\nindex.ts(1,1): error TS2322: incompatible type\\nFound 1 error. Watching for file changes.\\n');
+setInterval(() => {}, 50);
+`,
+      { mode: 0o755 },
+    );
+    const ws = new TestSocket();
+    const sent: HotPayload[] = [];
+    ws.send = (message) => sent.push(message);
+    const errors: Diagnostic[] = [];
+    const stop = startTypecheck(root, { ws, watcher: new EventEmitter() }, (error) =>
+      errors.push(error),
+    );
+    try {
+      await until(() => sent.length >= 2);
+      assert.deepEqual(sent[0], { type: "custom", event: "dara:typecheck-clear" });
+      const latest = sent.at(-1);
+      assert(latest?.type === "error");
+      assert.match(latest.err.message, /TS2322/);
+      const replay: HotPayload[] = [];
+      ws.emit("connection", { send: (message: HotPayload) => replay.push(message) });
+      assert.deepEqual(replay, [sent.at(-1)]);
+      assert.deepEqual(errors, []);
+    } finally {
+      await stop();
+    }
+  },
+);

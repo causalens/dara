@@ -362,6 +362,11 @@ export interface BaseComponentProps {
     id_?: string;
 }
 
+/** Keep declared component fields when composing React props from an open serialized payload. */
+export type DeclaredProps<Props> = {
+    [Key in keyof Props as string extends Key ? never : Key]: Props[Key];
+};
+
 /**
  * Base styling props
  */
@@ -370,6 +375,8 @@ export interface BaseStylingProps {
     align?: string;
     /** The background color of the element */
     background?: string;
+    /** Serialized flex basis; Python converts numeric dimensions to pixel strings. */
+    basis?: string | null;
     /** Apply strong emphasis to text */
     bold?: boolean;
     /** Apply a border around the element */
@@ -388,20 +395,34 @@ export interface BaseStylingProps {
     font?: string;
     /** Apply a different font size to the component */
     font_size?: string;
+    /** Gap between child components, serialized as a CSS dimension. */
+    gap?: string | null;
+    /** Flex growth factor; Python converts booleans to numeric factors. */
+    grow?: string | number | null;
     /** Height of component, optional */
     height?: string;
+    /** Size to content, inheriting the parent setting when unset. */
+    hug?: boolean | null;
     /** Apply weak emphasis to text */
     italic?: boolean;
     /** Apply a margin to the element */
     margin?: string;
+    /** Maximum height, serialized as a CSS dimension. */
+    max_height?: string | null;
     /** Apply a minimum width to the component */
     max_width?: string;
     /** Apply a maximum width to the component */
     min_width?: string;
+    /** Minimum height, serialized as a CSS dimension. */
+    min_height?: string | null;
+    /** CSS overflow behavior. */
+    overflow?: string | null;
     /** Apply padding to the element */
     padding?: string;
     /** Define the position of the element */
     position?: string;
+    /** Flex shrink factor; Python converts booleans to numeric factors. */
+    shrink?: string | number | null;
     /** Whether to underline text */
     underline?: boolean;
     /** Width of component, optional */
