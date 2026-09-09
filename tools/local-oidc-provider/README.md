@@ -59,7 +59,7 @@ fish:
 ```fish
 cd packages/demo-app
 source scripts/use-local-oidc.fish
-poetry run dara start --reload
+uv run dara start --reload
 ```
 
 bash/zsh:
@@ -67,7 +67,7 @@ bash/zsh:
 ```sh
 cd packages/demo-app
 source scripts/use-local-oidc.sh
-poetry run dara start --reload
+uv run dara start --reload
 ```
 
 For userinfo-specific cases:

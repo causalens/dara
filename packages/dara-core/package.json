@@ -31,7 +31,7 @@
     "package": "yarn build && yarn publish --no-git-tag-version",
     "test-watch": "vitest",
     "test": "vitest --run",
-    "test:e2e": "start-server-and-test 'poetry run dara start --config cypress.dara.main:config' http://127.0.0.1:8000/static/index.js 'cypress run --e2e'"
+    "test:e2e": "start-server-and-test 'uv run --locked dara start --config cypress.dara.main:config' http://127.0.0.1:8000/static/index.js 'cypress run --e2e'"
   },
   "devDependencies": {
     "@darajs/oxfmt-config": "1.29.10",

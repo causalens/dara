@@ -1,0 +1,14 @@
+[tasks.lint]
+run = "uv run --locked --package create-dara-app --group dev pyright ./create_dara_app/ && uv run --locked --package create-dara-app --group dev ruff check ./create_dara_app"
+
+[tasks.format]
+run = "uv run --locked --package create-dara-app --group dev ruff check --select I --fix --unsafe-fixes . && uv run --locked --package create-dara-app --group dev ruff format ."
+
+[tasks.format-check]
+run = "uv run --locked --package create-dara-app --group dev ruff check --select I . && uv run --locked --package create-dara-app --group dev ruff format --check ."
+
+[tasks.security-scan]
+run = "uv run --locked --package create-dara-app --group dev bandit create_dara_app -ll -i"
+
+[tasks.package]
+run = "uv build --package create-dara-app --wheel"

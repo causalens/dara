@@ -1,23 +1,27 @@
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
-name = "demo_app"
+[project]
+name = "demo-app"
 version = "1.29.10"
 description = "Demo App"
-authors = ["Author <author@example.com>"]
-source = []
+authors = [{ name = "Author", email = "author@example.com" }]
+requires-python = ">=3.10.0,<3.13.0"
+dependencies = [
+    "dara-core",
+    "dara-components",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10.0, <3.13.0"
-dara-core = "1.29.10"
-dara-components = "1.29.10"
+[tool.uv.sources]
+dara-core = { workspace = true }
+dara-components = { workspace = true }
 
-[tool.poetry.dev-dependencies]
-ruff = "0.16.0"
-pyright = "^1.1.400"
+[tool.hatch.build.targets.wheel]
+packages = ["demo_app"]
 
-
-
+[dependency-groups]
+dev = [
+    "pyright>=1.1.400,<2.0.0",
+    "ruff==0.16.0",
+]

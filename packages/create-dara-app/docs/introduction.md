@@ -91,8 +91,8 @@ pip install --user --upgrade setuptools
 
 ## Running the CLI locally
 
-For local development, the scripts can be run with `poetry`:
+For local development, the scripts can be run with `uv`:
 
 ```bash
-poetry run create-dara-app <command>
+uv run --package create-dara-app create-dara-app <command>
 ```

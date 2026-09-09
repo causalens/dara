@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Migrated the repository's Python tooling from Poetry/Anthology to uv + mise. Package metadata is now generated with Hatchling; `dara-core` no longer depends on Poetry. The cypress e2e server command now runs via `uv run` instead of `poetry run`.
+
 ## 1.29.9
 
 - Fixed stale authentication requests interrupting logout and sending users back through a login/logout loop.

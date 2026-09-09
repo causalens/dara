@@ -1,0 +1,19 @@
+[tasks.lint]
+run = "uv run --locked --package dara-core --group dev pyright ./dara && uv run --locked --package dara-core --group dev ruff check ./dara"
+
+[tasks.format]
+run = "uv run --locked --package dara-core --group dev ruff check --select I --fix --unsafe-fixes . && uv run --locked --package dara-core --group dev ruff format ."
+
+[tasks.format-check]
+run = "uv run --locked --package dara-core --group dev ruff check --select I . && uv run --locked --package dara-core --group dev ruff format --check ."
+
+[tasks.security-scan]
+run = "uv run --locked --package dara-core --group dev bandit dara -r -ll -i"
+
+[tasks.test]
+description = "Unit tests in parallel, then pool tests sequentially"
+env = { DARA_TEST_FLAG = "true" }
+run = "mkdir -p ./dist && uv run --locked --package dara-core --group dev pytest tests -n auto -v -m 'not pool' && uv run --locked --package dara-core --group dev pytest tests/python/test_pool.py -v"
+
+[tasks.package]
+run = "uv build --package dara-core --wheel"

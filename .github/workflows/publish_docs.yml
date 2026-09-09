@@ -14,34 +14,17 @@ jobs:
           git config --global --add safe.directory /__w/dara/dara
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          python-version: "3.10"
-      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
-        with:
-          version: 1.8.3
-      - name: Install Anthology
-        run: poetry self add anthology
-      - name: Setup cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-            path: .venv
-            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install Python venv if cache was not found
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry anthology install
-      - name: Link venvs if cache was hit
-        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
-        run: make link
+          version: 2026.9.0
       - name: Get version
         id: get-version
         # Retrieves version from '"version": "<version>"' line in lerna.json
         run: |
           version=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' lerna.json)
-          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Package and Publish Docs
-        run: make publish-docs
+        run: mise run publish-docs
         env:
           PROJECT: causalens-internal
           LOCATION: us-central1
@@ -49,6 +32,4 @@ jobs:
           PACKAGE: dara
           GAR_USERNAME: _json_key
           GAR_KEY_JSON: '${{ secrets.GAR_KEY_JSON }}'
-          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: _json_key
-          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY_JSON }}'
           VERSION: ${{ steps.get-version.outputs.version }}

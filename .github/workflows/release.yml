@@ -35,28 +35,9 @@ jobs:
           git config --global --add safe.directory /__w/dara/dara
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        id: setup-python
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          python-version: "3.10"
-      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
-        with:
-          version: 1.8.3
-      - name: Install Anthology
-        run: poetry self add anthology
-      - name: Setup cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-            path: .venv
-            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install Python venv if cache was not found
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: |
-            poetry anthology install
-      - name: Link venvs if cache was hit
-        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
-        run: make link
+          version: 2026.9.0
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -66,7 +47,7 @@ jobs:
         id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         name: Setup pnpm cache
         with:
@@ -75,7 +56,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       - name: Install project dependencies
-        run: make deps-project
+        run: mise run deps-project
       - name: Prepare release commit
         id: prepare
         shell: bash
@@ -160,8 +141,7 @@ jobs:
               git push --force origin "refs/tags/$tag"
             fi
           else
-            poetry anthology version "$version"
-            poetry anthology install
+            ./tooling/scripts/bump_python_versions.sh "$version"
             pnpm lerna version "$version" --no-private --no-git-tag-version --force-publish --exact --yes
             pnpm i --lockfile-only
             tooling/changelog-parser/main.js "$version" >/tmp/release-changelog.json
@@ -203,9 +183,11 @@ jobs:
       - name: Expose release metadata
         id: extract_tag
         run: |
-          echo "previous_tag=${{ needs.prepare-release.outputs.previous_tag }}" >> $GITHUB_OUTPUT
-          echo "tag=${{ needs.prepare-release.outputs.tag }}" >> $GITHUB_OUTPUT
-          echo "version=${{ needs.prepare-release.outputs.version }}" >> $GITHUB_OUTPUT
+          {
+            echo "previous_tag=${{ needs.prepare-release.outputs.previous_tag }}"
+            echo "tag=${{ needs.prepare-release.outputs.tag }}"
+            echo "version=${{ needs.prepare-release.outputs.version }}"
+          } >> "$GITHUB_OUTPUT"
       - name: Check existing GitHub release
         id: release_status
         env:
@@ -217,32 +199,19 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        if: steps.release_status.outputs.exists != 'true'
-        id: setup-python
-        with:
-          python-version: "3.10"
-      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         if: steps.release_status.outputs.exists != 'true'
         with:
-          version: 1.8.3
-      - name: Install Anthology
+          version: 2026.9.0
+      - name: Restore uv cache
         if: steps.release_status.outputs.exists != 'true'
-        run: poetry self add anthology
-      - name: Setup cached venv
-        if: steps.release_status.outputs.exists != 'true'
-        id: cached-poetry-dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-            path: .venv
-            key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install Python venv if cache was not found
-        if: steps.release_status.outputs.exists != 'true' && steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: |
-            poetry anthology install
-      - name: Link venvs if cache was hit
-        if: steps.release_status.outputs.exists != 'true' && steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
-        run: make link
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+      - name: Install Python workspace
+        if: steps.release_status.outputs.exists != 'true'
+        run: mise run uv-sync
       - name: Install pnpm
         if: steps.release_status.outputs.exists != 'true'
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
@@ -255,7 +224,7 @@ jobs:
         id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: steps.release_status.outputs.exists != 'true'
         name: Setup pnpm cache
@@ -266,37 +235,37 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install project dependencies
         if: steps.release_status.outputs.exists != 'true'
-        run: make deps-project
+        run: mise run deps-project
       - name: Parse and resolve changelog
         if: steps.release_status.outputs.exists != 'true'
         id: set-changelog
         run: |
           changelog=$(tooling/changelog-parser/main.js ${{ steps.extract_tag.outputs.version }})
-          echo "changelog=$changelog" >> $GITHUB_OUTPUT
+          echo "changelog=$changelog" >> "$GITHUB_OUTPUT"
       - name: Update READMEs to work on PyPi before publishing
         if: steps.release_status.outputs.exists != 'true'
         run: |
-          poetry run python ./tooling/scripts/update-readmes.py ${{ steps.extract_tag.outputs.tag }}
+          python ./tooling/scripts/update-readmes.py ${{ steps.extract_tag.outputs.tag }}
       - name: Prepare resources required for packaging
         if: steps.release_status.outputs.exists != 'true'
-        run: make prepare
+        run: mise run prepare
       - name: Make Python packages
         if: steps.release_status.outputs.exists != 'true'
-        run: poetry anthology run package
+        run: mise run package
       - name: Publish Python packages
         if: steps.release_status.outputs.exists != 'true'
-        run: make publish-python
+        run: mise run publish-python
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
       - name: Restore tracked files after Python publishing
         if: steps.release_status.outputs.exists != 'true'
-        run: git restore -- pyproject.toml ':(glob)packages/*/README.md'
+        run: git restore -- ':(glob)packages/*/README.md'
       - name: Publish npm packages
         if: steps.release_status.outputs.exists != 'true'
-        run: make publish-npm
+        run: mise run publish-npm
       - name: Package and Publish Docs
         if: steps.release_status.outputs.exists != 'true'
-        run: make publish-docs
+        run: mise run publish-docs
         env:
           PROJECT: causalens-internal
           LOCATION: us-central1
@@ -304,8 +273,6 @@ jobs:
           PACKAGE: dara
           GAR_USERNAME: _json_key
           GAR_KEY_JSON: '${{ secrets.GAR_KEY_JSON }}'
-          POETRY_HTTP_BASIC_CAUSALENS_USERNAME: _json_key
-          POETRY_HTTP_BASIC_CAUSALENS_PASSWORD: '${{ secrets.GAR_KEY_JSON }}'
           VERSION: ${{ steps.extract_tag.outputs.version }}
       - name: Build Changelog
         if: steps.release_status.outputs.exists != 'true'

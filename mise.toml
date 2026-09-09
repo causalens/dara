@@ -1,0 +1,106 @@
+min_version = "2026.9.0"
+
+monorepo_root = true
+
+[tools]
+python = "3.10"
+uv = "0.11"
+
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64", "macos-arm64"]
+
+[monorepo]
+config_roots = ["packages/*"]
+lockfile = true
+
+[tasks.uv-sync]
+description = "Recreate the workspace venv from uv.lock"
+run = "uv sync --locked --all-packages --all-groups --all-extras"
+
+[tasks.uv-lock-check]
+description = "Fail if uv.lock is out of date with the pyprojects"
+run = "uv lock --check"
+
+# Python package tasks (previously `poetry anthology run <script>`)
+[tasks.lint]
+run = "mise run --jobs 1 '//packages/...:lint'"
+
+[tasks.format]
+run = "mise run --jobs 1 '//packages/...:format'"
+
+[tasks.format-check]
+run = "mise run --jobs 1 '//packages/...:format-check'"
+
+[tasks.test]
+run = "mise run --jobs 1 '//packages/...:test'"
+
+[tasks.security-scan]
+run = "mise run --jobs 1 '//packages/...:security-scan'"
+
+[tasks.package]
+description = "Build wheels for the publishable Python packages"
+run = "mise run --jobs 1 '//packages/...:package'"
+
+# JavaScript tasks (previously Makefile targets)
+[tasks.deps-project]
+description = "Install JS dependencies with a frozen lockfile"
+run = "pnpm install --frozen-lockfile && if [ -f .npmrc ]; then sed -i '$ d' .npmrc; fi"
+
+[tasks.prepare]
+description = "Build all JS packages for release packaging"
+run = "pnpm lerna run build"
+
+[tasks.prepare-dev]
+description = "Build JS packages in development mode"
+run = "pnpm lerna run prepare-dev"
+
+[tasks.lint-js]
+run = "./tooling/scripts/lint-js.sh"
+
+[tasks.bearer]
+run = "./tooling/scripts/bearer.sh"
+
+[tasks.test-js]
+description = "Run JS tests across all packages"
+run = "pnpm lerna run test"
+
+[tasks.format-js]
+run = "pnpm lerna run format"
+
+[tasks.format-js-check]
+run = "pnpm lerna run format:check"
+
+# Release tasks (previously Makefile publish/version targets)
+[tasks.publish-python]
+run = "./tooling/scripts/publish-python.sh"
+
+[tasks.publish-npm]
+run = "rm -f .npmrc && pnpm lerna publish from-package --yes --no-git-reset --no-push --no-git-tag-version --concurrency 1 --throttle-size 1 --throttle-delay 5"
+
+[tasks.publish]
+description = "Publish Python wheels and npm packages"
+depends = ["publish-python", "publish-npm"]
+
+[tasks.publish-docs]
+run = "./tooling/scripts/publish-docs.sh"
+
+# Accepts an exact version (used by the release workflow) or patch/minor/major
+# (bumps JS via lerna and Python pyprojects in lockstep, like the old make targets).
+[tasks.version-bump-python]
+run = "./tooling/scripts/bump_python_versions.sh"
+
+[tasks.version-patch]
+run = "./tooling/scripts/bump_python_versions.sh patch"
+
+[tasks.version-minor]
+run = "./tooling/scripts/bump_python_versions.sh minor"
+
+[tasks.version-major]
+run = "./tooling/scripts/bump_python_versions.sh major"
+
+[tasks.update-ui-deps]
+run = "pnpm --recursive --latest update @darajs/styled-components @darajs/eslint-config @darajs/oxfmt-config @darajs/oxlint-config @darajs/prettier-config @darajs/stylelint-config @darajs/ui-causal-graph-editor @darajs/ui-code-editor @darajs/ui-components @darajs/ui-hierarchy-viewer @darajs/ui-icons @darajs/ui-notifications @darajs/ui-utils @darajs/ui-widgets"
+
+[tasks.clean]
+run = "git clean -xfd ."

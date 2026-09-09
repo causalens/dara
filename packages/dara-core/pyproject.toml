@@ -1,115 +1,107 @@
 [build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0"]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.anthology.scripts]
-format = "poetry run ruff check --select I --fix --unsafe-fixes . && poetry run ruff format ."
-format-check = "poetry run ruff check --select I . && poetry run ruff format --check ."
-lint = "poetry run pyright ./dara && poetry run ruff check ./dara"
-package = "poetry build -f wheel"
-publish = "poetry publish --skip-existing"
-security-scan = "poetry run bandit dara -r -ll -i"
-# Pool tests are ran after because they don't work well with parallelization
-test = "mkdir -p ./dist && DARA_TEST_FLAG=true poetry run pytest ./tests -n auto -v -m 'not pool' && poetry run pytest ./tests/python/test_pool.py -v"
-
-[tool.poetry]
-authors = ["Sam Smith <sam@causalens.com>", "Krzysztof Bielikowicz <krzysztof@causalens.com>"]
-description = "Dara Framework Core"
-homepage = "https://dara.causalens.com/"
-include = ["dara/core/js_tooling/**/*", "dara/core/_assets/**/*", "dara/core/log_configs/**/*"]
-license = "Apache-2.0"
+[project]
 name = "dara-core"
+version = "1.29.10"
+description = "Dara Framework Core"
 readme = "README.md"
-repository = "https://github.com/causalens/dara"
-version = "1.29.10"
-source = []
+license = "Apache-2.0"
+authors = [
+    { name = "Sam Smith", email = "sam@causalens.com" },
+    { name = "Krzysztof Bielikowicz", email = "krzysztof@causalens.com" },
+]
+urls = { Homepage = "https://dara.causalens.com/", Repository = "https://github.com/causalens/dara" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.10.0,<3.13.0"
+dependencies = [
+    "aiorwlock>=1.4.0,<2.0.0",
+    "anyio>=4.0.0",
+    "async-asgi-testclient>=1.4.11,<2.0.0",
+    "backoff>=2.2.1,<3.0.0",
+    "cachetools>=5.0.0",
+    "certifi>=2024.7.4",
+    "click>=8.1.3,<9.0.0",
+    "colorama>=0.4.6,<0.5.0",
+    "create-dara-app==1.29.10",
+    "croniter>=6.0.0,<7.0.0",
+    "cryptography>=42.0.4",
+    "exceptiongroup>=1.1.3,<2.0.0",
+    "fastapi>=0.136.3,<0.137.0",
+    "fastapi_vite_dara==0.4.0",
+    "h11>=0.16.0",
+    "httpx>=0.23.0",
+    "jinja2>=2.1.1,<3.2.0",
+    "jsonpatch>=1.33",
+    "logfire[fastapi,httpx,system-metrics]>=4.39.0,<5.0.0",
+    "odfpy",
+    "openpyxl",
+    "opentelemetry-exporter-prometheus>=0.65b0,<0.66",
+    "opentelemetry-instrumentation-logging>=0.65b0,<0.66",
+    "packaging>=23.1",
+    "pandas>=1.1.0,<3.0.0",
+    "platformdirs>=4.0.0,<5.0.0",
+    "prometheus-client>=0.14.1,<1.0.0",
+    "pyarrow",
+    "pydantic>=2.11.7,<3.0.0",
+    "pydantic-settings>=2.8.1,<3.0.0",
+    "pyjwt>=2.3.0,<3.0.0",
+    "python-dotenv>=0.19.2",
+    "python-multipart>=0.0.7",
+    "pyxlsb",
+    "responses>=0.18.0,<0.19.0",
+    "starlette>=1.0.1",
+    "tblib>=1.7.0,<2.0.0",
+    "toml>=0.10.2,<0.11.0",
+    "typing-extensions>=4.5.0",
+    "uvicorn[standard]>=0.23.1",
+    "xlrd",
+]
 
-[[tool.poetry.packages]]
-include = "dara"
+[project.optional-dependencies]
+all = ["dara-components==1.29.10"]
 
-[tool.poetry.dependencies]
-aiorwlock = "^1.4.0"
-anyio = ">=4.0.0"
-async-asgi-testclient = "^1.4.11"
-cachetools = ">=5.0.0"
-click = "^8.1.3"
-colorama = "^0.4.6"
-croniter = "^6.0.0"
-certifi = ">=2024.7.4"
-cryptography = ">=42.0.4"
-exceptiongroup = "^1.1.3"
-fastapi = ">=0.136.3, <0.137.0"
-fastapi_vite_dara = "0.4.0"
-httpx = ">=0.23.0"
-jinja2 = ">=2.1.1, <3.2.0"
-odfpy = "*"
-openpyxl = "*"
-packaging = ">=23.1"
-pandas = ">=1.1.0, <3.0.0"
-prometheus-client = ">=0.14.1, <1.0.0"
-pyarrow = "*"
-pydantic = ">=2.11.7, <3.0.0"
-pyjwt = ">=2.3.0, <3.0.0"
-python = ">=3.10.0, <3.13.0"
-python-dotenv = ">=0.19.2"
-python-multipart = ">=0.0.7"
-pyxlsb = "*"
-responses = "^0.18.0"
-starlette = ">=1.0.1"
-tblib = "^1.7.0"
-toml = "^0.10.2"
-typing-extensions = ">=4.5.0"
-xlrd = "*"
-pydantic-settings = "^2.8.1"
-h11 = ">=0.16.0"
-jsonpatch = ">=1.33"
-backoff = "^2.2.1"
-platformdirs = ">=4.0.0,<5.0.0"
-logfire = { version = ">=4.39.0,<5.0.0", extras = ["fastapi", "httpx", "system-metrics"] }
-opentelemetry-exporter-prometheus = ">=0.65b0,<0.66"
-opentelemetry-instrumentation-logging = ">=0.65b0,<0.66"
+[project.scripts]
+dara = "dara.core.cli:cli"
 
-[tool.poetry.dependencies.create-dara-app]
-optional = true
-version = "1.29.10"
+[project.entry-points."dara_assets"]
+dara-core = "dara.core._assets:asset_manifest"
 
-[tool.poetry.dependencies.dara-components]
-optional = true
-version = "1.29.10"
-
-[tool.poetry.dependencies.uvicorn]
-extras = ["standard"]
-version = ">=0.23.1"
-
-[tool.poetry.dev-dependencies]
-bandit = "^1.7.5"
-freezegun = "^1.2.2"
-ruff = "0.16.0"
-pyright = "^1.1.400"
-pytest = "^9.0.3"
-pytest-timeout = "^2.1.0"
-pytest-xdist = "^3.8.0"
-requests = ">=2.25.1, <3.0.0"
-types-cachetools = "^6.0.0.20250525"
-types-croniter = "^1.0.10"
-types-requests = "^2.27.29"
-google-auth = "^2.37.0"
-respx = "^0.22.0"
-
-[tool.poetry.extras]
-all = ["dara-components"]
-
-[tool.poetry.plugins."pydoc_markdown.interfaces.Renderer"]
+[project.entry-points."pydoc_markdown.interfaces.Renderer"]
 docusaurus_internal = "docusaurus_internal:DocusaurusRenderer"
 
-[tool.poetry.scripts]
-dara = "dara.core.cli:cli"
+[tool.uv.sources]
+create-dara-app = { workspace = true }
+dara-components = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["dara"]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.7.5,<2.0.0",
+    "freezegun>=1.2.2,<2.0.0",
+    "google-auth>=2.37.0,<3.0.0",
+    "pyright>=1.1.400,<2.0.0",
+    "pytest>=9.0.3,<10.0.0",
+    "pytest-timeout>=2.1.0,<3.0.0",
+    "pytest-xdist>=3.8.0,<4.0.0",
+    "requests>=2.25.1,<3.0.0",
+    "respx>=0.22.0,<0.23.0",
+    "ruff==0.16.0",
+    "types-cachetools>=6.0.0.20250525,<7.0.0.0",
+    "types-croniter>=1.0.10,<2.0.0",
+    "types-requests>=2.27.29,<3.0.0",
+]
 
 [tool.pytest.ini_options]
 timeout = 300
 markers = [
     "pool: worker pool tests, should not be used with xdist"
 ]
-
-[tool.poetry.plugins."dara_assets"]
-dara-core = "dara.core._assets:asset_manifest"
