@@ -21,7 +21,7 @@ def test_removed_frontend_settings_fail_at_configuration_boundary(name):
     setattr(builder, name, 'legacy setup')
     with pytest.raises(ValueError, match=f'Removed frontend settings: {name}') as caught:
         builder._to_configuration()
-    assert 'dara migrate' in str(caught.value)
+    assert 'dara lock' in str(caught.value)
     assert 'js/index.tsx' in str(caught.value)
 
 
@@ -29,7 +29,7 @@ def test_removed_tag_processor_reports_its_migration():
     builder = ConfigurationBuilder()
     with pytest.raises(ValueError, match='add_package_tags_processor was removed') as caught:
         builder.add_package_tags_processor(lambda tags: tags)
-    assert 'dara migrate' in str(caught.value)
+    assert 'dara lock' in str(caught.value)
     assert 'js/index.tsx' in str(caught.value)
 
 
