@@ -54,6 +54,7 @@ def test_configuration_conversion_preserves_sources_scripts_and_unrelated_packag
     assert 'Legacy Dara configuration detected' in output
     assert 'Migrated legacy configuration' in output
     assert 'yarn.lock is preserved' in output
+    assert 'package_manager yarn is not carried over' in output
     before = snapshot(tmp_path)
     assert migration.migrate_legacy_config(tmp_path) == []
     assert snapshot(tmp_path) == before
@@ -67,9 +68,27 @@ def test_missing_package_manifest_receives_legacy_dependencies(tmp_path):
     assert package['dependencies'] == {'example': '^1'}
     assert package['private'] is True
     assert package['type'] == 'module'
+    # A created manifest is readable by other users, unlike a raw mkstemp file.
+    assert stat.S_IMODE((tmp_path / 'package.json').stat().st_mode) & 0o044 == 0o044
 
 
-@pytest.mark.parametrize('section', ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'])
+def test_unrelated_non_ascii_fields_survive_conversion(tmp_path):
+    legacy(tmp_path)
+    package = tmp_path / 'package.json'
+    package.write_text(json.dumps({'author': 'Zoë Ångström'}, ensure_ascii=False), encoding='utf-8')
+    migration.migrate_legacy_config(tmp_path)
+    assert 'Zoë Ångström' in package.read_text(encoding='utf-8')
+
+
+def test_peer_dependency_does_not_satisfy_a_legacy_requirement(tmp_path):
+    legacy(tmp_path)
+    package = tmp_path / 'package.json'
+    package.write_text(json.dumps({'peerDependencies': {'example': '^2'}}))
+    migration.migrate_legacy_config(tmp_path)
+    assert json.loads(package.read_text())['dependencies'] == {'example': '^1'}
+
+
+@pytest.mark.parametrize('section', ['dependencies', 'devDependencies', 'optionalDependencies'])
 def test_matching_existing_requirement_is_not_duplicated_or_reformatted(tmp_path, section):
     legacy(tmp_path)
     package = tmp_path / 'package.json'
@@ -79,7 +98,7 @@ def test_matching_existing_requirement_is_not_duplicated_or_reformatted(tmp_path
     assert package.read_bytes() == before
 
 
-@pytest.mark.parametrize('section', ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'])
+@pytest.mark.parametrize('section', ['dependencies', 'devDependencies', 'optionalDependencies'])
 def test_dependency_conflicts_change_nothing(tmp_path, section):
     legacy(tmp_path)
     (tmp_path / 'package.json').write_text(json.dumps({section: {'example': '^2'}}))
@@ -194,3 +213,14 @@ def test_lock_requires_source_migration_before_any_configuration_edits(tmp_path,
     after = snapshot(tmp_path)
     assert all(after[path] == content for path, content in before.items())
     assert not (tmp_path / 'package.json').exists()
+
+
+def test_removed_component_metadata_points_to_the_skill():
+    from typing import ClassVar
+
+    from dara.core import ComponentInstance
+
+    with pytest.raises(TypeError, match='dara-2-migration'):
+
+        class Chart(ComponentInstance):
+            js_module: ClassVar[str] = 'legacy'
