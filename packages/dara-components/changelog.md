@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Breaking: component implementations are published as ESM entry points such as `@darajs/components/button` for the Dara 2.0 frontend pipeline.
+- Breaking: component implementations are published as ESM entry points such as `@darajs/components/button` for the Dara 2.0 frontend pipeline. Python wheels no longer bundle the JavaScript build.
 - Omitted grid hug values now default to false in the display context.
 - Button and Stack prop types now include the shared styling props.
 
