@@ -119,8 +119,10 @@ await test("workspace additions, dependency patches, optional configuration and 
   const added = write(root, "library/js/new.tsx");
   assert.throws(() => verifySnapshot(snapshot), /changed/);
   fs.unlinkSync(added);
+  // Env files are runtime configuration and never make a build stale.
   const config = write(root, "app/.env.production", "PUBLIC_COLOR=blue");
-  assert.throws(() => verifySnapshot(snapshot), /changed/);
+  verifySnapshot(snapshot);
+  assert.ok(![...snapshot.hashes.keys()].some((file) => path.basename(file).startsWith(".env")));
   fs.unlinkSync(config);
   process.env["DARA_FRESHNESS_TEST"] = "secret-value";
   assert.throws(() => verifySnapshot(snapshot), /environment.*changed/);

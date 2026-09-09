@@ -10,6 +10,7 @@ import { fileHash, inside, treeFiles } from "./files.js";
 const posixRelative = (root: string, file: string) =>
   path.relative(root, file).replaceAll(path.sep, "/") || ".";
 const hashFile = (file: string) => (fs.existsSync(file) ? fileHash(file) : null);
+const isEnvFile = (file: string) => /^\.env(\..*)?$/.test(path.basename(file));
 
 function inventory(directory: string, recursive = true) {
   if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
@@ -249,9 +250,6 @@ export function inputSnapshot(project: InputProject) {
     files.add(path.resolve(project.root, file));
   }
   files.add(path.join(project.workspace, "pnpm-lock.yaml"));
-  for (const name of [".env", ".env.local", ".env.production", ".env.production.local"]) {
-    files.add(path.join(project.root, name));
-  }
   for (const directory of new Set([project.root, project.workspace])) {
     for (const name of ["package.json", ".npmrc", ".pnpmfile.cjs", "pnpm-workspace.yaml"]) {
       files.add(path.join(directory, name));
@@ -294,6 +292,11 @@ export function inputSnapshot(project: InputProject) {
     }
     snapshot.trees.push(...initial.trees);
     Object.assign(snapshot.environment, initial.environment);
+  }
+  // Env files are runtime configuration like process environment variables: a deployment
+  // may add or edit them without rebuilding, so they never make a build stale.
+  for (const file of [...snapshot.hashes.keys()].filter(isEnvFile)) {
+    snapshot.hashes.delete(file);
   }
   for (const file of snapshot.hashes.keys()) {
     portableInputs(project, file);
