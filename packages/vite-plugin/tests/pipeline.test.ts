@@ -5,6 +5,7 @@ import path from "node:path";
 import type { TestContext } from "node:test";
 import type { Manifest } from "../dist/contract.js";
 import { test } from "node:test";
+import { fileHash } from "../dist/files.js";
 import { collectAssets } from "../dist/assets.js";
 import { inputSnapshot, publishBuild, verifySnapshot } from "../dist/build.js";
 import {
@@ -14,7 +15,7 @@ import {
   sourcePackage,
   version,
 } from "../dist/contract.js";
-import { initialize } from "../dist/project.js";
+import { checkTypescript, initialize } from "../dist/project.js";
 
 function fixture(t: TestContext) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "dara-pipeline-")));
@@ -141,5 +142,52 @@ await test("input snapshots catch additions and byte changes during compilation"
   assert.throws(() => verifySnapshot(snapshot), /changed/);
   fs.writeFileSync(file, "initial");
   fs.writeFileSync(path.join(root, "js/added.ts"), "new");
+  assert.throws(() => verifySnapshot(snapshot), /changed/);
+});
+
+await test("effective TS config follows JSONC, arrays and local package presets", (t) => {
+  const root = fixture(t);
+  const options = {
+    moduleResolution: "bundler",
+    jsx: "react-jsx",
+    noEmit: true,
+    isolatedModules: true,
+    customConditions: ["dara-source"],
+    types: ["vite/client"],
+  };
+  function write(directory: string, name: string, contents: string) {
+    fs.mkdirSync(directory, { recursive: true });
+    const file = path.join(directory, name);
+    fs.writeFileSync(file, contents);
+    return file;
+  }
+  const preset = path.join(root, "preset");
+  write(preset, "package.json", JSON.stringify({ name: "test-preset", tsconfig: "base.json" }));
+  write(preset, "base.json", JSON.stringify({ compilerOptions: options }));
+  fs.mkdirSync(path.join(root, "node_modules"));
+  fs.symlinkSync(preset, path.join(root, "node_modules/test-preset"), "dir");
+  const extra = write(root, "extra.json", '{ /* comment */ "compilerOptions": {"strict":true,}, }');
+  write(root, "tsconfig.json", '{"extends":["test-preset", "./extra.json"], "include":["js"]}');
+  const parsed = checkTypescript(root);
+  assert.equal(parsed.config.compilerOptions?.strict, true);
+  assert.equal(parsed.hashes.get(extra), fileHash(extra));
+  assert.equal(
+    parsed.hashes.get(path.join(preset, "base.json")),
+    fileHash(path.join(preset, "base.json")),
+  );
+  fs.mkdirSync(path.join(root, "js"));
+  write(root, "pnpm-lock.yaml", "lock");
+  const snapshot = inputSnapshot({
+    root,
+    workspace: root,
+    inputs: new Set(parsed.hashes.keys()),
+    sourceFiles: new Set(),
+    assets: new Map(),
+    manifest: manifest(),
+    api: { options: parseOptions({}) },
+    initialHashes: parsed.hashes,
+  });
+  verifySnapshot(snapshot);
+  fs.writeFileSync(extra, '{ "compilerOptions": { "strict": false } }');
   assert.throws(() => verifySnapshot(snapshot), /changed/);
 });

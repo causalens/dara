@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { z } from "zod";
 import type { Plugin, ResolvedConfig, UserConfig, ViteDevServer } from "vite";
@@ -14,6 +15,7 @@ import { atomicWrite, inside, readPackageJson, workspaceRoot } from "./files.js"
 export interface DaraPluginApi {
   project: Project | null;
   resolving: boolean;
+  conditions?: string[];
   options: ParsedDaraOptions;
 }
 
@@ -38,6 +40,7 @@ export interface Project extends ProjectConfig {
   state: "waiting" | "ready" | "blocked";
   base: string;
   observedHashes?: Map<string, string>;
+  initialHashes: Map<string, string>;
   server?: ViteDevServer;
 }
 
@@ -88,8 +91,9 @@ export function initialize(root: string): string[] {
 /** Validate the effective TS project, following JSONC, inheritance and the locked preset. */
 export function checkTypescript(root: string) {
   let config;
+  const cache = new Map<string, unknown>();
   try {
-    config = getTsconfig(root);
+    config = getTsconfig(root, "tsconfig.json", cache);
   } catch (error) {
     throw new ProjectError("typescript.config", errorMessage(error), "edit tsconfig.json");
   }
@@ -104,7 +108,17 @@ export function checkTypescript(root: string) {
       "edit tsconfig.json",
     );
   }
-  return config;
+  // get-tsconfig records the actual JSONC/array/package inheritance reads in its cache.
+  const hashes = new Map<string, string>();
+  for (const [key, contents] of cache) {
+    if (key.startsWith("readFileSync:") && key.endsWith(":utf8") && typeof contents === "string") {
+      const file = fs.realpathSync(key.slice(13, -5));
+      if (!file.split(path.sep).includes("node_modules")) {
+        hashes.set(file, createHash("sha256").update(contents).digest("hex"));
+      }
+    }
+  }
+  return { ...config, hashes };
 }
 
 function checkDependencies(
@@ -290,11 +304,12 @@ export async function loadProject(
     manifest,
     packageJson,
     typescript,
+    initialHashes: typescript.hashes,
     ...chosen,
     inputs: new Set([
       ...dependencyInputs,
       ...configs.flatMap((config) => config.configInputs),
-      typescript.path,
+      ...typescript.hashes.keys(),
     ]),
     sourceFiles: new Set<string>(),
     assets: new Map<string, string>(),

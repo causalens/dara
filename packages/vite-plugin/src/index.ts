@@ -1,11 +1,12 @@
 import fs from "node:fs";
-import { z } from "zod";
 import path from "node:path";
 import type { PluginOption } from "vite";
 import type { DaraOptions } from "./contract.js";
 import type { DaraPluginApi } from "./project.js";
 export type { DaraOptions } from "./contract.js";
 import react from "@vitejs/plugin-react";
+import { defaultClientConditions } from "vite";
+import { selfReference } from "./exports.js";
 import {
   ProjectError,
   generateEntry,
@@ -92,7 +93,11 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
           base: api.project?.base ?? "/static/",
           publicDir: false,
           appType: "custom",
-          resolve: { conditions: ["dara-source"], dedupe: shared, preserveSymlinks: false },
+          resolve: {
+            conditions: ["dara-source", ...defaultClientConditions],
+            dedupe: shared,
+            preserveSymlinks: false,
+          },
           optimizeDeps: {
             include: api.resolving
               ? []
@@ -107,6 +112,16 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
         };
       },
       configResolved(config) {
+        api.conditions = [
+          ...config.resolve.conditions.map((condition) =>
+            condition === "development|production"
+              ? config.isProduction
+                ? "production"
+                : "development"
+              : condition,
+          ),
+          "import",
+        ];
         // Retain Vite's defaults and application exclusions. This also protects
         // private files requested through transform URLs such as ?raw or @fs.
         config.server.fs.deny.push("**/.dara*/**", "**/.dara-build.json", "**/index.dev.html");
@@ -116,48 +131,9 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
           return resolvedEntry;
         }
         const project = api.project;
-        if (!project?.packageJson.name || !source.startsWith(project.packageJson.name + "/")) {
-          return null;
-        }
-        const key = "./" + source.slice(project.packageJson.name.length + 1);
-        const parsed = z.record(z.unknown()).safeParse(project.packageJson["exports"]);
-        const exports = parsed.success ? parsed.data : {};
-        let entry = exports[key];
-        if (!entry) {
-          for (const [pattern, value] of Object.entries(exports)) {
-            if (!pattern.includes("*")) {
-              continue;
-            }
-            const [prefix = "", suffix = ""] = pattern.split("*");
-            if (key.startsWith(prefix) && key.endsWith(suffix)) {
-              const match = key.slice(prefix.length, suffix ? -suffix.length : undefined);
-              entry = JSON.parse(JSON.stringify(value).replaceAll("*", match));
-              break;
-            }
-          }
-        }
-        const select = (value: unknown): string | undefined => {
-          if (typeof value === "string") {
-            return value;
-          }
-          const selection = z.record(z.unknown()).safeParse(value);
-          return selection.success
-            ? select(
-                selection.data["dara-source"] ??
-                  selection.data["import"] ??
-                  selection.data["default"],
-              )
-            : undefined;
-        };
-        const target = select(entry);
-        if (!target) {
-          throw new ProjectError(
-            "source.self",
-            `Missing app export ${key} for ${source}`,
-            "edit package.json exports",
-          );
-        }
-        return path.resolve(project.root, target);
+        return project
+          ? selfReference(project.root, project.packageJson, source, api.conditions)
+          : null;
       },
       load(id) {
         if (id !== resolvedEntry) {

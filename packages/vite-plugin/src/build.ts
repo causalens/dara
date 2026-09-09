@@ -82,10 +82,8 @@ function portableInput(project: Project, file: string) {
 
 /** Inventory known input trees before compilation so additions and removals cannot be hidden. */
 export function inputSnapshot(
-  project: Pick<
-    Project,
-    "root" | "workspace" | "inputs" | "sourceFiles" | "assets" | "manifest"
-  > & { api: Pick<Project["api"], "options"> },
+  project: Pick<Project, "root" | "workspace" | "inputs" | "sourceFiles" | "assets" | "manifest"> &
+    Partial<Pick<Project, "initialHashes">> & { api: Pick<Project["api"], "options"> },
 ) {
   const files = new Set([...project.inputs, ...project.sourceFiles, ...project.assets.values()]);
   const directories = [
@@ -106,29 +104,14 @@ export function inputSnapshot(
   }
   const lockfile = path.join(project.workspace, "pnpm-lock.yaml");
   files.add(lockfile);
-  // Extends chains can include package presets; root-level and repository configs must be present.
-  const addConfig = (file: string): void => {
-    if (!fs.existsSync(file)) {
-      return;
-    }
-    files.add(file);
-    const raw = fs.readFileSync(file, "utf8");
-    const match = raw.match(/"extends"\s*:\s*"([^"\n]+)"/);
-    if (match?.[1]?.startsWith(".")) {
-      addConfig(
-        path.resolve(
-          path.dirname(file),
-          match[1].endsWith(".json") ? match[1] : match[1] + ".json",
-        ),
-      );
-    }
-  };
-  addConfig(path.join(project.root, "tsconfig.json"));
   const hashes = new Map(
     [...files]
       .filter((file) => !file.split(path.sep).includes("node_modules"))
       .map((file) => [file, fileHash(file)]),
   );
+  for (const [file, hash] of project.initialHashes ?? []) {
+    hashes.set(file, hash);
+  }
   // Application lockfile sits outside node_modules and is always recorded.
   const trees = directories.map((dir) => ({
     directory: dir,
