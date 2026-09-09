@@ -197,10 +197,7 @@ def derive_manifest(
         actions=[
             Implementation(name=a.name, source=a.js_source) for a in sorted(actions.values(), key=lambda a: a.name)
         ],
-        auth=[
-            Implementation(name=f'{c["py_module"]}.{c["js_name"]}', source=c['js_source'])
-            for c in sorted(auth.values(), key=lambda c: (c['py_module'], c['js_name']))
-        ],
+        auth=[Implementation(name=source, source=source) for source in sorted({c['js_source'] for c in auth.values()})],
         static=static,
         app_static=folders,
         favicon=str(favicon.resolve()),

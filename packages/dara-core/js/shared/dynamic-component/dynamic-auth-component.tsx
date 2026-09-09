@@ -4,11 +4,7 @@ import type { AuthComponent } from '../../types/core';
 
 const PRELOADED_COMPONENTS: Record<string, ReactNode> = {};
 
-function getIdentifier(component: AuthComponent): string {
-    return `${component.py_module}.${component.js_name}`;
-}
-
-/** Populate the unauthenticated registry using its existing module/name identities. */
+/** Populate the unauthenticated registry keyed by each screen's module specifier. */
 export function registerAuthComponents(components: Record<string, ComponentType>): void {
     for (const key of Object.keys(PRELOADED_COMPONENTS)) {
         delete PRELOADED_COMPONENTS[key];
@@ -24,7 +20,7 @@ export function registerAuthComponents(components: Record<string, ComponentType>
  * in an authenticated context, and we need to be able to render the login page without being authenticated.
  */
 function DynamicAuthComponent(props: { component: AuthComponent }): React.ReactNode {
-    const identifier = getIdentifier(props.component);
+    const identifier = props.component.js_source;
     // should not happen
     if (!(identifier in PRELOADED_COMPONENTS)) {
         throw new Error(`Component ${identifier} not found`);

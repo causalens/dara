@@ -430,7 +430,7 @@ class JsComponentDef(BaseModel):
     """Name of the PY module with component definition, used for versioning"""
 
     name: str
-    """Name of the component, must match the Python definition and JS implementation"""
+    """Serialized component identity, derived from the Python class or its py_component override."""
 
     type: Literal[ComponentType.JS] = ComponentType.JS
 

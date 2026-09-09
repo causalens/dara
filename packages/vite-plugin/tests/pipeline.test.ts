@@ -57,6 +57,7 @@ await test("entry uses dedicated default imports and preserves serialized names"
       manifest({
         components: [{ name: "__proto__", source: "./js/button.tsx" }],
         actions: [{ name: "ExistingAction", source: "@pkg/actions/action" }],
+        auth: [{ name: "./js/login.tsx", source: "./js/login.tsx" }],
         moduleDependencies: [
           { python: "python_pkg", package: "@pkg/library", source: "@pkg/library/setup" },
         ],
@@ -65,6 +66,8 @@ await test("entry uses dedicated default imports and preserves serialized names"
   );
   assert.match(entry, /import implementation0 from "\/js\/button.tsx"/);
   assert.match(entry, /\["__proto__"\]: implementation0/);
+  assert.match(entry, /import implementation2 from "\/js\/login.tsx"/);
+  assert.match(entry, /auth: \{\["\.\/js\/login.tsx"\]: implementation2\}/);
   assert.match(entry, /import "@pkg\/library\/setup"/);
   assert.match(entry, /import '\/js\/index.tsx'/);
 });

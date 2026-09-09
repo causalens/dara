@@ -91,13 +91,11 @@ export const daraData: DaraData = {
     build_dev: false,
     auth_components: {
         login: {
-            js_source: '@darajs/core/auth/default',
-            js_name: 'DefaultAuthLogin',
+            js_source: '@darajs/core/auth/default/default-auth-login',
             py_module: 'dara_core',
         },
         logout: {
-            js_source: '@darajs/core/auth/default',
-            js_name: 'DefaultAuthLogout',
+            js_source: '@darajs/core/auth/basic/basic-auth-logout',
             py_module: 'dara_core',
         },
     },
@@ -172,13 +170,11 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
                 build_dev: false,
                 auth_components: {
                     login: {
-                        js_source: '@darajs/core/auth/default',
-                        js_name: 'DefaultAuthLogin',
+                        js_source: '@darajs/core/auth/default/default-auth-login',
                         py_module: 'dara_core',
                     },
                     logout: {
-                        js_source: '@darajs/core/auth/default',
-                        js_name: 'DefaultAuthLogout',
+                        js_source: '@darajs/core/auth/basic/basic-auth-logout',
                         py_module: 'dara_core',
                     },
                 },

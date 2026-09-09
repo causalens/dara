@@ -658,7 +658,7 @@ class ActionDef(BaseModel):
     Action definition required to register actions in the app.
     Links the name of the action with its JS implementation.
 
-    :param name: name of the action, must match the Python definition and JS implementation
+    :param name: serialized action identity, derived from the Python class or its py_name override
     :param py_module: name of the PY module with action definition, used for versioning
     :param js_source: Module that default-exports this action implementation.
     """
