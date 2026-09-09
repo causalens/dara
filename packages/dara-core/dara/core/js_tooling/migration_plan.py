@@ -1,6 +1,5 @@
 """Reviewable migration edits with exact snapshots and contained atomic writes."""
 
-import difflib
 import os
 import stat
 import tempfile
@@ -43,18 +42,6 @@ class Change:
     path: Path
     before: str | None
     after: str | None
-
-    def diff(self, root: Path) -> str:
-        """Render a unified diff without normalizing the source's line endings."""
-        name = str(self.path.relative_to(root))
-        return ''.join(
-            difflib.unified_diff(
-                (self.before or '').splitlines(keepends=True),
-                (self.after or '').splitlines(keepends=True),
-                fromfile=f'a/{name}' if self.before is not None else '/dev/null',
-                tofile=f'b/{name}' if self.after is not None else '/dev/null',
-            )
-        )
 
 
 @dataclass(frozen=True)
@@ -151,7 +138,7 @@ class MigrationPlan:
             except (OSError, ValueError, RuntimeError) as error:
                 raise MigrationReadError(
                     MigrationIssue(
-                        path, 1, f'Cannot read this migration input: {error}. Resolve it and rerun dara migrate.'
+                        path, 1, f'Cannot read this migration input: {error}. Resolve it and rerun dara lock.'
                     )
                 ) from error
         return self._snapshots[path].text
@@ -188,7 +175,7 @@ class MigrationPlan:
         """Propose a source-tree copy, optionally migrated, preserving executable permissions."""
         original = self.read(source)
         if original is None:
-            raise MigrationReadError(MigrationIssue(source, 1, 'Source disappeared; rerun dara migrate.'))
+            raise MigrationReadError(MigrationIssue(source, 1, 'Source disappeared; rerun dara lock.'))
         text = original if transformed is None else transformed
         existing = self.read(destination)
         source_mode = self._snapshots[source].mode
@@ -228,19 +215,19 @@ class MigrationPlan:
             # Check the complete read set before writing even the first new file.
             for path, before in self._snapshots.items():
                 if _snapshot(path) != before:
-                    raise ValueError('File changed during migration; rerun dara migrate.')
+                    raise ValueError('File changed during migration; rerun dara lock.')
             for path, inventory in self._trees.items():
                 if _inventory(path) != inventory:
-                    raise ValueError('Source tree changed during migration; rerun dara migrate.')
+                    raise ValueError('Source tree changed during migration; rerun dara lock.')
             for path, entries in self._directories.items():
                 if (tuple(sorted(os.listdir(path))) if path.exists() else None) != entries:
-                    raise ValueError('Resolver directory changed during migration; rerun dara migrate.')
+                    raise ValueError('Resolver directory changed during migration; rerun dara lock.')
             for change in self.changes:
                 path = change.path
                 self._destination(path)
                 before = self._snapshots[path]
                 if _snapshot(path) != before:
-                    raise ValueError('File changed during migration; rerun dara migrate.')
+                    raise ValueError('File changed during migration; rerun dara lock.')
                 if change.after is None:
                     path.unlink()
                 else:
@@ -249,7 +236,7 @@ class MigrationPlan:
         except (OSError, ValueError, RuntimeError) as error:
             self.issues.append(
                 MigrationIssue(
-                    path, 1, f'{error} Successfully updated {len(written)} files; review and rerun dara migrate.'
+                    path, 1, f'{error} Successfully updated {len(written)} files; review and rerun dara lock.'
                 )
             )
         return written

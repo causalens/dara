@@ -88,7 +88,7 @@ class SerializeAsAnyMeta(ModelMetaclass):
         if removed and any(hasattr(base, 'js_source') for base in bases):
             raise TypeError(
                 f'{name} uses removed JavaScript metadata {sorted(removed)}. '
-                'Run dara migrate and declare js_source as a default-export module.'
+                'Run dara lock and declare js_source as a default-export module.'
             )
         annotations: dict = namespaces.get('__annotations__', {}).copy()
 
@@ -731,6 +731,6 @@ class AssetManifest(BaseModel):
         """Explain the replacement for asset manifests from the removed UMD pipeline."""
         if isinstance(value, dict) and {'autojs_assets', 'common_assets', 'tag_order', 'depends_on'} & value.keys():
             raise ValueError(
-                'Legacy asset manifest: replace asset lists and tag ordering with static_assets; see the Dara 2.0 migration guide'
+                'Legacy asset manifest: replace asset lists and tag ordering with static_assets; run dara lock'
             )
         return value

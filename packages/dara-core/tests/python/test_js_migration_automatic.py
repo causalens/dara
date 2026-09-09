@@ -41,8 +41,9 @@ def contents(root: Path):
     return {str(path.relative_to(root)): path.read_bytes() for path in root.rglob('*') if path.is_file()}
 
 
-def test_lock_migrates_before_importing_configuration(tmp_path, monkeypatch):
+def test_lock_migrates_before_importing_configuration(tmp_path, monkeypatch, capsys):
     project(tmp_path)
+    (tmp_path / 'yarn.lock').write_text('# legacy lockfile\n')
     monkeypatch.chdir(tmp_path)
 
     def manifest(config):
@@ -54,8 +55,12 @@ def test_lock_migrates_before_importing_configuration(tmp_path, monkeypatch):
         result = CliRunner().invoke(cli, ['lock'])
     assert result.exception is None, result.output
     prepare.assert_called_once()
-    assert 'Migrated' in result.output
+    assert 'Legacy Dara configuration detected; applying automatic migration.' in result.stderr
+    assert 'Migrated' in result.stderr
+    assert 'review git diff and commit' in result.stderr
+    assert 'Migration note: yarn.lock is preserved.' in result.stderr
     assert not migrate_before_prepare(tmp_path)
+    assert capsys.readouterr().err == ''
 
 
 def test_dev_migrates_before_resolving_configuration(tmp_path, monkeypatch):
@@ -78,6 +83,8 @@ def test_unresolved_automatic_migration_changes_nothing_and_never_imports(tmp_pa
         result = CliRunner().invoke(cli, command)
     assert result.exit_code == 1
     assert 'migration.manual' in result.output
+    assert 'applying automatic migration' not in result.output
+    assert 'Migrated' not in result.output
     assert 'js_source' in result.output
     assert str(tmp_path / 'main.py') in result.output
     assert contents(tmp_path) == before
@@ -93,6 +100,8 @@ def test_frozen_dev_reports_migration_without_invoking_tools(tmp_path, monkeypat
         result = CliRunner().invoke(cli, ['dev', '--frozen', '--disable-metrics'])
     assert result.exit_code == 1
     assert 'without frozen mode' in result.output
+    assert 'applying automatic migration' not in result.output
+    assert 'Migrated' not in result.output
     command.assert_not_called()
     assert contents(tmp_path) == before
 
@@ -147,3 +156,23 @@ def test_analyzer_uses_only_the_matching_installed_tool(tmp_path):
             'dara-vite',
             'analyze-migration',
         ]
+
+
+def test_migration_announces_writes_without_claiming_success_on_conflict(tmp_path, monkeypatch, capsys):
+    """Users see an advance notice, but interrupted migrations never report completion."""
+    project(tmp_path)
+    plan = plan_migration(tmp_path)
+    apply = plan.apply
+
+    def conflicting_apply():
+        assert 'applying automatic migration' in capsys.readouterr().err
+        assert (tmp_path / 'dara.config.json').exists()
+        (tmp_path / 'main.py').write_text('# concurrent edit\n')
+        return apply()
+
+    monkeypatch.setattr(plan, 'apply', conflicting_apply)
+    with patch('dara.core.js_tooling.migration.plan_migration', return_value=plan):
+        with pytest.raises(ProjectError, match='changed during migration'):
+            migrate_before_prepare(tmp_path)
+    assert 'Migrated' not in capsys.readouterr().err
+    assert (tmp_path / 'dara.config.json').exists()

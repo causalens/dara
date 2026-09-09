@@ -1,4 +1,4 @@
-"""Dara commands describe operations; only development prepares project files automatically."""
+"""Dara commands describe operations; lock and development prepare project files automatically."""
 
 import json
 import os
@@ -156,9 +156,7 @@ def dev(
         os.chdir(root)
     root = Path.cwd().resolve()
     if not backend_only:
-        migrated = migrate_before_prepare(root, frozen=frozen)
-        if migrated:
-            click.echo(f'Migrated {len(migrated)} files; review the source changes.')
+        migrate_before_prepare(root, frozen=frozen)
     reference, serving = _serving('dev', **options)
     os.environ['DARA_LIVE_RELOAD'] = 'FALSE' if no_reload or frontend_only else 'TRUE'
     os.environ['DARA_ENFORCE_SSO'] = 'FALSE'
@@ -188,9 +186,7 @@ def _manifest(config: str | None, output: str | None = None):
 @click.option('--config')
 def lock(config: str | None):
     """Prepare declared dependencies and missing project files without starting a server."""
-    migrated = migrate_before_prepare(Path.cwd().resolve())
-    if migrated:
-        click.echo(f'Migrated {len(migrated)} files; review the source changes.')
+    migrate_before_prepare(Path.cwd().resolve())
     root, manifest = _manifest(config)
     prepare_project(root, manifest)
 
@@ -260,7 +256,7 @@ def check(config: str | None, as_json: bool):
 def setup_custom_js():
     """Explain the removed optional custom-JS setup workflow."""
     raise click.ClickException(
-        'Every app now has js/index.tsx. Run dara dev to prepare the project; see the Dara 2.0 migration guide for legacy configuration.'
+        'Every app now has js/index.tsx. Run dara dev or dara lock to migrate supported legacy files and prepare the project.'
     )
 
 
@@ -271,27 +267,3 @@ def generate_env(force: bool):
     if Path('.env').is_file() and not force:
         raise click.UsageError('.env file already exists, use --force to re-create it')
     generate_env_file()
-
-
-@cli.command()
-@click.option('--check', 'dry_run', is_flag=True, help='Show the proposed diff without writing files')
-def migrate(dry_run: bool):
-    """Convert supported legacy files without importing the app or installing app dependencies."""
-    from dara.core.js_tooling.migration import plan_migration
-
-    plan = plan_migration(Path.cwd())
-    for change in plan.changes:
-        click.echo(change.diff(plan.root), nl=False)
-    written = [] if dry_run else plan.apply()
-    for notice in plan.notices:
-        click.echo(notice, err=True)
-    for issue in plan.issues:
-        click.echo(f'{issue.path}:{issue.line}: {issue.message}', err=True)
-    if dry_run:
-        click.echo(f'{len(plan.changes)} proposed file changes; no files written.')
-    elif written:
-        click.echo(f'Updated {len(written)} files. Review the diff, then run dara dev, dara check and dara build.')
-    else:
-        click.echo('No supported migration changes remain.')
-    if plan.issues or (dry_run and plan.changes):
-        raise click.exceptions.Exit(1)
