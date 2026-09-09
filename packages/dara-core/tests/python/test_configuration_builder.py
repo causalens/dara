@@ -1,3 +1,5 @@
+from types import ModuleType
+
 import pytest
 from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -239,6 +241,66 @@ def test_add_nonlocal_component_raises_without_js():
         builder.add_component(TestWithJs)
 
     assert e.match('must define js_source')
+
+
+def test_add_components_registers_reexports_and_routes_once_per_class():
+    """A module can expose a component under several names without losing its required routes."""
+
+    @get('component-data')
+    def component_data():
+        return ''
+
+    class Exported(ComponentInstance):
+        js_source = './js/exported.tsx'
+        required_routes = [component_data]
+
+    module = ModuleType('component_exports')
+    vars(module).update(Exported=Exported, Alias=Exported)
+    builder = ConfigurationBuilder()
+
+    builder.add_components(module)
+    config = builder._to_configuration()
+
+    assert config.components == [JsComponentDef(name='Exported', py_module='tests', js_source='./js/exported.tsx')]
+    assert component_data in config.routes
+
+
+def test_add_components_only_registers_public_frontend_classes():
+    """Registration ignores private exports, instances, actions, and child modules."""
+
+    class Public(ComponentInstance):
+        js_source = './js/public.tsx'
+
+    class Private(ComponentInstance):
+        js_source = './js/private.tsx'
+
+    class PythonOnly(ComponentInstance):
+        pass
+
+    class FrontendAction(ActionImpl):
+        js_source = './js/action.ts'
+
+    child = ModuleType('component_exports.child')
+    vars(child)['Nested'] = Private
+    module = ModuleType('component_exports')
+    vars(module).update(
+        Public=Public,
+        _Private=Private,
+        PythonOnly=PythonOnly,
+        ComponentInstance=ComponentInstance,
+        instance=Public(),
+        FrontendAction=FrontendAction,
+        OtherClass=object,
+        value='not a component',
+        child=child,
+    )
+    builder = ConfigurationBuilder()
+
+    builder.add_components(module)
+    config = builder._to_configuration()
+
+    assert [component.name for component in config.components] == ['Public']
+    assert config.actions == []
 
 
 def test_add_route():

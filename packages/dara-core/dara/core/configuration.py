@@ -301,6 +301,37 @@ class ConfigurationBuilder:
 
         return component_def
 
+    def add_components(self, module: ModuleType) -> None:
+        """Register the public component classes exposed by a module.
+
+        Useful when an application selects components dynamically rather than
+        importing each component explicitly:
+
+        ```python
+        import dara.components as components
+
+        config.add_components(components)
+        ```
+
+        Scans names that do not start with an underscore, including re-exports.
+        Skips classes without a JS implementation and registers aliases of the
+        same class once per call. Does not recurse into child modules.
+        Required routes are registered just as with ``add_component``.
+
+        :param module: Module exposing the component classes to register
+        """
+        seen: set[type[ComponentInstance]] = set()
+        for name, symbol in vars(module).items():
+            if (
+                not name.startswith('_')
+                and isclass(symbol)
+                and issubclass(symbol, ComponentInstance)
+                and symbol.js_source is not None
+                and symbol not in seen
+            ):
+                self.add_component(symbol)
+                seen.add(symbol)
+
     def add_module_dependency(self, py_module: str, js_module: str):
         """
         Explicitly add a module to the application. This is useful to ensure that a given module's assets are included in the build even
