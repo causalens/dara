@@ -239,7 +239,9 @@ setInterval(() => {}, 50);
     );
     try {
       await until(() => sent.length >= 2);
-      assert.deepEqual(sent[0], { type: "custom", event: "dara:typecheck-clear" });
+      const cleared = sent[0];
+      assert(cleared?.type === "custom");
+      assert.equal(cleared.event, "dara:typecheck-clear");
       const latest = sent.at(-1);
       assert(latest?.type === "error");
       assert.match(latest.err.message, /TS2322/);
