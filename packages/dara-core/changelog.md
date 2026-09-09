@@ -4,18 +4,12 @@ title: Changelog
 
 ## NEXT
 
-- Removed the obsolete `DownloadContentImpl` implementation and frontend registration; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
-
-- Hardened development proxy forwarding for encoded URLs, interrupted WebSockets, stalled HTTP responses and browser disconnects.
-
-- Removed auth component `js_name`; authentication screens now use their default-export `js_source` as the registry key.
-
-- Added `ConfigurationBuilder.add_components(module)` to register public component classes from a module for dynamically rendered applications.
-
-- Development now recovers from malformed project files, closes owned processes on interruption, and handles proxy disconnections without invalid responses.
-
-- Added app-root Vite preparation, supervised development, frozen builds and Python-only artifact serving with direct component/action imports.
-- Fixed bootstrap JSON strings escaping their HTML script element.
+- Breaking: replaced the legacy frontend pipeline with an app-root Vite pipeline. `dara dev` prepares and supervises the frontend behind the Python server, `dara build` produces a frozen production build and `dara start` serves it without a JavaScript toolchain. Node and pnpm are prerequisites for development and builds.
+- Breaking: components and actions declare their implementation with `js_source`, an ES module specifier, replacing `js_module`, `js_component` and `local=True` registration.
+- Breaking: removed auth component `js_name`; authentication screens are identified by their `js_source`.
+- Removed the obsolete `DownloadContentImpl` component; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
+- Added `ConfigurationBuilder.add_components(module)` to register every public component class in a module.
+- Fixed bootstrap JSON strings closing their HTML script element.
 
 ## 1.29.9
 

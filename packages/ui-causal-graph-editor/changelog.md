@@ -2,10 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
-- Build the graph editor implementation during development preparation.
-
 ## 1.29.3
 
 - Internal: Upgraded build tooling to Vite 8 for faster builds.
