@@ -164,8 +164,4 @@ Keep the complete output, including its private `.dara-build.json` marker. Start
 
 ## Migrate an existing app
 
-Run `dara lock` to migrate supported legacy files and prepare dependencies without starting a server, then review `git diff`. `dara dev` performs the same migration before development. If manual work is required, the command stops before applying source edits; resolve the listed cases and rerun it. There is no separate migration-preview command. After reviewing the changes, run `dara check` and `dara build`.
-
-`dara dev --frozen` reports required migration without changing source files. `dara dev --backend-only` skips migration and frontend preparation. `dara check`, `dara build` and `dara start` require an already migrated app and never apply migration themselves.
-
-The migration replaces `dara.config.json`, local registration flags and legacy module declarations. Legacy asset manifests and HTML tag processors receive manual migration guidance. Ambiguous dynamic configuration is reported for manual migration. Replace `setup-custom-js` and the two-process HMR workflow with `dara dev`; replace `start --production` or `start --rebuild` with `dara build` followed by `dara start`. Existing component identities, import discovery and prop binding remain unchanged.
+See the [Dara 2.0 migration guide](../dara-2-migration.md) for automatic migration, command replacements and deployment changes.
