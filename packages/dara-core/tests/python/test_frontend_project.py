@@ -102,6 +102,7 @@ def test_auth_routes_use_source_identity_and_share_implementations(tmp_path, mon
         ('@custom/auth/login', '@custom/auth/login'),
     ]
     assert all(route['js_source'] in {item.name for item in manifest.auth} for route in routes.values())
+    assert manifest.python_packages['@custom/auth'] == 'custom_auth'
 
 
 def test_registered_concrete_class_needs_a_source():
