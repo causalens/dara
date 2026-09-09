@@ -148,6 +148,7 @@ await test("the self hook retains Vite browser defaults and evaluates the active
         inputs: new Set(),
         sourceFiles: new Set(),
         initialHashes: new Map(),
+        workspacePackages: [],
         assets: new Map(),
         state: "waiting",
         base: "/static/",

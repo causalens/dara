@@ -18,7 +18,7 @@ For older applications, use the [dara-2-migration skill](https://github.com/caus
 The plugin itself uses TypeScript 7 with strict checking and NodeNext modules. `pnpm --filter @darajs/vite-plugin build` emits Node ESM and declarations into `dist`; `pnpm --filter @darajs/vite-plugin test` compiles and runs the tests against that output. The exported `tsconfig.json` is the separate application preset.
 ## Workspaces and published libraries
 
-Apps share their workspace's pnpm catalog and lockfile. Each app keeps its private manifests and development state under its own `node_modules/.dara/`. Preparing one app retains catalog requirements used by the others. All apps must use the same Dara version; preparation checks known app Python environments and reports conflicts with both app paths. With a shared Python environment, use that environment for every app's lock/build command.
+Apps share their workspace's pnpm catalog and lockfile. Each app keeps its private manifests and development state under its own `node_modules/.dara/`. Preparation follows pnpm workspace membership, retains requirements used by other apps, and reports incompatible shared requirements with both app paths before changing the catalog. All apps must use the same Dara version. With a shared Python environment, use that environment for every app's lock/build command.
 
 Use explicit component subpaths and a source condition in a library checkout:
 
@@ -44,9 +44,9 @@ Use explicit component subpaths and a source condition in a library checkout:
 }
 ```
 
-Python declares `js_source = '@example/widgets/gauge'` in both the library's own app and consuming apps. The self-reference resolves through the app's exports without creating a dependency on itself. Both Vite and TypeScript enable `dara-source`; source must compile under the app's settings and should use relative internal imports. Shared framework dependencies are deduplicated.
+Python declares `js_source = '@example/widgets/gauge'` in both the library's own app and consuming apps. The self-reference resolves through the app's exports without creating a dependency on itself. Both Vite and TypeScript enable `dara-source` and honor export condition order. Registered component, action and setup sources join the app's type check even when its entry does not import them. Library source must compile under the app's settings and should use relative internal imports. Shared framework dependencies are deduplicated.
 
-Development never builds sibling packages. A library exposes source or runs its own build/watch command. Production builds reachable workspace dependencies in pnpm order before checking and building the app. `dara build --no-deps-build` skips dependency scripts when the repository has already prepared the necessary outputs.
+Development never builds sibling packages. A library exposes source or runs its own build/watch command. Preparation can run before a library has compiled output. Production builds reachable workspace dependencies in pnpm order before resolving registered implementations, checking types and building the app. `dara build --no-deps-build` skips dependency scripts when the repository has already prepared the necessary outputs.
 
 An app that also publishes a library keeps `vite.config.ts` and `tsconfig.json` for Dara, and uses `vite.lib.config.ts` and optionally `tsconfig.lib.json` for its library build. Choose separate outputs, such as `dist/` and `dist-lib/`; the loader rejects overlaps.
 

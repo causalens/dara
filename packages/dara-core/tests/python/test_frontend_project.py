@@ -14,7 +14,9 @@ from dara.core.configuration import ConfigurationBuilder
 from dara.core.definitions import ComponentInstance
 from dara.core.internal.import_discovery import create_action_definition, create_component_definition
 from dara.core.js_tooling import project
+from dara.core.js_tooling import workspace as workspace_files
 from dara.core.js_tooling.models import FrontendManifest, ProjectError, Requirement
+from dara.core.js_tooling.project_files import read_yaml
 from dara.core.js_tooling.source import parse_js_source
 
 
@@ -29,6 +31,20 @@ def manifest():
         actions=[],
         out_dir='dist',
     )
+
+
+@pytest.fixture
+def workspace_members(monkeypatch):
+    """Stub pnpm's membership response while retaining real project-file parsing."""
+
+    def declare(*roots):
+        monkeypatch.setattr(
+            workspace_files,
+            '_query_members',
+            lambda workspace, processes=None: tuple(root for root in roots if (root / 'package.json').exists()),
+        )
+
+    return declare
 
 
 @pytest.mark.parametrize(
@@ -123,7 +139,7 @@ def test_preparation_preserves_user_ownership_and_is_idempotent(tmp_path: Path, 
     assert result['devDependencies'] == {'react': 'catalog:dara'}
     assert result['engines']['node'].startswith('>=24.1.3')
     assert '# repository policy' in (tmp_path / 'pnpm-workspace.yaml').read_text()
-    assert project.read_yaml(tmp_path / 'pnpm-workspace.yaml')['catalogs']['user'] == {'other': '^2.0.0'}
+    assert read_yaml(tmp_path / 'pnpm-workspace.yaml')['catalogs']['user'] == {'other': '^2.0.0'}
     assert project.dependency_plan(tmp_path, manifest) == {}
 
 
@@ -155,13 +171,17 @@ def test_frozen_preparation_never_creates_project_files(tmp_path, manifest, monk
     run.assert_not_called()
 
 
-def test_lockfile_checks_dependency_document_after_pnpm_environment(tmp_path):
+def test_lockfile_checks_dependency_document_after_pnpm_environment(tmp_path, monkeypatch):
+    verify = Mock(return_value=True)
+    monkeypatch.setattr(project, 'verify_lockfile', verify)
     (tmp_path / 'package.json').write_text(json.dumps({'devDependencies': {'react': 'catalog:dara'}}))
     (tmp_path / 'pnpm-workspace.yaml').write_text('catalogs:\n  dara:\n    react: ^18.3.0\n')
     lock = "---\nlockfileVersion: '9.0'\nimporters:\n  .:\n    packageManagerDependencies: {}\n---\nlockfileVersion: '9.0'\ncatalogs:\n  dara:\n    react:\n      specifier: ^18.3.0\n      version: 18.3.1\nimporters:\n  .:\n    devDependencies:\n      react:\n        specifier: catalog:dara\n        version: 18.3.1\n"
     (tmp_path / 'pnpm-lock.yaml').write_text(lock)
     assert project.lockfile_agrees(tmp_path)
+    verify.assert_called_once()
     (tmp_path / 'package.json').write_text(json.dumps({'devDependencies': {'react': '^18.3.0'}}))
+    verify.return_value = False
     assert not project.lockfile_agrees(tmp_path)
 
 
@@ -270,28 +290,30 @@ def test_configuration_rejects_malformed_nested_fields(tmp_path, contents):
     assert caught.value.diagnostic.fix == f'edit {path}'
 
 
-def test_preparing_one_workspace_app_keeps_catalog_entries_used_by_another(tmp_path, manifest):
+def test_preparing_one_workspace_app_keeps_catalog_entries_used_by_another(tmp_path, manifest, workspace_members):
     workspace = tmp_path
     app = workspace / 'apps/a'
     other = workspace / 'apps/b'
     app.mkdir(parents=True)
     other.mkdir(parents=True)
+    workspace_members(app, other)
     (workspace / 'pnpm-workspace.yaml').write_text(
         'packages: ["apps/*"]\ncatalogs:\n  dara:\n    widgets: ^1.0.0\n    unused: ^2.0.0\n'
     )
     (other / 'package.json').write_text(json.dumps({'name': 'b', 'dependencies': {'widgets': 'catalog:dara'}}))
     for file, content in project.dependency_plan(app, manifest).items():
         project.atomic_write(file, content)
-    catalog = project.read_yaml(workspace / 'pnpm-workspace.yaml')['catalogs']['dara']
+    catalog = read_yaml(workspace / 'pnpm-workspace.yaml')['catalogs']['dara']
     assert catalog == {'widgets': '^1.0.0', 'react': '^18.3.0'}
     assert not project.dependency_plan(app, manifest)
 
 
-def test_workspace_dara_version_conflict_names_both_apps_before_writing(tmp_path, manifest):
+def test_workspace_dara_version_conflict_names_both_apps_before_writing(tmp_path, manifest, workspace_members):
     app = tmp_path / 'apps/a'
     other = tmp_path / 'apps/b'
     app.mkdir(parents=True)
     other.mkdir(parents=True)
+    workspace_members(app, other)
     (tmp_path / 'pnpm-workspace.yaml').write_text('packages: ["apps/*"]\n')
     (other / 'package.json').write_text(
         json.dumps({'name': 'b', 'devDependencies': {'@darajs/vite-plugin': 'catalog:dara'}})
@@ -308,11 +330,14 @@ def test_workspace_dara_version_conflict_names_both_apps_before_writing(tmp_path
 
 
 @pytest.mark.parametrize('app_at_workspace_root', [False, True])
-def test_workspace_library_dependency_edit_changes_the_install_fingerprint(tmp_path, app_at_workspace_root):
+def test_workspace_library_dependency_edit_changes_the_install_fingerprint(
+    tmp_path, app_at_workspace_root, workspace_members
+):
     app = tmp_path if app_at_workspace_root else tmp_path / 'app'
     library = tmp_path / 'library'
     app.mkdir(exist_ok=True)
     library.mkdir()
+    workspace_members(app, library)
     (tmp_path / 'pnpm-workspace.yaml').write_text('packages: ["*"]\n')
     (app / 'package.json').write_text('{"name":"app"}')
     file = library / 'package.json'

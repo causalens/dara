@@ -74,7 +74,11 @@ if (process.argv.includes('--watch')) {
     const sent: HotPayload[] = [];
     ws.send = (message) => sent.push(message);
     const errors: Diagnostic[] = [];
-    const stop = startTypecheck(root, { ws, watcher }, (error) => errors.push(error));
+    const stop = startTypecheck(
+      { root, typescript: { config: {} }, sourceFiles: new Set<string>() },
+      { ws, watcher },
+      (error) => errors.push(error),
+    );
     try {
       await until(() => sent.some((message) => message.type === "error"));
       fs.writeFileSync(path.join(root, "fixed"), "");
@@ -151,8 +155,10 @@ setInterval(() => {
     const sent: HotPayload[] = [];
     ws.send = (message) => sent.push(message);
     const errors: Diagnostic[] = [];
-    const stop = startTypecheck(root, { ws, watcher: new EventEmitter() }, (diagnostic) =>
-      errors.push(diagnostic),
+    const stop = startTypecheck(
+      { root, typescript: { config: {} }, sourceFiles: new Set<string>() },
+      { ws, watcher: new EventEmitter() },
+      (diagnostic) => errors.push(diagnostic),
     );
     try {
       await until(() => sent.length > 0);
@@ -199,8 +205,10 @@ fs.renameSync('compiler.pid.tmp', 'compiler.pid');
       const ws = new TestSocket();
       ws.send = () => {};
       const errors: Diagnostic[] = [];
-      const stop = startTypecheck(root, { ws, watcher: new EventEmitter() }, (error) =>
-        errors.push(error),
+      const stop = startTypecheck(
+        { root, typescript: { config: {} }, sourceFiles: new Set<string>() },
+        { ws, watcher: new EventEmitter() },
+        (error) => errors.push(error),
       );
       await until(() => fs.existsSync(path.join(root, "compiler.pid")));
       const pid = Number(fs.readFileSync(path.join(root, "compiler.pid"), "utf8"));
@@ -234,8 +242,10 @@ setInterval(() => {}, 50);
     const sent: HotPayload[] = [];
     ws.send = (message) => sent.push(message);
     const errors: Diagnostic[] = [];
-    const stop = startTypecheck(root, { ws, watcher: new EventEmitter() }, (error) =>
-      errors.push(error),
+    const stop = startTypecheck(
+      { root, typescript: { config: {} }, sourceFiles: new Set<string>() },
+      { ws, watcher: new EventEmitter() },
+      (error) => errors.push(error),
     );
     try {
       await until(() => sent.length >= 2);

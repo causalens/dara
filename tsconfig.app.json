@@ -1,0 +1,12 @@
+{
+  "extends": "./packages/vite-plugin/tsconfig.json",
+  "compilerOptions": {
+    // Repository apps check workspace source with the same strictness as its library builds.
+    "strict": true,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitReturns": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  }
+}
