@@ -9,6 +9,7 @@ from typing import Any, TypeVar
 import toml
 from pydantic import Field
 
+import click
 from dara.core.js_tooling.migration_commands import rewrite_command
 from dara.core.js_tooling.migration_javascript import JavaScriptSources
 from dara.core.js_tooling.migration_plan import Change, MigrationIssue, MigrationPlan, MigrationReadError
@@ -183,7 +184,7 @@ def _plan(plan: MigrationPlan, analyze_javascript: bool) -> None:
             MigrationIssue(
                 legacy_path if plan.read(legacy_path) is not None else root,
                 1,
-                'Legacy declarations require migration. Run dara lock without frozen mode, or inspect dara migrate --check and migrate manually.',
+                'Legacy declarations require migration. Run dara lock without frozen mode, review the changes, then retry frozen development.',
             )
         )
     for key in sorted(set(legacy) - {'extra_dependencies', 'local_entry', 'package_manager'}):
@@ -197,7 +198,7 @@ def _plan(plan: MigrationPlan, analyze_javascript: bool) -> None:
     for name in ('package-lock.json', 'yarn.lock'):
         if (root / name).exists():
             plan.notices.append(
-                f'{name} is preserved. dara dev creates a new pnpm resolution; review and commit it, then remove the obsolete lockfile.'
+                f'{name} is preserved. Frontend preparation creates a new pnpm resolution; review and commit it, then remove the obsolete lockfile.'
             )
     if (
         not old_directory.is_relative_to(root)
@@ -296,8 +297,12 @@ def migrate_before_prepare(root: Path, *, frozen: bool = False) -> list[Path]:
         )
     if not plan.changes:
         return []
+    click.echo('Legacy Dara configuration detected; applying automatic migration.', err=True)
     written = plan.apply()
     if plan.issues:
         guidance = '\n'.join(f'{issue.path}:{issue.line}: {issue.message}' for issue in plan.issues)
         raise ProjectError('migration.changed', guidance, 'review the reported files and rerun the command')
+    click.echo(f'Migrated {len(written)} files; review git diff and commit the changes.', err=True)
+    for notice in dict.fromkeys(plan.notices):
+        click.echo(f'Migration note: {notice}', err=True)
     return written

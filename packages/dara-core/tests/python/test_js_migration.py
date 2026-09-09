@@ -44,14 +44,12 @@ def contents(root):
     return {path.relative_to(root): path.read_bytes() for path in root.rglob('*') if path.is_file()}
 
 
-def test_check_preserves_every_byte_and_does_not_import(tmp_path, monkeypatch):
+def test_planning_preserves_every_byte_and_does_not_import(tmp_path):
     project(tmp_path)
-    monkeypatch.chdir(tmp_path)
     before = contents(tmp_path)
-    result = CliRunner().invoke(cli, ['migrate', '--check'])
-    assert result.exit_code == 1
-    assert 'js_source' in result.output
-    assert 'no files written' in result.output
+    plan = plan_migration(tmp_path)
+    assert plan.changes
+    assert any('js_source' in (change.after or '') for change in plan.changes)
     assert contents(tmp_path) == before
 
 
@@ -229,13 +227,13 @@ def test_removed_declarations_and_local_option_point_to_migration():
 
     from dara.core import ComponentInstance, ConfigurationBuilder
 
-    with pytest.raises(TypeError, match='dara migrate'):
+    with pytest.raises(TypeError, match='dara lock'):
         type('Legacy', (ComponentInstance,), {'js_module': None})
 
     class Current(ComponentInstance):
         js_source = './js/current.tsx'
 
-    with pytest.raises(TypeError, match='dara migrate'):
+    with pytest.raises(TypeError, match='dara lock'):
         ConfigurationBuilder().add_component(Current, local=True)
 
 

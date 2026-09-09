@@ -242,9 +242,7 @@ class ConfigurationBuilder:
         :param action: ActionImpl-subclass definition
         """
         if removed_options:
-            raise TypeError(
-                'add_action no longer accepts local=. Run dara migrate; keep the registration with js_source.'
-            )
+            raise TypeError('add_action no longer accepts local=. Run dara lock; keep the registration with js_source.')
         act_def = create_action_definition(action)
         self._actions.append(act_def)
         return act_def
@@ -297,7 +295,7 @@ class ConfigurationBuilder:
         """
         if removed_options:
             raise TypeError(
-                'add_component no longer accepts local=. Run dara migrate; keep the registration with js_source.'
+                'add_component no longer accepts local=. Run dara lock; keep the registration with js_source.'
             )
         component_def = create_component_definition(component)
 

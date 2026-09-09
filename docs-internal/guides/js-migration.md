@@ -1,8 +1,12 @@
 # Migrating custom JavaScript to the app-root pipeline
 
-Run `dara migrate --check` from the application's root before importing an old app with Dara 2.0. The command prints a unified diff and source-linked manual steps. It does not import application modules, install dependencies, or start servers. Its exit status is 1 when changes or unresolved cases remain, and 0 when migration is complete.
+Run `dara lock` from the application's root to migrate an existing app and prepare its frontend without starting a server. `dara dev` performs the same migration before starting development. Both commands inspect legacy files before importing the application. After a supported migration is applied, normal preparation imports the configuration and may install dependencies.
 
-Run `dara migrate` to apply supported edits. Review the diff, resolve the reported cases, and rerun it. Successful subsets are retained; ambiguous configuration stays in `dara.config.json`. A repeated migration does not duplicate adapters, dependencies or registration calls. All inspected inputs are checked before the first write, and each destination is checked again before replacement. A concurrent edit stops subsequent writes, and an interrupted source-tree copy can be resumed. Source edits preserve line endings and executable permissions; linked destinations and overlapping source trees require manual handling.
+If any case needs manual changes, the command exits nonzero with source locations and instructions before applying migration edits. Make the listed changes and rerun `dara lock` or `dara dev`. The automatic workflow does not apply a supported subset while other cases remain unresolved.
+
+When migration is needed, the command announces it before writing, then reports the number of changed files and any follow-up notes. Runs with no migration changes stay quiet. Once preparation succeeds, inspect `git diff` and commit the source changes and dependency files. There is no standalone migration or migration-preview command. `dara check --json` checks an already prepared project; it does not preview migration. `dara dev --frozen` reports required migration without applying it or invoking the JavaScript analyzer. `dara dev --backend-only` skips migration and frontend preparation.
+
+Repeated migration does not duplicate adapters, dependencies or registration calls. All inspected inputs are checked before the first write, and each destination is checked again before replacement. A concurrent edit stops subsequent writes; earlier completed writes can remain after a conflict or interruption. Review the changes and rerun the command to resume. Source edits preserve line endings and executable permissions; linked destinations and overlapping source trees require manual handling.
 
 The supported entry pattern uses explicit re-exports:
 
@@ -21,13 +25,13 @@ A known local source directory can move as a whole to `js/`, preserving internal
 
 Legacy `extra_dependencies` become ordinary dependencies without replacing existing requirements. Conflicts are reported with both values. npm and Yarn lockfiles are retained because their resolutions cannot be converted losslessly; the first preparation creates a pnpm lockfile for review. A uniquely recognizable Python configuration gets `[tool.dara].config`, and standalone development command usages become `dara dev`. Commands containing shell operators, expansion, continuations or comments are left unchanged for manual review. Ambiguous build/deployment commands need separate `dara build` and `dara start` steps.
 
-After migration, run:
+After reviewing the changes from `dara lock`, validate and build:
 
 ```fish
-dara dev
 dara check --json
 dara build
-dara start
 ```
 
-`dara dev` prepares missing project files and dependencies. `dara lock` does the preparation without starting development. Commit the resulting package manifest, workspace catalog, pnpm lockfile, Vite and TypeScript configuration. `dara build` then uses frozen inputs, and `dara start` serves the artifact without Node or pnpm.
+Use `dara dev` to develop the app, or `dara start` to serve the compiled output.
+
+`dara lock` and `dara dev` prepare missing project files and dependencies after migration. Commit the resulting package manifest, workspace catalog, pnpm lockfile, Vite and TypeScript configuration. `dara build` then uses frozen inputs, and `dara start` serves the artifact without Node or pnpm.
