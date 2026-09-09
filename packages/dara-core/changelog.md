@@ -9,6 +9,7 @@ title: Changelog
 - Breaking: removed auth component `js_name`; authentication screens are identified by their `js_source`.
 - Added a Dara 2.0 migration guide and the `dara-2-migration` agent skill. `dara lock` and `dara dev` convert supported `dara.config.json` settings into `package.json` automatically; source changes follow the skill.
 - Several apps can share one pnpm workspace and a workspace library can publish compiled exports; preparation reconciles the shared Dara catalog across apps and reports conflicting Python environments. `dara build --no-deps-build` skips rebuilding workspace dependencies.
+- Static assets registered with `add_static_folder` update live during development and report path collisions. `dara start` refuses a stale build whose sources, configuration or workspace inputs changed; see the new static assets guide.
 - Removed the obsolete `DownloadContentImpl` component; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
 - Added `ConfigurationBuilder.add_components(module)` to register every public component class in a module.
 - Fixed bootstrap JSON strings closing their HTML script element.
