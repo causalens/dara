@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Aligned React types for strict application checks against workspace source.
+- Aligned the `@types/react` dependency range with `@darajs/core`.
 
 ## 1.26.12
 
