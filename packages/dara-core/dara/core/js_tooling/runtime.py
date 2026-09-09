@@ -1,21 +1,18 @@
 """Serve compiled frontend artifacts or proxy the supervised development runner."""
 
-import hashlib
 import html
 import json
 import os
 from contextlib import suppress
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
 from urllib.parse import quote, unquote_to_bytes, urlparse
 
 import anyio
 import httpx
-from fastapi import HTTPException, Request
+from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field
 from starlette.requests import ClientDisconnect
 from starlette.templating import Jinja2Templates
 from starlette.types import Receive, Scope, Send
@@ -24,173 +21,29 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake, ProtocolError
 from websockets.frames import Close
 
-from dara.core.js_tooling.models import FrontendManifest, ProjectError
-from dara.core.js_tooling.project import read_json, workspace_root
-
-
-class InputRecord(BaseModel):
-    """A content fingerprint relative to a portable build input root."""
-
-    root: str
-    path: str
-    hash: str | None
-    model_config = ConfigDict(extra='forbid')
-
-
-class DirectoryRecord(BaseModel):
-    """A recorded directory inventory that detects additions as well as deletions."""
-
-    root: str
-    path: str
-    files: list[str]
-    model_config = ConfigDict(extra='forbid')
-
-
-class BuildMarker(BaseModel):
-    """Parse the deployed marker before using any of its paths or fingerprints."""
-
-    schema_version: int = Field(alias='schema')
-    daraVersion: str
-    contract: dict[str, Any]
-    contractDigest: str
-    inputs: list[InputRecord]
-    directories: list[DirectoryRecord]
-    environment: dict[str, str]
-    files: dict[str, str]
-    model_config = ConfigDict(extra='forbid')
-
-
-def _digest(value: Any) -> str:
-    return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
-    ).hexdigest()
-
-
-def _hash(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _safe_path(root: Path, relative: str) -> Path:
-    if relative.startswith('/') or '\\' in relative or ':' in relative or '..' in relative.split('/'):
-        raise ProjectError('build.marker', f'Build marker path escapes its root: {relative}', 'dara build')
-    candidate = (root / relative).resolve()
-    if not candidate.is_relative_to(root.resolve()):
-        raise ProjectError('build.marker', f'Build marker path escapes its root: {relative}', 'dara build')
-    return candidate
-
-
-def _tree_files(root: Path) -> list[str]:
-    """Match the builder's inventory, following internal links and rejecting escapes and cycles."""
-    if not root.exists():
-        return []
-    files: list[str] = []
-    visited: set[Path] = set()
-    resolved_root = root.resolve()
-
-    def walk(current: Path) -> None:
-        real = current.resolve()
-        if not real.is_relative_to(resolved_root):
-            raise ValueError(f'Input link escapes its root: {current}')
-        if real.is_dir():
-            if real in visited:
-                raise ValueError(f'Cyclic input directory: {current}')
-            visited.add(real)
-            for child in sorted(current.iterdir()):
-                walk(child)
-            visited.remove(real)
-        elif real.is_file():
-            files.append(current.relative_to(root).as_posix())
-        else:
-            raise ValueError(f'Missing or unsupported input: {current}')
-
-    walk(root)
-    return sorted(files)
-
-
-def validate_build(root: Path, manifest: FrontendManifest) -> None:
-    """Verify output and available source inputs without invoking a JavaScript toolchain."""
-    output = Path(manifest.out_dir)
-    try:
-        marker = BuildMarker.model_validate(read_json(output / '.dara-build.json'))
-        if (
-            marker.schema_version != 1
-            or marker.daraVersion != manifest.dara_version
-            or marker.contractDigest != _digest(manifest.portable())
-            or marker.contractDigest != _digest(marker.contract)
-        ):
-            raise ValueError('Registered implementations or Dara versions changed')
-        if 'index.html' not in marker.files:
-            raise ValueError('Build marker has no HTML template')
-        for relative, expected in marker.files.items():
-            file = _safe_path(output, relative)
-            if not file.is_file() or _hash(file) != expected:
-                raise ValueError(f'Changed or missing output: {relative}')
-        actual = [file for file in _tree_files(output) if file != '.dara-build.json']
-        if actual != sorted(marker.files):
-            raise ValueError('The build output file inventory changed')
-        workspace = workspace_root(root)
-        locations = {
-            'app': root,
-            'workspace': workspace,
-            **{f'asset:{i}': Path(asset.source) for i, asset in enumerate(manifest.static)},
-            **{f'appStatic:{i}': Path(folder) for i, folder in enumerate(manifest.app_static)},
-            **({'favicon': Path(manifest.favicon)} if manifest.favicon else {}),
-        }
-        checkout = any(
-            (root / name).exists()
-            for name in (
-                'js',
-                'package.json',
-                'vite.config.ts',
-                'tsconfig.json',
-                'pnpm-workspace.yaml',
-                'pnpm-lock.yaml',
-            )
-        ) or (workspace != root and (workspace / 'pnpm-lock.yaml').exists())
-        for entry in marker.inputs:
-            if entry.root in ('app', 'workspace') and not checkout:
-                continue
-            location = locations.get(entry.root)
-            if not checkout and (location is None or not location.exists()):
-                continue
-            if location is None:
-                raise ValueError(f'Missing source root: {entry.root}')
-            file = _safe_path(location, entry.path)
-            if (entry.hash is None and file.exists()) or (
-                entry.hash is not None and (not file.is_file() or _hash(file) != entry.hash)
-            ):
-                raise ValueError(f'Changed or missing input: {entry.root}/{entry.path}')
-        for tree in marker.directories:
-            if tree.root in ('app', 'workspace') and not checkout:
-                continue
-            location = locations.get(tree.root)
-            if not checkout and (location is None or not location.exists()):
-                continue
-            if location is None:
-                raise ValueError(f'Missing source directory: {tree.root}')
-            directory = _safe_path(location, tree.path)
-            files = _tree_files(directory)
-            if not directory.is_dir() or files != sorted(tree.files):
-                raise ValueError(f'Changed input inventory: {tree.root}/{tree.path}')
-        if checkout:
-            for name, fingerprint in marker.environment.items():
-                if _digest(os.environ.get(name)) != fingerprint:
-                    raise ValueError(f'Changed build environment: {name}')
-    except (ValueError, OSError, ProjectError) as exc:
-        raise ProjectError('build.stale', f'{exc}; run dara build', 'dara build') from exc
+from dara.core.js_tooling.models import ProjectError
+from dara.core.js_tooling.project_files import read_json
 
 
 class ArtifactFiles(StaticFiles):
     """Serve public output while keeping the build marker and raw Jinja template private."""
 
-    async def get_response(self, path: str, scope):
-        """Refuse private output even when accessed through a normalized alias."""
+    def lookup_path(self, path: str):
+        """Refuse private output through lexical aliases and internal filesystem links."""
         normalized = os.path.normpath('/' + path).lstrip('/')
         if normalized in ('index.html', '.dara-build.json') or any(
             part.startswith('.dara') for part in Path(path).parts
         ):
-            raise HTTPException(status_code=404)
-        return await super().get_response(path, scope)
+            return '', None
+        full_path, stat = super().lookup_path(path)
+        if stat is not None:
+            for directory in self.all_directories:
+                resolved = Path(full_path).resolve()
+                if resolved.is_relative_to(Path(directory).resolve()):
+                    relative = resolved.relative_to(Path(directory).resolve())
+                    if relative.as_posix() == 'index.html' or any(part.startswith('.dara') for part in relative.parts):
+                        return '', None
+        return full_path, stat
 
 
 def frontend_status(root: Path) -> dict:

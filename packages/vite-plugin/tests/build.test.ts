@@ -1,4 +1,4 @@
-import { ProjectError } from "../dist/contract.js";
+import { ProjectError, parseBuildMarker, type Manifest } from "../dist/contract.js";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -108,11 +108,12 @@ fs.appendFileSync('build-events', 'typecheck\\n');
     "vite.config.ts",
     "import dara from '@darajs/vite-plugin'; export default {plugins:[dara()]};\n",
   );
-  const manifest = {
+  const manifest: Manifest = {
     schema: 1,
     configuration: "app.main:config",
     daraVersion: version,
     packageRequirements: [],
+    pythonPackages: {},
     moduleDependencies: [],
     components: [{ name: "Widget", source: "widgets" }],
     actions: [],
@@ -212,4 +213,69 @@ await test("library overlap uses the configured root and plugin-resolved output"
   const project = await loadProject(root, manifest, "build");
   assert.ok(project.inputs.has(path.join(root, "vite.lib.config.ts")));
   assert.equal(fs.existsSync(path.join(root, "build-events")), false);
+});
+
+await test("custom loaders must declare files they read before Dara's load hook", async (t) => {
+  const { root, manifest, write } = fixture(t, true);
+  write("shared/value.js", "export default 'original';\n");
+  write(
+    "js/index.tsx",
+    "import value from '../shared/value.js'; globalThis.loaderValue = value;\n",
+  );
+  const config = (declare: boolean, mutate: boolean) => `
+import fs from 'node:fs';
+import dara from '@darajs/vite-plugin';
+export default { plugins: [
+  { name: 'custom-loader', enforce: 'pre', load(id) { if (id.endsWith('/shared/value.js')) return fs.readFileSync(id, 'utf8'); } },
+  dara(${declare ? "{ inputs: ['shared/value.js'] }" : ""}),
+  ${mutate ? "{ name: 'mutate-input', generateBundle() { fs.writeFileSync('shared/value.js', \"export default 'changed';\"); } }," : ""}
+] };
+`;
+  write("vite.config.ts", config(false, false));
+  await assert.rejects(
+    buildProject(await loadProject(root, manifest, "build")),
+    (error) =>
+      error instanceof ProjectError &&
+      error.diagnostic?.code === "build.input" &&
+      error.message.includes("Custom loader"),
+  );
+  assert.equal(fs.existsSync(path.join(root, "dist")), false);
+  write("vite.config.ts", config(true, false));
+  await buildProject(await loadProject(root, manifest, "build"));
+  const previous = fs.readFileSync(path.join(root, "dist/.dara-build.json"), "utf8");
+  write(
+    "vite.config.ts",
+    config(true, true).replace(
+      "fs.writeFileSync('shared/value.js'",
+      `fs.writeFileSync(${JSON.stringify(path.join(root, "shared/value.js"))}`,
+    ),
+  );
+  await assert.rejects(
+    buildProject(await loadProject(root, manifest, "build")),
+    (error) => error instanceof ProjectError && error.diagnostic?.code === "build.changed",
+  );
+  assert.equal(fs.readFileSync(path.join(root, "dist/.dara-build.json"), "utf8"), previous);
+});
+
+await test("one asset directory records every registered deployment identity", async (t) => {
+  const { root, manifest, write } = fixture(t, true);
+  write("registered/file.js", "export default 'shared';\n");
+  const shared = path.join(root, "registered");
+  manifest.static = [{ package: "example", source: shared, target: "" }];
+  manifest.appStatic = [shared];
+  await buildProject(await loadProject(root, manifest, "build"));
+  const marker = parseBuildMarker(
+    JSON.parse(fs.readFileSync(path.join(root, "dist/.dara-build.json"), "utf8")),
+  );
+  for (const identity of ["asset:0", "appStatic:0"]) {
+    assert.ok(marker.inputs.some((input) => input.root === identity && input.path === "file.js"));
+    assert.ok(marker.directories.some((input) => input.root === identity && input.path === "."));
+  }
+  assert.ok(
+    !marker.inputs.some((input) => input.root === "app" && input.path === "registered/file.js"),
+  );
+  assert.equal(
+    fs.readFileSync(path.join(root, "dist/example/file.js"), "utf8"),
+    fs.readFileSync(path.join(root, "dist/file.js"), "utf8"),
+  );
 });

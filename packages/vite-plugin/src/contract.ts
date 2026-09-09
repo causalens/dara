@@ -192,19 +192,92 @@ export function digest(value: unknown): string {
 
 /** Select the portable runtime contract, excluding machine-specific asset paths. */
 export function portable(manifest: Manifest) {
-  return Object.fromEntries(
-    (
-      [
-        "schema",
-        "daraVersion",
-        "packageRequirements",
-        "moduleDependencies",
-        "components",
-        "actions",
-        "auth",
-      ] satisfies (keyof Manifest)[]
-    ).map((key) => [key, manifest[key]]),
+  const {
+    schema: schemaVersion,
+    daraVersion,
+    packageRequirements,
+    moduleDependencies,
+    components,
+    actions,
+    auth,
+  } = manifest;
+  return {
+    schema: schemaVersion,
+    daraVersion,
+    packageRequirements,
+    moduleDependencies,
+    components,
+    actions,
+    auth,
+    static: manifest.static.map(({ package: owner, target }) => ({ package: owner, target })),
+  };
+}
+
+const relativePath = z
+  .string()
+  .min(1)
+  .refine(
+    (value) =>
+      !value.includes("\\") &&
+      !value.includes(":") &&
+      !path.posix.isAbsolute(value) &&
+      path.posix.normalize(value) === value &&
+      !value.split("/").includes(".."),
   );
+const hash = z.string().regex(/^[a-f0-9]{64}$/);
+const rootName = z.string().regex(/^(app|workspace|favicon|asset:[0-9]+|appStatic:[0-9]+)$/);
+const portableSchema = schema
+  .pick({
+    schema: true,
+    daraVersion: true,
+    packageRequirements: true,
+    moduleDependencies: true,
+    components: true,
+    actions: true,
+    auth: true,
+  })
+  .extend({
+    static: z.array(z.object({ package: z.string(), target: z.string() }).strict()),
+  })
+  .strict();
+const markerSchema = z
+  .object({
+    schema: z.literal(1),
+    daraVersion: z.string(),
+    workspaceRoot: z.string().regex(/^(\.|\.\.(?:\/\.\.)*)$/),
+    contract: portableSchema,
+    contractDigest: hash,
+    inputs: z.array(
+      z.object({ root: rootName, path: relativePath, hash: hash.nullable() }).strict(),
+    ),
+    directories: z.array(
+      z
+        .object({
+          root: rootName,
+          path: relativePath,
+          files: z.array(relativePath),
+          recursive: z.boolean().default(true),
+        })
+        .strict(),
+    ),
+    environment: z.record(z.string(), hash),
+    files: z.record(relativePath, hash),
+  })
+  .strict();
+
+/** Parse a complete private marker before publication or destructive recovery decisions. */
+export function parseBuildMarker(value: unknown) {
+  const result = markerSchema.safeParse(value);
+  if (!result.success) {
+    throw new ProjectError("build.marker", result.error.message, "dara build");
+  }
+  if (result.data.contractDigest !== digest(result.data.contract)) {
+    throw new ProjectError("build.marker", "Build contract digest is invalid", "dara build");
+  }
+  if (result.data.daraVersion !== result.data.contract.daraVersion) {
+    throw new ProjectError("build.marker", "Build marker versions are inconsistent", "dara build");
+  }
+  return result.data;
 }
 
 /** Build direct imports and maps; serialization prevents source and name injection. */

@@ -8,6 +8,7 @@ import react from "@vitejs/plugin-react";
 import { defaultClientConditions } from "vite";
 import { selfReference } from "./exports.js";
 import { convertPathToPattern } from "tinyglobby";
+import { defaultClientConditions } from "vite";
 import {
   ProjectError,
   generateEntry,
@@ -148,10 +149,12 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
             path.isAbsolute(file) &&
             fs.existsSync(file) &&
             fs.statSync(file).isFile() &&
-            !file.split(path.sep).includes("node_modules") &&
-            !api.project.observedHashes.has(file)
+            !file.split(path.sep).includes("node_modules")
           ) {
-            api.project.observedHashes.set(file, fileHash(file));
+            const real = fs.realpathSync(file);
+            if (!api.project.observedHashes.has(real)) {
+              api.project.observedHashes.set(real, fileHash(real));
+            }
           }
           return null;
         }

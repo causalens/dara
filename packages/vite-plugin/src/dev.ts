@@ -190,32 +190,14 @@ export async function serveProject(
       server?.ws.send({ type: "full-reload" });
       return;
     }
-    if (project && assetRoots(project.manifest).some((assetRoot) => inside(assetRoot, file))) {
-      revision = revision.then(() => {
-        try {
-          project.assets = collectAssets(project.manifest);
-          project.state = "ready";
-          state({ state: "ready", runtime: process.version });
-          server?.ws.send({ type: "full-reload" });
-        } catch (error) {
-          project.state = "blocked";
-          const diagnostic = error.diagnostic ?? {
-            code: "asset.source",
-            message: error.message,
-            fix: "edit static registrations",
-          };
-          state({ state: "blocked", diagnostic });
-          server?.ws.send({
-            type: "error",
-            err: { message: diagnostic.message, stack: "", plugin: "Dara" },
-          });
-        }
-      });
-      return;
-    }
     if (configFiles.has(file)) {
       revision = revision.then(() => update(true));
-    } else if (file === manifestPath || !server || project?.state !== "ready") {
+    } else if (
+      file === manifestPath ||
+      !server ||
+      project?.state !== "ready" ||
+      assetRoots(project.manifest).some((assetRoot) => inside(assetRoot, file))
+    ) {
       revision = revision.then(() => update());
     }
   });
@@ -227,8 +209,10 @@ export async function serveProject(
       stopped = true;
       process.off("SIGINT", stop);
       process.off("SIGTERM", stop);
-      await watcher.close();
+      // A refresh already awaiting configuration can still add watched paths.
+      // Drain it before closing the watcher so those additions cannot reopen it.
       await revision;
+      await watcher.close();
       await closeRuntime();
       const status = path.join(root, "node_modules/.dara/dev-server.json");
       if (
