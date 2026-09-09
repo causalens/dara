@@ -144,7 +144,6 @@ export function startTypecheck(
           publish(output.slice(0, end), summary[1] === "0");
           output = output.slice(end);
         }
-
       }
     };
     child.stdout.on("data", report);
