@@ -401,22 +401,20 @@ Custom authentication configurations must define a `component_config` class vari
 -   `logout` - Component shown on the logout page
 -   `extra` - Additional components for custom auth routes (e.g., SSO callback pages)
 
-Each component is defined as an `AuthComponent` with the JavaScript module and component name:
+Each `AuthComponent` specifies `js_source`, the module that default-exports the screen, and `py_module`, the Python package used to determine its dependency version. Dara uses `js_source` to look up the screen before authentication. Multiple routes can share the same source, and the exported function can have any name.
 
 ```python
 from typing import ClassVar
 from dara.core.auth.base import AuthComponent, AuthComponentConfig, BaseAuthConfig
 
 MyLoginComponent = AuthComponent(
-    js_module='my-custom-auth-package',
-    py_module='my_custom_auth',
-    js_name='MyLoginComponent'
+    js_source='my-custom-auth-package/login',
+    py_module='my_custom_auth'
 )
 
 MyLogoutComponent = AuthComponent(
-    js_module='my-custom-auth-package',
-    py_module='my_custom_auth',
-    js_name='MyLogoutComponent'
+    js_source='my-custom-auth-package/logout',
+    py_module='my_custom_auth'
 )
 
 class MyCustomAuthConfig(BaseAuthConfig):

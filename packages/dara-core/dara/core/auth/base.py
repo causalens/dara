@@ -46,10 +46,7 @@ class AuthComponent(TypedDict):
     """Name of python module"""
 
     js_source: str
-    """Module that default-exports the authentication screen"""
-
-    js_name: str
-    """Name of javascript component"""
+    """Module that default-exports the authentication screen and identifies it in the auth registry"""
 
 
 class AuthComponentConfig(BaseModel):

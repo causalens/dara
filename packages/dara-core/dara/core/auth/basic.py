@@ -35,17 +35,11 @@ from dara.core.auth.definitions import (
 )
 from dara.core.auth.utils import decode_token, sign_jwt
 
-DefaultAuthLogin = AuthComponent(
-    js_source='@darajs/core/auth/default/default-auth-login', py_module='dara.core', js_name='DefaultAuthLogin'
-)
+DefaultAuthLogin = AuthComponent(js_source='@darajs/core/auth/default/default-auth-login', py_module='dara.core')
 
-BasicAuthLogin = AuthComponent(
-    js_source='@darajs/core/auth/basic/basic-auth-login', py_module='dara.core', js_name='BasicAuthLogin'
-)
+BasicAuthLogin = AuthComponent(js_source='@darajs/core/auth/basic/basic-auth-login', py_module='dara.core')
 
-BasicAuthLogout = AuthComponent(
-    js_source='@darajs/core/auth/basic/basic-auth-logout', py_module='dara.core', js_name='BasicAuthLogout'
-)
+BasicAuthLogout = AuthComponent(js_source='@darajs/core/auth/basic/basic-auth-logout', py_module='dara.core')
 
 
 class BaseBasicAuthConfig(BaseAuthConfig):

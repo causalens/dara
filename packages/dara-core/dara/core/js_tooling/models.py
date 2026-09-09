@@ -39,7 +39,7 @@ class Requirement(Contract):
 
 
 class Implementation(Contract):
-    """An existing serialized runtime name and its default-export implementation."""
+    """A runtime registry key and its default-export implementation."""
 
     name: str
     source: JsSource
@@ -71,7 +71,7 @@ class FrontendManifest(Contract):
     module_dependencies: list[ModuleDependency]
     components: list[Implementation]
     actions: list[Implementation]
-    # Auth uses an unauthenticated registry, retaining its existing module/name key.
+    # Auth uses an unauthenticated registry keyed by the implementation source.
     auth: list[Implementation] = []
     static: list[StaticSource] = []
     app_static: list[str] = []
