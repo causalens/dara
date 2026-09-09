@@ -1595,12 +1595,21 @@ importers:
       '@darajs/oxlint-config':
         specifier: 1.29.10
         version: link:../oxlint-config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.3
+      '@types/semver':
+        specifier: ^7.7.0
+        version: 7.8.0
       oxfmt:
         specifier: ^0.60.0
         version: 0.60.0
       oxlint:
         specifier: ^1.75.0
         version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      typescript:
+        specifier: ^7.0.0
+        version: 7.0.2
 
 packages:
 
@@ -4464,6 +4473,9 @@ packages:
 
   '@types/scheduler@0.23.0':
     resolution: {integrity: sha512-YIoDCTH3Af6XM5VuwGG/QL/CJqga1Zm3NkU3HZ4ZHK2fRMPYP1VczsTUqtsf43PH/iJNVlPHAo2oWX7BSdB2Hw==}
+
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
 
   '@types/sinonjs__fake-timers@8.1.1':
     resolution: {integrity: sha512-0kSuKjAS0TrGLJ0M/+8MaFkGsQhZpB6pxOmvS3K8FYI72K//YmdfoW9X2qPsAKh1mkwxGD5zib9s1FIFed6E8g==}
@@ -13365,6 +13377,8 @@ snapshots:
   '@types/resolve@1.20.6': {}
 
   '@types/scheduler@0.23.0': {}
+
+  '@types/semver@7.8.0': {}
 
   '@types/sinonjs__fake-timers@8.1.1': {}
 
