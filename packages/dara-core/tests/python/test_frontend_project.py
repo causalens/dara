@@ -346,4 +346,3 @@ def test_workspace_library_dependency_edit_changes_the_install_fingerprint(
     before = project.dependency_fingerprint(app)
     file.write_text('{"name":"library","dependencies":{"new":"^1.0.0"}}')
     assert project.dependency_fingerprint(app) != before
-
