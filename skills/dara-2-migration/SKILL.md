@@ -32,7 +32,7 @@ Use the actual importable module and configuration object found in step 1. Every
 
 ## 3. Migrate source and legacy settings
 
-For applications with custom components, actions, authentication UI or setup code, follow [custom-javascript.md](custom-javascript.md). For repositories that publish component packages, also follow [packages.md](packages.md), including its packed-consumer check. Upgrade an external package to a compatible release; treat unavailable compatibility as an unresolved dependency.
+For applications with custom components, actions, authentication UI or setup code, follow [custom-javascript.md](references/custom-javascript.md). For repositories that publish component packages, also follow [packages.md](references/packages.md), including its packed-consumer check. Upgrade an external package to a compatible release; treat unavailable compatibility as an unresolved dependency.
 
 Review every key in `dara.config.json`. Automatic conversion accepts `local_entry` pointing to `js/`, `package_manager` set to `pnpm`, `npm` or `yarn`, and string-valued `extra_dependencies`. It copies missing dependencies into `package.json`, preserves matching declarations across dependency sections, and reports conflicting requirements. Resolve conflicts deliberately using the application's actual compatibility requirements.
 

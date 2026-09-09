@@ -1,6 +1,6 @@
 # Published component packages
 
-Apply the component and setup rules in [custom-javascript.md](custom-javascript.md) before preparing exports.
+Apply the component and setup rules from the custom JavaScript reference before preparing exports.
 
 ## Python and npm contracts
 
