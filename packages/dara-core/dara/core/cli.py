@@ -11,6 +11,7 @@ import uvicorn
 import click
 from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
+from dara.core.js_tooling.migration import migrate_before_prepare
 from dara.core.js_tooling.models import ProjectError
 from dara.core.js_tooling.project import (
     check_toolchain,
@@ -154,6 +155,10 @@ def dev(
     if root:
         os.chdir(root)
     root = Path.cwd().resolve()
+    if not backend_only:
+        migrated = migrate_before_prepare(root, frozen=frozen)
+        if migrated:
+            click.echo(f'Migrated {len(migrated)} files; review the source changes.')
     reference, serving = _serving('dev', **options)
     os.environ['DARA_LIVE_RELOAD'] = 'FALSE' if no_reload or frontend_only else 'TRUE'
     os.environ['DARA_ENFORCE_SSO'] = 'FALSE'
@@ -183,6 +188,9 @@ def _manifest(config: str | None, output: str | None = None):
 @click.option('--config')
 def lock(config: str | None):
     """Prepare declared dependencies and missing project files without starting a server."""
+    migrated = migrate_before_prepare(Path.cwd().resolve())
+    if migrated:
+        click.echo(f'Migrated {len(migrated)} files; review the source changes.')
     root, manifest = _manifest(config)
     prepare_project(root, manifest)
 
@@ -268,7 +276,7 @@ def generate_env(force: bool):
 @cli.command()
 @click.option('--check', 'dry_run', is_flag=True, help='Show the proposed diff without writing files')
 def migrate(dry_run: bool):
-    """Convert supported legacy files without importing the app or installing dependencies."""
+    """Convert supported legacy files without importing the app or installing app dependencies."""
     from dara.core.js_tooling.migration import plan_migration
 
     plan = plan_migration(Path.cwd())

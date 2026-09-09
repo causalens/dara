@@ -8,6 +8,8 @@ import pytest
 from dara.core.js_tooling.migration_javascript import JavaScriptSources
 from dara.core.js_tooling.migration_plan import MigrationPlan, SourceRequest
 
+pytestmark = pytest.mark.usefixtures('migration_analyzer')
+
 
 def sources(
     root: Path, *, entry='index.tsx', directory='js', body='export default function Counter() { return null; }'
@@ -118,11 +120,12 @@ def test_templates_regexes_and_types_cannot_prove_runtime_exports(tmp_path, body
 
 
 def test_real_export_survives_templates_regex_literals_and_jsx(tmp_path):
-    plan, _, js = sources(
+    plan, source, js = sources(
         tmp_path,
         body='const text = `outer ${`inner ${1}`}`; const pattern = /[{}]/; export default function Counter() { return <div>{text}</div>; }',
     )
-    assert js.resolve(request(plan)) == './js/counter.ts'
+    (source / 'counter.ts').rename(source / 'counter.tsx')
+    assert js.resolve(request(plan)) == './js/counter.tsx'
     assert not plan.issues
 
 
@@ -153,9 +156,14 @@ def test_unparenthesized_jsx_before_export_requires_manual_resolution(tmp_path, 
         ({'compilerOptions': {'allowImportingTsExtensions': True}}, True),
     ],
 )
-def test_typed_adapters_require_explicit_extension_support_in_custom_config(tmp_path, config, allowed):
+def test_typed_adapters_require_explicit_extension_support_in_custom_config(
+    tmp_path, config, allowed, migration_analyzer
+):
     plan, source, _ = sources(tmp_path, body='export function Counter() {}')
     (tmp_path / 'tsconfig.json').write_text(json.dumps(config))
+    package = tmp_path / 'node_modules/@darajs/vite-plugin'
+    package.parent.mkdir(parents=True)
+    package.symlink_to(migration_analyzer, target_is_directory=True)
     (source / 'index.tsx').write_text("export { Counter } from './counter';\n")
     plan = MigrationPlan(tmp_path.resolve())
     result = JavaScriptSources(plan, source, source).resolve(request(plan))
