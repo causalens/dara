@@ -8,6 +8,8 @@ import pytest
 from click.testing import CliRunner
 from dara.core.cli import cli
 
+pytestmark = pytest.mark.usefixtures('migration_analyzer')
+
 
 @pytest.fixture(autouse=True)
 def isolated_environment():

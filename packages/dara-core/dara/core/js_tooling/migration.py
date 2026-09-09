@@ -153,7 +153,7 @@ def _configuration(plan: MigrationPlan, sources: PythonSources) -> None:
     plan.write(path, updated)
 
 
-def _plan(plan: MigrationPlan) -> None:
+def _plan(plan: MigrationPlan, analyze_javascript: bool) -> None:
     root = plan.root
     files = list(_files(root))
     legacy_path = root / 'dara.config.json'
@@ -178,6 +178,14 @@ def _plan(plan: MigrationPlan) -> None:
     if plan.read(legacy_path) is None and not sources.needed:
         plan.finish()
         return
+    if not analyze_javascript:
+        raise MigrationReadError(
+            MigrationIssue(
+                legacy_path if plan.read(legacy_path) is not None else root,
+                1,
+                'Legacy declarations require migration. Run dara lock without frozen mode, or inspect dara migrate --check and migrate manually.',
+            )
+        )
     for key in sorted(set(legacy) - {'extra_dependencies', 'local_entry', 'package_manager'}):
         plan.issues.append(
             MigrationIssue(legacy_path, 1, f'Resolve the customized {key!r} setting, then remove that key.')
@@ -208,7 +216,7 @@ def _plan(plan: MigrationPlan) -> None:
         raise MigrationReadError(
             MigrationIssue(legacy_path, 1, 'Overlapping local_entry and js/ trees must be merged manually.')
         )
-    javascript = JavaScriptSources(plan, old_directory, target_directory)
+    javascript = JavaScriptSources(plan, old_directory, target_directory, sources.requests)
     if move:
         moved = plan.source_tree(old_directory)
         if any(path.suffix == '.py' for path in moved):
@@ -260,13 +268,36 @@ def _plan(plan: MigrationPlan) -> None:
     plan.finish()
 
 
-def plan_migration(root: Path) -> MigrationPlan:
+def plan_migration(root: Path, *, analyze_javascript: bool = True) -> MigrationPlan:
     """Inspect legacy files statically and propose only transformations with resolved sources."""
     plan = MigrationPlan(root.resolve())
     try:
-        _plan(plan)
+        _plan(plan, analyze_javascript)
     except MigrationReadError as error:
         plan.issues.append(error.issue)
     except (OSError, RuntimeError) as error:
         plan.issues.append(MigrationIssue(plan.root, 1, f'Cannot inspect migration inputs: {error}'))
     return plan
+
+
+def migrate_before_prepare(root: Path, *, frozen: bool = False) -> list[Path]:
+    """Apply a complete supported migration before importing the app; unresolved plans write nothing."""
+    plan = plan_migration(root, analyze_javascript=not frozen)
+    if plan.issues:
+        guidance = '\n'.join(f'{issue.path}:{issue.line}: {issue.message}' for issue in plan.issues)
+        raise ProjectError(
+            'migration.manual', guidance, 'make the listed manual edits, then rerun dara lock or dara dev'
+        )
+    if frozen and plan.changes:
+        raise ProjectError(
+            'migration.required',
+            'Frozen development cannot apply legacy source changes',
+            'run dara lock and review the migration before retrying --frozen',
+        )
+    if not plan.changes:
+        return []
+    written = plan.apply()
+    if plan.issues:
+        guidance = '\n'.join(f'{issue.path}:{issue.line}: {issue.message}' for issue in plan.issues)
+        raise ProjectError('migration.changed', guidance, 'review the reported files and rerun the command')
+    return written
