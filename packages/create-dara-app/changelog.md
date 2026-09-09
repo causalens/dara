@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Updated generated application guidance for automatic legacy migration during `dara lock` and `dara dev`.
+
 - Generated app-root frontend configuration and pinned Node/pnpm tooling for the standard Dara development workflow.
 - `create-dara-app` now generates uv-compatible projects instead of Poetry projects. The scaffolded `pyproject.toml` uses a standard Hatchling build backend with a `dependency-groups` dev section, dependencies are installed with `uv sync --locked --all-groups` when available (falling back to `pip`), a `mise.toml` ships with lint/type-check/build/run tasks, and the `--packaging pip|poetry` flag has been removed.
 
