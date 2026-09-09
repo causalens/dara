@@ -127,6 +127,21 @@ class MigrationPlan:
     _proposed: dict[Path, str | None] = field(default_factory=dict, repr=False)
     _modes: dict[Path, int] = field(default_factory=dict, repr=False)
     _trees: dict[Path, tuple[str, ...]] = field(default_factory=dict, repr=False)
+    _directories: dict[Path, tuple[str, ...] | None] = field(default_factory=dict, repr=False)
+
+    def observe_directory(self, path: Path, entries: list[str] | None) -> None:
+        """Adopt resolver search directories so new candidates invalidate an analyzed plan."""
+        expected = tuple(entries) if entries is not None else None
+        actual = tuple(sorted(os.listdir(path))) if path.exists() else None
+        if (
+            not path.is_absolute()
+            or actual != expected
+            or (path in self._directories and self._directories[path] != expected)
+        ):
+            raise MigrationReadError(
+                MigrationIssue(path, 1, 'Directory changed during migration analysis; rerun the command.')
+            )
+        self._directories[path] = expected
 
     def read(self, path: Path) -> str | None:
         """Read an exact UTF-8 snapshot once, including read-only package metadata."""
@@ -217,6 +232,9 @@ class MigrationPlan:
             for path, inventory in self._trees.items():
                 if _inventory(path) != inventory:
                     raise ValueError('Source tree changed during migration; rerun dara migrate.')
+            for path, entries in self._directories.items():
+                if (tuple(sorted(os.listdir(path))) if path.exists() else None) != entries:
+                    raise ValueError('Resolver directory changed during migration; rerun dara migrate.')
             for change in self.changes:
                 path = change.path
                 self._destination(path)

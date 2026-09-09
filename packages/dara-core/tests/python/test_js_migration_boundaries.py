@@ -9,6 +9,8 @@ import pytest
 from dara.core.js_tooling import migration_plan
 from dara.core.js_tooling.migration import plan_migration
 
+pytestmark = pytest.mark.usefixtures('migration_analyzer')
+
 
 def project(root: Path, *, entry='index.tsx'):
     root.mkdir(parents=True, exist_ok=True)

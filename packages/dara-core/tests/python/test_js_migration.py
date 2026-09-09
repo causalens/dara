@@ -3,9 +3,13 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from click.testing import CliRunner
 from dara.core.cli import cli
 from dara.core.js_tooling.migration import plan_migration
+
+pytestmark = pytest.mark.usefixtures('migration_analyzer')
 
 
 def project(root: Path, *, named=False):
@@ -80,7 +84,7 @@ def test_named_export_adapter_is_deterministic_and_partial_migration_is_repeatab
     assert legacy.exists()
     adapters = list((tmp_path / 'js/dara-adapters').glob('*.ts'))
     assert len(adapters) == 1
-    assert 'export { Counter as default } from "../counter.tsx";' in adapters[0].read_text()
+    assert 'export { "Counter" as default } from "../counter.tsx";' in adapters[0].read_text()
     assert not plan_migration(tmp_path).changes
     del data['custom_vite']
     legacy.write_text(json.dumps(data))
