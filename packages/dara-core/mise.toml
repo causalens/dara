@@ -17,3 +17,20 @@ run = "mkdir -p ./dist && uv run --locked --package dara-core --group dev pytest
 
 [tasks.package]
 run = "uv build --package dara-core --wheel"
+
+# JavaScript tasks (wrap the package.json scripts)
+[tasks.lint-js]
+run = "pnpm run lint"
+
+[tasks.format-js]
+run = "pnpm run format"
+
+[tasks.format-js-check]
+run = "pnpm run format:check"
+
+[tasks.test-js]
+run = "pnpm run test"
+
+[tasks.bearer]
+depends = ["//:bearer-install"]
+run = "../../bin/bearer scan js --force --config-file ../../bearer.yml"

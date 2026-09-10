@@ -22,27 +22,29 @@ run = "uv sync --locked --all-packages --all-groups --all-extras"
 description = "Fail if uv.lock is out of date with the pyprojects"
 run = "uv lock --check"
 
-# Python package tasks (previously `poetry anthology run <script>`)
+# Python package tasks, aggregated from each package's mise.toml (previously `poetry anthology run <script>`)
 [tasks.lint]
-run = "mise run --jobs 1 '//packages/...:lint'"
+run = "mise run '//packages/...:lint'"
 
 [tasks.format]
-run = "mise run --jobs 1 '//packages/...:format'"
+run = "mise run '//packages/...:format'"
 
 [tasks.format-check]
-run = "mise run --jobs 1 '//packages/...:format-check'"
+run = "mise run '//packages/...:format-check'"
 
 [tasks.test]
+# Sequential: each package already runs pytest -n auto and the pool tests must not overlap.
 run = "mise run --jobs 1 '//packages/...:test'"
 
 [tasks.security-scan]
-run = "mise run --jobs 1 '//packages/...:security-scan'"
+run = "mise run '//packages/...:security-scan'"
 
 [tasks.package]
 description = "Build wheels for the publishable Python packages"
-run = "mise run --jobs 1 '//packages/...:package'"
+run = "mise run '//packages/...:package'"
 
-# JavaScript tasks (previously Makefile targets)
+# JavaScript tasks. Per-package lint/format/test tasks wrap the package.json scripts and
+# run in parallel; builds and publishing stay on lerna for topological ordering.
 [tasks.deps-project]
 description = "Install JS dependencies with a frozen lockfile"
 run = "pnpm install --frozen-lockfile && if [ -f .npmrc ]; then sed -i '$ d' .npmrc; fi"
@@ -56,20 +58,25 @@ description = "Build JS packages in development mode"
 run = "pnpm lerna run prepare-dev"
 
 [tasks.lint-js]
-run = "./tooling/scripts/lint-js.sh"
+run = "mise run '//packages/...:lint-js'"
+
+[tasks.bearer-install]
+description = "Install bearer into ./bin if missing"
+run = "test -f ./bin/bearer || curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh -s -- v1.39.0"
 
 [tasks.bearer]
-run = "./tooling/scripts/bearer.sh"
+description = "JS security scan"
+run = "mise run '//packages/...:bearer'"
 
 [tasks.test-js]
 description = "Run JS tests across all packages"
-run = "pnpm lerna run test"
+run = "mise run '//packages/...:test-js'"
 
 [tasks.format-js]
-run = "pnpm lerna run format"
+run = "mise run '//packages/...:format-js'"
 
 [tasks.format-js-check]
-run = "pnpm lerna run format:check"
+run = "mise run '//packages/...:format-js-check'"
 
 # Release tasks (previously Makefile publish/version targets)
 [tasks.publish-python]
