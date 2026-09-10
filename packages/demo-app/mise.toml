@@ -1,0 +1,11 @@
+[tasks.lint]
+description = "Lint the playground application"
+run = "uv run --locked --package demo-app --group dev ruff check ."
+
+[tasks.format]
+description = "Format the playground application"
+run = "uv run --locked --package demo-app --group dev ruff format ."
+
+[tasks.format-check]
+description = "Check the playground application formatting"
+run = "uv run --locked --package demo-app --group dev ruff format --check ."

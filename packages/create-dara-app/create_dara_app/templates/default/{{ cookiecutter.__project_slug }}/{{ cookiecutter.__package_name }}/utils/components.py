@@ -1,16 +1,17 @@
 import math
+from typing import cast
 
-import matplotlib.tri as tri
 import numpy
 import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 from bokeh.plotting import figure
-from cai_causal_graph import CausalGraph
+from matplotlib import tri
 from matplotlib.figure import Figure
 from pandas import DataFrame
 from scipy.integrate import odeint
 
+from cai_causal_graph import CausalGraph
 from dara.components import (
     Accordion,
     AccordionItem,
@@ -71,6 +72,15 @@ from dara.components.plotting.palettes import PolarisingLight11
 from dara.core import ComponentInstance, DataVariable, Variable, py_component
 from dara.core.css import get_icon
 from dara.core.visual.themes.light import Light
+
+light_colors = Light.colors
+assert light_colors is not None
+light_violet = light_colors.violet
+light_teal = light_colors.teal
+light_orange = light_colors.orange
+assert light_violet is not None
+assert light_teal is not None
+assert light_orange is not None
 
 form_value = Variable({})
 show_modal = Variable(False)
@@ -432,14 +442,14 @@ def plotly() -> ComponentInstance:
     def get_plotly_figure():
 
         # Load data, define hover text and bubble size
-        data = px.data.gapminder()
+        data = cast(DataFrame, px.data.gapminder())
         df_2007 = data[data['year'] == 2007]
-        df_2007 = df_2007.sort_values(['continent', 'country'])
+        df_2007 = df_2007.sort_values(['continent', 'country'])  # pyright: ignore[reportCallIssue]
 
         hover_text = []
         bubble_size = []
 
-        for index, row in df_2007.iterrows():
+        for _, row in df_2007.iterrows():
             hover_text.append(
                 (
                     'Country: {country}<br>'
@@ -463,7 +473,7 @@ def plotly() -> ComponentInstance:
 
         # Dictionary with dataframes for each continent
         continent_names = ['Africa', 'Americas', 'Asia', 'Europe', 'Oceania']
-        continent_data = {continent: df_2007.query("continent == '%s'" % continent) for continent in continent_names}
+        continent_data = {continent: df_2007.query(f"continent == '{continent}'") for continent in continent_names}
 
         # Create figure
         fig = go.Figure()
@@ -767,17 +777,17 @@ def accordion() -> ComponentInstance:
                 AccordionItem(
                     label='First item',
                     content=Text('This is some content'),
-                    badge=ItemBadge(label='Label', color=Light.colors.violet),
+                    badge=ItemBadge(label='Label', color=light_violet),
                 ),
                 AccordionItem(
                     label='Second item',
                     content=Text('This is some content'),
-                    badge=ItemBadge(label='Label', color=Light.colors.teal),
+                    badge=ItemBadge(label='Label', color=light_teal),
                 ),
                 AccordionItem(
                     label='Third item',
                     content=Text('This is some content'),
-                    badge=ItemBadge(label='Label', color=Light.colors.orange),
+                    badge=ItemBadge(label='Label', color=light_orange),
                 ),
             ],
         ),

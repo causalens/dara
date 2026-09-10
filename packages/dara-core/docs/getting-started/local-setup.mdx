@@ -92,15 +92,15 @@ requires-python = ">=3.10, <3.13"
 dependencies = []
 
 [build-system]
-requires = ["setuptools>=64.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["<your_app_name>"]
 ```
 
 :::warning
-The package name cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` package. Set `[tool.setuptools] packages` to the same value.
+The package name cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` package. Set `[tool.hatch.build.targets.wheel] packages` to the same value.
 :::
 
 As the `readme` field is set to `"README.md"`, you will want to make sure to have a `README.md` file in your directory. This file can be empty to start with and you can fill it out at a later time with important information about the app. You will now have the following file structure:

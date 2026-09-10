@@ -36,10 +36,10 @@ requires-python = ">=3.10.0, <3.13.0"
 dependencies = []
 
 [build-system]
-requires = ["setuptools>=64.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["my_first_app"]
 ```
 

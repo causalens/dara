@@ -646,12 +646,12 @@ export default defineConfig({
 });
 ```
 
-Make sure to include the files inside your wheel in your `pyproject.toml` file - e.g. Hatchling includes everything inside the package directory by default, while setuptools requires a `package-data` entry:
+Make sure to include the files inside your wheel in your `pyproject.toml` file. With Hatchling, the package directory is included by default - but if the generated assets are covered by a `.gitignore`, list them in the wheel target's `artifacts` so they are still shipped:
 
 ```toml
 [project.entry-points."dara_assets"]
 my-package = "my_package._assets:asset_manifest"
 
-[tool.setuptools.package-data]
-my-package = ["_assets/**/*"]
+[tool.hatch.build.targets.wheel]
+artifacts = ["my_package/_assets/*"]
 ```

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=64.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "{{ cookiecutter.__package_name }}"
@@ -16,7 +16,7 @@ authors = [
     { name = "{{ cookiecutter.author_name }}" },
 ]
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["{{ cookiecutter.__package_name }}"]
 
 [dependency-groups]
