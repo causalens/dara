@@ -2,10 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
-- Migrated the repository's Python tooling from Poetry/Anthology to uv + mise. Package metadata is now generated with Hatchling; `dara-components` no longer depends on Poetry.
-
 ## 1.29.8
 
 - Fixed `CodeEditor` crashing when its value contains CRLF line endings.
