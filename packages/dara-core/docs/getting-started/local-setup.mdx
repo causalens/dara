@@ -13,25 +13,25 @@ This page will walk you through the installation of Dara framework and the creat
 
 There are two prerequisites to being able to use the Dara framework:
 
-- Python v3.8+
+- Python v3.10+
 - NodeJS v20.19+ (Don't worry - you don't need to understand any JS, this is used to build the application in production mode)
 
 You can install both of these via the Homebrew package manager on MacOS or follow the instructions on their
 websites: [Python](https://www.Python.org/about/gettingstarted/) [node](https://nodejs.org/en/).
 
 Once you have these tools installed the best way is to create a Python virtual environment or start a new
-Python Poetry project so that our dependencies don't conflict with anything you have installed on your wider system.
+Python project with uv so that our dependencies don't conflict with anything you have installed on your wider system.
 
 ## Installation - Starting a new project
 
 There are two methods in which you can start a new Dara project:
 
 - The first is through using the CLI for creating apps.
-- The second is by manually starting a project with `poetry` or `pip`.
+- The second is by manually starting a project with `uv` or `pip`.
 
 <Tabs
     defaultValue="cli"
-    values={[{label: 'CLI Quickstart', value: 'cli'}, {label: 'Poetry Quickstart', value: 'Poetry'}, {label: 'Pip Quickstart', value: 'pip'}]}
+    values={[{label: 'CLI Quickstart', value: 'cli'}, {label: 'Uv Quickstart', value: 'uv'}, {label: 'Pip Quickstart', value: 'pip'}]}
 >
 <TabItem value="cli">
 
@@ -71,45 +71,37 @@ create-dara-app --version
 
 </TabItem>
 
-<TabItem value="Poetry">
+<TabItem value="uv">
 
-Poetry can be installed following these [instructions](https://Python-Poetry.org/docs/basic-usage/). You can
-then create a new Poetry project with the following command in your project's directory:
-
-```sh
-poetry init
-```
-
-This command will guide you through creating your `pyproject.toml` config.
-
-:::warning
-When following the prompts, you can simply hit enter for most however when prompted for the `Compatible Python versions` please enter `>=3.9.0, <3.13.0`.
+[uv](https://docs.astral.sh/uv/) can be installed following these [instructions](https://docs.astral.sh/uv/getting-started/installation/). You can
+then create a new uv project with the following command in your project's directory:
 
 ```sh
-Compatible Python versions [^3.8]:  >=3.9.0, <3.13.0
+uv init --bare --name <your-app-name>
 ```
 
-This is necessary because Dara libraries support python versions `>=3.9.0, <3.13.0`.
-:::
-
-The contents of the `pyproject.toml` will be something like the following:
+The generated `pyproject.toml` should contain the following at the minimum:
 
 ```toml
-[tool.poetry]
+[project]
 name = "<your-app-name>"
 version = "0.1.0"
 description = ""
 readme = "README.md"
-packages = [{include = "<your_app_name>"}]
-
-[tool.poetry.dependencies]
-python = ">=3.9.0, <3.13.0"
-
+requires-python = ">=3.10, <3.13"
+dependencies = []
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=64.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["<your_app_name>"]
 ```
+
+:::warning
+The package name cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` package. Set `[tool.setuptools] packages` to the same value.
+:::
 
 As the `readme` field is set to `"README.md"`, you will want to make sure to have a `README.md` file in your directory. This file can be empty to start with and you can fill it out at a later time with important information about the app. You will now have the following file structure:
 
@@ -119,7 +111,7 @@ As the `readme` field is set to `"README.md"`, you will want to make sure to hav
     - README.md
 ```
 
-Then create a folder in your project with the same name as the project itself. Within the folder add two empty files, one called `__init__.py` and the other called `main.py`. You will have the following file structure:
+Then create a folder in your project with the same name as the package itself. Within the folder add two empty files, one called `__init__.py` and the other called `main.py`. You will have the following file structure:
 
 ```
 - <your-app-name>/
@@ -130,104 +122,20 @@ Then create a folder in your project with the same name as the project itself. W
     - README.md
 ```
 
-:::warning
-The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `first-dashboard` project will have a `first_dashboard` subfolder.
-:::
-
-Now that you have initiated your Poetry project, you can install it with the following:
-
-```sh
-poetry install
-```
-
 You are now ready to add the core of the Dara framework:
 
 ```sh
-poetry add dara-core --extras all
+uv add "dara-core[all]"
 ```
 
-</TabItem>
-
-<TabItem value="pip">
-
-You can create a virtual environment with the following command:
-
-```sh
-python3 -m venv .venv
-```
-
-This will create a virtual environment in your current working directory. You can then activate that environment with
-the following command:
-
-```sh
-source .venv/bin/activate
-```
-
-Create another folder in your project with the same name as the project itself. Within the folder add two empty files, one called `__init__.py` and the other called `main.py`. You will have the following file structure:
-
-```
-- <your-app-name>/
-    - <your_app_name>/
-        - __init__.py
-        - main.py
-```
-
-:::warning
-The folder cannot have hyphens, and therefore you must substitute `-` for `_`. For example, the `test-application` project will have a `test_application` subfolder.
-:::
-
-Now in order to install the project in editable mode you need a `pyproject.toml` file with the following contents at the minimum:
-
-```toml title=<your-app-name>/pyproject.toml
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "<your_app_name>"
-version = "0.1.0"
-requires-python = ">=3.9, <3.13"
-
-[tool.setuptools]
-packages = ["your_app_name"]
-```
-
-You can now install the project in editable mode with the following command:
-
-```sh
-pip install -e .
-```
-
-:::caution
-
-In order to use the [PEP 660](https://peps.python.org/pep-0660/) `pyproject.toml`-based editable installation process, you need the following dependencies:
-
-- `pip >= 21.3`
-- `setuptools >= 64.0.0`
-
-Those can be upgraded with:
-
-```bash
-python -m pip install --upgrade pip
-pip install --user --upgrade setuptools
-```
-
-Alternatively you can use a `setup.py` or `setup.cfg` file instead of the `pyproject.toml`. You can read more
-about the setup in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/quickstart.html).
-:::
-
-You are now ready to install the core of the Dara framework:
-
-```sh
-pip install dara-core[all]
-```
+This creates a `.venv` and a `uv.lock` file in your project directory and installs everything, including your app in editable mode.
 
 </TabItem>
 </Tabs>
 
 ## Building your app
 
-The following will go through two examples of building a simple app - one using the `create-dara-app` command line interface and the other using Poetry manually.
+The following will go through two examples of building a simple app - one using the `create-dara-app` command line interface and the other using uv manually.
 
 <Tabs
     defaultValue="cli"
@@ -260,14 +168,13 @@ create-dara-app
 ```
 
 :::note
-By default the CLI will attempt to scaffold your project with [`poetry`](https://python-poetry.org/) but will fall back to `pip` if `poetry` is not present.
-This can be overriden with `--packaging pip` or `--packaging poetry` flag.
+By default the CLI will attempt to install your project's dependencies with [`uv`](https://docs.astral.sh/uv/) but will fall back to `pip` if `uv` is not present.
 :::
 
 </TabItem>
 <TabItem value="manual">
 
-If you have set up your project manually with Poetry or pip, you will have the following file structure:
+If you have set up your project manually with uv or pip, you will have the following file structure:
 
 ```
 - <your-app-name>/
@@ -313,23 +220,29 @@ The default behavior can be overridden using the `--config` CLI flag which takes
 Once you've got your project setup, you will want to run the application so you can see your application in action. This can be done with a single command from the root of your project:
 
 <Tabs
-    defaultValue="Poetry"
+    defaultValue="uv"
     groupId="packageManager"
-    values={[ {label: 'Poetry', value: 'Poetry'}, {label: 'Pip', value: 'pip'}]}
+    values={[ {label: 'uv', value: 'uv'}, {label: 'pip', value: 'pip'}]}
 >
 
-<TabItem value="Poetry">
+<TabItem value="uv">
 
 To start the app:
 
 ```sh
-poetry run dara start --reload
+uv run dara start --reload
 ```
 
 </TabItem>
 <TabItem value="pip">
 
-Within the virtual environment created earlier then:
+If you installed the dependencies with `pip` instead of `uv`, activate the virtual environment first:
+
+```sh
+source .venv/bin/activate
+```
+
+Then start the app:
 
 ```sh
 dara start --reload
@@ -337,11 +250,6 @@ dara start --reload
 
 :::note
 You need to activate the virtual environment before running the command. If you have not activated the virtual environment, you might see an error saying that the `dara` command cannot be found.
-To activate the virtual environment, e.g. on Linux/MacOS run the following command:
-
-```sh
-source .venv/bin/activate
-```
 
 You can read more about virtual environments [on the `venv` package documentation site](https://docs.python.org/3/library/venv.html).
 

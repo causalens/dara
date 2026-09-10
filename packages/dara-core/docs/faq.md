@@ -8,7 +8,7 @@ title: FAQ
 1. Install the package.
 
 ```sh
-poetry add dara-components
+uv add dara-components
 ```
 
 ---
@@ -63,13 +63,13 @@ There are a few reasons why your app might not be showing the latest changes. Th
 Check if the correct versions are on `pyproject.toml` file. And then make sure you tried running:
 
 ```
-poetry update
+uv sync -U
 ```
 
-Alternatively you can remove the `poetry.lock` file and then run:
+Alternatively you can remove the `uv.lock` file and then run:
 
 ```
-poetry install
+uv sync
 ```
 
 <h4> 2. Empty browser cache (for Chrome) </h4>
@@ -83,10 +83,10 @@ On Chrome right click anywhere on the page and select `inspect`, then right clic
 Sometimes you could be using another virtual environment which has older versions. To check which environment you are using:
 
 ```
-poetry env info
+uv venv --help
 ```
 
-and check if the path matches to the one you expected. If not, you can deactivate the environment with the following:
+and check that the `.venv` in your project directory is the environment you expected. If not, you can deactivate the environment with the following:
 
 ```
 deactivate
@@ -95,7 +95,7 @@ source .path/to/venv/bin/activate
 
 <h4> 4. Delete your `dist/` folder and run your app again </h4>
 
-The `dist/` folder contains the assets that can actually be hosted on the server. It may not be updated with your latest versions, so it is worth deleting the folder and running `poetry run dara start` again to let it rebuild.
+The `dist/` folder contains the assets that can actually be hosted on the server. It may not be updated with your latest versions, so it is worth deleting the folder and running `uv run dara start` again to let it rebuild.
 
 <h4> 5. Check if your environment has the right package versions </h4>
 
@@ -103,7 +103,7 @@ Your environment could have both the latest and older versions of the same packa
 
 To check go in to `.venv/lib/python3.8/site-packages` and check which versions are present for the Dara packages being used.
 
-Delete your `.venv` file and run either `poetry update` or `poetry install`, this should then create a fresh `.venv`.
+Delete your `.venv` folder and run either `uv sync -U` or `uv sync`, this should then create a fresh `.venv`.
 
 </details>
 
@@ -259,7 +259,7 @@ You may have installed and imported an extension but the components from that pa
 This is probably because you added a new extension and did not rebuild the JavaScript, so the implementation of the new components is not included in your application. You can force the rebuild by running
 
 ```sh
-poetry run dara start --rebuild
+uv run dara start --rebuild
 ```
 
 If that still does not work, this might mean your component is not registered in the application correctly. The [`import discovery`](./advanced/import-discovery) process should automatically register all the components you are using, however there might be edge cases where that is not possible. You can try explicitly registering the component in question with
