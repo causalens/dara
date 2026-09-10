@@ -23,4 +23,5 @@ uv run --no-project \
     --index causalens=https://us-central1-python.pkg.dev/causalens-internal/python-internal/simple \
     --with 'docs-builder>=0.2.14,<0.3.0' \
     --with 'google-auth>=2.37.0,<3.0.0' \
+    --with 'requests>=2.25.1,<3.0.0' \
     python ./tooling/scripts/docs-upload.py

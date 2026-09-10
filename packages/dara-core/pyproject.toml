@@ -82,6 +82,8 @@ dara-components = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["dara"]
+# Generated JS bundles are gitignored; ship them anyway (poetry `include` equivalent).
+artifacts = ["dara/core/_assets/auto_js/*"]
 
 [dependency-groups]
 dev = [
