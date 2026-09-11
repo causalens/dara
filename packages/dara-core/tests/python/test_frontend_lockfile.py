@@ -1,7 +1,6 @@
 """PnPM verifies effective declarations without normalizing the user's project."""
 
 import subprocess
-from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -13,8 +12,10 @@ from dara.core.js_tooling.workspace import read_workspace
 
 @pytest.fixture
 def snapshot(tmp_path):
-    (tmp_path / 'package.json').write_text('{"name":"app","dependencies":{"widgets":"file:./vendor/widgets.tgz"}}')
-    (tmp_path / 'pnpm-workspace.yaml').write_text('# policy\npackageExtensions: {}\noverrides: {}\n')
+    (tmp_path / 'package.json').write_text('{"name":"app","dependencies":{"widgets":"catalog:dara"}}')
+    (tmp_path / 'pnpm-workspace.yaml').write_text(
+        '# policy\npackageExtensions: {}\noverrides:\n  widgets: file:./vendor/widgets.tgz\ncatalogs:\n  dara:\n    widgets: ^1.0.0\n'
+    )
     (tmp_path / 'pnpm-lock.yaml').write_text('# preserve this comment\n\nlockfileVersion: "9.0"\nimporters: {.: {}}\n')
     vendor = tmp_path / 'vendor'
     vendor.mkdir()
@@ -43,6 +44,8 @@ def test_native_verification_can_rewrite_only_the_disposable_metadata(snapshot):
         assert (mirror / 'vendor/widgets.tgz').read_bytes() == b'archive-input'
         assert (mirror / '.pnpmfile.cjs').read_text() == (root / '.pnpmfile.cjs').read_text()
         assert (mirror / 'hooks.cjs').read_text() == (root / 'hooks.cjs').read_text()
+        assert (mirror / 'pnpm-workspace.yaml').read_bytes() == (root / 'pnpm-workspace.yaml').read_bytes()
+        assert (mirror / 'package.json').read_bytes() == (root / 'package.json').read_bytes()
         for name in ('package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml'):
             assert not (mirror / name).is_symlink()
             (mirror / name).write_text('normalized by pnpm')

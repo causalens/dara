@@ -13,6 +13,26 @@ from dara.core.http import get
 from dara.core.internal import scheduler
 
 
+@pytest.mark.parametrize(
+    'name', ['template_extra_js', '_template_extra_js', 'package_tag_processors', '_package_tags_processors']
+)
+def test_removed_frontend_settings_fail_at_configuration_boundary(name):
+    builder = ConfigurationBuilder()
+    setattr(builder, name, 'legacy setup')
+    with pytest.raises(ValueError, match=f'Removed frontend settings: {name}') as caught:
+        builder._to_configuration()
+    assert 'dara-2-migration' in str(caught.value)
+    assert 'js/index.tsx' in str(caught.value)
+
+
+def test_removed_tag_processor_reports_its_migration():
+    builder = ConfigurationBuilder()
+    with pytest.raises(ValueError, match='add_package_tags_processor was removed') as caught:
+        builder.add_package_tags_processor(lambda tags: tags)
+    assert 'dara-2-migration' in str(caught.value)
+    assert 'js/index.tsx' in str(caught.value)
+
+
 def test_static_files_dir():
     """Test that the static files dir is defaulted sensibly and can be overridden"""
 

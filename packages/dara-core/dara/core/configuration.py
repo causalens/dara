@@ -86,8 +86,6 @@ class Configuration(BaseModel):
     startup_functions: list[Callable]
     static_folders: list[str]
     static_files_dir: str
-    package_tag_processors: list[Callable[[dict[str, list[str]]], dict[str, list[str]]]]
-    template_extra_js: str
     task_module: str | None = None
     template: str
     template_renderers: dict[str, Callable[..., Template]]
@@ -147,8 +145,6 @@ class ConfigurationBuilder:
     _template_renderers: dict[str, Callable[..., Template]]
     _endpoint_configurations: list[EndpointConfiguration]
     _static_folders: list[str]
-    _package_tags_processors: list[Callable[[dict[str, list[str]]], dict[str, list[str]]]]
-    _template_extra_js: str
     _custom_ws_handlers: dict[str, Callable[[str, Any], Any]]
     _custom_encoders: dict[type[Any], Encoder]
     _middlewares: list[Middleware]
@@ -174,8 +170,6 @@ class ConfigurationBuilder:
         self.enable_devtools = False
         self.live_reload = False
         self._powered_by_causalens = False
-        self._package_tags_processors = []
-        self._template_extra_js = ''
         self._pages = {}
         self._template_renderers = {}
         self._endpoint_configurations = []
@@ -441,14 +435,11 @@ class ConfigurationBuilder:
         self._custom_encoders[typ] = encoder
         return encoder
 
-    def add_package_tags_processor(self, processor: Callable[[dict[str, list[str]]], dict[str, list[str]]]):
-        """
-        Append a package tag processor. This is a function that takes a dictionary of package names to lists of script/link tags included
-        when running in the UMD mode.
-
-        All processors are called in order, and the output of each processor is passed to the next one.
-        """
-        self._package_tags_processors.append(processor)
+    def add_package_tags_processor(self, processor: Callable):
+        """Reject the removed tag pipeline with guidance instead of silently dropping setup."""
+        raise ValueError(
+            f'add_package_tags_processor was removed. Import scripts and styles from js/index.tsx or package setup. {MIGRATION_SKILL}'
+        )
 
     @deprecated('Use `config.router.add_page` instead.')
     def add_page(
@@ -645,6 +636,16 @@ class ConfigurationBuilder:
         Convert the ConfigurationBuilder to a Configuration class ready for the application to work from.
         """
 
+        removed = {
+            'template_extra_js',
+            '_template_extra_js',
+            'package_tag_processors',
+            '_package_tags_processors',
+        } & vars(self).keys()
+        if removed:
+            raise ValueError(
+                f'Removed frontend settings: {", ".join(sorted(removed))}. Import application setup and styles from js/index.tsx. {MIGRATION_SKILL}'
+            )
         if len(self._errors) > 0:
             raise ValueError('This configuration has errors: \n' + '\n'.join(self._errors))
 
@@ -665,7 +666,6 @@ class ConfigurationBuilder:
             live_reload=self.live_reload,
             pages=self._pages,
             powered_by_causalens=self.powered_by_causalens,
-            package_tag_processors=self._package_tags_processors,
             routes=all_routes,
             router=self.router,
             static_files_dir=self.static_files_dir,
@@ -674,7 +674,6 @@ class ConfigurationBuilder:
             static_folders=self._static_folders,
             task_module=self.task_module,
             template=self.template,
-            template_extra_js=self._template_extra_js,
             template_renderers=self._template_renderers,
             theme=self.theme,
             title=self.title,

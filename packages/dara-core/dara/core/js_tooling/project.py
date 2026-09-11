@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from importlib.metadata import entry_points, version
+from importlib.metadata import PackageNotFoundError, entry_points, version
 from pathlib import Path
 from typing import Any
 
@@ -108,7 +108,16 @@ def load_configuration(reference: str) -> Configuration:
 def npm_version(python_package: str) -> str:
     """Translate installed Python distribution versions to corresponding npm versions."""
     distribution = distribution_name(python_package)
-    return convert_npm_version(version(distribution), distribution)
+    try:
+        installed = version(distribution)
+    except PackageNotFoundError as error:
+        # Every non-local js_source package is versioned from the Python package that declares it.
+        raise ProjectError(
+            'dependency.mapping',
+            f'{python_package} declares JavaScript sources but is not an installed Python distribution',
+            'ship the npm package through an installed Python package; plain npm sources are a post-2.0 feature',
+        ) from error
+    return convert_npm_version(installed, distribution)
 
 
 def derive_manifest(

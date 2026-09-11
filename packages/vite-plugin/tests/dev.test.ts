@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
@@ -99,6 +99,17 @@ async function until<T>(read: () => T | Promise<T>, description: string): Promis
   throw new Error(`Timed out waiting for ${description}`);
 }
 
+async function waitForShutdown(child: ChildProcess, exited: Promise<unknown[]>, logs: string) {
+  const deadline = setTimeout(() => child.kill("SIGKILL"), 5000);
+  try {
+    const [code, signal] = await exited;
+    assert.equal(signal, null, `shutdown must complete without forced termination\n${logs}`);
+    assert.equal(code, 0, logs);
+  } finally {
+    clearTimeout(deadline);
+  }
+}
+
 await test("a manifest that registers a new source restarts Vite so dependency scanning covers it", async (t) => {
   const { root, manifest } = fixture(t);
   configure(root, "sources");
@@ -139,7 +150,7 @@ await test("a manifest that registers a new source restarts Vite so dependency s
     assert.notEqual(second.origin, first.origin);
   } finally {
     child.kill("SIGTERM");
-    await exited;
+    await waitForShutdown(child, exited, logs);
   }
 });
 
@@ -368,7 +379,7 @@ await test("development reloads configuration, recovers from errors and protects
     throw new Error(`${errorMessage(error)}\n${logs}`, { cause: error });
   } finally {
     child.kill("SIGTERM");
-    await exited;
+    await waitForShutdown(child, exited, logs);
   }
   assert.equal(fs.existsSync(statusFile), false, "shutdown removes runner state");
 });
@@ -460,6 +471,54 @@ export default { plugins: [dara(), { name: 'asset-config-probe', configureServer
     throw new Error(`${errorMessage(error)}\n${logs}`, { cause: error });
   } finally {
     child.kill("SIGTERM");
+    await waitForShutdown(child, exited, logs);
+  }
+});
+
+await test("shutdown waits for an in-flight configuration refresh before closing watchers", async (t) => {
+  const { root } = fixture(t);
+  configure(root, "initial");
+  const child = spawn(
+    process.execPath,
+    [path.join(pluginRoot, "dist/cli.js"), "serve", "--root", root, "--no-typecheck"],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let logs = "";
+  child.stdout.on("data", (chunk) => (logs += chunk));
+  child.stderr.on("data", (chunk) => (logs += chunk));
+  const exited = once(child, "exit");
+  const statusFile = path.join(root, "node_modules/.dara/dev-server.json");
+  const entered = path.join(root, "refresh-entered");
+  const signalled = path.join(root, "shutdown-signalled");
+  const release = path.join(root, "release-refresh");
+  try {
+    await until(
+      () =>
+        fs.existsSync(statusFile) &&
+        JSON.parse(fs.readFileSync(statusFile, "utf8")).state === "ready",
+      "initial server",
+    );
+    fs.writeFileSync(
+      path.join(root, "vite.config.ts"),
+      `
+import fs from 'node:fs';
+import dara from '@darajs/vite-plugin';
+// Registered after the runner's handler, so this acknowledges that shutdown has started.
+process.once('SIGTERM', () => fs.writeFileSync(${JSON.stringify(signalled)}, ''));
+export default { plugins: [dara(), { name: 'pause-refresh', async configResolved() {
+  fs.writeFileSync(${JSON.stringify(entered)}, '');
+  while (!fs.existsSync(${JSON.stringify(release)})) await new Promise(resolve => setTimeout(resolve, 10));
+}}] };
+`,
+    );
+    await until(() => fs.existsSync(entered), "configuration refresh paused");
+    child.kill("SIGTERM");
+    await until(() => fs.existsSync(signalled), "shutdown started during refresh");
+    fs.writeFileSync(release, "");
+    await waitForShutdown(child, exited, logs);
+    assert.equal(fs.existsSync(statusFile), false);
+  } finally {
+    child.kill("SIGKILL");
     await exited;
   }
 });

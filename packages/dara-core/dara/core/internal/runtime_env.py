@@ -32,18 +32,3 @@ def is_backend_reload_enabled() -> bool:
 def is_deploy_mode() -> bool:
     """Deployment posture comes exclusively from dara start, including local artifact serving."""
     return os.environ.get('DARA_COMMAND') == 'start'
-
-
-def is_hmr_enabled() -> bool:
-    """Internal legacy helper, retained until the old build module is removed."""
-    return os.environ.get('DARA_COMMAND') == 'dev'
-
-
-def is_docker_mode() -> bool:
-    """Internal legacy helper, retained until the old build module is removed."""
-    return is_deploy_mode()
-
-
-def is_production_mode() -> bool:
-    """Internal legacy helper, retained until the old build module is removed."""
-    return is_deploy_mode()
