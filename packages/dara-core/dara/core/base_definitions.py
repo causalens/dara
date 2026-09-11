@@ -51,7 +51,7 @@ from pydantic import (
 )
 from pydantic._internal._model_construction import ModelMetaclass
 
-from dara.core.js_tooling.source import JsSource
+from dara.core.js_tooling.source import MIGRATION_SKILL, JsSource
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionCtx
@@ -84,6 +84,12 @@ def annotation_has_base_model(typ: Any) -> bool:
 # See https://github.com/pydantic/pydantic/issues/6381
 class SerializeAsAnyMeta(ModelMetaclass):
     def __new__(cls, name: str, bases: tuple[type], namespaces: dict[str, Any], **kwargs):
+        removed = {'js_module', 'js_component'}.intersection(namespaces)
+        if removed and any(hasattr(base, 'js_source') for base in bases):
+            raise TypeError(
+                f'{name} uses removed JavaScript metadata {sorted(removed)}. '
+                f'Declare js_source as a default-export module. {MIGRATION_SKILL}'
+            )
         annotations: dict = namespaces.get('__annotations__', {}).copy()
 
         for base in bases:
@@ -725,6 +731,6 @@ class AssetManifest(BaseModel):
         """Explain the replacement for asset manifests from the removed UMD pipeline."""
         if isinstance(value, dict) and {'autojs_assets', 'common_assets', 'tag_order', 'depends_on'} & value.keys():
             raise ValueError(
-                'Legacy asset manifest: replace asset lists and tag ordering with static_assets; see the Dara 2.0 migration guide'
+                f'Legacy asset manifest: replace asset lists and tag ordering with static_assets. {MIGRATION_SKILL}'
             )
         return value

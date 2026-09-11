@@ -15,4 +15,6 @@ Dara includes React support and owns the entry, asset base, output and developme
 
 Node >=22.12 and pnpm 12 are required to prepare, check, develop or build. The Python and plugin versions must match. Generated artifacts include a private `.dara-build.json` marker that Python checks before serving; do not edit it or expose it as a static file.
 
+For older applications, use the [dara-2-migration skill](https://github.com/causalens/dara/tree/master/skills/dara-2-migration) to update source declarations, setup, configuration references and scripts. Once the application loads, `dara lock` and `dara dev` copy understood legacy dependency settings into `package.json` and remove the converted `dara.config.json`. Unknown settings and dependency conflicts require manual resolution. Frozen development reports required conversion without applying it; backend-only debugging skips frontend preparation. Review `git diff`, then run `dara check` and `dara build`.
+
 The plugin itself uses TypeScript 7 with strict checking and NodeNext modules. `pnpm --filter @darajs/vite-plugin build` emits Node ESM and declarations into `dist`; `pnpm --filter @darajs/vite-plugin test` compiles and runs the tests against that output. The exported `tsconfig.json` is the separate application preset.

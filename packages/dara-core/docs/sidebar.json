@@ -11,6 +11,7 @@
   "items": [
     "docs/getting-started/whats-dara",
     "docs/quickstart",
+    "docs/dara-2-migration",
     {
       "type": "category",
       "label": "Getting Started",

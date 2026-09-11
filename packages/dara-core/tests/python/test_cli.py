@@ -62,3 +62,15 @@ def test_start_rejects_legacy_switches(option):
     assert result.exit_code != 0
     assert f'{option} was removed:' in result.output
     assert 'dara ' in result.output
+
+
+@pytest.mark.parametrize('arguments', [['migrate'], ['migrate', '--check']])
+def test_standalone_migration_is_not_a_command(tmp_path, monkeypatch, arguments):
+    """Removed entry points cannot import the app or partially apply a migration."""
+    monkeypatch.chdir(tmp_path)
+    with patch('dara.core.cli.prepare_project') as prepare:
+        result = CliRunner().invoke(cli, arguments)
+    assert result.exit_code == 2
+    assert "No such command 'migrate'" in result.output
+    prepare.assert_not_called()
+    assert not list(tmp_path.iterdir())
