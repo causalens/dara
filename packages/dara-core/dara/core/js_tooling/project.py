@@ -167,7 +167,7 @@ def derive_manifest(
         base = Path(assets.base_path).resolve()
         for asset in assets.static_assets:
             source = (base / asset.source).resolve()
-            if not source.is_relative_to(base) or not source.exists():
+            if not source.is_relative_to(base) or (not runtime and not source.exists()):
                 raise ProjectError(
                     'asset.source',
                     f'{package}: asset {asset.source} must exist inside {base}',

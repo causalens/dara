@@ -49,6 +49,14 @@ Use `dara dev --port` to choose the application's port; `--dev-port` is no longe
 - **Dependencies:** dependencies from `dara.config.json` move to `package.json`. Resolve any reported version conflicts. Review the new pnpm lockfile before removing old npm or Yarn lockfiles.
 - **Custom packages:** use a Dara 2.0-compatible release. Package authors should follow the [custom JavaScript guide](./advanced/custom-js.mdx) for exports, setup and static assets.
 
+## Static asset behavior
+
+`config.add_static_folder(...)` and existing `/static/...` URLs remain supported. During development, Dara serves files from their original directories and watches for changes. `dara build` copies assets into the production output; rebuild after changing them. Remove scripts that relied on Dara moving registered files into the application's `static/` directory.
+
+Conflicting output paths now produce errors instead of overwriting another asset. Rename or remove duplicate files, and keep application assets outside package namespaces. Static registration no longer supplies generated library script tags: import JavaScript and global styles through module setup instead.
+
+See [Static assets](./advanced/static-assets.md) for folder registration, URLs and deployment.
+
 ## Deploy
 
 Build during CI or image creation, then run `dara start` with the complete `dist/` directory, including hidden files. The runtime needs only Python and the built output.

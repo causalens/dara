@@ -68,6 +68,12 @@ export function treeFiles(root: string): string[] {
       visited.delete(real);
     } else if (stat.isFile()) {
       files.push(current);
+    } else {
+      throw new ProjectError(
+        "asset.source",
+        `Unsupported filesystem entry at ${current}`,
+        "use regular files and directories for build inputs",
+      );
     }
   };
   walk(root);

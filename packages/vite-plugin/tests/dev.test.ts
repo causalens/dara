@@ -12,6 +12,8 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { version } from "../dist/contract.js";
 import { initialize, loadProject, resolveProjectSources } from "../dist/project.js";
+import { fileHash } from "../dist/files.js";
+import { inputSnapshot } from "../dist/inputs.js";
 
 const pluginRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -39,6 +41,12 @@ function fixture(t: TestContext) {
     "export default () => {};\n",
   );
   initialize(root);
+  // The linked test plugin lives outside this workspace; keep config inputs local.
+  fs.copyFileSync(path.join(pluginRoot, "tsconfig.json"), path.join(root, "tsconfig.preset.json"));
+  fs.writeFileSync(
+    path.join(root, "tsconfig.json"),
+    JSON.stringify({ extends: "./tsconfig.preset.json", include: ["js"] }),
+  );
   const manifest = {
     schema: 1,
     configuration: "app.main:config",
@@ -363,4 +371,214 @@ await test("development reloads configuration, recovers from errors and protects
     await exited;
   }
   assert.equal(fs.existsSync(statusFile), false, "shutdown removes runner state");
+});
+
+await test("asset changes share readiness validation and preserve configuration restart priority", async (t) => {
+  const { root, manifest } = fixture(t);
+  const firstAssets = path.join(root, "static");
+  const secondAssets = path.join(root, "other-static");
+  fs.mkdirSync(firstAssets);
+  fs.mkdirSync(secondAssets);
+  const flagFile = path.join(firstAssets, "flag.mjs");
+  const logoFile = path.join(firstAssets, "logo.txt");
+  fs.writeFileSync(flagFile, "export default 'first';\n");
+  fs.writeFileSync(logoFile, "logo");
+  const configFile = path.join(root, "vite.config.ts");
+  const config = `
+import dara from '@darajs/vite-plugin';
+import flag from './static/flag.mjs';
+export default { plugins: [dara(), { name: 'asset-config-probe', configureServer(server) {
+  server.middlewares.use((request, response, next) => {
+    if (request.url === '/static/probe') response.end(flag);
+    else next();
+  });
+}}] };
+`;
+  fs.writeFileSync(configFile, config);
+  fs.writeFileSync(
+    path.join(root, "node_modules/.dara/manifest.dev.json"),
+    JSON.stringify({ ...manifest, appStatic: [firstAssets, secondAssets] }),
+  );
+  const child = spawn(
+    process.execPath,
+    [path.join(pluginRoot, "dist/cli.js"), "serve", "--root", root, "--no-typecheck"],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let logs = "";
+  child.stdout.on("data", (chunk) => (logs += chunk));
+  child.stderr.on("data", (chunk) => (logs += chunk));
+  const exited = once(child, "exit");
+  const statusFile = path.join(root, "node_modules/.dara/dev-server.json");
+  const status = () =>
+    fs.existsSync(statusFile) ? JSON.parse(fs.readFileSync(statusFile, "utf8")) : undefined;
+  const serves = async (url: string, text: string | undefined, code = 200) => {
+    const current = status();
+    if (current?.state !== "ready") {
+      return false;
+    }
+    try {
+      const response = await fetch(current.origin + "/static/" + url);
+      return response.status === code && (text === undefined || (await response.text()) === text);
+    } catch {
+      return false;
+    }
+  };
+  try {
+    await until(() => serves("probe", "first"), "initial configuration and assets");
+    fs.writeFileSync(flagFile, "export default 'second';\n");
+    await until(() => serves("probe", "second"), "static config import restarts Vite");
+
+    const added = path.join(firstAssets, "added.css");
+    fs.writeFileSync(added, "body { color: red; }");
+    await until(() => serves("added.css", "body { color: red; }"), "new static file is served");
+    fs.unlinkSync(added);
+    await until(() => serves("added.css", undefined, 404), "deleted static file is removed");
+
+    const collision = path.join(secondAssets, "logo.txt");
+    fs.writeFileSync(collision, "conflict");
+    await until(() => status()?.diagnostic?.code === "asset.collision", "asset collision blocks");
+    assert.equal(status().state, "blocked");
+    assert.ok(status().diagnostic.message.includes(logoFile));
+    assert.ok(status().diagnostic.message.includes(collision));
+    fs.unlinkSync(collision);
+    await until(() => serves("logo.txt", "logo"), "asset collision recovery");
+
+    fs.writeFileSync(configFile, "export default { plugins: [] };\n");
+    await until(() => status()?.diagnostic?.code === "vite.plugin", "invalid config blocks");
+    const blockedAt = fs.statSync(statusFile).mtimeMs;
+    fs.writeFileSync(logoFile, "updated logo");
+    await until(
+      () => fs.statSync(statusFile).mtimeMs > blockedAt,
+      "asset event revalidates the blocked configuration",
+    );
+    assert.equal(status().state, "blocked");
+    assert.equal(status().diagnostic.code, "vite.plugin");
+    fs.writeFileSync(configFile, config);
+    await until(() => serves("probe", "second"), "configuration recovery");
+    await until(() => serves("logo.txt", "updated logo"), "updated assets survive recovery");
+  } catch (error) {
+    throw new Error(`${errorMessage(error)}\n${logs}`, { cause: error });
+  } finally {
+    child.kill("SIGTERM");
+    await exited;
+  }
+});
+
+await test("configuration fingerprints follow effective env roots and library imports", async (t) => {
+  const { root, manifest } = fixture(t);
+  fs.mkdirSync(path.join(root, "environment"));
+  fs.mkdirSync(path.join(root, "library-environment"));
+  const envFile = path.join(root, "environment/.env.production");
+  const libraryEnv = path.join(root, "library-environment/.env.production");
+  fs.writeFileSync(envFile, "VITE_REVIEW_COLOR=red\n");
+  fs.writeFileSync(libraryEnv, "VITE_LIBRARY_COLOR=blue\n");
+  fs.writeFileSync(
+    path.join(root, "vite.config.ts"),
+    `
+import dara from '@darajs/vite-plugin';
+export default { plugins: [dara(), { name: 'effective-env', config() {
+  return { envDir: 'environment' };
+}}] };
+`,
+  );
+  const libraryInput = path.join(root, "library-options.mjs");
+  fs.writeFileSync(
+    libraryInput,
+    "export default { envDir: 'library-environment', build: { outDir: 'dist-lib' } };\n",
+  );
+  fs.writeFileSync(
+    path.join(root, "vite.lib.config.ts"),
+    "export { default } from './library-options.mjs';\n",
+  );
+  const project = await loadProject(root, manifest, "build");
+  assert.equal(project.config.env["VITE_REVIEW_COLOR"], "red");
+  for (const file of [envFile, libraryEnv, libraryInput, path.join(root, "vite.lib.config.ts")]) {
+    assert.equal(project.initialHashes.get(file), fileHash(file));
+    assert.ok(
+      project.configInputs.includes(file),
+      `${file} must trigger configuration revalidation`,
+    );
+  }
+  const optionalEnv = path.join(root, "environment/.env.production.local");
+  assert.equal(project.initialHashes.get(optionalEnv), null);
+  assert.ok(project.configInputs.includes(optionalEnv));
+});
+
+await test("configuration snapshots reject inputs changed by resolved-config hooks", async (t) => {
+  const { root, manifest } = fixture(t);
+  fs.mkdirSync(path.join(root, "environment"));
+  const input = path.join(root, "environment/.env.development");
+  fs.writeFileSync(input, "VITE_REVIEW_COLOR=red\n");
+  const key = Symbol.for(root);
+  t.after(() => {
+    Reflect.deleteProperty(globalThis, key);
+  });
+  fs.writeFileSync(
+    path.join(root, "vite.config.ts"),
+    `
+import fs from 'node:fs';
+import dara from '@darajs/vite-plugin';
+export default { envDir: 'environment', plugins: [dara(), { name: 'input-race', configResolved() {
+  const key = Symbol.for(${JSON.stringify(root)});
+  globalThis[key] = (globalThis[key] ?? 0) + 1;
+  if (globalThis[key] === 2) fs.writeFileSync(${JSON.stringify(input)}, 'VITE_REVIEW_COLOR=blue');
+}}] };
+`,
+  );
+  await assert.rejects(
+    loadProject(root, manifest, "build"),
+    (error: unknown) => error instanceof ProjectError && error.diagnostic?.code === "build.changed",
+  );
+});
+
+await test("declared configuration reads cannot be rebaselined after evaluation", async (t) => {
+  const { root, manifest } = fixture(t);
+  const theme = path.join(root, "theme.txt");
+  const directory = path.join(root, "data");
+  fs.writeFileSync(theme, "red");
+  fs.mkdirSync(directory);
+  fs.writeFileSync(path.join(directory, "a.txt"), "a");
+  const environment = "DARA_DECLARED_CONFIG_TEST";
+  const previous = process.env[environment];
+  process.env[environment] = "light";
+  t.after(() => {
+    if (previous === undefined) {
+      delete process.env[environment];
+    } else {
+      process.env[environment] = previous;
+    }
+  });
+  fs.writeFileSync(
+    path.join(root, "vite.config.ts"),
+    `
+import fs from 'node:fs';
+import dara from '@darajs/vite-plugin';
+const value = [
+  fs.readFileSync(new URL('./theme.txt', import.meta.url), 'utf8'),
+  fs.readdirSync(new URL('./data', import.meta.url)).sort().join(','),
+  process.env.${environment},
+].join(':');
+export default {
+  plugins: [dara({ inputs: ['theme.txt'], directories: ['data'], environment: ['${environment}', 'NODE_ENV'] })],
+  define: { CONFIG_LABEL: JSON.stringify(value) },
+};
+`,
+  );
+  const project = await loadProject(root, manifest, "build");
+  project.assets = new Map();
+  assert.equal(project.config.define?.["CONFIG_LABEL"], JSON.stringify("red:a.txt:light"));
+  inputSnapshot(project);
+  const changed = (error: unknown) =>
+    error instanceof ProjectError && error.diagnostic?.code === "build.changed";
+  fs.writeFileSync(theme, "blue");
+  assert.throws(() => inputSnapshot(project), changed);
+  fs.writeFileSync(theme, "red");
+  const addition = path.join(directory, "b.txt");
+  fs.writeFileSync(addition, "b");
+  assert.throws(() => inputSnapshot(project), changed);
+  fs.unlinkSync(addition);
+  process.env[environment] = "dark";
+  assert.throws(() => inputSnapshot(project), changed);
+  process.env[environment] = "light";
+  inputSnapshot(project);
 });
