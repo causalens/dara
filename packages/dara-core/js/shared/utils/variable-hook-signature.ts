@@ -1,4 +1,4 @@
-import { isCondition, isDerivedVariable, isVariable } from '@/types';
+import { isCondition, isDerivedVariable, isVariable } from '../../types';
 
 export type VariableHookSignature = string | Array<VariableHookSignature>;
 

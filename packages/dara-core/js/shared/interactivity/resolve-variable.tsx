@@ -1,8 +1,8 @@
 import type { Params } from 'react-router';
 import { type RecoilState, type Snapshot } from 'recoil';
 
-import { type WebSocketClientInterface } from '@/api';
-import { type RequestExtras } from '@/api/http';
+import { type WebSocketClientInterface } from '../../api';
+import { type RequestExtras } from '../../api/http';
 import {
     type AnyVariable,
     type GlobalTaskContext,
@@ -18,8 +18,7 @@ import {
     isStreamVariable,
     isSwitchVariable,
     isVariable,
-} from '@/types';
-
+} from '../../types';
 // eslint-disable-next-line import/no-cycle
 import { getOrRegisterDerivedVariable, getOrRegisterPlainVariable, resolvePlainVariableStatic } from './internal';
 import { getOrRegisterServerVariable, resolveServerVariable, resolveServerVariableStatic } from './server-variable';

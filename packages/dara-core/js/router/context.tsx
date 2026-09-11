@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { type RouteObject } from 'react-router';
 
-import { type RouteDefinition, type RouteMatch, type Variable } from '@/types';
+import { type RouteDefinition, type RouteMatch, type Variable } from '../types';
 
 interface RouterContextValue {
     routeDefinitions: RouteDefinition[];

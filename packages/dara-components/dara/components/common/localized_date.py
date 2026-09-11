@@ -51,6 +51,8 @@ class LocalizedDate(ContentComponent):
     :param placeholder: Value shown when the date is missing or cannot be parsed, defaults to an empty string
     """
 
+    js_source = '@darajs/components/localized-date'
+
     date: str | ClientVariable
     format: str | ClientVariable = 'yyyy-MM-dd HH:mm'
     placeholder: str | ClientVariable = ''

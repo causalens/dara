@@ -1,5 +1,5 @@
-import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
-import { type ActionHandler, type UpdateVariableImpl, UserError } from '@/types/core';
+import { getOrRegisterPlainVariable } from '../shared/interactivity/plain-variable';
+import { type ActionHandler, type UpdateVariableImpl, UserError } from '../types/core';
 
 /**
  * Constant to replace with the input value.
@@ -34,7 +34,10 @@ const UpdateVariable: ActionHandler<UpdateVariableImpl> = async (ctx, actionImpl
     }
 
     ctx.set(varAtom, newValue);
-    ctx.eventBus.publish('PLAIN_VARIABLE_LOADED', { variable: actionImpl.variable as any, value: newValue });
+    ctx.eventBus.publish('PLAIN_VARIABLE_LOADED', {
+        variable: actionImpl.variable as any,
+        value: newValue,
+    });
 };
 
 export default UpdateVariable;

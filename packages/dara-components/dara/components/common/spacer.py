@@ -81,6 +81,8 @@ class Spacer(ContentComponent):
     :param inset: The distance away from the edges to stop drawing the line (can be a number of pixels or percentage)
     """
 
+    js_source = '@darajs/components/spacer'
+
     line: bool = False
     size: int | str = '0.75rem'
     inset: int | str = '0rem'

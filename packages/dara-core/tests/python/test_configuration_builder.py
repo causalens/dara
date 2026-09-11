@@ -1,3 +1,5 @@
+from types import ModuleType
+
 import pytest
 from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -146,26 +148,7 @@ def test_add_local_action():
     builder = ConfigurationBuilder()
 
     class TestAction(ActionImpl):
-        pass
-
-    builder.add_action(TestAction, local=True)
-    config = builder._to_configuration()
-
-    assert len(config.actions) == 1
-    action = config.actions[0]
-    assert isinstance(action, ActionDef)
-    assert action.name == 'TestAction'
-    assert action.py_module == 'LOCAL'
-    assert action.js_module is None
-
-
-def test_add_nonlocal_action():
-    """Test that an action can be added"""
-
-    builder = ConfigurationBuilder()
-
-    class TestAction(ActionImpl):
-        js_module = 'test_module'
+        js_source = './js/action.ts'
 
     builder.add_action(TestAction)
     config = builder._to_configuration()
@@ -175,7 +158,26 @@ def test_add_nonlocal_action():
     assert isinstance(action, ActionDef)
     assert action.name == 'TestAction'
     assert action.py_module == 'tests'
-    assert action.js_module == 'test_module'
+    assert action.js_source == './js/action.ts'
+
+
+def test_add_nonlocal_action():
+    """Test that an action can be added"""
+
+    builder = ConfigurationBuilder()
+
+    class TestAction(ActionImpl):
+        js_source = 'test_module'
+
+    builder.add_action(TestAction)
+    config = builder._to_configuration()
+
+    assert len(config.actions) == 1
+    action = config.actions[0]
+    assert isinstance(action, ActionDef)
+    assert action.name == 'TestAction'
+    assert action.py_module == 'tests'
+    assert action.js_source == 'test_module'
 
 
 def test_add_nonlocal_action_raises_without_js():
@@ -185,10 +187,10 @@ def test_add_nonlocal_action_raises_without_js():
     class TestWithoutJs(ActionImpl):
         pass
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(ValueError) as e:
         builder.add_action(TestWithoutJs)
 
-    assert e.match('must define its js_module')
+    assert e.match('must define js_source')
 
 
 def test_add_local_component():
@@ -197,17 +199,17 @@ def test_add_local_component():
     builder = ConfigurationBuilder()
 
     class Test(ComponentInstance):
-        pass
+        js_source = './js/component.tsx'
 
-    builder.add_component(Test, local=True)
+    builder.add_component(Test)
     config = builder._to_configuration()
 
     assert len(config.components) == 1
     component = config.components[0]
     assert isinstance(component, JsComponentDef)
     assert component.name == 'Test'
-    assert component.py_module == 'LOCAL'
-    assert component.js_module is None
+    assert component.py_module == 'tests'
+    assert component.js_source == './js/component.tsx'
 
 
 def test_add_nonlocal_component():
@@ -215,7 +217,7 @@ def test_add_nonlocal_component():
     builder = ConfigurationBuilder()
 
     class TestWithJs(ComponentInstance):
-        js_module = 'test_module'
+        js_source = 'test_module'
 
     builder.add_component(TestWithJs)
     config = builder._to_configuration()
@@ -225,7 +227,7 @@ def test_add_nonlocal_component():
     assert isinstance(component, JsComponentDef)
     assert component.name == 'TestWithJs'
     assert component.py_module == 'tests'
-    assert component.js_module == 'test_module'
+    assert component.js_source == 'test_module'
 
 
 def test_add_nonlocal_component_raises_without_js():
@@ -235,10 +237,70 @@ def test_add_nonlocal_component_raises_without_js():
     class TestWithJs(ComponentInstance):
         pass
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(ValueError) as e:
         builder.add_component(TestWithJs)
 
-    assert e.match('must define its js_module')
+    assert e.match('must define js_source')
+
+
+def test_add_components_registers_reexports_and_routes_once_per_class():
+    """A module can expose a component under several names without losing its required routes."""
+
+    @get('component-data')
+    def component_data():
+        return ''
+
+    class Exported(ComponentInstance):
+        js_source = './js/exported.tsx'
+        required_routes = [component_data]
+
+    module = ModuleType('component_exports')
+    vars(module).update(Exported=Exported, Alias=Exported)
+    builder = ConfigurationBuilder()
+
+    builder.add_components(module)
+    config = builder._to_configuration()
+
+    assert config.components == [JsComponentDef(name='Exported', py_module='tests', js_source='./js/exported.tsx')]
+    assert component_data in config.routes
+
+
+def test_add_components_only_registers_public_frontend_classes():
+    """Registration ignores private exports, instances, actions, and child modules."""
+
+    class Public(ComponentInstance):
+        js_source = './js/public.tsx'
+
+    class Private(ComponentInstance):
+        js_source = './js/private.tsx'
+
+    class PythonOnly(ComponentInstance):
+        pass
+
+    class FrontendAction(ActionImpl):
+        js_source = './js/action.ts'
+
+    child = ModuleType('component_exports.child')
+    vars(child)['Nested'] = Private
+    module = ModuleType('component_exports')
+    vars(module).update(
+        Public=Public,
+        _Private=Private,
+        PythonOnly=PythonOnly,
+        ComponentInstance=ComponentInstance,
+        instance=Public(),
+        FrontendAction=FrontendAction,
+        OtherClass=object,
+        value='not a component',
+        child=child,
+    )
+    builder = ConfigurationBuilder()
+
+    builder.add_components(module)
+    config = builder._to_configuration()
+
+    assert [component.name for component in config.components] == ['Public']
+    assert config.actions == []
 
 
 def test_add_route():

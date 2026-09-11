@@ -1,0 +1,2 @@
+[tool.dara]
+config = "cypress.dara.main:config"

@@ -40,5 +40,7 @@ class BulletList(ContentComponent):
     :param numbered: Boolean, if True then number the bullets
     """
 
+    js_source = '@darajs/components/bullet-list'
+
     items: list[str] | Variable | DerivedVariable
     numbered: bool = False

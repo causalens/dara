@@ -67,7 +67,7 @@ class HierarchySelector(StyledComponentInstance):
     child Node components.
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/hierarchy-selector'
 
     allow_category_select: bool = True
     allow_leaf_select: bool = True
@@ -82,7 +82,7 @@ class HierarchyViewer(StyledComponentInstance):
     the composition of the dataset.
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/hierarchy-viewer'
 
     allow_leaf_click: bool = True
     allow_parent_click: bool = True

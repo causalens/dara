@@ -1,0 +1,56 @@
+{
+  "name": "@darajs/vite-plugin",
+  "version": "1.29.10",
+  "description": "Dara app-root Vite project loader and runners",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tsconfig.json": "./tsconfig.json"
+  },
+  "bin": {
+    "dara-vite": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "tsconfig.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare-dev": "tsc -p tsconfig.build.json",
+    "build-dev": "tsc -p tsconfig.build.json --watch",
+    "test": "tsc -p tsconfig.build.json && tsc -p tsconfig.test.json && node --test dist-tests/*.test.js",
+    "lint": "tsc -p tsconfig.build.json --noEmit && oxlint src tests",
+    "format:check": "oxfmt src tests --check",
+    "format": "oxfmt src tests --write"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "chokidar": "^4.0.3",
+    "get-tsconfig": "^4.10.1",
+    "resolve.exports": "^2.0.3",
+    "semver": "^7.7.2",
+    "vite": "^8.1.0",
+    "yaml": "^2.8.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@darajs/oxfmt-config": "1.29.10",
+    "@darajs/oxlint-config": "1.29.10",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "typescript": "^7.0.0",
+    "@types/node": "^24.0.0",
+    "@types/semver": "^7.7.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

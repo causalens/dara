@@ -1,7 +1,8 @@
 import asyncio
 import json
 from html.parser import HTMLParser
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from anyio import create_task_group
@@ -15,7 +16,6 @@ from dara.core.definitions import ComponentInstance
 from dara.core.http import get
 from dara.core.internal.settings import get_settings
 from dara.core.internal.websocket import WebsocketManager
-from dara.core.js_tooling.dev_server import UnidentifiedDevServerMismatch
 from dara.core.main import _start_application
 from dara.core.metrics import DARA_METRICS_REGISTRY
 from dara.core.router import LayoutRoute, Outlet
@@ -41,7 +41,7 @@ def clear_settings_cache():
 
 
 class LocalJsComponent(ComponentInstance):
-    pass
+    js_source = './js/component.tsx'
 
 
 class DaraDataParser(HTMLParser):
@@ -68,7 +68,7 @@ class DaraDataParser(HTMLParser):
 @pytest.fixture
 def config():
     builder: ConfigurationBuilder = ConfigurationBuilder()
-    builder.add_component(component=LocalJsComponent, local=True)
+    builder.add_component(component=LocalJsComponent)
     builder.add_page(name='Js Test', content=LocalJsComponent(), icon='Hdd')
     yield create_app(builder)
 
@@ -163,8 +163,8 @@ async def test_fastapi_is_instrumented_only_after_application_construction():
     with (
         patch('dara.core.main.initialize_process_telemetry') as initialize_process_telemetry,
         patch('dara.core.main.instrument_fastapi_app') as instrument_fastapi_app,
-        patch('dara.core.main.BuildCache.from_config', side_effect=RuntimeError('build failed')),
-        pytest.raises(SystemExit),
+        patch('dara.core.main.derive_manifest', side_effect=RuntimeError('manifest failed')),
+        pytest.raises(RuntimeError),
     ):
         _start_application(config)
 
@@ -211,9 +211,8 @@ async def _check_dara_data(client: AsyncClient):
         parser.dara_data['components'],
         {
             'LocalJsComponent': {
-                'js_component': None,
-                'js_module': None,
-                'py_module': 'LOCAL',
+                'js_source': './js/component.tsx',
+                'py_module': 'tests',
                 'name': 'LocalJsComponent',
                 'type': 'js',
             }
@@ -221,128 +220,64 @@ async def _check_dara_data(client: AsyncClient):
     )
 
 
-async def test_dara_data_autojs(monkeypatch: pytest.MonkeyPatch, config: Configuration):
-    """
-    Check that the HTML includes the correct embedded dara data for both autojs index
-    """
-    with monkeypatch.context() as m:
-        m.setenv('DARA_DOCKER_MODE', 'TRUE')
-        m.delenv('DARA_DOCKER_MODE')
-
-        # skip rebuild_js
-        with patch('dara.core.main.rebuild_js'):
-            app = _start_application(config)
-
-            async with AsyncClient(app) as client:
-                await _check_dara_data(client)
-
-
-async def test_dara_data_properjs(monkeypatch: pytest.MonkeyPatch, config: Configuration):
-    """
-    Check that the HTML includes the correct embedded dara data for properjs index
-    """
-    with monkeypatch.context() as m:
-        m.setenv('DARA_DOCKER_MODE', 'TRUE')
-
-        # skip rebuild_js
-        with patch('dara.core.main.rebuild_js'):
-            app = _start_application(config)
-
-            # Patch the fastapi_vite vite loader, we don't really care about it
-            # and otherwise they require e.g. a valid manifest.json file
-            from fastapi_vite_dara.loader import ViteLoader
-
-            mock_vite_loader = Mock()
-            mock_vite_loader.generate_vite_ws_client = Mock(return_value='ws_client')
-            mock_vite_loader.generate_vite_asset = Mock(return_value='asset')
-            mock_vite_loader.generate_vite_react_hmr = Mock(return_value='hmr')
-
-            with patch.object(ViteLoader, '__new__', return_value=mock_vite_loader):
-                async with AsyncClient(app) as client:
-                    await _check_dara_data(client)
+@pytest.fixture(autouse=True)
+def frontend_template(tmp_path, monkeypatch):
+    """Backend integration tests supply a compiled template; marker validation has dedicated tests."""
+    package = Path(__file__).resolve().parents[2]
+    for name in ('.env.test', 'pyproject.toml'):
+        (tmp_path / name).write_bytes((package / name).read_bytes())
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('DARA_COMMAND', 'start')
+    output = tmp_path / 'dist'
+    output.mkdir()
+    template = '<!doctype html><script id="__DARA_DATA__" type="application/json">{{ dara_data | safe }}</script>'
+    (output / 'index.html').write_text(template)
+    private = tmp_path / 'node_modules/.dara'
+    private.mkdir(parents=True)
+    (private / 'index.dev.html').write_text(template)
+    monkeypatch.setattr('dara.core.main.validate_build', lambda *args: None)
+    monkeypatch.setattr('dara.core.js_tooling.runtime.frontend_status', lambda root: {'state': 'ready'})
 
 
-async def test_dev_server_handshake_renders_one_mismatch_page(
-    monkeypatch: pytest.MonkeyPatch,
-    config: Configuration,
-):
-    """HMR mode should render Dara's unified mismatch page before loading Vite assets."""
-    monkeypatch.setenv('DARA_HMR_MODE', 'TRUE')
-    monkeypatch.setenv('VITE_HOT_RELOAD', 'TRUE')
-    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
-    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+@pytest.mark.parametrize('command', ['dev', 'start'])
+async def test_dara_data(config, monkeypatch, command):
+    monkeypatch.setenv('DARA_COMMAND', command)
+    async with AsyncClient(_start_application(config)) as client:
+        await _check_dara_data(client)
 
-    async def report_mismatch(expected):
-        return UnidentifiedDevServerMismatch(expected=expected)
 
-    with (
-        patch('dara.core.main.rebuild_js'),
-        patch('dara.core.main.check_dev_server', new=AsyncMock(side_effect=report_mismatch)) as check,
-    ):
-        app = _start_application(config)
-
-        async with AsyncClient(app) as client:
-            response = await client.get('/')
-
+@pytest.mark.parametrize('command', ['dev', 'start'])
+async def test_bootstrap_data_cannot_escape_script(config, monkeypatch, command):
+    """Untrusted bootstrap strings survive HTML parsing without executable markup."""
+    value = '</ScRiPt><script id="injected">alert(1)</script><!-- & > \u2028\u2029'
+    config.title = value
+    monkeypatch.setenv('DARA_COMMAND', command)
+    async with AsyncClient(_start_application(config)) as client:
+        response = await client.get('/')
     assert response.status_code == 200
-    assert 'Development server mismatch' in response.text
-    assert '<code>dara dev</code>' in response.text
-    assert 'This page retries automatically' in response.text
-    check.assert_awaited_once()
+    parser = DaraDataParser()
+    parser.feed(response.text)
+    assert parser.dara_data['title'] == value
+    assert '<script id="injected">' not in response.text
+    script = response.text.split('id="__DARA_DATA__"', 1)[1].split('>', 1)[1].split('</script>', 1)[0]
+    assert not any(char in script for char in '<>&\u2028\u2029')
 
 
-async def test_dev_server_handshake_is_skipped_in_autojs(
-    monkeypatch: pytest.MonkeyPatch,
-    config: Configuration,
-):
-    """The UMD mode should not contact or render development server machinery."""
-    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
-    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
-    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
-
-    with (
-        patch('dara.core.main.rebuild_js'),
-        patch('dara.core.main.check_dev_server', new=AsyncMock()) as check,
-    ):
-        app = _start_application(config)
-
-        async with AsyncClient(app) as client:
-            response = await client.get('/')
-
-    assert response.status_code == 200
-    assert 'Development server mismatch' not in response.text
-    check.assert_not_awaited()
-
-
-async def test_dev_server_handshake_is_skipped_in_production(
-    monkeypatch: pytest.MonkeyPatch,
-    config: Configuration,
-):
-    """A production Vite build should not contact or render development server machinery."""
-    monkeypatch.delenv('DARA_HMR_MODE', raising=False)
-    monkeypatch.setenv('DARA_PRODUCTION_MODE', 'TRUE')
-    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
-
-    from fastapi_vite_dara.loader import ViteLoader
-
-    mock_vite_loader = Mock()
-    mock_vite_loader.generate_vite_ws_client = Mock(return_value='')
-    mock_vite_loader.generate_vite_asset = Mock(return_value='asset')
-    mock_vite_loader.generate_vite_react_hmr = Mock(return_value='')
-
-    with (
-        patch('dara.core.main.rebuild_js'),
-        patch('dara.core.main.check_dev_server', new=AsyncMock()) as check,
-        patch.object(ViteLoader, '__new__', return_value=mock_vite_loader),
-    ):
-        app = _start_application(config)
-
-        async with AsyncClient(app) as client:
-            response = await client.get('/')
-
-    assert response.status_code == 200
-    assert 'Development server mismatch' not in response.text
-    check.assert_not_awaited()
+async def test_frontend_failure_renders_recoverable_diagnostic(config, monkeypatch):
+    monkeypatch.setenv('DARA_COMMAND', 'dev')
+    monkeypatch.setattr(
+        'dara.core.js_tooling.runtime.frontend_status',
+        lambda root: {
+            'state': 'blocked',
+            'diagnostic': {'message': 'Missing component source', 'fix': 'edit js_source'},
+        },
+    )
+    async with AsyncClient(_start_application(config)) as client:
+        response = await client.get('/')
+    assert response.status_code == 503
+    assert 'Missing component source' in response.text
+    assert 'edit js_source' in response.text
+    assert '/__dara/status' in response.text
 
 
 @patch('dara.core.definitions.uuid.uuid4', return_value='uid')
@@ -398,9 +333,10 @@ async def test_component_registers_route():
         return 'ok'
 
     class ComponentWithRoute(ComponentInstance):
+        js_source = './js/route.tsx'
         required_routes = [handler]
 
-    builder.add_component(ComponentWithRoute, local=True)
+    builder.add_component(ComponentWithRoute)
 
     config = create_app(builder)
     app = _start_application(config)

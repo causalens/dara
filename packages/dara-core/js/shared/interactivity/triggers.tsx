@@ -1,7 +1,6 @@
 import { type RecoilState, type Snapshot, atom } from 'recoil';
 
-import { type DerivedVariable, isDerivedVariable } from '@/types';
-
+import { type DerivedVariable, isDerivedVariable } from '../../types';
 import { type TriggerIndexValue, atomRegistry, getRegistryKey } from './store';
 
 /**

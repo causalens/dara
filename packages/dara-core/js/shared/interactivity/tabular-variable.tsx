@@ -2,9 +2,9 @@ import { useCallback, useRef } from 'react';
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface, fetchTaskResult } from '@/api';
-import { type RequestExtras, request } from '@/api/http';
-import { handleAuthErrors } from '@/auth/auth';
+import { type WebSocketClientInterface, fetchTaskResult } from '../../api';
+import { type RequestExtras, request } from '../../api/http';
+import { handleAuthErrors } from '../../auth/auth';
 import {
     type DataFrame,
     type DerivedVariable,
@@ -14,8 +14,7 @@ import {
     type Pagination,
     type ServerVariable,
     UserError,
-} from '@/types';
-
+} from '../../types';
 import { normalizeRequest } from '../utils/normalization';
 // eslint-disable-next-line import/no-cycle
 import { type DerivedResult, cleanArgs } from './internal';
@@ -148,7 +147,14 @@ export function useFetchTabularServerVariable(
 ): DataFetcher {
     return useCallback<DataFetcher>(
         async (filters, pagination) => {
-            return fetchTabularServerVariable({ variable, seqNumber, wsClient, extras, filters, pagination });
+            return fetchTabularServerVariable({
+                variable,
+                seqNumber,
+                wsClient,
+                extras,
+                filters,
+                pagination,
+            });
         },
         [wsClient, variable, seqNumber, extras]
     );

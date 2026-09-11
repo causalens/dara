@@ -126,6 +126,8 @@ class Select(FormComponent):
     :param size: An optional font size for the select component, in REM units
     """
 
+    js_source = '@darajs/components/select'
+
     id: str | None = None
     multiselect: bool = False
     searchable: bool = False

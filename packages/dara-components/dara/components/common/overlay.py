@@ -43,6 +43,8 @@ class Overlay(LayoutComponent):
     :param position: the position of the overlay; can be top-left, top-right, bottom-left, bottom-right
     """
 
+    js_source = '@darajs/components/overlay'
+
     show: ClientVariable | None = None
 
     @field_validator('position')

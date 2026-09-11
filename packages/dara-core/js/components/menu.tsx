@@ -4,9 +4,9 @@ import { NavLink } from 'react-router';
 
 import styled from '@darajs/styled-components';
 
-import { DirectionCtx } from '@/shared/context';
-import { getIcon } from '@/shared/utils';
-import { type RouteLink } from '@/types';
+import { DirectionCtx } from '../shared/context';
+import { getIcon } from '../shared/utils';
+import { type RouteLink } from '../types';
 
 interface MenuItemProps {
     direction: 'column' | 'row';

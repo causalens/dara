@@ -1,7 +1,7 @@
 from dara.core.definitions import ComponentInstance, JsComponentDef
 from dara.core.interactivity.client_variable import ClientVariable
 
-MatchDef = JsComponentDef(name='Match', js_module='@darajs/core', py_module='dara.core')
+MatchDef = JsComponentDef(name='Match', js_source='@darajs/core/components/match', py_module='dara.core')
 
 
 class Match(ComponentInstance):
@@ -40,6 +40,8 @@ class Match(ComponentInstance):
     :param when: a map of primitive values to children
     :param default: children to display when the value is not matched, defaults to nothing rendered if not passed
     """
+
+    js_source = '@darajs/core/components/match'
 
     value: ClientVariable
     when: dict[str | int | float, ComponentInstance | None]

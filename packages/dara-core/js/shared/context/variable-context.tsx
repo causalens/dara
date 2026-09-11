@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { PollScope } from '@/shared/interactivity/polling';
+import type { PollScope } from '../interactivity/polling';
 
 export interface VariableContext {
     /**

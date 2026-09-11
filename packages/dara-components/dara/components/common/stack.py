@@ -134,6 +134,8 @@ class Stack(LayoutComponent):
     :param scroll: Whether to scroll the content of the stack, defaults to False
     """
 
+    js_source = '@darajs/components/stack'
+
     collapsed: Variable[bool] | bool = False
     direction: Direction = Direction.VERTICAL
     hug: bool | None = False

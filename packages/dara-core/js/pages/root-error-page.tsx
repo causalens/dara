@@ -3,8 +3,7 @@ import { isRouteErrorResponse, useRouteError } from 'react-router';
 import styled from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import Center from '@/shared/center/center';
-
+import Center from '../shared/center/center';
 import ErrorStatusCodePage, { errorMessages } from './error-status-code-page';
 
 const CenteredDivWithGap = styled(Center)`

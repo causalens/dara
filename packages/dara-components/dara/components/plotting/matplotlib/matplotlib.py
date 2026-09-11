@@ -35,7 +35,7 @@ class Matplotlib(StyledComponentInstance):
     :param figure: A matplotlib figure
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/matplotlib'
 
     figure: str
 

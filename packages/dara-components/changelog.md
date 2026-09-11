@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Breaking: component implementations are published as ESM entry points such as `@darajs/components/button` for the Dara 2.0 frontend pipeline.
+- Omitted grid hug values now default to false in the display context.
+
 ## 1.29.8
 
 - Fixed `CodeEditor` crashing when its value contains CRLF line endings.

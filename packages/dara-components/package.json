@@ -6,7 +6,7 @@
   "module": "dist/index.js",
   "jsnext:main": "dist/index.js",
   "scripts": {
-    "build": "rimraf dist && vite build && tsc && cp js/index.css dist/ && cp -R dist/umd/. dara/components/_assets/auto_js/",
+    "build": "rimraf dist && tsc && cp js/index.css dist/",
     "prepare-dev": "tsc && cp js/index.css dist/",
     "lint": "oxlint --type-aware --type-check js && stylelint './js/**/*.tsx'",
     "format": "oxfmt js --write",
@@ -97,6 +97,622 @@
   ],
   "publishConfig": {
     "access": "public",
-    "timeout": 60000
+    "timeout": 60000,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./setup": {
+        "types": "./dist/setup.d.ts",
+        "default": "./dist/setup.js"
+      },
+      "./accordion": {
+        "types": "./dist/common/accordion/accordion.d.ts",
+        "default": "./dist/common/accordion/accordion.js"
+      },
+      "./adaptive-precision-cell": {
+        "types": "./dist/common/table/cells/adaptive-precision-cell.d.ts",
+        "default": "./dist/common/table/cells/adaptive-precision-cell.js"
+      },
+      "./anchor": {
+        "types": "./dist/common/anchor/anchor.d.ts",
+        "default": "./dist/common/anchor/anchor.js"
+      },
+      "./badge-formatted-cell": {
+        "types": "./dist/common/table/cells/badge-formatter-cell.d.ts",
+        "default": "./dist/common/table/cells/badge-formatter-cell.js"
+      },
+      "./bokeh": {
+        "types": "./dist/plotting/bokeh/bokeh.d.ts",
+        "default": "./dist/plotting/bokeh/bokeh.js"
+      },
+      "./bullet-list": {
+        "types": "./dist/common/bullet-list/bullet_list.d.ts",
+        "default": "./dist/common/bullet-list/bullet_list.js"
+      },
+      "./button": {
+        "types": "./dist/common/button/button.d.ts",
+        "default": "./dist/common/button/button.js"
+      },
+      "./button-bar": {
+        "types": "./dist/common/button-bar/button-bar.d.ts",
+        "default": "./dist/common/button-bar/button-bar.js"
+      },
+      "./card": {
+        "types": "./dist/common/card/card.d.ts",
+        "default": "./dist/common/card/card.js"
+      },
+      "./carousel": {
+        "types": "./dist/common/carousel/carousel.d.ts",
+        "default": "./dist/common/carousel/carousel.js"
+      },
+      "./causal-graph-viewer": {
+        "types": "./dist/graphs/causal-graph-viewer.d.ts",
+        "default": "./dist/graphs/causal-graph-viewer.js"
+      },
+      "./chat": {
+        "types": "./dist/smart/chat/chat.d.ts",
+        "default": "./dist/smart/chat/chat.js"
+      },
+      "./checkbox-group": {
+        "types": "./dist/common/checkbox-group/checkbox-group.d.ts",
+        "default": "./dist/common/checkbox-group/checkbox-group.js"
+      },
+      "./code": {
+        "types": "./dist/common/code/code.d.ts",
+        "default": "./dist/common/code/code.js"
+      },
+      "./code-cell": {
+        "types": "./dist/common/table/cells/code-cell.d.ts",
+        "default": "./dist/common/table/cells/code-cell.js"
+      },
+      "./code-editor": {
+        "types": "./dist/smart/code-editor.d.ts",
+        "default": "./dist/smart/code-editor.js"
+      },
+      "./column": {
+        "types": "./dist/common/grid/column.d.ts",
+        "default": "./dist/common/grid/column.js"
+      },
+      "./compare-cell": {
+        "types": "./dist/common/table/cells/compare-cell.d.ts",
+        "default": "./dist/common/table/cells/compare-cell.js"
+      },
+      "./component-select-list": {
+        "types": "./dist/common/component-select-list/component-select-list.d.ts",
+        "default": "./dist/common/component-select-list/component-select-list.js"
+      },
+      "./data-slicer-filter": {
+        "types": "./dist/smart/data-slicer-filter/data-slicer-filter.d.ts",
+        "default": "./dist/smart/data-slicer-filter/data-slicer-filter.js"
+      },
+      "./datepicker": {
+        "types": "./dist/common/datepicker/datepicker.d.ts",
+        "default": "./dist/common/datepicker/datepicker.js"
+      },
+      "./dropdown-menu": {
+        "types": "./dist/common/dropdown-menu/dropdown-menu.d.ts",
+        "default": "./dist/common/dropdown-menu/dropdown-menu.js"
+      },
+      "./filter-status-button": {
+        "types": "./dist/smart/filter-status-button/filter-status-button.d.ts",
+        "default": "./dist/smart/filter-status-button/filter-status-button.js"
+      },
+      "./form": {
+        "types": "./dist/common/form/form.d.ts",
+        "default": "./dist/common/form/form.js"
+      },
+      "./form-ctx": {
+        "types": "./dist/common/context/form-context.d.ts",
+        "default": "./dist/common/context/form-context.js"
+      },
+      "./form-page": {
+        "types": "./dist/common/form-page/form-page.d.ts",
+        "default": "./dist/common/form-page/form-page.js"
+      },
+      "./formatted-text-cell": {
+        "types": "./dist/common/table/cells/formatted-text-cell.d.ts",
+        "default": "./dist/common/table/cells/formatted-text-cell.js"
+      },
+      "./grid": {
+        "types": "./dist/common/grid/grid.d.ts",
+        "default": "./dist/common/grid/grid.js"
+      },
+      "./heading": {
+        "types": "./dist/common/heading/heading.d.ts",
+        "default": "./dist/common/heading/heading.js"
+      },
+      "./hierarchy-selector": {
+        "types": "./dist/smart/hierarchy-selector/hierarchy-selector.d.ts",
+        "default": "./dist/smart/hierarchy-selector/hierarchy-selector.js"
+      },
+      "./hierarchy-viewer": {
+        "types": "./dist/smart/hierarchy-viewer/hierarchy-viewer.d.ts",
+        "default": "./dist/smart/hierarchy-viewer/hierarchy-viewer.js"
+      },
+      "./html-raw": {
+        "types": "./dist/common/html-raw/html-raw.d.ts",
+        "default": "./dist/common/html-raw/html-raw.js"
+      },
+      "./icon": {
+        "types": "./dist/common/icon/icon.d.ts",
+        "default": "./dist/common/icon/icon.js"
+      },
+      "./if": {
+        "types": "./dist/common/if/if.d.ts",
+        "default": "./dist/common/if/if.js"
+      },
+      "./image": {
+        "types": "./dist/common/image/image.d.ts",
+        "default": "./dist/common/image/image.js"
+      },
+      "./input": {
+        "types": "./dist/common/input/input.d.ts",
+        "default": "./dist/common/input/input.js"
+      },
+      "./label": {
+        "types": "./dist/common/label/label.d.ts",
+        "default": "./dist/common/label/label.js"
+      },
+      "./link-cell": {
+        "types": "./dist/common/table/cells/link-cell.d.ts",
+        "default": "./dist/common/table/cells/link-cell.js"
+      },
+      "./localized-date": {
+        "types": "./dist/common/localized-date/localized-date.d.ts",
+        "default": "./dist/common/localized-date/localized-date.js"
+      },
+      "./markdown": {
+        "types": "./dist/common/markdown/markdown.d.ts",
+        "default": "./dist/common/markdown/markdown.js"
+      },
+      "./matplotlib": {
+        "types": "./dist/plotting/matplotlib/matplotlib.d.ts",
+        "default": "./dist/plotting/matplotlib/matplotlib.js"
+      },
+      "./modal": {
+        "types": "./dist/common/modal/modal.d.ts",
+        "default": "./dist/common/modal/modal.js"
+      },
+      "./node-hierarchy-builder": {
+        "types": "./dist/graphs/node-hierarchy-builder.d.ts",
+        "default": "./dist/graphs/node-hierarchy-builder.js"
+      },
+      "./number-cell": {
+        "types": "./dist/common/table/cells/number-cell.d.ts",
+        "default": "./dist/common/table/cells/number-cell.js"
+      },
+      "./number-intl-cell": {
+        "types": "./dist/common/table/cells/number-intl-cell.d.ts",
+        "default": "./dist/common/table/cells/number-intl-cell.js"
+      },
+      "./overlay": {
+        "types": "./dist/common/overlay/overlay.d.ts",
+        "default": "./dist/common/overlay/overlay.js"
+      },
+      "./paragraph": {
+        "types": "./dist/common/paragraph/paragraph.d.ts",
+        "default": "./dist/common/paragraph/paragraph.js"
+      },
+      "./percentage-cell": {
+        "types": "./dist/common/table/cells/percentage-cell.d.ts",
+        "default": "./dist/common/table/cells/percentage-cell.js"
+      },
+      "./plotly": {
+        "types": "./dist/plotting/plotly/plotly.d.ts",
+        "default": "./dist/plotting/plotly/plotly.js"
+      },
+      "./progress-bar": {
+        "types": "./dist/common/progress-bar/progress-bar.d.ts",
+        "default": "./dist/common/progress-bar/progress-bar.js"
+      },
+      "./radio-group": {
+        "types": "./dist/common/radio-group/radio-group.d.ts",
+        "default": "./dist/common/radio-group/radio-group.js"
+      },
+      "./row": {
+        "types": "./dist/common/grid/row.d.ts",
+        "default": "./dist/common/grid/row.js"
+      },
+      "./select": {
+        "types": "./dist/common/select/select.d.ts",
+        "default": "./dist/common/select/select.js"
+      },
+      "./slider": {
+        "types": "./dist/common/slider/slider.d.ts",
+        "default": "./dist/common/slider/slider.js"
+      },
+      "./spacer": {
+        "types": "./dist/common/spacer/spacer.d.ts",
+        "default": "./dist/common/spacer/spacer.js"
+      },
+      "./stack": {
+        "types": "./dist/common/stack/stack.d.ts",
+        "default": "./dist/common/stack/stack.js"
+      },
+      "./switch": {
+        "types": "./dist/common/switch/switch.d.ts",
+        "default": "./dist/common/switch/switch.js"
+      },
+      "./tabbed-card": {
+        "types": "./dist/common/tabbed-card/tabbed-card.d.ts",
+        "default": "./dist/common/tabbed-card/tabbed-card.js"
+      },
+      "./table": {
+        "types": "./dist/common/table/table.d.ts",
+        "default": "./dist/common/table/table.js"
+      },
+      "./text": {
+        "types": "./dist/common/text/text.d.ts",
+        "default": "./dist/common/text/text.js"
+      },
+      "./textarea": {
+        "types": "./dist/common/textarea/textarea.d.ts",
+        "default": "./dist/common/textarea/textarea.js"
+      },
+      "./threshold-formatted-cell": {
+        "types": "./dist/common/table/cells/threshold-formatted-cell.d.ts",
+        "default": "./dist/common/table/cells/threshold-formatted-cell.js"
+      },
+      "./tooltip": {
+        "types": "./dist/common/tooltip/tooltip.d.ts",
+        "default": "./dist/common/tooltip/tooltip.js"
+      },
+      "./ui-code-editor": {
+        "types": "./dist/smart/ui-code-editor/code-editor.d.ts",
+        "default": "./dist/smart/ui-code-editor/code-editor.js"
+      },
+      "./upload-dropzone": {
+        "types": "./dist/common/dropzone/dropzone.d.ts",
+        "default": "./dist/common/dropzone/dropzone.js"
+      },
+      "./visual-edge-encoder": {
+        "types": "./dist/graphs/visual-edge-encoder.d.ts",
+        "default": "./dist/graphs/visual-edge-encoder.js"
+      }
+    }
+  },
+  "exports": {
+    ".": {
+      "dara-source": "./js/index.tsx",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./setup": {
+      "dara-source": "./js/setup.ts",
+      "types": "./dist/setup.d.ts",
+      "default": "./dist/setup.js"
+    },
+    "./accordion": {
+      "dara-source": "./js/common/accordion/accordion.tsx",
+      "types": "./dist/common/accordion/accordion.d.ts",
+      "default": "./dist/common/accordion/accordion.js"
+    },
+    "./adaptive-precision-cell": {
+      "dara-source": "./js/common/table/cells/adaptive-precision-cell.tsx",
+      "types": "./dist/common/table/cells/adaptive-precision-cell.d.ts",
+      "default": "./dist/common/table/cells/adaptive-precision-cell.js"
+    },
+    "./anchor": {
+      "dara-source": "./js/common/anchor/anchor.tsx",
+      "types": "./dist/common/anchor/anchor.d.ts",
+      "default": "./dist/common/anchor/anchor.js"
+    },
+    "./badge-formatted-cell": {
+      "dara-source": "./js/common/table/cells/badge-formatter-cell.tsx",
+      "types": "./dist/common/table/cells/badge-formatter-cell.d.ts",
+      "default": "./dist/common/table/cells/badge-formatter-cell.js"
+    },
+    "./bokeh": {
+      "dara-source": "./js/plotting/bokeh/bokeh.tsx",
+      "types": "./dist/plotting/bokeh/bokeh.d.ts",
+      "default": "./dist/plotting/bokeh/bokeh.js"
+    },
+    "./bullet-list": {
+      "dara-source": "./js/common/bullet-list/bullet_list.tsx",
+      "types": "./dist/common/bullet-list/bullet_list.d.ts",
+      "default": "./dist/common/bullet-list/bullet_list.js"
+    },
+    "./button": {
+      "dara-source": "./js/common/button/button.tsx",
+      "types": "./dist/common/button/button.d.ts",
+      "default": "./dist/common/button/button.js"
+    },
+    "./button-bar": {
+      "dara-source": "./js/common/button-bar/button-bar.tsx",
+      "types": "./dist/common/button-bar/button-bar.d.ts",
+      "default": "./dist/common/button-bar/button-bar.js"
+    },
+    "./card": {
+      "dara-source": "./js/common/card/card.tsx",
+      "types": "./dist/common/card/card.d.ts",
+      "default": "./dist/common/card/card.js"
+    },
+    "./carousel": {
+      "dara-source": "./js/common/carousel/carousel.tsx",
+      "types": "./dist/common/carousel/carousel.d.ts",
+      "default": "./dist/common/carousel/carousel.js"
+    },
+    "./causal-graph-viewer": {
+      "dara-source": "./js/graphs/causal-graph-viewer.tsx",
+      "types": "./dist/graphs/causal-graph-viewer.d.ts",
+      "default": "./dist/graphs/causal-graph-viewer.js"
+    },
+    "./chat": {
+      "dara-source": "./js/smart/chat/chat.tsx",
+      "types": "./dist/smart/chat/chat.d.ts",
+      "default": "./dist/smart/chat/chat.js"
+    },
+    "./checkbox-group": {
+      "dara-source": "./js/common/checkbox-group/checkbox-group.tsx",
+      "types": "./dist/common/checkbox-group/checkbox-group.d.ts",
+      "default": "./dist/common/checkbox-group/checkbox-group.js"
+    },
+    "./code": {
+      "dara-source": "./js/common/code/code.tsx",
+      "types": "./dist/common/code/code.d.ts",
+      "default": "./dist/common/code/code.js"
+    },
+    "./code-cell": {
+      "dara-source": "./js/common/table/cells/code-cell.tsx",
+      "types": "./dist/common/table/cells/code-cell.d.ts",
+      "default": "./dist/common/table/cells/code-cell.js"
+    },
+    "./code-editor": {
+      "dara-source": "./js/smart/code-editor.tsx",
+      "types": "./dist/smart/code-editor.d.ts",
+      "default": "./dist/smart/code-editor.js"
+    },
+    "./column": {
+      "dara-source": "./js/common/grid/column.tsx",
+      "types": "./dist/common/grid/column.d.ts",
+      "default": "./dist/common/grid/column.js"
+    },
+    "./compare-cell": {
+      "dara-source": "./js/common/table/cells/compare-cell.tsx",
+      "types": "./dist/common/table/cells/compare-cell.d.ts",
+      "default": "./dist/common/table/cells/compare-cell.js"
+    },
+    "./component-select-list": {
+      "dara-source": "./js/common/component-select-list/component-select-list.tsx",
+      "types": "./dist/common/component-select-list/component-select-list.d.ts",
+      "default": "./dist/common/component-select-list/component-select-list.js"
+    },
+    "./data-slicer-filter": {
+      "dara-source": "./js/smart/data-slicer-filter/data-slicer-filter.tsx",
+      "types": "./dist/smart/data-slicer-filter/data-slicer-filter.d.ts",
+      "default": "./dist/smart/data-slicer-filter/data-slicer-filter.js"
+    },
+    "./datepicker": {
+      "dara-source": "./js/common/datepicker/datepicker.tsx",
+      "types": "./dist/common/datepicker/datepicker.d.ts",
+      "default": "./dist/common/datepicker/datepicker.js"
+    },
+    "./dropdown-menu": {
+      "dara-source": "./js/common/dropdown-menu/dropdown-menu.tsx",
+      "types": "./dist/common/dropdown-menu/dropdown-menu.d.ts",
+      "default": "./dist/common/dropdown-menu/dropdown-menu.js"
+    },
+    "./filter-status-button": {
+      "dara-source": "./js/smart/filter-status-button/filter-status-button.tsx",
+      "types": "./dist/smart/filter-status-button/filter-status-button.d.ts",
+      "default": "./dist/smart/filter-status-button/filter-status-button.js"
+    },
+    "./form": {
+      "dara-source": "./js/common/form/form.tsx",
+      "types": "./dist/common/form/form.d.ts",
+      "default": "./dist/common/form/form.js"
+    },
+    "./form-ctx": {
+      "dara-source": "./js/common/context/form-context.tsx",
+      "types": "./dist/common/context/form-context.d.ts",
+      "default": "./dist/common/context/form-context.js"
+    },
+    "./form-page": {
+      "dara-source": "./js/common/form-page/form-page.tsx",
+      "types": "./dist/common/form-page/form-page.d.ts",
+      "default": "./dist/common/form-page/form-page.js"
+    },
+    "./formatted-text-cell": {
+      "dara-source": "./js/common/table/cells/formatted-text-cell.tsx",
+      "types": "./dist/common/table/cells/formatted-text-cell.d.ts",
+      "default": "./dist/common/table/cells/formatted-text-cell.js"
+    },
+    "./grid": {
+      "dara-source": "./js/common/grid/grid.tsx",
+      "types": "./dist/common/grid/grid.d.ts",
+      "default": "./dist/common/grid/grid.js"
+    },
+    "./heading": {
+      "dara-source": "./js/common/heading/heading.tsx",
+      "types": "./dist/common/heading/heading.d.ts",
+      "default": "./dist/common/heading/heading.js"
+    },
+    "./hierarchy-selector": {
+      "dara-source": "./js/smart/hierarchy-selector/hierarchy-selector.tsx",
+      "types": "./dist/smart/hierarchy-selector/hierarchy-selector.d.ts",
+      "default": "./dist/smart/hierarchy-selector/hierarchy-selector.js"
+    },
+    "./hierarchy-viewer": {
+      "dara-source": "./js/smart/hierarchy-viewer/hierarchy-viewer.tsx",
+      "types": "./dist/smart/hierarchy-viewer/hierarchy-viewer.d.ts",
+      "default": "./dist/smart/hierarchy-viewer/hierarchy-viewer.js"
+    },
+    "./html-raw": {
+      "dara-source": "./js/common/html-raw/html-raw.tsx",
+      "types": "./dist/common/html-raw/html-raw.d.ts",
+      "default": "./dist/common/html-raw/html-raw.js"
+    },
+    "./icon": {
+      "dara-source": "./js/common/icon/icon.tsx",
+      "types": "./dist/common/icon/icon.d.ts",
+      "default": "./dist/common/icon/icon.js"
+    },
+    "./if": {
+      "dara-source": "./js/common/if/if.tsx",
+      "types": "./dist/common/if/if.d.ts",
+      "default": "./dist/common/if/if.js"
+    },
+    "./image": {
+      "dara-source": "./js/common/image/image.tsx",
+      "types": "./dist/common/image/image.d.ts",
+      "default": "./dist/common/image/image.js"
+    },
+    "./input": {
+      "dara-source": "./js/common/input/input.tsx",
+      "types": "./dist/common/input/input.d.ts",
+      "default": "./dist/common/input/input.js"
+    },
+    "./label": {
+      "dara-source": "./js/common/label/label.tsx",
+      "types": "./dist/common/label/label.d.ts",
+      "default": "./dist/common/label/label.js"
+    },
+    "./link-cell": {
+      "dara-source": "./js/common/table/cells/link-cell.tsx",
+      "types": "./dist/common/table/cells/link-cell.d.ts",
+      "default": "./dist/common/table/cells/link-cell.js"
+    },
+    "./localized-date": {
+      "dara-source": "./js/common/localized-date/localized-date.tsx",
+      "types": "./dist/common/localized-date/localized-date.d.ts",
+      "default": "./dist/common/localized-date/localized-date.js"
+    },
+    "./markdown": {
+      "dara-source": "./js/common/markdown/markdown.tsx",
+      "types": "./dist/common/markdown/markdown.d.ts",
+      "default": "./dist/common/markdown/markdown.js"
+    },
+    "./matplotlib": {
+      "dara-source": "./js/plotting/matplotlib/matplotlib.tsx",
+      "types": "./dist/plotting/matplotlib/matplotlib.d.ts",
+      "default": "./dist/plotting/matplotlib/matplotlib.js"
+    },
+    "./modal": {
+      "dara-source": "./js/common/modal/modal.tsx",
+      "types": "./dist/common/modal/modal.d.ts",
+      "default": "./dist/common/modal/modal.js"
+    },
+    "./node-hierarchy-builder": {
+      "dara-source": "./js/graphs/node-hierarchy-builder.tsx",
+      "types": "./dist/graphs/node-hierarchy-builder.d.ts",
+      "default": "./dist/graphs/node-hierarchy-builder.js"
+    },
+    "./number-cell": {
+      "dara-source": "./js/common/table/cells/number-cell.tsx",
+      "types": "./dist/common/table/cells/number-cell.d.ts",
+      "default": "./dist/common/table/cells/number-cell.js"
+    },
+    "./number-intl-cell": {
+      "dara-source": "./js/common/table/cells/number-intl-cell.tsx",
+      "types": "./dist/common/table/cells/number-intl-cell.d.ts",
+      "default": "./dist/common/table/cells/number-intl-cell.js"
+    },
+    "./overlay": {
+      "dara-source": "./js/common/overlay/overlay.tsx",
+      "types": "./dist/common/overlay/overlay.d.ts",
+      "default": "./dist/common/overlay/overlay.js"
+    },
+    "./paragraph": {
+      "dara-source": "./js/common/paragraph/paragraph.tsx",
+      "types": "./dist/common/paragraph/paragraph.d.ts",
+      "default": "./dist/common/paragraph/paragraph.js"
+    },
+    "./percentage-cell": {
+      "dara-source": "./js/common/table/cells/percentage-cell.tsx",
+      "types": "./dist/common/table/cells/percentage-cell.d.ts",
+      "default": "./dist/common/table/cells/percentage-cell.js"
+    },
+    "./plotly": {
+      "dara-source": "./js/plotting/plotly/plotly.tsx",
+      "types": "./dist/plotting/plotly/plotly.d.ts",
+      "default": "./dist/plotting/plotly/plotly.js"
+    },
+    "./progress-bar": {
+      "dara-source": "./js/common/progress-bar/progress-bar.tsx",
+      "types": "./dist/common/progress-bar/progress-bar.d.ts",
+      "default": "./dist/common/progress-bar/progress-bar.js"
+    },
+    "./radio-group": {
+      "dara-source": "./js/common/radio-group/radio-group.tsx",
+      "types": "./dist/common/radio-group/radio-group.d.ts",
+      "default": "./dist/common/radio-group/radio-group.js"
+    },
+    "./row": {
+      "dara-source": "./js/common/grid/row.tsx",
+      "types": "./dist/common/grid/row.d.ts",
+      "default": "./dist/common/grid/row.js"
+    },
+    "./select": {
+      "dara-source": "./js/common/select/select.tsx",
+      "types": "./dist/common/select/select.d.ts",
+      "default": "./dist/common/select/select.js"
+    },
+    "./slider": {
+      "dara-source": "./js/common/slider/slider.tsx",
+      "types": "./dist/common/slider/slider.d.ts",
+      "default": "./dist/common/slider/slider.js"
+    },
+    "./spacer": {
+      "dara-source": "./js/common/spacer/spacer.tsx",
+      "types": "./dist/common/spacer/spacer.d.ts",
+      "default": "./dist/common/spacer/spacer.js"
+    },
+    "./stack": {
+      "dara-source": "./js/common/stack/stack.tsx",
+      "types": "./dist/common/stack/stack.d.ts",
+      "default": "./dist/common/stack/stack.js"
+    },
+    "./switch": {
+      "dara-source": "./js/common/switch/switch.tsx",
+      "types": "./dist/common/switch/switch.d.ts",
+      "default": "./dist/common/switch/switch.js"
+    },
+    "./tabbed-card": {
+      "dara-source": "./js/common/tabbed-card/tabbed-card.tsx",
+      "types": "./dist/common/tabbed-card/tabbed-card.d.ts",
+      "default": "./dist/common/tabbed-card/tabbed-card.js"
+    },
+    "./table": {
+      "dara-source": "./js/common/table/table.tsx",
+      "types": "./dist/common/table/table.d.ts",
+      "default": "./dist/common/table/table.js"
+    },
+    "./text": {
+      "dara-source": "./js/common/text/text.tsx",
+      "types": "./dist/common/text/text.d.ts",
+      "default": "./dist/common/text/text.js"
+    },
+    "./textarea": {
+      "dara-source": "./js/common/textarea/textarea.tsx",
+      "types": "./dist/common/textarea/textarea.d.ts",
+      "default": "./dist/common/textarea/textarea.js"
+    },
+    "./threshold-formatted-cell": {
+      "dara-source": "./js/common/table/cells/threshold-formatted-cell.tsx",
+      "types": "./dist/common/table/cells/threshold-formatted-cell.d.ts",
+      "default": "./dist/common/table/cells/threshold-formatted-cell.js"
+    },
+    "./tooltip": {
+      "dara-source": "./js/common/tooltip/tooltip.tsx",
+      "types": "./dist/common/tooltip/tooltip.d.ts",
+      "default": "./dist/common/tooltip/tooltip.js"
+    },
+    "./ui-code-editor": {
+      "dara-source": "./js/smart/ui-code-editor/code-editor.tsx",
+      "types": "./dist/smart/ui-code-editor/code-editor.d.ts",
+      "default": "./dist/smart/ui-code-editor/code-editor.js"
+    },
+    "./upload-dropzone": {
+      "dara-source": "./js/common/dropzone/dropzone.tsx",
+      "types": "./dist/common/dropzone/dropzone.d.ts",
+      "default": "./dist/common/dropzone/dropzone.js"
+    },
+    "./visual-edge-encoder": {
+      "dara-source": "./js/graphs/visual-edge-encoder.tsx",
+      "types": "./dist/graphs/visual-edge-encoder.d.ts",
+      "default": "./dist/graphs/visual-edge-encoder.js"
+    }
   }
 }

@@ -31,10 +31,10 @@ from pathlib import Path
 from anyio import create_task_group
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import ENCODERS_BY_TYPE, jsonable_encoder
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import start_http_server
 from starlette.staticfiles import PathLike
-from starlette.templating import Jinja2Templates, _TemplateResponse
 from starlette.types import Scope
 
 from dara.core.auth import auth_router
@@ -68,20 +68,14 @@ from dara.core.internal.registries import (
 )
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import core_api_router, create_loader_route, error_decorator
-from dara.core.internal.runtime_env import is_backend_reload_enabled, is_docker_mode, is_hmr_enabled
+from dara.core.internal.runtime_env import is_backend_reload_enabled, is_deploy_mode
 from dara.core.internal.scheduler import stop_scheduled_process
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
 from dara.core.internal.utils import enforce_sso, import_config
 from dara.core.internal.websocket import WebsocketManager
-from dara.core.js_tooling.dev_server import DevServerInfo, DevServerSettings, check_dev_server
-from dara.core.js_tooling.js_utils import (
-    BuildCache,
-    BuildMode,
-    build_autojs_template,
-    build_vite_template,
-    rebuild_js,
-)
+from dara.core.js_tooling.project import atomic_write, derive_manifest, write_manifest
+from dara.core.js_tooling.runtime import ArtifactFiles, FrontendProxy, frontend_status, render_frontend, validate_build
 from dara.core.logging import LoggingMiddleware, dev_logger, eng_logger, http_logger
 from dara.core.metrics.registry import DARA_METRICS_REGISTRY
 from dara.core.router import convert_template_to_router
@@ -132,21 +126,16 @@ def _start_application(config: Configuration):
     # attached only after the application has been built successfully.
     initialize_process_telemetry('application')
 
-    # Setup the main template to work with Vite
-    os.environ['VITE_MANIFEST_PATH'] = f'{config.static_files_dir}/manifest.json'
-    os.environ['VITE_STATIC_PATH'] = config.static_files_dir
-    import fastapi_vite_dara
-    import fastapi_vite_dara.config
-
-    # If --enable-hmr or --reload enabled, set live reload to true
-    if is_hmr_enabled() or is_backend_reload_enabled():
+    root = Path.cwd().resolve()
+    development = not is_deploy_mode()
+    if is_backend_reload_enabled():
         config.live_reload = True
 
     # Configure the default executor for threads run via the async loop
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', '8'))))
 
-    is_production = is_docker_mode()
+    is_production = is_deploy_mode() and os.environ.get('DARA_API_DOCS') != 'TRUE'
 
     # Setup registries:
     # 1) cleanup ones which store results etc so if Dara is ran in a thread and restarted we get a fresh state
@@ -275,7 +264,13 @@ def _start_application(config: Configuration):
                     raise
 
             try:
-                # Yield back to the app
+                # Publish successful backend readiness independently of frontend manifest changes.
+                if development:
+                    import uuid
+
+                    atomic_write(
+                        root / 'node_modules/.dara/backend-ready.json', json.dumps({'generation': str(uuid.uuid4())})
+                    )
                 yield
             finally:
                 # SHUTDOWN
@@ -444,25 +439,13 @@ def _start_application(config: Configuration):
             )
             sys.exit(1)
 
-    # Generate a new build_cache
-    try:
-        build_cache = BuildCache.from_config(config)
-        build_diff = build_cache.get_diff()
-
-        # Only build if there's pages to build, otherwise assume Dara is only used for API
-        if len(config.router.children) > 0:
-            dev_logger.debug(
-                'Building JS...',
-                extra={
-                    'New build cache': build_cache.model_dump(),
-                    'Difference from last cache': build_diff.model_dump(),
-                },
-            )
-            rebuild_js(build_cache, build_diff)
-    except Exception as e:
-        traceback.print_exc()
-        dev_logger.error('Error building JS', error=e)
-        sys.exit(1)
+    manifest = derive_manifest(
+        config, root, os.environ.get('DARA_CONFIG_PATH', 'application:config'), runtime=not development
+    )
+    if development:
+        write_manifest(root, manifest, 'dev')
+    elif len(config.router.children) > 0:
+        validate_build(root, manifest)
 
     # Root routes
 
@@ -488,21 +471,23 @@ def _start_application(config: Configuration):
 
     # Serve statics, only if we have any pages defined
     if len(config.router.children) > 0:
-        app.mount('/static', CacheStaticFiles(directory=config.static_files_dir), name='static')
+        if development:
+            app.mount('/static', FrontendProxy(root, os.environ.get('DARA_BASE_URL', '')), name='static')
+        else:
+            app.mount('/static', ArtifactFiles(directory=manifest.out_dir), name='static')
+
+    if development:
+
+        @app.get('/__dara/status', include_in_schema=False)
+        async def development_status():
+            """Internal readiness used by the recovering development page."""
+            return frontend_status(root)
 
     # Mount Routers
     app.include_router(auth_router, prefix='/api/auth')
     app.include_router(core_api_router, prefix='/api/core')
 
     if len(config.router.children) > 0:
-        BASE_DIR = Path(__file__).parent
-        jinja_templates = Jinja2Templates(directory=str(Path(BASE_DIR, 'jinja')))
-        jinja_templates.env.globals['vite_hmr_client'] = fastapi_vite_dara.vite_hmr_client
-        jinja_templates.env.globals['vite_asset'] = fastapi_vite_dara.vite_asset
-        jinja_templates.env.globals['static_url'] = fastapi_vite_dara.config.settings.static_url
-        jinja_templates.env.globals['base_url'] = os.getenv('DARA_BASE_URL', '')
-        jinja_templates.env.globals['entry'] = '_entry.tsx'
-
         # Compile the router, executing all page functions etc
         try:
             config.router.compile()
@@ -541,48 +526,34 @@ def _start_application(config: Configuration):
             # For backwards compatibility
             'powered_by_causalens': config.powered_by_causalens,
             'router': config.router,
-            'build_mode': build_cache.build_config.mode,
-            'build_dev': build_cache.build_config.dev,
+            'build_mode': 'PRODUCTION',
+            'build_dev': development,
         }
-        json_template_data = json.dumps(jsonable_encoder(template_data))
+        # HTML parsers recognize closing script tags even inside JSON strings. Escape
+        # HTML delimiters after serialization so bootstrap data cannot end its element.
+        json_template_data = json.dumps(jsonable_encoder(template_data)).translate(
+            str.maketrans({'<': r'\u003c', '>': r'\u003e', '&': r'\u0026', '\u2028': r'\u2028', '\u2029': r'\u2029'})
+        )
 
         # For any unmatched route then serve the app to the user if we have any pages to serve
         # (Required for the chosen routing system in the UI)
 
+        base_url = os.environ.get('DARA_BASE_URL', '').rstrip('/')
+        runtime_urls = json.dumps({'base_url': base_url, 'static_url': base_url + '/static/'})
+        runtime_urls = runtime_urls.translate(
+            str.maketrans({'<': r'\u003c', '>': r'\u003e', '&': r'\u0026', '\u2028': r'\u2028', '\u2029': r'\u2029'})
+        )
         context = {
             'dara_data': json_template_data,
+            'runtime_urls': runtime_urls,
+            'base_url': base_url,
+            'static_url': base_url + '/static',
         }
-        template_name = 'index.html'
 
-        # Auto-js mode - serve the built template with UMDs
-        if build_cache.build_config.mode == BuildMode.AUTO_JS:
-            template_name = 'index_autojs.html'
-            context.update(build_autojs_template(build_cache, config))
-        else:
-            context.update(build_vite_template(build_cache, config))
-
-        expected_dev_server = None
-        if build_cache.build_config.dev:
-            expected_dev_server = DevServerInfo.from_static_files_dir(
-                config.static_files_dir,
-                settings=DevServerSettings(),
-            )
-
-        @app.get('/{full_path:path}', include_in_schema=False, response_class=_TemplateResponse)
+        @app.get('/{full_path:path}', include_in_schema=False, response_class=HTMLResponse)
         async def serve_app(full_path: str, request: Request):
-            if expected_dev_server is not None:
-                mismatch = await check_dev_server(expected_dev_server)
-                if mismatch is not None:
-                    return jinja_templates.TemplateResponse(
-                        request,
-                        'dev_server_mismatch.html',
-                        context={
-                            'mismatch': mismatch,
-                            'origin': expected_dev_server.origin,
-                        },
-                    )
-
-            return jinja_templates.TemplateResponse(request, template_name, context=context)
+            """Fill Vite's template with runtime data, or show recoverable preparation diagnostics."""
+            return render_frontend(request, root, Path(manifest.out_dir), context, development)
 
     else:
         # Catch-all, must be at the very end

@@ -62,5 +62,7 @@ class Icon(ContentComponent):
     :param color: the color of the icon
     """
 
+    js_source = '@darajs/components/icon'
+
     icon: str
     color: str | None = None

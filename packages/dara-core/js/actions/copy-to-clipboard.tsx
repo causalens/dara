@@ -1,8 +1,8 @@
 import { Status, copyToClipboard } from '@darajs/ui-utils';
 
-import { resolveVariable } from '@/shared/interactivity/resolve-variable';
-import { isSingleVariable, isVariable } from '@/types';
-import { type ActionHandler, type CopyToClipboardImpl, UserError } from '@/types/core';
+import { resolveVariable } from '../shared/interactivity/resolve-variable';
+import { isSingleVariable, isVariable } from '../types';
+import { type ActionHandler, type CopyToClipboardImpl, UserError } from '../types/core';
 
 const CopyToClipboard: ActionHandler<CopyToClipboardImpl> = async (ctx, actionImpl): Promise<void> => {
     let value;

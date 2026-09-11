@@ -91,6 +91,8 @@ class RadioGroup(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
+    js_source = '@darajs/components/radio-group'
+
     items: list[RadioItem] | list[str] | ClientVariable
     value: Variable[Any] | None = None
     list_styling: bool | None = False

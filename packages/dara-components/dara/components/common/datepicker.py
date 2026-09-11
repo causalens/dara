@@ -93,6 +93,8 @@ class Datepicker(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
+    js_source = '@darajs/components/datepicker'
+
     value: Variable[Any] | None = None
     date_format: str = 'dd/MM/yyyy'
     enable_time: bool = False

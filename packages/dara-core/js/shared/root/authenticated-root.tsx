@@ -4,17 +4,16 @@ import { Outlet, useNavigate } from 'react-router';
 import styled from '@darajs/styled-components';
 import { NotificationWrapper } from '@darajs/ui-notifications';
 
-import { WebSocketClient, setupWebsocket } from '@/api';
-import { resolveReferrer } from '@/auth/auth';
-import { useSessionIdentifier } from '@/auth/session-state';
-import { DevTools } from '@/devtools';
-import { WebSocketCtx } from '@/shared/context';
-import cleanSessionCache from '@/shared/utils/clean-session-cache';
-import VariableStateProvider from '@/shared/variable-state-provider/variable-state-provider';
-import type { DaraData } from '@/types/core';
-
+import { WebSocketClient, setupWebsocket } from '../../api';
+import { resolveReferrer } from '../../auth/auth';
+import { useSessionIdentifier } from '../../auth/session-state';
+import { DevTools } from '../../devtools';
+import type { DaraData } from '../../types/core';
+import { WebSocketCtx } from '../context';
 import { ServerVariableSyncProvider } from '../interactivity';
 import { StoreProviders } from '../interactivity/persistence';
+import cleanSessionCache from '../utils/clean-session-cache';
+import VariableStateProvider from '../variable-state-provider/variable-state-provider';
 import DynamicContext from './dynamic-context';
 
 const RootWrapper = styled.div`

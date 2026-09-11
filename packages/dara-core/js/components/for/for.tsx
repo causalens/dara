@@ -4,11 +4,10 @@ import * as React from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { type ListChildComponentProps, type ListItemKeySelector, VariableSizeList } from 'react-window';
 
-import { DynamicComponent, useVariable } from '@/shared';
-import { FallbackCtx } from '@/shared/context';
-import { useFallbackCtx } from '@/shared/context/fallback-context';
-import { resolveNested } from '@/shared/interactivity/nested';
-
+import { DynamicComponent, useVariable } from '../../shared';
+import { FallbackCtx } from '../../shared/context';
+import { useFallbackCtx } from '../../shared/context/fallback-context';
+import { resolveNested } from '../../shared/interactivity/nested';
 import { type ComponentInstance, type Variable } from '../../types/core';
 import { type Marker, applyMarkers, getInjectionMarkers } from './templating';
 

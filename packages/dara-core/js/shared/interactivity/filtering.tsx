@@ -1,7 +1,12 @@
 import { parseISO } from 'date-fns';
 
-import { type DataFrame, type FilterQuery, type Pagination, type QueryCombinator, type QueryOperator } from '@/types';
-
+import {
+    type DataFrame,
+    type FilterQuery,
+    type Pagination,
+    type QueryCombinator,
+    type QueryOperator,
+} from '../../types';
 import type { ColumnTypeHint, DataResponse } from './tabular-variable';
 
 const COLUMN_PREFIX_REGEX = /__(?:col|index)__\d+__/;
