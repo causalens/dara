@@ -123,6 +123,7 @@ const schema = z
     configuration: z.string(),
     daraVersion: z.string(),
     packageRequirements: z.array(requirement),
+    pythonPackages: z.record(z.string(), z.string()).default({}),
     moduleDependencies: z.array(
       z.object({ python: z.string(), package: z.string(), source }).strict(),
     ),

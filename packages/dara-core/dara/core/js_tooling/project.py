@@ -6,6 +6,7 @@ import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from importlib.metadata import entry_points, version
 from pathlib import Path
@@ -13,7 +14,6 @@ from typing import Any
 
 import toml
 from filelock import FileLock
-from packaging.version import Version
 from ruamel.yaml import YAML
 from semantic_version import NpmSpec
 from semantic_version import Version as SemVersion
@@ -23,6 +23,7 @@ from dara.core.configuration import Configuration, ConfigurationBuilder
 from dara.core.defaults import CORE_ACTIONS, CORE_COMPONENTS
 from dara.core.definitions import JsComponentDef
 from dara.core.internal.utils import import_config
+from dara.core.js_tooling.lockfile import verify_lockfile
 from dara.core.js_tooling.migration import migrate_legacy_config
 from dara.core.js_tooling.models import (
     FrontendManifest,
@@ -34,14 +35,17 @@ from dara.core.js_tooling.models import (
 )
 from dara.core.js_tooling.processes import ProcessOwner
 from dara.core.js_tooling.project_files import (
+    InstalledProjectFields,
     PackageFields,
+    PreparedRequirements,
     PythonProjectFields,
-    WorkspaceFields,
     read_json,
     read_lockfile,
-    read_yaml,
 )
 from dara.core.js_tooling.source import source_package
+from dara.core.js_tooling.versions import distribution_name
+from dara.core.js_tooling.versions import npm_version as convert_npm_version
+from dara.core.js_tooling.workspace import read_catalog_peers, read_workspace, reconcile_catalog, workspace_root
 
 ENGINES = {'node': '>=22.12.0', 'pnpm': '>=12 <13'}
 RUNTIME_REQUIREMENTS = {
@@ -76,11 +80,6 @@ def json_text(value: Any) -> str:
     return json.dumps(value, indent=2, ensure_ascii=True) + '\n'
 
 
-def workspace_root(root: Path) -> Path:
-    """Find the nearest pnpm workspace, or use a standalone app's root."""
-    return next((p for p in [root, *root.parents] if (p / 'pnpm-workspace.yaml').is_file()), root)
-
-
 def resolve_config(root: Path, override: str | None = None) -> str:
     """Resolve an override, the app's tool.dara entry, or its conventional config path."""
     if override:
@@ -108,16 +107,8 @@ def load_configuration(reference: str) -> Configuration:
 
 def npm_version(python_package: str) -> str:
     """Translate installed Python distribution versions to corresponding npm versions."""
-    distribution = python_package.replace('.', '-') if python_package.startswith('dara.') else python_package
-    parsed = Version(version(distribution))
-    if parsed.post is not None or parsed.local is not None:
-        raise ProjectError('dependency.version', f'{distribution} has no npm version mapping for {parsed}')
-    if parsed.pre:
-        label, number = parsed.pre
-        return f'{parsed.base_version}-{dict(a="alpha", b="beta").get(label, label)}.{number}'
-    if parsed.dev is not None:
-        return f'{parsed.base_version}-dev.{parsed.dev}'
-    return parsed.base_version
+    distribution = distribution_name(python_package)
+    return convert_npm_version(version(distribution), distribution)
 
 
 def derive_manifest(
@@ -188,6 +179,7 @@ def derive_manifest(
     return FrontendManifest(
         configuration=reference,
         dara_version=dara_version,
+        python_packages=dict(sorted({**packages, '@darajs/vite-plugin': 'dara.core'}.items())),
         package_requirements=[
             Requirement(name=name, specifier=specifier) for name, specifier in sorted(requirements.items())
         ],
@@ -309,7 +301,9 @@ def _yaml_text(value: dict) -> str:
     return stream.getvalue()
 
 
-def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
+def dependency_plan(
+    root: Path, manifest: FrontendManifest, *, processes: ProcessOwner | None = None
+) -> dict[Path, str]:
     """Plan deterministic edits to Dara-owned entries; detect conflicts before any writes."""
     if (root / 'dara.config.json').exists():
         raise ProjectError(
@@ -317,20 +311,26 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
             'Legacy dara.config.json found; review the migration before preparing this project',
             'dara lock',
         )
-    workspace = workspace_root(root)
+    snapshot = read_workspace(root, processes=processes)
+    workspace = snapshot.root
     package_path, workspace_path = root / 'package.json', workspace / 'pnpm-workspace.yaml'
     original_package = (
-        read_json(package_path)
-        if package_path.exists()
+        snapshot.projects[root].document
+        if root in snapshot.projects
         else {'name': root.name.lower().replace('_', '-'), 'type': 'module', 'private': True}
     )
     package_fields = PackageFields.parse(original_package, package_path)
     dependencies = package_fields.dependency_sections
     package = copy.deepcopy(original_package)
-    original_workspace = read_yaml(workspace_path) if workspace_path.exists() else {}
-    WorkspaceFields.parse(original_workspace, workspace_path)
+    original_workspace = snapshot.document
     config = copy.deepcopy(original_workspace)
-    catalog = {r.name: r.specifier for r in manifest.package_requirements}
+    catalog = reconcile_catalog(
+        root,
+        manifest,
+        snapshot.fields.catalogs.get('dara', {}),
+        read_catalog_peers(root, snapshot),
+        RUNTIME_REQUIREMENTS,
+    )
     config.setdefault('catalogs', {})['dara'] = catalog
     for required in manifest.package_requirements:
         entries = dependencies[required.section]
@@ -389,33 +389,19 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
     return planned
 
 
-def lockfile_agrees(root: Path) -> bool:
-    """Compare declared app requirements and catalogs with pnpm's committed lockfile."""
-    workspace = workspace_root(root)
-    lockpath = workspace / 'pnpm-lock.yaml'
-    if not lockpath.exists() or not (root / 'package.json').exists():
+def lockfile_agrees(root: Path, *, processes: ProcessOwner | None = None) -> bool:
+    """Delegate effective override, extension, catalog and importer agreement to pnpm."""
+    workspace = read_workspace(root, processes=processes)
+    lockpath = workspace.root / 'pnpm-lock.yaml'
+    if not lockpath.exists() or root not in workspace.projects:
         return False
     lock = read_lockfile(lockpath)
-    package_path = root / 'package.json'
-    package = PackageFields.parse(read_json(package_path), package_path)
-    importer = lock.importers.get(root.relative_to(workspace).as_posix())
-    if importer is None:
+    if root.relative_to(workspace.root).as_posix() not in lock.importers:
         return False
-    for section, declared in package.dependency_sections.items():
-        installed = importer.dependency_sections[section]
-        if set(declared) != set(installed) or any(installed[name].specifier != spec for name, spec in declared.items()):
-            return False
-    workspace_path = workspace / 'pnpm-workspace.yaml'
-    catalog = WorkspaceFields.parse(read_yaml(workspace_path), workspace_path).catalogs.get('dara', {})
-    locked = lock.catalogs.get('dara', {})
-    return all(
-        name in locked and locked[name].specifier == spec
-        for name, spec in catalog.items()
-        if any(section.get(name) == 'catalog:dara' for section in (package.dependencies, package.devDependencies))
-    )
+    return verify_lockfile(workspace, processes=processes)
 
 
-def dependency_fingerprint(root: Path) -> str:
+def dependency_fingerprint(root: Path, *, processes: ProcessOwner | None = None) -> str:
     """Identify dependency files used by the last successful local installation."""
     workspace = workspace_root(root)
     digest = hashlib.sha256()
@@ -426,6 +412,9 @@ def dependency_fingerprint(root: Path) -> str:
         workspace / 'node_modules' / '.modules.yaml',
     ]:
         digest.update(path.read_bytes() if path.exists() else b'missing')
+    for path, package in sorted(read_workspace(root, processes=processes).projects.items()):
+        digest.update(str(path.relative_to(workspace)).encode())
+        digest.update(json_text(package.document).encode())
     return digest.hexdigest()
 
 
@@ -447,8 +436,8 @@ def prepare_project(
     with processes.lock(lock_path) if processes else FileLock(lock_path):
         if not build:
             changed.extend(str(path.relative_to(workspace)) for path in migrate_legacy_config(root, frozen=frozen))
-        planned = dependency_plan(root, manifest)
-        agrees = not planned and lockfile_agrees(root)
+        planned = dependency_plan(root, manifest, processes=processes)
+        agrees = not planned and lockfile_agrees(root, processes=processes)
         if frozen and not agrees:
             raise ProjectError(
                 'dependency.drift', 'Project declarations and lockfile disagree; run dara lock and commit the result'
@@ -461,14 +450,18 @@ def prepare_project(
         install = (
             build
             or not agrees
-            or previous != dependency_fingerprint(root)
+            or previous != dependency_fingerprint(root, processes=processes)
             or not (root / 'node_modules' / '@darajs' / 'vite-plugin').exists()
         )
         try:
             if install:
                 command = ['pnpm', 'install', '--frozen-lockfile' if agrees else '--no-frozen-lockfile']
                 if workspace != root:
-                    command += ['--filter', './' + root.relative_to(workspace).as_posix() + '...']
+                    command += [
+                        '--fail-if-no-match',
+                        '--filter',
+                        '{./' + root.relative_to(workspace).as_posix() + '}...',
+                    ]
                 # Registry placeholders require the complete environment for installation only.
                 policy = run(
                     ['pnpm', 'config', 'get', 'strictDepBuilds'],
@@ -503,7 +496,16 @@ def prepare_project(
                 payload = json.loads(initialized.stdout)
                 if isinstance(payload, dict):
                     changed.extend(payload.get('created', []))
-            atomic_write(stamp, json_text({'digest': dependency_fingerprint(root)}))
+            atomic_write(
+                stamp,
+                json_text(
+                    InstalledProjectFields(
+                        digest=dependency_fingerprint(root, processes=processes),
+                        pythonEnvironment=sys.prefix,
+                        requirements=PreparedRequirements.from_manifest(manifest),
+                    ).model_dump()
+                ),
+            )
         except Exception:
             if changed:
                 click.echo(

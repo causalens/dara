@@ -13,7 +13,7 @@ import { collectAssets } from "./assets.js";
 import { resolvedEntry, diagnostic as projectDiagnostic } from "./contract.js";
 import { atomicWrite, readJson } from "./files.js";
 import { htmlTemplate } from "./index.js";
-import { loadProject, publishStatus } from "./project.js";
+import { loadProject, publishStatus, resolveProjectSources } from "./project.js";
 import { startTypecheck } from "./typecheck.js";
 
 /** Supervise Vite and the native TypeScript watcher; Python owns both the manifest and HTTP origin. */
@@ -74,6 +74,7 @@ export async function serveProject(
     }
     try {
       const next = await loadProject(root, readJson(manifestPath), "serve");
+      await resolveProjectSources(next);
       next.base = `${baseUrl.replace(/\/$/, "")}/static/`;
       next.assets = collectAssets(next.manifest);
       next.state = "ready";
@@ -141,11 +142,6 @@ export async function serveProject(
           path.join(root, "node_modules/.dara/index.dev.html"),
           htmlTemplate(["@vite/client", "@dara/entry"], [], true),
         );
-        if (!noTypecheck) {
-          checker = startTypecheck(root, server, (diagnostic) =>
-            state({ state: "blocked", diagnostic }),
-          );
-        }
       } else {
         // Keep the running Vite plugin and process while replacing its parsed frontend state.
         Object.assign(project, {
@@ -165,6 +161,14 @@ export async function serveProject(
           client.moduleGraph.invalidateModule(entry);
         }
         server.ws.send({ type: "full-reload" });
+      }
+      if (!noTypecheck) {
+        // A Python-only registration edit can add a sibling source to the TS
+        // program even when Vite and the app's own tsconfig have not changed.
+        await checker?.();
+        checker = startTypecheck(next, server, (diagnostic) =>
+          state({ state: "blocked", diagnostic }),
+        );
       }
       state({ state: "ready", runtime: process.version });
     } catch (error) {
