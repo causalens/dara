@@ -2,6 +2,11 @@ from dara.components import Card, Icon, Spacer, Stack, Text
 from dara.core.css import get_icon
 from dara.core.visual.themes.light import Light
 
+light_colors = Light.colors
+assert light_colors is not None
+light_text = light_colors.text
+assert light_text is not None
+
 
 def italic_text(text: str):
     return Text(
@@ -18,7 +23,7 @@ def intro_page():
             Card(
                 Stack(
                     Stack(
-                        Icon(icon=get_icon('quote-left', size='2x'), color=Light.colors.text),
+                        Icon(icon=get_icon('quote-left', size='2x'), color=light_text),
                         height='12px',
                         justify='center',
                         align='start',
@@ -30,7 +35,7 @@ def intro_page():
                     italic_text('Turning data to stories, from morning till night.'),
                     Spacer(),
                     Stack(
-                        Icon(icon=get_icon('quote-right', size='2x'), color=Light.colors.text),
+                        Icon(icon=get_icon('quote-right', size='2x'), color=light_text),
                         height='12px',
                         justify='center',
                         align='end',

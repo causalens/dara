@@ -73,26 +73,11 @@ create-dara-app [OPTIONS] [DIRECTORY]
 - `DIRECTORY` - parent directory for the new project, defaults to `.` if not specified (which means the project will be generated in `./{project_name}`)
 - `--debug` - enable debug logging
 - `--no-install` - do not install dependencies after creating the project
-- `--packaging` - choose the packaging tool to use when scaffolding your project. Accepts `poetry` or `pip`, defaults to `poetry`. If `poetry` is not installed, it display a warning and fall back to `pip`.
-
-#### PIP setup
-
-`pip` installation uses [PEP 660](https://peps.python.org/pep-0660/) `pyproject.toml`-based editable installation process. This requires the following:
-
-- `pip >= 21.3`
-- `setuptools >= 64.0.0`
-
-Those dependencies can be upgraded with:
-
-```bash
-python -m pip install --upgrade pip
-pip install --user --upgrade setuptools
-```
 
 ## Running the CLI locally
 
-For local development, the scripts can be run with `poetry`:
+For local development, the scripts can be run with `uv`:
 
 ```bash
-poetry run create-dara-app <command>
+uv run --package create-dara-app create-dara-app <command>
 ```

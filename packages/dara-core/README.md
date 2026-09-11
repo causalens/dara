@@ -33,15 +33,15 @@ Then simply run the following command to create a new app.
 create-dara-app
 ```
 
-By default the CLI will attempt to scaffold your project with [`poetry`](https://python-poetry.org/) but will fall back to `pip` if `poetry` is not present. This can be overriden with `--packaging pip` or `--packaging poetry` flag.
+By default the CLI will attempt to install your project's dependencies with [`uv`](https://docs.astral.sh/uv/) but will fall back to `pip` if `uv` is not present.
 
 After the project is created, you can run it with:
 
 ```bash
 cd my-dara-app
 
-# with poetry installation
-poetry run dara start
+# with uv installation
+uv run dara start
 
 # with pip installation make sure to activate the new virtual environment
 source .venv/bin/activate

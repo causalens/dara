@@ -17,10 +17,8 @@ limitations under the License.
 
 import logging
 import pathlib
-import shutil
 import sys
 from importlib.metadata import version
-from typing import Literal
 
 from cookiecutter.exceptions import FailedHookException, OutputDirExistsException
 from cookiecutter.main import cookiecutter
@@ -55,9 +53,6 @@ def cli():
     is_flag=True,
     default=False,
 )
-@click.option(
-    '--packaging', help='Whether to use pip or poetry', type=click.Choice(['pip', 'poetry']), default='poetry'
-)
 def bootstrap(
     directory: str = '.',
     debug: bool = False,
@@ -66,7 +61,6 @@ def bootstrap(
     project_name: str = 'Decision App',
     package_name: str = '',
     overwrite_if_exists: bool = False,
-    packaging: Literal['pip', 'poetry'] = 'poetry',
 ):
     """
     Creates a new Decision App project under specified parent DIRECTORY with the default template.
@@ -77,17 +71,9 @@ def bootstrap(
     dara_version = version('create-dara-app')
     logger.debug('Using create-dara-app version %s', dara_version)
 
-    if packaging == 'poetry':
-        # Check if poetry is available
-        poetry_path = shutil.which('poetry')
-        if poetry_path is None:
-            logger.warning('Poetry not found. Falling back to pip.')
-            packaging = 'pip'
-
     extra_context = {
         '__dara_version': dara_version,
         '__install': not no_install,
-        '__packaging': packaging,
         'project_name': project_name,
     }
 

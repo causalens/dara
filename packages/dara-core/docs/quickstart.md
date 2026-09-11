@@ -7,55 +7,40 @@ This page will help you build an app from start to finish. The use case is simpl
 
 ## Creating Your App
 
-You can create an app with Poetry in just a few steps. Poetry can be installed following these [instructions](https://Python-Poetry.org/docs/basic-usage/). First make a directory called `my_first_app`:
+You can create an app with uv in just a few steps. uv can be installed following these [instructions](https://docs.astral.sh/uv/getting-started/installation/). First make a directory called `my_first_app`:
 
 ```sh
 mkdir my_first_app
 ```
 
-Navigate into that directory and run `poetry init` to initialize a poetry project.
+Navigate into that directory and run `uv init --bare` to initialize a uv project.
 
 ```sh
 cd my_first_app
-poetry init
+uv init --bare
 ```
-
-This command will guide you through creating your `pyproject.toml` config.
 
 :::note
-When following the prompts, you can simply hit enter for most however when prompted for the `Compatible Python versions` please enter `>=3.9.0, <3.13.0`.
-
-```sh
-Compatible Python versions [^3.8]:  >=3.9.0, <3.13.0
-```
-
-This is necessary because Dara libraries support python versions `>=3.9.0, <3.13.0`.
+Dara libraries support Python versions `>=3.10.0, <3.13.0`. Make sure the `requires-python` field in your `pyproject.toml` reflects that - uv will automatically download and use a matching Python interpreter.
 :::
 
-You will now have the following file structure:
-
-```
-- my_first_app/
-    - pyproject.toml
-```
-
-The contents of the `pyproject.toml` will be something like the following:
+Update the generated `pyproject.toml` to the following contents:
 
 ```toml
-[tool.poetry]
+[project]
 name = "my-first-app"
 version = "0.1.0"
 description = ""
 readme = "README.md"
-packages = [{include = "my_first_app"}]
-
-[tool.poetry.dependencies]
-python = ">=3.9.0, <3.13.0"
-
+requires-python = ">=3.10.0, <3.13.0"
+dependencies = []
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["my_first_app"]
 ```
 
 As the `readme` field is set to `"README.md"`, you will want to make sure to have a `README.md` file in your directory. This file can be empty to start with and you can fill it out at a later time with important information about the app. You will now have the following file structure:
@@ -66,17 +51,13 @@ As the `readme` field is set to `"README.md"`, you will want to make sure to hav
     - README.md
 ```
 
-Now that you have initiated your Poetry project, you can install it with the following:
+Now that you have initiated your uv project, you can add the core of the Dara framework:
 
 ```sh
-poetry install
+uv add "dara-core[all]"
 ```
 
-You are now ready to add the core of the Dara framework:
-
-```sh
-poetry add dara-core --extras all
-```
+This creates a `.venv` and a `uv.lock` file in your project directory and installs everything, including your app in editable mode.
 
 You can follow the User Guide's [Local Development instructions](./getting-started/local-setup.mdx) for other options on how to install the packages and create your first app.
 
@@ -111,7 +92,7 @@ Your `main.py` file is where you want to set up your configuration with the `dar
 Try running your app with the following command within the outermost `my_first_app` directory:
 
 ```sh
-poetry run dara start
+uv run dara start
 ```
 
 Your app will be a blank page with the text `Hello World!` on it.
@@ -175,7 +156,7 @@ In order to do EDA, you will need some plotting functionality. This can be found
 In this app, you will use data and models from `scikit-learn`. Therefore you must add this dependency to your project:
 
 ```sh
-poetry add scikit-learn
+uv add scikit-learn
 ```
 
 It is good practice to have your global state in one place and to keep it out of `main.py` for organization and readability. For this reason, you will define your dataset in `definitions.py`.

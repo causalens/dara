@@ -1,0 +1,8 @@
+[tasks.lint-js]
+run = "pnpm run lint"
+
+[tasks.format-js]
+run = "pnpm run format"
+
+[tasks.format-js-check]
+run = "pnpm run format:check"

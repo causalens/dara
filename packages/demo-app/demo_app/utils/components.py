@@ -1,16 +1,16 @@
 import math
 
-import matplotlib.tri as tri
 import numpy
 import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 from bokeh.plotting import figure
-from cai_causal_graph import CausalGraph
+from matplotlib import tri
 from matplotlib.figure import Figure
 from pandas import DataFrame
 from scipy.integrate import odeint
 
+from cai_causal_graph import CausalGraph
 from dara.components import (
     Accordion,
     AccordionItem,
@@ -439,7 +439,7 @@ def plotly() -> ComponentInstance:
         hover_text = []
         bubble_size = []
 
-        for index, row in df_2007.iterrows():
+        for _, row in df_2007.iterrows():
             hover_text.append(
                 (
                     'Country: {country}<br>'
@@ -463,7 +463,7 @@ def plotly() -> ComponentInstance:
 
         # Dictionary with dataframes for each continent
         continent_names = ['Africa', 'Americas', 'Asia', 'Europe', 'Oceania']
-        continent_data = {continent: df_2007.query("continent == '%s'" % continent) for continent in continent_names}
+        continent_data = {continent: df_2007.query(f"continent == '{continent}'") for continent in continent_names}
 
         # Create figure
         fig = go.Figure()

@@ -1,46 +1,26 @@
-{% if cookiecutter.__packaging == 'poetry' %}
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
-name = "{{ cookiecutter.__package_name }}"
-version = "0.1.0"
-description = "{{ cookiecutter.project_name }}"
-authors = ["{{ cookiecutter.author_name }}"]
-
-[tool.poetry.dependencies]
-python = ">=3.10.0, <3.13.0"
-dara-core = "^{{ cookiecutter.__dara_version }}"
-dara-components = "^{{ cookiecutter.__dara_version }}"
-
-[tool.poetry.dev-dependencies]
-ruff = ">=0.12.2"
-pyright = "^1.1.400"
-
-
-{% else %}
-
-[build-system]
-requires = ["setuptools>=64.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "{{ cookiecutter.__package_name }}"
 version = "0.1.0"
+description = "{{ cookiecutter.project_name }}"
+readme = "README.md"
+requires-python = ">=3.10.0, <3.13.0"
 dependencies = [
     "dara-core == {{ cookiecutter.__dara_version }}",
     "dara-components == {{ cookiecutter.__dara_version }}",
-    "ruff >=0.12.2",
-    "pyright >= 1.1.400"
 ]
 authors = [
-    { name = "{{ cookiecutter.author_name }}" }
+    { name = "{{ cookiecutter.author_name }}" },
 ]
-description = "{{ cookiecutter.project_name }}"
-requires-python = ">=3.10, <3.13.0"
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["{{ cookiecutter.__package_name }}"]
 
-{% endif %}
+[dependency-groups]
+dev = [
+    "ruff>=0.12.2",
+    "pyright>=1.1.400",
+]
