@@ -5,7 +5,7 @@ const Notify: ActionHandler<NotifyImpl> = (ctx, actionImpl): void => {
         key: actionImpl.key ?? actionImpl.title,
         message: actionImpl.message,
         status: actionImpl.status,
-        title: actionImpl.title,
+        ...(actionImpl.title === undefined ? {} : { title: actionImpl.title }),
     });
 };
 

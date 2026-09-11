@@ -7,6 +7,7 @@ export type { DaraOptions } from "./contract.js";
 import react from "@vitejs/plugin-react";
 import { defaultClientConditions } from "vite";
 import { selfReference } from "./exports.js";
+import { convertPathToPattern } from "tinyglobby";
 import {
   ProjectError,
   generateEntry,
@@ -99,15 +100,19 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
             preserveSymlinks: false,
           },
           optimizeDeps: {
-            include: api.resolving
-              ? []
-              : [
-                  "react",
-                  "react-dom/client",
-                  "styled-components",
-                  "recoil",
-                  "@tanstack/react-query",
-                ],
+            // Vite has no public HTML entry to crawl in a backend-integrated app.
+            // Scan the resolved registrations, including linked package sources,
+            // so Vite discovers every provider's dependencies without a package list.
+            entries:
+              api.resolving || !api.project
+                ? []
+                : [
+                    ...[config.optimizeDeps?.entries ?? []].flat(),
+                    ...[
+                      path.join(api.project.root, "js/index.tsx"),
+                      ...api.project.sourceFiles,
+                    ].map(convertPathToPattern),
+                  ],
           },
         };
       },

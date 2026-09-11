@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Aligned the `@types/react` dependency range with `@darajs/core`.
+
 ## 1.26.12
 
 - Internal: Removed unused build and test tooling dependencies.

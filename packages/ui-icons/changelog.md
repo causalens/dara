@@ -4,7 +4,8 @@ title: Changelog
 
 ## NEXT
 
-- Forward chevron refs to the SVG element so compiled declarations support existing consumers.
+- Aligned the `@types/react` dependency range with `@darajs/core`.
+- Chevron icons forward refs to the SVG element.
 
 ## 1.26.12
 

@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Navigate, type RouteObject, createBrowserRouter, redirect } from 'react-router';
 import type { Snapshot } from 'recoil';
 

@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Aligned the `@types/react` dependency range with `@darajs/core`.
+
 ## 1.29.3
 
 - Internal: Upgraded build tooling to Vite 8 for faster builds.

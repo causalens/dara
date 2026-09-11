@@ -213,15 +213,15 @@ describe('DynamicComponent', () => {
         );
 
         await waitFor(() => expect(rendered.getByText('request-1')).toBeInTheDocument());
-        act(() => vi.advanceTimersByTime(1200));
+        await act(() => vi.advanceTimersByTime(1200));
         await vi.waitFor(() => expect(requestCount).toBe(2));
 
-        act(() => vi.advanceTimersByTime(10_000));
+        await act(() => vi.advanceTimersByTime(10_000));
         expect(requestCount).toBe(2);
         expect(peakRequests).toBe(1);
 
         rendered.unmount();
-        act(() => vi.advanceTimersByTime(0));
+        await act(() => vi.advanceTimersByTime(0));
         expect(slowPollSignal?.aborted).toBe(true);
     });
 
@@ -267,7 +267,7 @@ describe('DynamicComponent', () => {
 
         await vi.waitFor(() => expect(firstSignal).toBeDefined());
         rendered.unmount();
-        act(() => vi.advanceTimersByTime(0));
+        await act(() => vi.advanceTimersByTime(0));
 
         expect(firstSignal?.aborted).toBe(true);
     });
@@ -329,7 +329,7 @@ describe('DynamicComponent', () => {
 
         const rendered = wrappedRender(<TestHost />);
         await vi.waitFor(() => expect(rendered.getByText('initial')).toBeInTheDocument());
-        act(() => vi.advanceTimersByTime(1200));
+        await act(() => vi.advanceTimersByTime(1200));
         await vi.waitFor(() => expect(requestCount).toBe(2));
         fireEvent.click(rendered.getByText('update'));
 
