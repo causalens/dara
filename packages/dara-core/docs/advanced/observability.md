@@ -116,7 +116,7 @@ env \
   OTEL_LOGS_EXPORTER=otlp \
   OTEL_METRICS_EXPORTER=otlp \
   OTEL_METRIC_EXPORT_INTERVAL=1000 \
-  poetry run dara start
+  uv run dara start
 ```
 
 Exercise an endpoint, action, or derived variable, then open Grafana at

@@ -7,7 +7,7 @@
 To run the application you can use the following command:
 
 ```bash
-poetry run dara start
+uv run dara start
 ```
 
 For development purposes it is often useful to add the `--reload` flag which will automatically reload the application when changes are made to any of the Python files.
@@ -17,13 +17,13 @@ The default demo app runs without OIDC authentication. Local OIDC QA is opt-in v
 To see the list of available config options you can use the `--help` flag:
 
 ```bash
-poetry run dara start --help
+uv run dara start --help
 ```
 
 To see other available commands you can run:
 
 ```bash
-poetry run dara
+uv run dara
 ```
 
 ## Local OIDC QA
@@ -41,7 +41,7 @@ In a second shell, source the demo-app env helper before starting the app. This 
 ```bash
 cd packages/demo-app
 source scripts/use-local-oidc.sh
-poetry run dara start --reload
+uv run dara start --reload
 ```
 
 For fish:
@@ -49,7 +49,7 @@ For fish:
 ```fish
 cd packages/demo-app
 source scripts/use-local-oidc.fish
-poetry run dara start --reload
+uv run dara start --reload
 ```
 
 Use `--userinfo` with either helper to enable `SSO_USE_USERINFO=true`.

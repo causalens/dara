@@ -1,5 +1,0 @@
-[tool.poetry]
-source = []
-package-mode = false
-name = "eslint-config"
-version = "1.29.10"

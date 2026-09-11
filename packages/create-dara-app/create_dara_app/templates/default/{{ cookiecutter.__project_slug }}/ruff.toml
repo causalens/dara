@@ -1,12 +1,11 @@
 line-length = 120
-exclude = ["*.ipynb"]
+extend-exclude = ["*.ipynb"]
 
 # target our minimum supported python version
 target-version = "py310"
 
 [format]
 quote-style = "single"
-exclude = ["*.ipynb"]
 
 [lint]
 select = [
@@ -42,5 +41,3 @@ sections = { dara = ["cai*", "dara*"] }
 
 [lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.File", "fastapi.Body", "fastapi.Header", "fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query", "fastapi.security.http.HTTPBearer", "fastapi.security.HTTPBearer"]
-
-

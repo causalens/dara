@@ -1,36 +1,37 @@
 import os
+import shutil
 import subprocess
 import sys
-import venv
 
 import click
-
-packaging = '{{ cookiecutter.__packaging }}'
 
 click.echo('\nProject generated. Running post-generation hooks...')
 click.echo(os.getcwd())
 
-if packaging == 'pip':
-    # Remove the poetry.toml file
-    os.remove('poetry.toml')
-
 {% if cookiecutter.__install %}
 
-if packaging == 'poetry':
-    click.echo('Installing dependencies...')
-    exit_code = os.system(f'poetry install')
+if shutil.which('mise') is not None:
+    click.echo('Generating mise.lock...')
+    # Cookiecutter creates a new config file, which mise requires users to trust
+    # before it will use it to resolve the project toolchain.
+    if os.system('mise trust') > 0 or os.system('mise lock') > 0:
+        click.echo('Warning: mise lock failed, continuing without mise.lock')
 
-    if exit_code > 0:
-        click.echo('Error: Poetry install failed', err=True)
+if shutil.which('uv') is not None:
+    click.echo('Installing dependencies with uv...')
+    if os.system('uv lock') > 0:
+        click.echo('Error: uv lock failed', err=True)
         sys.exit(1)
 
-    click.echo('Generating .env...')
-    os.system('poetry run dara generate-env')
+    # Recreate the venv from the committed lockfile, like CI and other developers will
+    exit_code = os.system('uv sync --locked --all-groups')
 
-if packaging == 'pip':
-    click.echo('Creating a venv...')
-
-    venv.create('.venv', with_pip=True)
+    if exit_code > 0:
+        click.echo('Error: uv sync failed', err=True)
+        sys.exit(1)
+else:
+    click.echo('uv not found. Falling back to pip...')
+    subprocess.run([sys.executable, '-m', 'venv', '.venv'])
     pip_path = os.path.join('.venv', 'bin', 'pip') if sys.platform != 'win32' else os.path.join('.venv', 'Scripts', 'pip.exe')
 
     click.echo('Upgrading pip...')
@@ -39,9 +40,17 @@ if packaging == 'pip':
     click.echo('Installing dependencies...')
     subprocess.run([pip_path, 'install', '-e', '.'])
 
+    click.echo('Installing dev dependencies...')
+    subprocess.run([pip_path, 'install', 'ruff>=0.12.2', 'pyright>=1.1.400'])
+
+if shutil.which('uv') is not None:
+    click.echo('Generating .env...')
+    os.system('uv run dara generate-env')
+else:
     click.echo('Generating .env...')
     dara_path = os.path.join('.venv', 'bin', 'dara') if sys.platform != 'win32' else os.path.join('.venv', 'Scripts', 'dara.exe')
     subprocess.run([dara_path, 'generate-env'])
 
+click.echo("Done! To run the app, use 'mise run dev' (recommended) or 'uv run dara start'.")
 
 {% endif %}

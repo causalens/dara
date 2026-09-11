@@ -24,8 +24,11 @@ __pycache__/
 .pytest_cache/
 test_results
 .venv
-poetry.toml
+.env
 pyrightconfig.json
+
+# mise
+mise.local.toml
 
 # JS
 **/node_modules

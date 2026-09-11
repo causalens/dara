@@ -1,0 +1,34 @@
+[tasks.lint]
+run = "uv run --locked --package dara-components --group dev pyright ./dara && uv run --locked --package dara-components --group dev ruff check ."
+
+[tasks.format]
+run = "uv run --locked --package dara-components --group dev ruff check --select I --fix --unsafe-fixes . && uv run --locked --package dara-components --group dev ruff format ."
+
+[tasks.format-check]
+run = "uv run --locked --package dara-components --group dev ruff check --select I . && uv run --locked --package dara-components --group dev ruff format --check ."
+
+[tasks.security-scan]
+run = "uv run --locked --package dara-components --group dev bandit dara -r -ll -i"
+
+[tasks.test]
+run = "uv run --locked --package dara-components --group dev pytest tests -n auto -v"
+
+[tasks.package]
+run = "uv build --package dara-components --wheel"
+
+# JavaScript tasks (wrap the package.json scripts)
+[tasks.lint-js]
+run = "pnpm run lint"
+
+[tasks.format-js]
+run = "pnpm run format"
+
+[tasks.format-js-check]
+run = "pnpm run format:check"
+
+[tasks.test-js]
+run = "pnpm run test"
+
+[tasks.bearer]
+depends = ["//:bearer-install"]
+run = "../../bin/bearer scan js --force --config-file ../../bearer.yml"

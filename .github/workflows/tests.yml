@@ -15,37 +15,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          python-version: "3.10"
-        id: setup-python
-      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
-        with:
-          version: 1.8.3
-      - name: Install Anthology
-        run: poetry self add anthology
-      - name: Restore Python cache
-        id: cached-poetry-dependencies
+          version: 2026.9.0
+      - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install Python venv if cache was not found
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry anthology install
-      - name: Link venvs
-        run: make link
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+      - name: Install Python workspace
+        run: mise run uv-sync
+      - name: Run uv lock check
+        run: mise run uv-lock-check
       - name: Run Python linting
-        run: poetry anthology run lint
+        run: mise run lint
       - name: Run Python format check
-        run: poetry anthology run format-check
+        run: mise run format-check
       - name: Run Python security scan
-        run: make security-scan
+        run: mise run security-scan
+      - name: Prune uv cache
+        run: uv cache prune --ci
 
   js-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.0
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -54,49 +51,42 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - name: Install JS dependencies
-        run: make deps-project
-        env:
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+        run: mise run deps-project
       - name: Prepare JS packages
-        run: make prepare-dev
+        run: mise run prepare-dev
       - name: Run JS linting
-        run: make lint-js
+        run: mise run lint-js
       - name: Run JS format check
-        run: pnpm lerna run format:check
+        run: mise run format-js-check
       - name: Run JS security scan
-        run: make bearer
+        run: mise run bearer
 
   python-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          python-version: "3.10"
-        id: setup-python
-      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
-        with:
-          version: 1.8.3
-      - name: Install Anthology
-        run: poetry self add anthology
-      - name: Restore Python cache
-        id: cached-poetry-dependencies
+          version: 2026.9.0
+      - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install Python venv if cache was not found
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry anthology install
-      - name: Link venvs
-        run: make link
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+      - name: Install Python workspace
+        run: mise run uv-sync
       - name: Run Python tests
-        run: poetry anthology run test
+        run: mise run test
+      - name: Prune uv cache
+        run: uv cache prune --ci
 
   js-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.0
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -105,38 +95,26 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - name: Install JS dependencies
-        run: make deps-project
-        env:
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+        run: mise run deps-project
       - name: Prepare JS packages
-        run: make prepare-dev
+        run: mise run prepare-dev
       - name: Run JS tests
-        run: pnpm lerna run test
+        run: mise run test-js
 
   e2e-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          python-version: "3.10"
-        id: setup-python
-      - uses: snok/install-poetry@a783c322200f0519c7926aa6faa857c4e23e9263 # v1.4.2
-        with:
-          version: 1.8.3
-      - name: Install Anthology
-        run: poetry self add anthology
-      - name: Restore Python cache
-        id: cached-poetry-dependencies
+          version: 2026.9.0
+      - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install Python venv if cache was not found
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry anthology install
-      - name: Link venvs
-        run: make link
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+      - name: Install Python workspace
+        run: mise run uv-sync
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -145,11 +123,9 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - name: Install JS dependencies
-        run: make deps-project
-        env:
-          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+        run: mise run deps-project
       - name: Build JS packages
-        run: make prepare
+        run: mise run prepare
       - name: Read Cypress version
         id: cypress-version
         run: |
@@ -176,6 +152,8 @@ jobs:
           name: screenshots
           path: packages/dara-core/cypress/screenshots
           retention-days: 30
+      - name: Prune uv cache
+        run: uv cache prune --ci
 
   notify:
     needs: [python-lint, js-lint, python-tests, js-tests, e2e-tests]

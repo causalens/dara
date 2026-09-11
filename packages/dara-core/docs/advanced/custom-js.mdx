@@ -16,14 +16,14 @@ Dara CLI provides a command to setup necessary scaffolding to include your custo
 Run the following to setup custom JS:
 
 <Tabs
-    defaultValue="poetry"
+    defaultValue="uv"
     groupId="packageManager"
-    values={[{label: 'Pip', value: 'pip'}, {label: 'Poetry', value: 'poetry'}]}
+    values={[{label: 'Uv', value: 'uv'}, {label: 'Pip', value: 'pip'}]}
 >
-<TabItem value="poetry">
+<TabItem value="uv">
 
 ```sh
-poetry run dara setup-custom-js
+uv run dara setup-custom-js
 ```
 
 </TabItem>
@@ -142,14 +142,14 @@ The first will be the startup of the main application. Here the `--enable-hmr` f
 and to serve the UI from a development server so you can benefit from Hot Module Reloading.
 
 <Tabs
-    defaultValue="poetry"
+    defaultValue="uv"
     groupId="packageManager"
-    values={[{label: 'Pip', value: 'pip'}, {label: 'Poetry', value: 'poetry'}]}
+    values={[{label: 'Uv', value: 'uv'}, {label: 'Pip', value: 'pip'}]}
 >
-<TabItem value="poetry">
+<TabItem value="uv">
 
 ```sh
-poetry run dara --enable-hmr
+uv run dara --enable-hmr
 ```
 
 </TabItem>
@@ -167,14 +167,14 @@ bundler supports Hot Module replacement, which means you don't need to refresh t
 will be replaced in place. For convenience, Dara CLI provides a command for that:
 
 <Tabs
-    defaultValue="poetry"
+    defaultValue="uv"
     groupId="packageManager"
-    values={[{label: 'Pip', value: 'pip'}, {label: 'Poetry', value: 'poetry'}]}
+    values={[{label: 'Uv', value: 'uv'}, {label: 'Pip', value: 'pip'}]}
 >
-<TabItem value="poetry">
+<TabItem value="uv">
 
 ```sh
-poetry run dara dev
+uv run dara dev
 ```
 
 </TabItem>
@@ -595,7 +595,7 @@ The requirements for the UMD bundle are:
 For example, `dara-core` defines the following entry-point:
 
 ```toml
-[tool.poetry.plugins."dara_assets"]
+[project.entry-points."dara_assets"]
 dara-core = "dara.core._assets:asset_manifest"
 ```
 
@@ -646,12 +646,12 @@ export default defineConfig({
 });
 ```
 
-Make sure to include the files inside your wheel, by specifying an `include` key in the `pyproject.toml` file:
+Make sure to include the files inside your wheel in your `pyproject.toml` file. With Hatchling, the package directory is included by default - but if the generated assets are covered by a `.gitignore`, list them in the wheel target's `artifacts` so they are still shipped:
 
 ```toml
-[tool.poetry.plugins."dara_assets"]
+[project.entry-points."dara_assets"]
 my-package = "my_package._assets:asset_manifest"
 
-[tool.poetry.build]
-include = ["my-package/_assets/*"]
+[tool.hatch.build.targets.wheel]
+artifacts = ["my_package/_assets/*"]
 ```

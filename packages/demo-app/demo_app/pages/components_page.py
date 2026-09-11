@@ -1,4 +1,5 @@
-from typing import List
+from dara.components import Button, Card, Heading, Label, Select, Spacer, Stack, Text
+from dara.core import ComponentInstance, Variable, py_component
 
 from demo_app.utils.components import (
     accordion,
@@ -45,9 +46,6 @@ from demo_app.utils.components import (
     textarea,
     tooltip,
 )
-
-from dara.components import Button, Card, Heading, Label, Select, Spacer, Stack, Text
-from dara.core import ComponentInstance, Variable, py_component
 
 dara_graphs_map = {
     'CausalGraphViewer': causal_graph_viewer,
@@ -117,6 +115,7 @@ def component_card(name: str, content: ComponentInstance) -> ComponentInstance:
 def component_solo(name: str, content: ComponentInstance) -> ComponentInstance:
     return Stack(Heading(name, level=3, padding='0 1rem'), content)
 
+
 def italic_text(text: str):
     return Text(
         text,
@@ -124,11 +123,12 @@ def italic_text(text: str):
         raw_css={'font-style': 'italic'},
     )
 
+
 @py_component
-def components_to_show(select_val: List) -> ComponentInstance:
+def components_to_show(select_val: list) -> ComponentInstance:
     components = Stack()
 
-    # show all components if none selected 
+    # show all components if none selected
     show_components = select_val
     if len(select_val) == 0:
         show_components = all_dara_components
@@ -139,14 +139,14 @@ def components_to_show(select_val: List) -> ComponentInstance:
         for graph in show_components:
             if graph in dara_graphs:
                 components.append(component_card(graph, dara_graphs_map[graph]()))
-    
+
     if set(show_components).intersection(dara_plotting):
         components.append(Spacer())
         components.append(Heading('Plotting Components', level=2))
         for plot in show_components:
             if plot in dara_plotting:
                 components.append(component_card(plot, dara_plotting_map[plot]()))
-    
+
     if set(show_components).intersection(dara_components):
         components.append(Spacer())
         components.append(Heading('Common Components', level=2))
@@ -156,7 +156,7 @@ def components_to_show(select_val: List) -> ComponentInstance:
                     components.append(component_solo(component, dara_components_map[component]()))
                 else:
                     components.append(component_card(component, dara_components_map[component]()))
-        
+
     return components
 
 
@@ -177,7 +177,7 @@ def components_page() -> ComponentInstance:
                 Button('Clear', outline=True, onclick=select_var.update(value=[])),
                 direction='horizontal',
             ),
-            hug=True
+            hug=True,
         ),
         Spacer(line=True),
         components_to_show(select_var),

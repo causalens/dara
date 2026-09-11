@@ -1,19 +1,21 @@
 from pandas import DataFrame
 
 from dara.components import Card, Heading, Spacer, Stack, Table, Text
-from dara.core import DataVariable, DerivedVariable
+from dara.core import DerivedVariable
 
 # Mixed-case data to test case-insensitive table sorting
-SORTING_TEST_DATA = DataFrame([
-    {'name': 'Zebra', 'value': 1, 'created': '2024-01-15T00:00:00.000Z'},
-    {'name': 'apple', 'value': 2, 'created': '2024-01-10T00:00:00.000Z'},
-    {'name': 'Banana', 'value': 3, 'created': '2024-01-20T00:00:00.000Z'},
-    {'name': 'cherry', 'value': 4, 'created': '2024-01-05T00:00:00.000Z'},
-    {'name': 'aardvark', 'value': 5, 'created': '2024-01-25T00:00:00.000Z'},
-])
+SORTING_TEST_DATA = DataFrame(
+    [
+        {'name': 'Zebra', 'value': 1, 'created': '2024-01-15T00:00:00.000Z'},
+        {'name': 'apple', 'value': 2, 'created': '2024-01-10T00:00:00.000Z'},
+        {'name': 'Banana', 'value': 3, 'created': '2024-01-20T00:00:00.000Z'},
+        {'name': 'cherry', 'value': 4, 'created': '2024-01-05T00:00:00.000Z'},
+        {'name': 'aardvark', 'value': 5, 'created': '2024-01-25T00:00:00.000Z'},
+    ]
+)
 
 sorting_test_derived_var = DerivedVariable(
-    func=lambda: SORTING_TEST_DATA.copy(),
+    func=SORTING_TEST_DATA.copy,
     variables=[],
 )
 
@@ -62,4 +64,3 @@ def intro_page():
             title='DerivedVariable Table',
         ),
     )
-

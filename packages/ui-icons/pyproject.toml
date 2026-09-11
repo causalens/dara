@@ -1,5 +1,0 @@
-[tool.poetry]
-source = []
-package-mode = false
-name = "ui-icons"
-version = "1.29.10"

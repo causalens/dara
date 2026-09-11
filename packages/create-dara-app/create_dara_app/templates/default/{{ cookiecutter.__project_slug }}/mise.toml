@@ -1,0 +1,44 @@
+min_version = "2026.9.0"
+
+[tools]
+python = "3.10"
+uv = "0.11"
+
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64", "macos-arm64"]
+
+[tasks.uv-sync]
+description = "Recreate the project venv from uv.lock"
+run = "uv sync --locked --all-groups"
+
+[tasks.uv-lock-check]
+description = "Fail if uv.lock is out of date with the pyproject"
+run = "uv lock --check"
+
+[tasks.lint]
+run = "uv run --locked --group dev ruff check ."
+
+[tasks.lint-fix]
+run = "uv run --locked --group dev ruff check --fix ."
+
+[tasks.format]
+run = "uv run --locked --group dev ruff format ."
+
+[tasks.format-check]
+run = "uv run --locked --group dev ruff format --check ."
+
+[tasks.type-check]
+run = "uv run --locked --group dev pyright ."
+
+[tasks.build]
+description = "Build the project wheel"
+run = "uv build --wheel"
+
+[tasks.dev]
+description = "Start the app with auto-reload"
+run = "uv run --locked dara start --reload"
+
+[tasks.run]
+description = "Start the app"
+run = "uv run --locked dara start"
