@@ -7,6 +7,7 @@ title: Changelog
 - Breaking: replaced the legacy frontend pipeline with an app-root Vite pipeline. `dara dev` prepares and supervises the frontend behind the Python server, `dara build` produces a frozen production build and `dara start` serves it without a JavaScript toolchain. Node and pnpm are prerequisites for development and builds.
 - Breaking: components and actions declare their implementation with `js_source`, an ES module specifier, replacing `js_module`, `js_component` and `local=True` registration.
 - Breaking: removed auth component `js_name`; authentication screens are identified by their `js_source`.
+- Added a Dara 2.0 migration guide and the `dara-2-migration` agent skill. `dara lock` and `dara dev` convert supported `dara.config.json` settings into `package.json` automatically; source changes follow the skill.
 - Removed the obsolete `DownloadContentImpl` component; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
 - Added `ConfigurationBuilder.add_components(module)` to register every public component class in a module.
 - Fixed bootstrap JSON strings closing their HTML script element.

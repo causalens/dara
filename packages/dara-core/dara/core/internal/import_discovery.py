@@ -23,6 +23,7 @@ from typing import Any, TypeGuard
 from dara.core.base_definitions import ActionDef, ActionImpl
 from dara.core.definitions import ComponentInstance, JsComponentDef, discover
 from dara.core.interactivity.any_variable import AnyVariable
+from dara.core.js_tooling.source import MIGRATION_SKILL
 from dara.core.logging import eng_logger
 from dara.core.visual.dynamic_component import py_component
 
@@ -183,9 +184,7 @@ def _get_symbol_module(symbol: type[ComponentInstance] | type[ActionImpl]) -> st
 def create_component_definition(component: type[ComponentInstance]):
     """Parse a concrete component source while preserving its serialized runtime name."""
     if component.js_source is None:
-        raise ValueError(
-            f'{component.__module__}.{component.__qualname__} must define js_source; see the Dara 2.0 migration guide for legacy declarations'
-        )
+        raise ValueError(f'{component.__module__}.{component.__qualname__} must define js_source. {MIGRATION_SKILL}')
     return JsComponentDef(
         name=component.py_component or component.__name__,
         py_module=_get_symbol_module(component),
@@ -196,9 +195,7 @@ def create_component_definition(component: type[ComponentInstance]):
 def create_action_definition(action: type[ActionImpl]):
     """Parse an action source independently of its existing py_name override."""
     if action.js_source is None:
-        raise ValueError(
-            f'{action.__module__}.{action.__qualname__} must define js_source; see the Dara 2.0 migration guide for legacy declarations'
-        )
+        raise ValueError(f'{action.__module__}.{action.__qualname__} must define js_source. {MIGRATION_SKILL}')
     return ActionDef(
         name=action.py_name or action.__name__, py_module=_get_symbol_module(action), js_source=action.js_source
     )

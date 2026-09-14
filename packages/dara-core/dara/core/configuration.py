@@ -58,6 +58,7 @@ from dara.core.internal.import_discovery import (
 )
 from dara.core.internal.registry_lookup import CustomRegistryLookup
 from dara.core.internal.scheduler import ScheduledJob, ScheduledJobFactory
+from dara.core.js_tooling.source import MIGRATION_SKILL
 from dara.core.logging import dev_logger
 from dara.core.router import Router
 from dara.core.visual.components import RawString
@@ -228,7 +229,7 @@ class ConfigurationBuilder:
     def auth_session_backend(self, backend: AuthSessionBackendConfig):
         self._auth_session_backend = backend
 
-    def add_action(self, action: type[ActionImpl]):
+    def add_action(self, action: type[ActionImpl], **removed_options):
         """
         Register an Action with the application.
 
@@ -241,6 +242,10 @@ class ConfigurationBuilder:
 
         :param action: ActionImpl-subclass definition
         """
+        if removed_options:
+            raise TypeError(
+                f'add_action no longer accepts local=. Keep the registration with js_source. {MIGRATION_SKILL}'
+            )
         act_def = create_action_definition(action)
         self._actions.append(act_def)
         return act_def
@@ -278,7 +283,7 @@ class ConfigurationBuilder:
         self.context_components.append(component)
         self.add_component(component.__class__)
 
-    def add_component(self, component: type[ComponentInstance]):
+    def add_component(self, component: type[ComponentInstance], **removed_options):
         """
         Register a Component with the application.
 
@@ -291,6 +296,10 @@ class ConfigurationBuilder:
 
         :param component: ComponentInstance-subclass definition
         """
+        if removed_options:
+            raise TypeError(
+                f'add_component no longer accepts local=. Keep the registration with js_source. {MIGRATION_SKILL}'
+            )
         component_def = create_component_definition(component)
 
         self._components.append(component_def)
