@@ -1,8 +1,8 @@
 import { generatePath } from 'react-router';
 
-import { useVariable } from '@/shared';
-import { resolveVariable } from '@/shared/interactivity/resolve-variable';
-import { type ActionContext, type RouterPath, isVariable } from '@/types';
+import { useVariable } from '../shared';
+import { resolveVariable } from '../shared/interactivity/resolve-variable';
+import { type ActionContext, type RouterPath, isVariable } from '../types';
 
 /**
  * Wrapper around generatePath that falls back to returning the raw path if an error occurs.

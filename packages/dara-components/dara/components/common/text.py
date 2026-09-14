@@ -51,6 +51,8 @@ class Text(ContentComponent):
     :param formatted: Whether to display the text with existing formatting intact or not, default False
     """
 
+    js_source = '@darajs/components/text'
+
     text: str | ClientVariable
     align: str | None = 'left'  # type: ignore # this is actually textAlign not align-items
     formatted: bool = False

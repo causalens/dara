@@ -1,4 +1,3 @@
-import groupBy from 'lodash/groupBy';
 import { nanoid } from 'nanoid';
 import { useContext, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
@@ -9,21 +8,18 @@ import { concatMap, takeWhile } from 'rxjs/operators';
 import { useNotifications } from '@darajs/ui-notifications';
 import { HTTP_METHOD, Status, validateResponse } from '@darajs/ui-utils';
 
-import { fetchTaskResult } from '@/api/core';
-import { request } from '@/api/http';
-import { handleAuthErrors } from '@/auth/auth';
-import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
+import { fetchTaskResult } from '../../api/core';
+import { request } from '../../api/http';
+import { handleAuthErrors } from '../../auth/auth';
 import {
     type Action,
     type ActionContext,
-    type ActionDef,
     type ActionHandler,
     type ActionImpl,
     type AnnotatedAction,
-    type ModuleContent,
-} from '@/types/core';
-import { isActionImpl, isVariable } from '@/types/utils';
-
+} from '../../types/core';
+import { isActionImpl, isVariable } from '../../types/utils';
+import { WebSocketCtx, useRequestExtras, useTaskContext } from '../context';
 import { useEventBus } from '../event-bus/event-bus';
 import { normalizeRequest } from '../utils/normalization';
 import { cleanKwargs, getOrRegisterPlainVariable, resolveVariable } from './internal';
@@ -262,29 +258,12 @@ async function invokeAction(
  */
 const ACTION_HANDLER_BY_NAME: Record<string, ActionHandler> = {};
 
-/**
- * Pre-warm the action handlers in the action registry.
- */
-export async function preloadActions(
-    importers: Record<string, () => Promise<ModuleContent>>,
-    actions: ActionDef[]
-): Promise<void> {
-    const componentsByModule = groupBy(actions, (actionDef) => actionDef.py_module);
-
-    await Promise.all(
-        Object.entries(componentsByModule).map(async ([module, moduleActions]) => {
-            const moduleContent = await importers[module]!();
-            for (const action of moduleActions) {
-                if (ACTION_HANDLER_BY_NAME[action.name]) {
-                    continue;
-                }
-                const actionHandler = moduleContent[action.name];
-                if (actionHandler) {
-                    ACTION_HANDLER_BY_NAME[action.name] = actionHandler as ActionHandler;
-                }
-            }
-        })
-    );
+/** Install the ready-made action map without resolving package barrels at runtime. */
+export function registerActions(actions: Record<string, ActionHandler<any>>): void {
+    for (const name of Object.keys(ACTION_HANDLER_BY_NAME)) {
+        delete ACTION_HANDLER_BY_NAME[name];
+    }
+    Object.assign(ACTION_HANDLER_BY_NAME, actions);
 }
 
 /**
@@ -316,7 +295,7 @@ class UnhandledActionError extends Error {
 function resolveActionImpl(actionImpl: ActionImpl, actionCtx: ActionContext): ActionHandler<ActionImpl> {
     let actionHandler: ActionHandler;
 
-    // all action handlers would have been cached by preloadActions
+    // all action handlers would have been registered by bootstrap
     if (!ACTION_HANDLER_BY_NAME[actionImpl.name]) {
         // if we failed to resolve the action handler, use the catch-all handler if defined
         if (actionCtx.onUnhandledAction) {

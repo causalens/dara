@@ -1,17 +1,16 @@
 import type { Params } from 'react-router';
 import { type AtomEffect, type RecoilState, type Snapshot, atomFamily, selectorFamily } from 'recoil';
 
-import { type WebSocketClientInterface } from '@/api';
-import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
-import { isEmbedded } from '@/shared/utils/iframe';
+import { type WebSocketClientInterface } from '../../api';
+import { type RequestExtras, RequestExtrasSerializable } from '../../api/http';
 import {
     type DerivedVariable,
     type GlobalTaskContext,
     type SingleVariable,
     isDerivedVariable,
     isPathParamStore,
-} from '@/types';
-
+} from '../../types';
+import { isEmbedded } from '../utils/iframe';
 // eslint-disable-next-line import/no-cycle
 import { STORES, getEffect, getOrRegisterDerivedVariable, resolveNested, setNested } from './internal';
 import { StateSynchronizer } from './state-synchronizer';

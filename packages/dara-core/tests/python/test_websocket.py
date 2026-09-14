@@ -44,19 +44,21 @@ pytestmark = pytest.mark.anyio
 
 
 class LocalJsComponent(ComponentInstance):
-    pass
+    js_source = './js/component.tsx'
 
 
 # Create a config to test with
 @pytest.fixture
 def config():
     builder: ConfigurationBuilder = ConfigurationBuilder()
-    builder.add_component(component=LocalJsComponent, local=True)
+    builder.add_component(component=LocalJsComponent)
     builder.add_page(name='Js Test', content=ComponentInstance.construct(name='LocalJsComponent', props={}), icon='Hdd')
     return create_app(builder)
 
 
-os.environ['DARA_DOCKER_MODE'] = 'TRUE'
+@pytest.fixture(autouse=True)
+def frontend_development(monkeypatch):
+    monkeypatch.setenv('DARA_COMMAND', 'dev')
 
 
 @pytest.fixture(autouse=True)

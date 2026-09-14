@@ -1,8 +1,8 @@
 import { createPath } from 'react-router';
 
-import { resolveTo } from '@/router/resolve-to';
-import { getBasename } from '@/router/utils';
-import { type ActionHandler, type NavigateToImpl } from '@/types/core';
+import { resolveTo } from '../router/resolve-to';
+import { getBasename } from '../router/utils';
+import { type ActionHandler, type NavigateToImpl } from '../types/core';
 
 const ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 

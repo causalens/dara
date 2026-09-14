@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
-import { type WebSocketClientInterface } from '@/api';
-import { useVariableState } from '@/shared/interactivity';
+import { type WebSocketClientInterface } from '../../api';
+import { useVariableState } from '../interactivity';
 
 interface VariableStateProviderProps {
     wsClient: WebSocketClientInterface;

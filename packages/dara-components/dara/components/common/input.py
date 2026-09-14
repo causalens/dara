@@ -56,6 +56,8 @@ class Input(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
+    js_source = '@darajs/components/input'
+
     id: str | None = None
     placeholder: str | None = None
     type: str | None = None

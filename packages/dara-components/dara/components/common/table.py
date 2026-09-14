@@ -900,6 +900,8 @@ class Table(ContentComponent):
     :param row_data_id_column: Optional column(s) to use as the row data id. When an array, values are joined with underscores.
     """
 
+    js_source = '@darajs/components/table'
+
     model_config = ConfigDict(ser_json_timedelta='float', use_enum_values=True, arbitrary_types_allowed=True)
 
     columns: Sequence[Column | dict | str] | ClientVariable | None = None

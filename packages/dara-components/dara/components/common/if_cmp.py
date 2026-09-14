@@ -65,6 +65,8 @@ class If(ModifierComponent):
     :param false_children: children to display when the condition is not met, defaults to nothing rendered if not passed
     """
 
+    js_source = '@darajs/components/if'
+
     condition: Condition
     true_children: list[ComponentInstance]
     false_children: list[ComponentInstance]

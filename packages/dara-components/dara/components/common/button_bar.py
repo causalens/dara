@@ -106,6 +106,8 @@ class ButtonBar(FormComponent):
     :param styling: A style of the ButtonBar, can be 'primary' or 'secondary'
     """
 
+    js_source = '@darajs/components/button-bar'
+
     items: list[Item]
     value: Variable | None = None
     onchange: Action | None = None

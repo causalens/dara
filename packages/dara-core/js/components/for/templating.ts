@@ -5,9 +5,9 @@ import set from 'lodash/set';
 import { nanoid } from 'nanoid';
 import * as React from 'react';
 
-import { resolveNested } from '@/shared/interactivity/nested';
-import type { ComponentInstance, NestedKey } from '@/types';
-import { isAnnotatedAction, isDerivedVariable, isLoopVariable, isPyComponent } from '@/types/utils';
+import { resolveNested } from '../../shared/interactivity/nested';
+import type { ComponentInstance, NestedKey } from '../../types';
+import { isAnnotatedAction, isDerivedVariable, isLoopVariable, isPyComponent } from '../../types/utils';
 
 export type Marker =
     | { type: 'loop_var'; path: string; nested: string[] }

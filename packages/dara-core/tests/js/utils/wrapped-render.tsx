@@ -12,7 +12,6 @@ import { RecoilURLSync } from 'recoil-sync';
 
 import { ThemeProvider, theme } from '@darajs/styled-components';
 
-import { preloadComponents } from '@/shared/dynamic-component/dynamic-component';
 import { PathParamSync, StoreProviders } from '@/shared/interactivity/persistence';
 import { usePollScope } from '@/shared/interactivity/polling';
 import { type Deferred, deferred, useUrlSync } from '@/shared/utils';
@@ -48,21 +47,17 @@ function TemplateRoot(props: TemplateRootProps): JSX.Element {
     );
 }
 
-// Mock importers for testing dynamic components
-export const importers: Record<string, () => Promise<ModuleContent>> = {
-    dara_core: () =>
-        Promise.resolve({
-            NavigateTo,
-            ResetVariables,
-            TemplateRoot,
-            TriggerVariable,
-            UpdateVariable,
-        }),
-    test: () =>
-        Promise.resolve({
-            TestComponent: 'div' as any,
-            TestPropsComponent: (props: any) => <div>{JSON.stringify(props)}</div>,
-        }),
+// Direct implementations mirror the generated entry without dynamic module loaders.
+export const componentImplementations = {
+    TemplateRoot,
+    TestComponent: 'div' as any,
+    TestPropsComponent: (props: any) => <div>{JSON.stringify(props)}</div>,
+};
+export const actionImplementations = {
+    NavigateTo,
+    ResetVariables,
+    TriggerVariable,
+    UpdateVariable,
 };
 
 export const wsClient = new MockWebSocketClient('uid');
@@ -96,13 +91,11 @@ export const daraData: DaraData = {
     build_dev: false,
     auth_components: {
         login: {
-            js_module: '@darajs/dara_core',
-            js_name: 'DefaultAuthLogin',
+            js_source: '@darajs/core/auth/default/default-auth-login',
             py_module: 'dara_core',
         },
         logout: {
-            js_module: '@darajs/dara_core',
-            js_name: 'DefaultAuthLogout',
+            js_source: '@darajs/core/auth/basic/basic-auth-logout',
             py_module: 'dara_core',
         },
     },
@@ -177,13 +170,11 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
                 build_dev: false,
                 auth_components: {
                     login: {
-                        js_module: '@darajs/dara_core',
-                        js_name: 'DefaultAuthLogin',
+                        js_source: '@darajs/core/auth/default/default-auth-login',
                         py_module: 'dara_core',
                     },
                     logout: {
-                        js_module: '@darajs/dara_core',
-                        js_name: 'DefaultAuthLogout',
+                        js_source: '@darajs/core/auth/basic/basic-auth-logout',
                         py_module: 'dara_core',
                     },
                 },

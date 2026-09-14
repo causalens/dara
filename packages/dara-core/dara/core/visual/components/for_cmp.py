@@ -9,7 +9,7 @@ from dara.core.interactivity.any_variable import AnyVariable
 if TYPE_CHECKING:
     from dara.core.visual.dynamic_component import PyComponentInstance
 
-ForDef = JsComponentDef(name='For', js_module='@darajs/core', py_module='dara.core')
+ForDef = JsComponentDef(name='For', js_source='@darajs/core/components/for/for', py_module='dara.core')
 
 
 class VirtualizationConfig(DaraBaseModel):
@@ -146,6 +146,8 @@ class For(ComponentInstance):
     Can be a dotted path to access a nested path in the list item.
     :param virtualization: The virtualization configuration for the component. If provided, the component will be virtualized.
     """
+
+    js_source = '@darajs/core/components/for/for'
 
     items: AnyVariable
     renderer: ComponentInstance

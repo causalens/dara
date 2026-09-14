@@ -51,6 +51,6 @@ else:
     dara_path = os.path.join('.venv', 'bin', 'dara') if sys.platform != 'win32' else os.path.join('.venv', 'Scripts', 'dara.exe')
     subprocess.run([dara_path, 'generate-env'])
 
-click.echo("Done! To run the app, use 'mise run dev' (recommended) or 'uv run dara start'.")
-
 {% endif %}
+
+click.echo("Done! Node >=22.12.0 and pnpm 12 are required for development; 'mise install' provides them. Run 'mise run dev' (recommended) or 'uv run dara dev'.")

@@ -109,7 +109,7 @@ class Plotly(StyledComponentInstance):
     :param events: An array of plotly events
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/plotly'
 
     figure: str
     events: list[PlotlyEvent] | None = None

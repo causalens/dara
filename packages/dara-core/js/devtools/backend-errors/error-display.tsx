@@ -4,7 +4,7 @@ import { Collapse } from 'react-collapse';
 
 import styled from '@darajs/styled-components';
 
-import { type ServerErrorMessage } from '@/api/websocket';
+import { type ServerErrorMessage } from '../../api/websocket';
 
 const ErrorWrapper = styled.div`
     display: flex;

@@ -13,7 +13,7 @@ import {
     isStreamVariable,
     isSwitchVariable,
     isVariable,
-} from '@/types';
+} from '../../types';
 
 /**
  * Recursively find all StreamVariables in a variable's dependency tree.

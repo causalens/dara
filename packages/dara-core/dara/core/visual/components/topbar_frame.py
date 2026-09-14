@@ -19,10 +19,13 @@ from pydantic import ConfigDict
 
 from dara.core.definitions import ComponentInstance, JsComponentDef
 
-TopBarFrameDef = JsComponentDef(name='TopBarFrame', js_module='@darajs/core', py_module='dara.core')
+TopBarFrameDef = JsComponentDef(
+    name='TopBarFrame', js_source='@darajs/core/components/top-bar-frame', py_module='dara.core'
+)
 
 
 class TopBarFrame(ComponentInstance):
+    js_source = '@darajs/core/components/top-bar-frame'
     content: ComponentInstance
     hide_logo: bool | None = False
     logo_width: str | None = '10rem'

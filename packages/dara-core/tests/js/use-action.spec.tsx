@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { INPUT, TOGGLE } from '@/actions/update-variable';
 import { ServerMessageTypename } from '@/api/websocket';
 import { clearRegistries_TEST } from '@/shared/interactivity/store';
-import { clearActionHandlerCache_TEST, preloadActions, useActionIsLoading } from '@/shared/interactivity/use-action';
+import { clearActionHandlerCache_TEST, registerActions, useActionIsLoading } from '@/shared/interactivity/use-action';
 
 import { EventCapturer, useAction, useVariable } from '../../js/shared';
 import type {
@@ -23,8 +23,7 @@ import type {
     Variable,
 } from '../../js/types/core';
 import { MockWebSocketClient, Wrapper, server, wrappedRender } from './utils';
-import { mockActions } from './utils/test-server-handlers';
-import { importers } from './utils/wrapped-render';
+import { actionImplementations } from './utils/wrapped-render';
 
 const LOADING_VARIABLE: SingleVariable<boolean> = {
     __typename: 'Variable',
@@ -46,7 +45,7 @@ describe('useAction', () => {
         clearRegistries_TEST();
         clearActionHandlerCache_TEST();
 
-        await preloadActions(importers, Object.values(mockActions));
+        registerActions(actionImplementations);
     });
     afterEach(() => {
         window.history.replaceState(null, '', '/');

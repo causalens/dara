@@ -23,7 +23,6 @@ from dara.core.base_definitions import ActionDef
 from dara.core.interactivity.actions import (
     CopyToClipboard,
     CopyToClipboardDef,
-    DownloadContentDef,
     DownloadVariable,
     DownloadVariableDef,
     NavigateToDef,
@@ -108,7 +107,6 @@ CORE_ACTIONS: dict[str, ActionDef] = {
     ResetVariables.__name__: ResetVariablesDef,
     DownloadVariable.__name__: DownloadVariableDef,
     CopyToClipboard.__name__: CopyToClipboardDef,
-    'DownloadContent': DownloadContentDef,
     Notify.__name__: NotifyDef,
 }
 

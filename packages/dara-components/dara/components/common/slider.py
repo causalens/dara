@@ -130,6 +130,8 @@ class Slider(FormComponent):
     :param id: the key to be used if this component is within a form
     """
 
+    js_source = '@darajs/components/slider'
+
     domain: list[float]
     onchange: Action | None = None
     step: float | None = Field(None, validate_default=True)

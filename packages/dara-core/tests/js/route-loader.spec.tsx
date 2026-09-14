@@ -9,13 +9,12 @@ import { setSessionIdentifier } from '@/auth';
 import { createRoute } from '@/router/create-router';
 import { ResponseChunk, fetchRouteData } from '@/router/fetching';
 import { clearRegistries_TEST, deferred, useVariable } from '@/shared';
-import DynamicComponent, { clearCaches_TEST, preloadComponents } from '@/shared/dynamic-component/dynamic-component';
+import DynamicComponent, { clearCaches_TEST, registerComponents } from '@/shared/dynamic-component/dynamic-component';
 import { clearStreamUsage_TEST } from '@/shared/interactivity/stream-usage-tracker';
-import { preloadActions } from '@/shared/interactivity/use-action';
+import { registerActions } from '@/shared/interactivity/use-action';
 import {
     type AnnotatedAction,
     type ComponentInstance,
-    ComponentType,
     type DerivedVariable,
     type PathParamStore,
     type PyComponentInstance,
@@ -26,8 +25,7 @@ import {
 } from '@/types';
 
 import { Wrapper, server } from './utils';
-import { mockActions, mockComponents } from './utils/test-server-handlers';
-import { importers, wsClient } from './utils/wrapped-render';
+import { actionImplementations, componentImplementations, wsClient } from './utils/wrapped-render';
 
 const TEST_TOKEN = 'TEST_TOKEN';
 
@@ -41,8 +39,8 @@ describe('Route Loader', () => {
         window.localStorage.clear();
         clearRegistries_TEST();
         clearCaches_TEST();
-        await preloadActions(importers, Object.values(mockActions));
-        await preloadComponents(importers, Object.values(mockComponents));
+        registerActions(actionImplementations);
+        registerComponents(componentImplementations);
         vi.restoreAllMocks();
         setSessionIdentifier(TEST_TOKEN);
 
@@ -248,9 +246,15 @@ describe('Route Loader', () => {
         expect(oldData.on_load).toEqual([]);
 
         expect(latestData.template).toMatchObject({ props: { text: 'latest' } });
-        await expect(latestData.derived_variables[0]!.handle.getValue()).resolves.toMatchObject({ ok: true });
-        await expect(latestData.derived_variables[1]!.handle.getValue()).resolves.toMatchObject({ ok: true });
-        await expect(latestData.py_components[0]!.handle.getValue()).resolves.toMatchObject({ ok: true });
+        await expect(latestData.derived_variables[0]!.handle.getValue()).resolves.toMatchObject({
+            ok: true,
+        });
+        await expect(latestData.derived_variables[1]!.handle.getValue()).resolves.toMatchObject({
+            ok: true,
+        });
+        await expect(latestData.py_components[0]!.handle.getValue()).resolves.toMatchObject({
+            ok: true,
+        });
     });
 
     it('keeps the latest route when an older partial stream aborts', async () => {
@@ -635,22 +639,9 @@ describe('Route Loader', () => {
             );
         }
 
-        await preloadComponents(
-            {
-                test_mod: () =>
-                    Promise.resolve({
-                        TestDisplay,
-                    }),
-            },
-            [
-                {
-                    js_module: 'test',
-                    name: 'TestDisplay',
-                    py_module: 'test_mod',
-                    type: ComponentType.JS,
-                },
-            ]
-        );
+        registerComponents({
+            TestDisplay,
+        });
 
         const container = render(<Root />, {
             wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
@@ -792,29 +783,10 @@ describe('Route Loader', () => {
         }
 
         // setup the importers and components
-        await preloadComponents(
-            {
-                test_mod: () =>
-                    Promise.resolve({
-                        TestDisplay,
-                        Text: () => <div>Text</div>,
-                    }),
-            },
-            [
-                {
-                    js_module: 'test',
-                    name: 'TestDisplay',
-                    py_module: 'test_mod',
-                    type: ComponentType.JS,
-                },
-                {
-                    js_module: 'test',
-                    name: 'Text',
-                    py_module: 'test_mod',
-                    type: ComponentType.JS,
-                },
-            ]
-        );
+        registerComponents({
+            TestDisplay,
+            Text: () => <div>Text</div>,
+        });
 
         const container = render(<Root />, {
             wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
@@ -1072,12 +1044,7 @@ describe('Route Loader', () => {
             return <RouterProvider router={createBrowserRouter([parsedRoute])} />;
         }
 
-        await preloadComponents(
-            {
-                test_mod: () => Promise.resolve({ TestDisplay }),
-            },
-            [{ js_module: 'test', name: 'TestDisplay', py_module: 'test_mod', type: ComponentType.JS }]
-        );
+        registerComponents({ TestDisplay });
 
         const container = render(<Root />, {
             wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,
@@ -1183,12 +1150,7 @@ describe('Route Loader', () => {
             return <RouterProvider router={createBrowserRouter([parsedRoute])} />;
         }
 
-        await preloadComponents(
-            {
-                test_mod: () => Promise.resolve({ TestDisplay }),
-            },
-            [{ js_module: 'test', name: 'TestDisplay', py_module: 'test_mod', type: ComponentType.JS }]
-        );
+        registerComponents({ TestDisplay });
 
         const container = render(<Root />, {
             wrapper: (props: { children: React.ReactNode }) => <Wrapper withRouter={false}>{props.children}</Wrapper>,

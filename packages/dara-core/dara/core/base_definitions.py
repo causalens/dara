@@ -21,8 +21,7 @@ from __future__ import annotations
 # between other parts of the framework
 import abc
 import uuid
-from collections import defaultdict
-from collections.abc import Awaitable, Callable, Generator, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from enum import Enum
 from inspect import isclass
 from pathlib import Path
@@ -46,9 +45,13 @@ from pydantic import (
     SerializeAsAny,
     SerializerFunctionWrapHandler,
     field_serializer,
+    field_validator,
     model_serializer,
+    model_validator,
 )
 from pydantic._internal._model_construction import ModelMetaclass
+
+from dara.core.js_tooling.source import JsSource
 
 if TYPE_CHECKING:
     from dara.core.interactivity.actions import ActionCtx
@@ -601,11 +604,10 @@ class ActionImpl(DaraBaseModel):
     """
     Base class for action implementations
 
-    :param js_module: JS module including the implementation of the action.
-    Required for non-local actions which have a JS implementation.
+    :param js_source: Module that default-exports this action implementation.
     """
 
-    js_module: ClassVar[str | None] = None
+    js_source: ClassVar[str | None] = None
     py_name: ClassVar[str | None] = None
 
     async def execute(self, ctx: ActionCtx) -> Any:
@@ -656,15 +658,14 @@ class ActionDef(BaseModel):
     Action definition required to register actions in the app.
     Links the name of the action with its JS implementation.
 
-    :param name: name of the action, must match the Python definition and JS implementation
+    :param name: serialized action identity, derived from the Python class or its py_name override
     :param py_module: name of the PY module with action definition, used for versioning
-    :param js_module: JS module where the action implementation lives.
-    Not required for local actions as they are located via dara.config.json
+    :param js_source: Module that default-exports this action implementation.
     """
 
     name: str
     py_module: str
-    js_module: str | None = None
+    js_source: JsSource
 
 
 class ActionResolverDef(BaseModel):
@@ -692,93 +693,38 @@ class ComponentType(Enum):
     PY = 'py'
 
 
+class StaticAsset(BaseModel):
+    """A package-relative source copied into that package's static URL namespace."""
+
+    source: str
+    target: str
+    model_config = ConfigDict(extra='forbid')
+
+    @field_validator('source', 'target')
+    @classmethod
+    def relative_path(cls, value: str) -> str:
+        """Reject absolute paths and namespace traversal before assets are read."""
+        from pathlib import PurePosixPath
+
+        path = PurePosixPath(value)
+        if not value or path.is_absolute() or '..' in path.parts or '\\' in value or ':' in value:
+            raise ValueError('static_assets paths must be relative and cannot escape their namespace')
+        return str(path)
+
+
 class AssetManifest(BaseModel):
-    base_path: str
-    """
-    Base path to resolve assets from.
-    """
+    """Static files registered through a package's existing dara_assets entry point."""
 
-    autojs_assets: list[str]
-    """
-    List of autojs assets to copy to static_files_dir
-    and build tags for, ONLY in autojs mode.
-    """
+    base_path: str | Path
+    static_assets: list[StaticAsset] = []
+    model_config = ConfigDict(extra='forbid')
 
-    common_assets: list[str]
-    """
-    List of common assets to copy to static_files_dir,
-    in all modes.
-    """
-
-    tag_order: list[str]
-    """
-    Order of tags to include in the index.html.
-    Excluded assets will not have their tags included in the HTML file,
-    this can be useful if components lazy-load their assets by adding the tag at runtime.
-    """
-
-    depends_on: list[str]
-    """
-    List of other packages that this package depends on.
-    For example, dara.components might specify `depends_on=['dara.core']`.
-
-    Used to determine the order in which assets should be added as HTML tags.
-    """
-
-    def resolved_common_assets(self) -> Generator[Path]:
-        base = Path(self.base_path)
-
-        for cdn in self.common_assets:
-            yield base / cdn
-
-    def resolved_autojs_assets(self) -> Generator[Path]:
-        base = Path(self.base_path)
-
-        for autojs in self.autojs_assets:
-            yield base / autojs
-
-    @staticmethod
-    def topo_sort(manifests: dict[str, AssetManifest]) -> dict[str, AssetManifest]:
-        """
-        Topologically sort the asset manifests based on their dependencies.
-        Returns a dict ordered topologically with dependencies before dependents.
-
-        For example, if A depends_on B, then B will come before A in the result.
-
-        :param manifests: the asset manifests to sort
-        :return: a dict of sorted asset manifests (dependencies first)
-        """
-        ordered: dict[str, AssetManifest] = {}
-
-        # Build adjacency list of dependencies
-        graph = defaultdict(list)
-        for pkg, manifest in manifests.items():
-            for dep in manifest.depends_on:
-                if dep in manifests:
-                    graph[pkg].append(dep)
-
-        visited: dict[str, Literal['unvisited', 'visiting', 'done']] = {}
-
-        def _visit(pkg: str):
-            state = visited.get(pkg)
-            if state == 'visiting':
-                raise ValueError(f'Cyclic dependency detected for package {pkg}')
-            if state == 'done':
-                return
-
-            visited[pkg] = 'visiting'
-
-            # Visit dependencies first
-            for dep in graph[pkg]:
-                _visit(dep)
-
-            visited[pkg] = 'done'
-            # Add to result after visiting all dependencies
-            # This ensures dependencies come before dependents
-            ordered[pkg] = manifests[pkg]
-
-        for pkg in manifests:
-            if visited.get(pkg) is None:
-                _visit(pkg)
-
-        return ordered
+    @model_validator(mode='before')
+    @classmethod
+    def reject_legacy(cls, value: Any) -> Any:
+        """Explain the replacement for asset manifests from the removed UMD pipeline."""
+        if isinstance(value, dict) and {'autojs_assets', 'common_assets', 'tag_order', 'depends_on'} & value.keys():
+            raise ValueError(
+                'Legacy asset manifest: replace asset lists and tag ordering with static_assets; see the Dara 2.0 migration guide'
+            )
+        return value

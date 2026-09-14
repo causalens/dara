@@ -106,7 +106,7 @@ class NodeHierarchyBuilder(StyledComponentInstance):
     :param wrap_node_text: Optional flag whether to wrap the text inside nodes or use an ellipsis; defaults to true
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/node-hierarchy-builder'
 
     editable: bool = True
     nodes: list[list[str]] | list[str] | list[Node] | list[list[Node]] | ClientVariable

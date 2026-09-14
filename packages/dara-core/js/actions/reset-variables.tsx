@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid';
 
-import { getOrRegisterPlainVariable } from '@/shared/interactivity/plain-variable';
-import { getOrRegisterTrigger } from '@/shared/interactivity/triggers';
-import { type ActionHandler, type ResetVariablesImpl } from '@/types/core';
+import { getOrRegisterPlainVariable } from '../shared/interactivity/plain-variable';
+import { getOrRegisterTrigger } from '../shared/interactivity/triggers';
+import { type ActionHandler, type ResetVariablesImpl } from '../types/core';
 import {
     isDerivedVariable,
     isServerVariable,
@@ -10,7 +10,7 @@ import {
     isStreamVariable,
     isSwitchVariable,
     isVariable,
-} from '@/types/utils';
+} from '../types/utils';
 
 /**
  * Front-end handler for ResetVariables action.

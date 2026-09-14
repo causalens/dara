@@ -14,11 +14,9 @@ import {
 
 import { HTTP_METHOD, validateResponse } from '@darajs/ui-utils';
 
-import { type WebSocketClientInterface, fetchTaskResult, request } from '@/api';
-import { type RequestExtras, RequestExtrasSerializable } from '@/api/http';
-import { handleAuthErrors } from '@/auth';
-import { useDeferLoadable } from '@/shared/utils';
-import { denormalize, normalizeRequest } from '@/shared/utils/normalization';
+import { type WebSocketClientInterface, fetchTaskResult, request } from '../../api';
+import { type RequestExtras, RequestExtrasSerializable } from '../../api/http';
+import { handleAuthErrors } from '../../auth';
 import {
     type AnyVariable,
     type ComponentInstance,
@@ -27,11 +25,12 @@ import {
     type PyComponentInstance,
     type TaskResponse,
     isVariable,
-} from '@/types';
-
+} from '../../types';
 import { VariableCtx, WebSocketCtx, useRequestExtras } from '../context';
 import { useTaskContext } from '../context/global-task-context';
 import { useEventBus } from '../event-bus/event-bus';
+import { useDeferLoadable } from '../utils';
+import { denormalize, normalizeRequest } from '../utils/normalization';
 import { type CurrentResult, preloadDerivedValue, resolveDerivedValue } from './derived-variable';
 import { findStreamVariablesInArray } from './find-stream-variables';
 import { buildTriggerList, getOrRegisterTrigger, registerChildTriggers, resolveTriggerStatic } from './internal';

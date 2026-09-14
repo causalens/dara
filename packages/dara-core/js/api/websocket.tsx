@@ -6,9 +6,8 @@ import { z } from 'zod/v4';
 
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
-import { handleAuthErrors } from '@/auth/auth';
-import type { ActionImpl, AnyVariable } from '@/types';
-
+import { handleAuthErrors } from '../auth/auth';
+import type { ActionImpl, AnyVariable } from '../types';
 import { request } from './http';
 
 const interAttemptTimeout = 500;

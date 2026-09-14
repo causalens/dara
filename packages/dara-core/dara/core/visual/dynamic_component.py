@@ -54,7 +54,7 @@ class PyComponentInstance(ComponentInstance):
     func_name: str
     dynamic_kwargs: Mapping[str, AnyVariable]
     polling_interval: int | ClientVariable | None = None
-    js_module: ClassVar[str | None] = None
+    js_source: ClassVar[str | None] = None
 
 
 # sync/async simple

@@ -3,10 +3,9 @@ import { z } from 'zod/v4';
 
 import { HTTP_METHOD, RequestError, validateResponse } from '@darajs/ui-utils';
 
-import { request } from '@/api/http';
-import { useRequestExtras } from '@/shared/context/request-extras-context';
-import { type User, type UserData } from '@/types';
-
+import { request } from '../api/http';
+import { useRequestExtras } from '../shared/context/request-extras-context';
+import { type User, type UserData } from '../types';
 import { isLoggingOut, notifySessionLoggedOut, setSessionIdentifier } from './session-state';
 
 export enum AuthenticationErrorReason {

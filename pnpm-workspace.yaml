@@ -1,5 +1,6 @@
 packages:
-  - "packages/**"
+- packages/**
+- '!packages/create-dara-app/create_dara_app/templates/**'
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
 blockExoticSubdeps: true
@@ -15,7 +16,7 @@ allowBuilds:
   msw: true
   nx: true
 minimumReleaseAgeExclude:
-  - "@darajs/*"
+- '@darajs/*'
 packageExtensions:
   '@cl/styled-components':
     dependencies:
@@ -51,3 +52,19 @@ overrides:
   qs: '>=6.15.2 <7'
 linkWorkspacePackages: true
 shamefullyHoist: true
+catalogs:
+  dara:
+    '@darajs/components': ^1.29.10
+    '@darajs/core': ^1.29.10
+    '@darajs/vite-plugin': ^1.29.10
+    '@tanstack/react-query': ^4.40.1
+    '@types/react': ^18.3.0
+    '@types/react-dom': ^18.3.0
+    react: ^18.3.0
+    react-dom: ^18.3.0
+    react-router: ^7.18.0
+    recoil: ^0.7.7
+    recoil-sync: ^0.2.0
+    styled-components: ^5.3.10
+    typescript: ^7.0.0
+    vite: ^8.1.0

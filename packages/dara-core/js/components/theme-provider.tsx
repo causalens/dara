@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 
 import { type DefaultTheme, ThemeProvider as StyledThemeProvider, default as styled } from '@darajs/styled-components';
 
-import { injectCss, useComponentStyles } from '@/shared';
-import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
-import { useVariable } from '@/shared/interactivity';
-import resolveTheme from '@/shared/utils/resolve-theme';
-import type { ComponentInstance, StyledComponentProps, Variable } from '@/types';
+import { injectCss, useComponentStyles } from '../shared';
+import DynamicComponent from '../shared/dynamic-component/dynamic-component';
+import { useVariable } from '../shared/interactivity';
+import resolveTheme from '../shared/utils/resolve-theme';
+import type { ComponentInstance, StyledComponentProps, Variable } from '../types';
 
 interface ThemeProviderProps extends StyledComponentProps {
     theme: Variable<'light' | 'dark' | DefaultTheme> | 'light' | 'dark' | DefaultTheme;

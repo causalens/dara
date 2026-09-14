@@ -46,6 +46,8 @@ class ProgressBar(ContentComponent):
     :param color: Optional color property for the progress bar, this should be the hex value of the color.
     """
 
+    js_source = '@darajs/components/progress-bar'
+
     progress: int | ClientVariable
     small: bool = False
     color: str | None = None

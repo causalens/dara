@@ -5,9 +5,16 @@ import * as z from 'zod/v4';
 
 import { HTTP_METHOD } from '@darajs/ui-utils';
 
-import { request } from '@/api';
-import { handleAuthErrors } from '@/auth';
-import { type Deferred, type DerivedResult, deferred, preloadDerivedVariable, preloadServerComponent } from '@/shared';
+import { request } from '../api';
+import { handleAuthErrors } from '../auth';
+import { type Deferred, type DerivedResult, deferred, preloadDerivedVariable, preloadServerComponent } from '../shared';
+import {
+    PreloadSkipError,
+    cleanArgs,
+    cleanKwargs,
+    resolveVariableStatic,
+} from '../shared/interactivity/resolve-variable';
+import { denormalize, normalizeRequest } from '../shared/utils/normalization';
 import {
     type Action,
     ActionImpl,
@@ -20,15 +27,7 @@ import {
     type RouteDefinition,
     UserError,
     isAnnotatedAction,
-} from '@/types';
-
-import {
-    PreloadSkipError,
-    cleanArgs,
-    cleanKwargs,
-    resolveVariableStatic,
-} from '../shared/interactivity/resolve-variable';
-import { denormalize, normalizeRequest } from '../shared/utils/normalization';
+} from '../types';
 import { SingleUseCache } from './cache';
 import { useRouterContext } from './context';
 

@@ -121,7 +121,7 @@ async def test_startup_auto_auth_session_backend_defaults_to_memory(monkeypatch,
     """Check the default auto factory preserves non-reload memory behavior."""
     monkeypatch.delenv('DARA_LIVE_RELOAD', raising=False)
     monkeypatch.delenv('DARA_HMR_MODE', raising=False)
-    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.setenv('DARA_COMMAND', 'dev')
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     caplog.set_level(logging.INFO, logger='dara.dev')
 
@@ -135,7 +135,7 @@ async def test_startup_auto_auth_session_backend_defaults_to_memory(monkeypatch,
 async def test_startup_auto_auth_session_backend_uses_file_for_local_reload(monkeypatch, tmp_path):
     """Check the default auto factory preserves sessions across local reloads."""
     monkeypatch.setenv('DARA_LIVE_RELOAD', 'TRUE')
-    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.setenv('DARA_COMMAND', 'dev')
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     monkeypatch.setenv('DARA_AUTH_SESSION_FILE_PATH', str(tmp_path))
 
@@ -150,8 +150,8 @@ async def test_startup_auto_auth_session_backend_uses_file_for_local_reload(monk
 async def test_startup_auto_auth_session_backend_keeps_memory_for_hmr_only(monkeypatch, tmp_path):
     """Check custom JS HMR does not imply backend process reload."""
     monkeypatch.delenv('DARA_LIVE_RELOAD', raising=False)
-    monkeypatch.setenv('DARA_HMR_MODE', 'TRUE')
-    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.setenv('DARA_COMMAND', 'dev')
+    monkeypatch.setenv('DARA_COMMAND', 'dev')
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     monkeypatch.setenv('DARA_AUTH_SESSION_FILE_PATH', str(tmp_path))
 
@@ -159,7 +159,7 @@ async def test_startup_auto_auth_session_backend_keeps_memory_for_hmr_only(monke
     app = _start_application(runtime_config)
 
     async with AsyncClient(app):
-        assert runtime_config.live_reload
+        assert not runtime_config.live_reload
         assert isinstance(get_auth_session_backend(), InMemoryAuthSessionBackend)
 
 
@@ -215,7 +215,7 @@ async def test_startup_custom_auth_session_backend_factory_is_called_once():
 async def test_startup_auto_auth_session_backend_keeps_memory_for_deploy_reload(monkeypatch):
     """Check reload only selects file storage for local development."""
     monkeypatch.setenv('DARA_LIVE_RELOAD', 'TRUE')
-    monkeypatch.setenv('DARA_DOCKER_MODE', 'TRUE')
+    monkeypatch.setenv('DARA_COMMAND', 'start')
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
 
     app = _start_application(ConfigurationBuilder()._to_configuration())

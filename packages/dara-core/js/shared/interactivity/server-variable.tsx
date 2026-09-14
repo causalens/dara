@@ -5,10 +5,9 @@ import { type ListenToItems, type ReadItem, RecoilSync, syncEffect } from 'recoi
 
 import { validateResponse } from '@darajs/ui-utils';
 
-import { type RequestExtras, RequestExtrasSerializable, request } from '@/api/http';
-import { handleAuthErrors } from '@/auth/auth';
-import { type ResolvedServerVariable, type ServerVariable } from '@/types';
-
+import { type RequestExtras, RequestExtrasSerializable, request } from '../../api/http';
+import { handleAuthErrors } from '../../auth/auth';
+import { type ResolvedServerVariable, type ServerVariable } from '../../types';
 import { WebSocketCtx } from '../context';
 import { StateSynchronizer } from './state-synchronizer';
 import { atomFamilyMembersRegistry, atomFamilyRegistry } from './store';

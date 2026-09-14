@@ -39,7 +39,7 @@ class FilterStatusButton(ComponentInstance):
     :param top_position: optional property to override the absolute 'top' property
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/filter-status-button'
 
     filter_stats: AnyVariable
     on_click: Action
