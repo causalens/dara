@@ -20,13 +20,14 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "prepare-dev": "tsc -p tsconfig.build.json",
-    "build-dev": "tsc -p tsconfig.build.json --watch",
-    "test": "tsc -p tsconfig.build.json && tsc -p tsconfig.test.json && node --test dist-tests/*.test.js",
-    "lint": "tsc -p tsconfig.build.json --noEmit && oxlint src tests",
+    "build": "node scripts/generate-version.mjs && tsc -p tsconfig.build.json",
+    "prepare-dev": "node scripts/generate-version.mjs && tsc -p tsconfig.build.json",
+    "build-dev": "node scripts/generate-version.mjs && tsc -p tsconfig.build.json --watch",
+    "test": "node scripts/generate-version.mjs && tsc -p tsconfig.build.json && tsc -p tsconfig.test.json && node --test dist-tests/*.test.js",
+    "lint": "node scripts/generate-version.mjs && tsc -p tsconfig.build.json --noEmit && oxlint src tests",
     "format:check": "oxfmt src tests --check",
-    "format": "oxfmt src tests --write"
+    "format": "oxfmt src tests --write",
+    "generate-version": "node scripts/generate-version.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^6.0.4",

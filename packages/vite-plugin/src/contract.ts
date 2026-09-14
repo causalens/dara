@@ -1,11 +1,10 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 
-export const version = z
-  .object({ version: z.string() })
-  .parse(JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"))).version;
+import { version } from "./version.js";
+
+export { version };
 
 const diagnosticSchema = z
   .object({ code: z.string(), message: z.string(), fix: z.string() })
