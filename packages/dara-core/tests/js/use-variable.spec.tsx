@@ -884,15 +884,15 @@ describe('useVariable', () => {
             const rendered = renderHook(() => useVariable<number>(variable), { wrapper: Wrapper });
 
             await waitFor(() => expect(rendered.result.current[0]).toBe(1));
-            act(() => vi.advanceTimersByTime(1200));
+            await act(() => vi.advanceTimersByTime(1200));
             await vi.waitFor(() => expect(requestCount).toBe(2));
 
-            act(() => vi.advanceTimersByTime(10_000));
+            await act(() => vi.advanceTimersByTime(10_000));
             expect(requestCount).toBe(2);
             expect(peakRequests).toBe(1);
 
             rendered.unmount();
-            act(() => vi.advanceTimersByTime(0));
+            await act(() => vi.advanceTimersByTime(0));
             expect(slowPollSignal?.aborted).toBe(true);
         });
 
@@ -926,7 +926,7 @@ describe('useVariable', () => {
             await act(async () => vi.advanceTimersByTimeAsync(20));
             await vi.waitFor(() => expect(firstSignal).toBeDefined());
             rendered.unmount();
-            act(() => vi.advanceTimersByTime(0));
+            await act(() => vi.advanceTimersByTime(0));
 
             expect(firstSignal?.aborted).toBe(true);
         });
@@ -977,7 +977,7 @@ describe('useVariable', () => {
             await vi.waitFor(() => expect(requestSignal).toBeDefined());
 
             rendered.unmount();
-            act(() => vi.advanceTimersByTime(0));
+            await act(() => vi.advanceTimersByTime(0));
             const aborted = requestSignal?.aborted;
             finishRequest();
 
@@ -1033,7 +1033,7 @@ describe('useVariable', () => {
             act(() => rendered.result.current.setDependency(2));
             await vi.waitFor(() => expect(refreshSignal).toBeDefined());
 
-            act(() => vi.advanceTimersByTime(0));
+            await act(() => vi.advanceTimersByTime(0));
             expect(refreshSignal?.aborted).toBe(false);
 
             finishRequest();
@@ -1086,7 +1086,7 @@ describe('useVariable', () => {
             );
 
             await waitFor(() => expect(rendered.result.current.value).toBe('initial'));
-            act(() => vi.advanceTimersByTime(1200));
+            await act(() => vi.advanceTimersByTime(1200));
             await vi.waitFor(() => expect(requestCount).toBe(2));
 
             act(() => rendered.result.current.setDependency(2));
@@ -1206,7 +1206,7 @@ describe('useVariable', () => {
                 expect(requestsByExtras.get('other')).toBe(1);
             });
 
-            act(() => vi.advanceTimersByTime(1200));
+            await act(() => vi.advanceTimersByTime(1200));
             await vi.waitFor(() => {
                 expect(requestsByExtras.get('shared')).toBe(2);
                 expect(requestsByExtras.get('other')).toBe(2);
@@ -1329,15 +1329,15 @@ describe('useVariable', () => {
             await vi.waitFor(() => expect(rendered.getByTestId('first')).toHaveTextContent('first-1'));
             expect(rendered.getByTestId('second')).toHaveTextContent('second-1');
 
-            act(() => vi.advanceTimersByTime(1200));
+            await act(() => vi.advanceTimersByTime(1200));
             await vi.waitFor(() => expect(pollSignal).toBeDefined());
 
             rendered.rerender(<Consumers showFirst={false} showSecond />);
-            act(() => vi.advanceTimersByTime(0));
+            await act(() => vi.advanceTimersByTime(0));
             expect(pollSignal?.aborted).toBe(false);
 
             rendered.rerender(<Consumers showFirst={false} showSecond={false} />);
-            act(() => vi.advanceTimersByTime(0));
+            await act(() => vi.advanceTimersByTime(0));
             expect(pollSignal?.aborted).toBe(true);
         });
 
@@ -1369,7 +1369,7 @@ describe('useVariable', () => {
             await act(async () => vi.advanceTimersByTimeAsync(20));
             await vi.waitFor(() => expect(rendered.result.current[0]).toBe(1));
 
-            act(() => vi.advanceTimersByTime(1200));
+            await act(() => vi.advanceTimersByTime(1200));
             await vi.waitFor(() => expect(requestCount).toBe(2));
             await act(async () => vi.advanceTimersByTimeAsync(4800));
             expect(requestCount).toBe(2);

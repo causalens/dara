@@ -21,7 +21,7 @@
     "@darajs/oxlint-config": "1.29.10",
     "@darajs/stylelint-config": "1.29.10",
     "@types/lodash": "^4.14.155",
-    "@types/react": "^18.0",
+    "@types/react": "^18.3.0",
     "@typescript/native": "npm:typescript@^7.0.0",
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0",

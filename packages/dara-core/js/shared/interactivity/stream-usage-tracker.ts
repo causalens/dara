@@ -41,9 +41,9 @@ interface StreamConnection {
     /** Function to start/restart the SSE connection, returns cleanup and controller */
     start: () => { cleanup: () => void; controller: AbortController };
     /** Cleanup function to abort SSE connection (set when start() is called) */
-    cleanup?: () => void;
+    cleanup?: (() => void) | undefined;
     /** AbortController for this connection (for direct abort access) */
-    controller?: AbortController;
+    controller?: AbortController | undefined;
     /** Whether connection is currently active */
     active: boolean;
 }
@@ -52,9 +52,9 @@ interface StreamUsage {
     /** Number of components actively subscribed (via useEffect) */
     count: number;
     /** Timer for debounced cleanup when count reaches 0 */
-    cleanupTimer?: ReturnType<typeof setTimeout>;
+    cleanupTimer?: ReturnType<typeof setTimeout> | undefined;
     /** Timer for orphan cleanup when connection registers but no subscription arrives */
-    orphanTimer?: ReturnType<typeof setTimeout>;
+    orphanTimer?: ReturnType<typeof setTimeout> | undefined;
     /** Registered connections for this uid (atomKey -> connection) */
     connections: Map<string, StreamConnection>;
 }

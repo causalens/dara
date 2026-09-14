@@ -16,6 +16,7 @@ function useInterval(callback: () => void, delay: number | undefined): void {
                 const id = setInterval(callback, delay * 1000);
                 return () => clearInterval(id);
             }
+            return undefined;
         },
         useDeepCompare([delay, callback])
     );

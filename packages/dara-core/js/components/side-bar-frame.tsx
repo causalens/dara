@@ -11,7 +11,7 @@ import { prependBaseUrl } from '../utils';
 import PoweredByCausalens from './powered-by-causalens';
 
 interface SideBarProps {
-    width?: string;
+    width?: string | undefined;
 }
 
 const shouldForwardProp = (prop: any): boolean => !['width'].includes(prop);
@@ -92,7 +92,7 @@ const BuiltWithLink = styled.a`
 `;
 
 interface LogoProps {
-    width?: string;
+    width?: string | undefined;
 }
 
 const LogoImage = styled.img<LogoProps>`
@@ -106,11 +106,11 @@ interface SideBarFrameProps {
     hide_logo?: boolean;
     logo_path?: string;
     logo_position: 'top' | 'bottom';
-    logo_width?: string;
+    logo_width?: string | undefined;
     side_bar: ComponentInstance;
     side_bar_padding?: string;
     side_bar_position?: 'left' | 'right';
-    side_bar_width?: string;
+    side_bar_width?: string | undefined;
     powered_by_causalens?: boolean;
 }
 
