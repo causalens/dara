@@ -42,8 +42,6 @@ dara-core = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["dara"]
-# Wheels ship only the committed common assets; legacy auto_js bundles stay out.
-exclude = ["dara/components/_assets/auto_js"]
 
 [dependency-groups]
 dev = [
