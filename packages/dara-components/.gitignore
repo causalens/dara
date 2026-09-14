@@ -1,6 +1,4 @@
 dist/
-dara/components/_assets/auto_js/dara.components.umd.js
-dara/components/_assets/auto_js/dara.components.css
 package-lock.json
 yarn-error.log
 docs/reference

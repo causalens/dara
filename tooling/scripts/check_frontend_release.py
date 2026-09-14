@@ -136,6 +136,8 @@ class ReleaseCheck:
             self.run(['uv', 'build', '--package', package, '--wheel', '--out-dir', wheels], REPO)
         for wheel in wheels.glob('*.whl'):
             with zipfile.ZipFile(wheel) as archive:
+                # Wheels ship vendored static assets only; guard against a generated
+                # UMD bundle directory reappearing.
                 assert not any('/auto_js/' in name for name in archive.namelist()), wheel
         self.run([sys.executable, '-m', 'venv', self.root / 'python'], REPO)
         self.run([self.python, '-m', 'pip', 'install', '--disable-pip-version-check', *wheels.glob('*.whl')], self.root)
