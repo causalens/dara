@@ -966,6 +966,15 @@ Three complementary options should be evaluated together:
 
 The same examples should feed documentation and preview checks so the two stay aligned. Useful acceptance cases include an agent discovering that `Stack` has a supported `gap` prop, choosing a built-in component without adding unnecessary CSS, and explaining why its rendered spacing differs under another parent. The reference format and gallery implementation need a separate design.
 
+### Diagnostic reference and shipped repair skills
+
+The 2.0 diagnostics carry a stable `code`, a `message` and a repairing `fix` command, and removed APIs point at the migration skill by URL. Two follow-ups would make them easier to act on at the point of failure, following the pattern Solid 2.0 adopted for its reactivity diagnostics.
+
+- A diagnostics reference page in the user documentation listing every code with its cause, the repairing command and the manual steps when the command cannot repair it. A test should check the page against the codes the CLI and Vite plugin can emit, so a diagnostic never names a command or API that does not exist.
+- Skills shipped inside the `dara-core` wheel rather than referenced from the repository. A diagnostic could then carry the installed path of the skill section that covers its code, and `dara check` and the development waiting page could print that path once per code. The generated `AGENTS.md` would reference the same local path, so guidance works offline and matches the installed Dara version instead of the repository head.
+
+The `Diagnostic` contract would need an optional skill reference and possibly a severity, so advisories such as pnpm's ignored-build-scripts warning stay out of the failing set. Skill packaging, the field names and how a versioned skill coexists with the repository copy need a separate design.
+
 ### Structured development diagnostics
 
 `dara check --json` is part of the core CLI transition. A later step is a public stream of structured development events for preparation progress, readiness, reloads and failures, with stable codes and source locations. A status query could report the active app, URL, worker and frontend state, and manifest digest. These would let terminal-based agents observe startup without parsing prose or requiring a browser. Transport and command names need a separate design; the internal status used by the 2.0 supervisor is not a commitment to a public inspection API.
