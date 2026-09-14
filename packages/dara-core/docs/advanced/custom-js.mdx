@@ -2,11 +2,11 @@
 title: Custom JavaScript Components
 ---
 
-Dara uses Vite for both development and production. Every registered Python component or action names one JavaScript module whose default export implements it. Local files and published packages follow the same contract.
+Dara uses Vite for both development and production. Every registered Python component or action points at one JavaScript module, and that module's default export implements it. Local files and published packages work the same way.
 
 ## Prepare an application
 
-Install Node >=22.12.0 and pnpm 12, then run `dara dev` in your Python environment from the app root. Generated apps include optional `mise.toml` pins; `mise install` installs those tools. Dara checks the toolchain but does not install it.
+Install Node >=22.12.0 and pnpm 12, then run `dara dev` from the app root in your Python environment. Dara checks for these tools but does not install them. Generated apps include a `mise.toml` with the versions pinned, so `mise install` sets them up for you.
 
 The app declares its Python configuration explicitly:
 
@@ -15,7 +15,9 @@ The app declares its Python configuration explicitly:
 config = "my_app.main:config"
 ```
 
-`dara dev` prepares missing `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json` and `js/index.tsx` files. Commit the project files and lockfile. These files belong to your application; subsequent preparation reconciles Dara dependencies without replacing your configuration.
+`dara dev` creates any missing `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json` and `js/index.tsx`. Commit them along with the lockfile.
+
+These files belong to your application. Later runs only reconcile Dara's own dependencies; your configuration is left alone.
 
 ```ts title=vite.config.ts
 import dara from '@darajs/vite-plugin';
@@ -24,7 +26,12 @@ import { defineConfig } from 'vite';
 export default defineConfig({ plugins: [dara()] });
 ```
 
-The single development command supervises Python reload, Vite and TypeScript behind the Python server's origin. React edits update through HMR; Python registration changes regenerate imports. `dara dev --no-reload` runs Python in the current process for IDE debugging. `--frontend-only` and `--backend-only` support split IDE sessions. Type errors appear in development diagnostics and fail production builds.
+`dara dev` runs Python reload, Vite and TypeScript together, all served from the Python server's origin. React edits apply through HMR, and changing a Python registration regenerates the imports. Type errors show up as development diagnostics, and they fail production builds.
+
+A few flags help with IDE setups:
+
+- `--no-reload` runs Python in the current process, so you can attach a debugger.
+- `--frontend-only` and `--backend-only` split the two halves across separate sessions.
 
 ## A local component
 
@@ -45,13 +52,15 @@ export default function Gauge({ value }: { value: number }) {
 }
 ```
 
-Import and use `Gauge` in your Python pages as any built-in component. Existing import discovery registers it. For dynamically imported classes, use `config.add_component(Gauge)`. A barrel export and a `local=True` flag are unnecessary. A local path must start with `./js/` and cannot escape that directory. The default export can have any JavaScript name; Python's component identity remains unchanged.
+Import and use `Gauge` in your Python pages like any built-in component; import discovery registers it for you. For classes that are only imported dynamically, call `config.add_component(Gauge)`.
 
-Add normal application dependencies with `pnpm add`. Dara-managed dependencies use the `dara` catalog in `pnpm-workspace.yaml`; `dara lock` reconciles them after Python package changes. `dara dev --frozen` reports drift without repairing checked-in files.
+A local `js_source` path must start with `./js/` and cannot point outside that directory. The default export can have any JavaScript name — the component's Python identity is what matters.
+
+Add your own dependencies with `pnpm add`. Dara's own dependencies live in the `dara` catalog in `pnpm-workspace.yaml`, and `dara lock` brings them back in line after you change Python packages. Use `dara dev --frozen` to report drift instead of fixing it.
 
 ## Variables and actions in a component
 
-The existing `useVariable` and `useAction` hooks decode Dara's serialized props. `useVariable` subscribes to updates and supplies a setter. `useAction` supplies an event handler and a running state.
+The `useVariable` and `useAction` hooks decode Dara's serialized props. `useVariable` subscribes to updates and gives you a setter; `useAction` gives you an event handler and a running flag.
 
 ```tsx title=js/counter.tsx
 import { useAction, useVariable } from '@darajs/core';
@@ -100,13 +109,19 @@ const visitCountry: ActionHandler<VisitCountry> = (ctx, action) => {
 export default visitCountry;
 ```
 
-Use `VisitCountry(country='United Kingdom')` as a button's `onclick`. Import discovery handles action classes; use `config.add_action(VisitCountry)` when explicit registration is needed. An optional Python `execute` override can perform server work and call `await super().execute(ctx)` to send the action to the browser.
+Use `VisitCountry(country='United Kingdom')` as a button's `onclick`. Import discovery finds action classes too; call `config.add_action(VisitCountry)` when you need to register one explicitly.
+
+To do server work first, override `execute` in Python and call `await super().execute(ctx)` to hand the action to the browser.
 
 ## Application and package setup
 
-`js/index.tsx` is the application setup module. Import global CSS or perform app initialization there; it is not a registry of component exports. A library registered with `config.add_module_dependency('my_python_package', '@example/widgets')` provides an explicit `./setup` npm export. Setup runs once through normal module imports. Keep setup modules separate from component barrels.
+`js/index.tsx` is your application's setup module. Import global CSS and do app initialization there. It is not a registry of component exports — you never list your components in it.
 
-Vite configuration can add normal plugins and aliases. Dara owns the generated entry, HTML, output publication and internal server endpoints. A plugin that reads extra files or environment values must declare them so build freshness can be checked:
+A library registered with `config.add_module_dependency('my_python_package', '@example/widgets')` does the same thing through a `./setup` npm export. Either way, setup runs once, as a normal module import.
+
+Your Vite configuration can add plugins and aliases as usual. Dara owns the generated entry module, the HTML, where output is published and its own server endpoints.
+
+Dara decides whether a build is still fresh by hashing everything the build reads. It cannot see files a plugin opens by itself, so declare those:
 
 ```ts
 plugins: [dara({
@@ -116,9 +131,17 @@ plugins: [dara({
 })]
 ```
 
+- `inputs` — individual files your plugins read. Each file's contents are hashed into the build.
+- `directories` — directories read the same way. Every file underneath is hashed, so adding, editing or removing one makes the build stale.
+- `environment` — names of environment variables the build reads. A changed value makes the build stale.
+
+Paths are relative to the app root. If you leave something undeclared, `dara start` will serve a build that no longer matches its sources.
+
 ## Workspaces and published libraries
 
-A package implementation uses an npm subpath, for example `js_source = '@example/widgets/gauge'`. The npm name comes from `js_source`; the Python module identifies its installed distribution. The installed Python version determines the npm requirement. All Dara apps in a workspace use the same Dara version, catalog and root pnpm lockfile. Each app has separate development state.
+To ship components in a package, point `js_source` at an npm subpath such as `'@example/widgets/gauge'`. Dara takes the npm package name from `js_source` and finds the matching Python distribution from the module that declared it, then requires the npm version that matches the installed Python version.
+
+Apps in one workspace share a Dara version, the `dara` catalog and the root pnpm lockfile, but each keeps its own development state.
 
 A library checkout can expose source for Dara and compiled output for ordinary consumers:
 
@@ -144,25 +167,49 @@ A library checkout can expose source for Dara and compiled output for ordinary c
 }
 ```
 
-Both Vite and TypeScript resolve `dara-source`. Wildcard source exports use a dedicated source directory, such as `./js/*.tsx`; exact source exports may live at the package root. Use relative internal imports and compile source under the consuming app's settings. Development does not build sibling libraries. Production builds reachable workspace dependencies in pnpm order; use `dara build --no-deps-build` when the repository has already built them.
+Both Vite and TypeScript resolve the `dara-source` condition, so an app in the workspace compiles the library's source under its own settings while published consumers get `dist-lib`.
 
-A package that is also a Dara app keeps `vite.config.ts` and `tsconfig.json` for the app, and separate `vite.lib.config.ts` and `tsconfig.lib.json` files for publication. Outputs must not overlap: use `dist/` for the app and `dist-lib/` for the library. npm self-references work in the library's own app without a dependency on itself.
+A few rules apply to source exports:
 
-Externalize React and its runtime subpaths from library bundles, and emit declarations. Publish using pnpm so `publishConfig.exports` replaces the source condition in the packed manifest. Install the actual `pnpm pack` tarball into a clean consumer and verify public imports resolve to compiled files even with `dara-source` enabled. Python wheels contain Python code and genuine static assets; they no longer contain generated UMD libraries.
+- Wildcard exports need a dedicated source directory, such as `./js/*.tsx`. Exact exports can sit at the package root.
+- Use relative imports inside the library.
+
+Development never builds sibling libraries. `dara build` builds reachable workspace dependencies in pnpm order; pass `--no-deps-build` if your repository has already built them.
+
+A package can be both a library and a Dara app. Keep `vite.config.ts` and `tsconfig.json` for the app, and add `vite.lib.config.ts` and `tsconfig.lib.json` for publication. The two outputs must not overlap — use `dist/` for the app and `dist-lib/` for the library. The app can import the library by its own npm name without depending on itself.
+
+When you build the library, externalize React and its runtime subpaths and emit declarations. Publish with pnpm so `publishConfig.exports` replaces the source condition in the packed manifest.
+
+Before releasing, install the real `pnpm pack` tarball into a clean consumer and check that public imports resolve to compiled files even when `dara-source` is enabled.
 
 ## Static assets
 
 For application files and `config.add_static_folder(...)`, see [Static assets](./static-assets.md).
 
-Application `static/` files are served at `/static/`. Package assets use `/static/<python-module>/`. Register them through the existing `dara_assets` entry point using `AssetManifest(base_path=..., static_assets=[StaticAsset(source='common', target='.')])`. File paths are relative to `base_path` and cannot escape their namespace. Assets retain their URLs across development and production, including applications mounted under a base URL.
+Your application's `static/` files are served at `/static/`. A Python package's assets are served at `/static/<python-module>/`, and it registers them through the `dara_assets` entry point:
 
-Script ordering and generated library tags are replaced by module imports. Genuine vendored files such as plotting libraries remain static assets and are loaded by their components. Development watches static roots; conflicting destinations produce a diagnostic and resume serving after the collision is fixed.
+```python
+asset_manifest = AssetManifest(
+    base_path=Path(__file__).parent,
+    static_assets=[StaticAsset(source='common', target='.')],
+)
+```
+
+Paths are relative to `base_path` and cannot escape the package's namespace. These URLs are the same in development and production, including apps mounted under a base URL.
+
+Static assets are for real files you want served as-is, such as a vendored plotting library that a component loads at runtime. JavaScript that is part of your app belongs in a module import instead — there is no script ordering to configure.
+
+During development Dara watches the static roots. If two packages claim the same destination you get a diagnostic, and serving resumes once you fix the collision.
 
 ## Build and deploy
 
-Run `dara check --json` for read-only diagnostics. Run `dara build` with committed dependency files to type-check and produce `dist/`, then `dara start` to serve it. Build never repairs dependency drift. Start always uses deployment posture, with API docs opt-in via `--api-docs`.
+`dara check --json` reports diagnostics without changing anything.
 
-Keep the complete output, including its private `.dara-build.json` marker. Startup validates the registered contract, output hashes and any available build inputs without JavaScript tools. A runtime image can contain only Python and compiled output, omitting the frontend checkout as a whole. If frontend sources remain, they must still match the build. Changes during compilation reject staging and preserve the previous output.
+`dara build` type-checks and produces `dist/`, then `dara start` serves it. Build never repairs dependency drift, so commit your dependency files first. Start always runs in deployment posture; opt into API docs with `--api-docs`.
+
+Deploy the whole output directory, including its private `.dara-build.json` marker. On startup Dara checks the registered contract, the output hashes and any build inputs it can still see — no JavaScript tooling required.
+
+A runtime image can contain just Python and the compiled output; you can leave the frontend checkout out entirely. If you do ship the sources, they have to match the build. And if anything changes while a build is running, Dara discards it and keeps the previous output.
 
 ## Migrate an existing app
 
