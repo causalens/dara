@@ -372,12 +372,15 @@ class ConfigurationBuilder:
         return config
 
     def add_static_folder(self, path: str):
-        r"""
-        Register a static folder, its contents can be then addressed with /static/\{asset\} URLs.
+        """
+        Register a directory whose contents are served at /static/{relative_path}.
 
-        Its contents will be moved into the local 'static' folder to be served when:
-        - running the app locally
-        - running the build script
+        Development serves files directly and watches for changes. Production builds copy them
+        into the output directory. All registered folders share one URL root; conflicting paths
+        are errors. Relative paths resolve from the application's working directory.
+
+        :param path: Existing directory to include alongside the application's static/ directory.
+        :return: The registered path.
         """
         self._static_folders.append(path)
         return path

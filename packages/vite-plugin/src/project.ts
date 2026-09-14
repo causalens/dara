@@ -10,7 +10,7 @@ import semver from "semver";
 import { createServer, loadConfigFromFile, resolveConfig } from "vite";
 import { parse as parseYaml } from "yaml";
 import { ProjectError, errorMessage, parseManifest, sourcePackage } from "./contract.js";
-import { atomicWrite, inside, readPackageJson, workspaceRoot } from "./files.js";
+import { atomicWrite, fileHash, inside, readPackageJson, workspaceRoot } from "./files.js";
 
 export interface DaraPluginApi {
   project: Project | null;
@@ -26,6 +26,8 @@ export interface ProjectConfig {
   config: ResolvedConfig;
   api: DaraPluginApi;
   configInputs: string[];
+  configHashes: Map<string, string | null>;
+  declaredSnapshot: InputSnapshot;
 }
 
 export interface Project extends ProjectConfig {
@@ -40,12 +42,15 @@ export interface Project extends ProjectConfig {
   assets: Map<string, string>;
   state: "waiting" | "ready" | "blocked";
   base: string;
-  observedHashes?: Map<string, string>;
-  initialHashes: Map<string, string>;
+  observedHashes?: Map<string, string | null>;
+  initialHashes: Map<string, string | null>;
+  initialSnapshots: InputSnapshot[];
   server?: ViteDevServer;
 }
 
 import { workspaceGraph } from "./workspace.js";
+import { snapshotDeclaredInputs, verifySnapshot, type InputSnapshot } from "./inputs.js";
+
 const defaults = {
   "vite.config.ts": `import dara from '@darajs/vite-plugin';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [dara()] });\n`,
   "tsconfig.json":
@@ -194,6 +199,72 @@ function checkDependencies(
   return inputs;
 }
 
+async function snapshotViteConfig(root: string, file: string, command: "serve" | "build") {
+  const env = { command, mode: command === "serve" ? "development" : "production" };
+  process.env["NODE_ENV"] = env.mode;
+  const resolve = async () => {
+    const loaded = await loadConfigFromFile(env, file, root, "warn");
+    if (!loaded) {
+      throw new ProjectError(
+        "vite.config",
+        `Unable to load ${file}`,
+        `edit ${path.basename(file)}`,
+      );
+    }
+    const resolved = await resolveConfig(
+      { ...loaded.config, root: path.resolve(root, loaded.config.root ?? "."), configFile: false },
+      command,
+      env.mode,
+    );
+    const inputs = [
+      file,
+      ...loaded.dependencies,
+      ...(resolved.envDir === false
+        ? []
+        : [".env", ".env.local", `.env.${env.mode}`, `.env.${env.mode}.local`].map((name) =>
+            path.join(resolved.envDir || root, name),
+          )),
+    ];
+    return { loaded, resolved, inputs };
+  };
+  // Resolve once to discover imports and the final envDir, including user config hooks.
+  const initial = await resolve();
+  const currentHash = (input: string) => (fs.existsSync(input) ? fileHash(input) : null);
+  const hashes = new Map(initial.inputs.map((input) => [input, currentHash(input)]));
+  const declarations = (config: ResolvedConfig) => {
+    const {
+      inputs = [],
+      directories = [],
+      environment = [],
+    } = config.plugins.find((plugin): plugin is DaraPlugin => plugin.name === "dara:app")?.api
+      .options ?? {};
+    return { inputs, directories, environment };
+  };
+  const declaredOptions = declarations(initial.resolved);
+  const declaredSnapshot = snapshotDeclaredInputs(root, declaredOptions);
+  // Capture the configuration actually used only after its complete inputs are fingerprinted.
+  const { loaded, resolved, inputs } = await resolve();
+  if (
+    JSON.stringify(declarations(resolved)) !== JSON.stringify(declaredOptions) ||
+    inputs.some((input) => !hashes.has(input)) ||
+    [...hashes].some(([input, hash]) => currentHash(input) !== hash)
+  ) {
+    throw new ProjectError(
+      "build.changed",
+      `${file} or its configuration inputs changed during loading`,
+      "retry the command",
+    );
+  }
+  verifySnapshot(declaredSnapshot);
+  return {
+    userConfig: loaded.config,
+    config: resolved,
+    declaredSnapshot,
+    configInputs: inputs,
+    configHashes: hashes,
+  };
+}
+
 async function resolveProjectConfig(
   root: string,
   command: "serve" | "build",
@@ -202,17 +273,8 @@ async function resolveProjectConfig(
   if (!fs.existsSync(file)) {
     throw new ProjectError("vite.config", "Missing vite.config.ts");
   }
-  const env = { command, mode: command === "serve" ? "development" : "production" };
-  process.env["NODE_ENV"] = env.mode;
-  const loaded = await loadConfigFromFile(env, file, root, "warn");
-  if (!loaded) {
-    throw new ProjectError("vite.config", `Unable to load ${file}`, "edit vite.config.ts");
-  }
-  const resolved = await resolveConfig(
-    { ...loaded.config, root, configFile: false },
-    command,
-    env.mode,
-  );
+  const snapshot = await snapshotViteConfig(root, file, command);
+  const resolved = snapshot.config;
   const plugins = resolved.plugins.filter(
     (plugin): plugin is DaraPlugin => plugin.name === "dara:app",
   );
@@ -234,12 +296,7 @@ async function resolveProjectConfig(
       "edit vite.config.ts",
     );
   }
-  return {
-    userConfig: loaded.config,
-    config: resolved,
-    api: plugin.api,
-    configInputs: [file, ...loaded.dependencies],
-  };
+  return { ...snapshot, api: plugin.api };
 }
 
 async function checkLibraryOutput(project: Project) {
@@ -249,23 +306,10 @@ async function checkLibraryOutput(project: Project) {
     return;
   }
   const nodeEnv = process.env["NODE_ENV"];
-  let loaded;
   let library;
   try {
     process.env["NODE_ENV"] = "production";
-    loaded = await loadConfigFromFile({ command: "build", mode: "production" }, file, root, "warn");
-    if (!loaded) {
-      throw new ProjectError("workspace.library", `Cannot load ${file}`, "edit vite.lib.config.ts");
-    }
-    library = await resolveConfig(
-      {
-        ...loaded.config,
-        root: path.resolve(root, loaded.config.root ?? "."),
-        configFile: false,
-      },
-      "build",
-      "production",
-    );
+    library = await snapshotViteConfig(root, file, "build");
   } finally {
     if (nodeEnv === undefined) {
       delete process.env["NODE_ENV"];
@@ -273,7 +317,7 @@ async function checkLibraryOutput(project: Project) {
       process.env["NODE_ENV"] = nodeEnv;
     }
   }
-  const libraryOutput = path.resolve(library.root, library.build.outDir);
+  const libraryOutput = path.resolve(library.config.root, library.config.build.outDir);
   const appOutput = path.resolve(root, manifest.outDir);
   if (inside(libraryOutput, appOutput) || inside(appOutput, libraryOutput)) {
     throw new ProjectError(
@@ -282,9 +326,19 @@ async function checkLibraryOutput(project: Project) {
       "choose separate app and library output directories",
     );
   }
-  project.inputs.add(file);
-  for (const dependency of loaded.dependencies) {
+  project.initialSnapshots.push(library.declaredSnapshot);
+  for (const dependency of library.configInputs) {
     project.inputs.add(dependency);
+  }
+  for (const [input, hash] of library.configHashes) {
+    if (project.initialHashes.has(input) && project.initialHashes.get(input) !== hash) {
+      throw new ProjectError(
+        "build.changed",
+        `${input} changed during configuration loading`,
+        "retry the command",
+      );
+    }
+    project.initialHashes.set(input, hash);
   }
 }
 
@@ -353,7 +407,6 @@ export async function loadProject(
     manifest,
     packageJson,
     typescript,
-    initialHashes: typescript.hashes,
     ...chosen,
     inputs: new Set([
       ...dependencyInputs,
@@ -366,8 +419,18 @@ export async function loadProject(
     state: "waiting",
     base: "/static/",
     workspacePackages: graph.packages,
+    initialHashes: new Map([
+      ...typescript.hashes,
+      ...configs.flatMap((config) => [...config.configHashes]),
+    ]),
+    initialSnapshots: configs.map((config) => ({
+      ...config.declaredSnapshot,
+      // Each validation uses its own NODE_ENV; only the active command's environment is consumed.
+      environment: config === chosen ? config.declaredSnapshot.environment : {},
+    })),
   };
   await checkLibraryOutput(project);
+  project.configInputs = [...project.initialHashes.keys()];
   return project;
 }
 

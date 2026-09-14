@@ -9,9 +9,9 @@ import { randomUUID } from "node:crypto";
 import { createServer as createHttpServer } from "node:http";
 import { watch } from "chokidar";
 import { createServer } from "vite";
-import { collectAssets } from "./assets.js";
+import { assetRoots, collectAssets } from "./assets.js";
 import { resolvedEntry, diagnostic as projectDiagnostic } from "./contract.js";
-import { atomicWrite, readJson } from "./files.js";
+import { atomicWrite, inside, readJson } from "./files.js";
 import { htmlTemplate } from "./index.js";
 import { loadProject, publishStatus, resolveProjectSources } from "./project.js";
 import { startTypecheck } from "./typecheck.js";
@@ -76,6 +76,7 @@ export async function serveProject(
       const next = await loadProject(root, readJson(manifestPath), "serve");
       await resolveProjectSources(next);
       next.base = `${baseUrl.replace(/\/$/, "")}/static/`;
+      watcher.add(assetRoots(next.manifest));
       next.assets = collectAssets(next.manifest);
       next.state = "ready";
       for (const file of next.configInputs) {
@@ -191,7 +192,12 @@ export async function serveProject(
     }
     if (configFiles.has(file)) {
       revision = revision.then(() => update(true));
-    } else if (file === manifestPath || !server || project?.state !== "ready") {
+    } else if (
+      file === manifestPath ||
+      !server ||
+      project?.state !== "ready" ||
+      assetRoots(project.manifest).some((assetRoot) => inside(assetRoot, file))
+    ) {
       revision = revision.then(() => update());
     }
   });
@@ -203,8 +209,10 @@ export async function serveProject(
       stopped = true;
       process.off("SIGINT", stop);
       process.off("SIGTERM", stop);
-      await watcher.close();
+      // A refresh already awaiting configuration can still add watched paths.
+      // Drain it before closing the watcher so those additions cannot reopen it.
       await revision;
+      await watcher.close();
       await closeRuntime();
       const status = path.join(root, "node_modules/.dara/dev-server.json");
       if (
