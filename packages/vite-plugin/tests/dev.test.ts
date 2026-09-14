@@ -11,7 +11,7 @@ import { errorMessage, ProjectError } from "../dist/contract.js";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { version } from "../dist/contract.js";
-import { initialize, loadProject } from "../dist/project.js";
+import { initialize, loadProject, resolveProjectSources } from "../dist/project.js";
 
 const pluginRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -234,6 +234,7 @@ await test("Vite discovers nested dependencies for arbitrary registered package 
     JSON.stringify({ name: "test-app", type: "module", dependencies }),
   );
   const project = await loadProject(root, { ...manifest, components });
+  await resolveProjectSources(project);
   project.state = "ready";
   const server = await createServer({
     ...project.userConfig,
