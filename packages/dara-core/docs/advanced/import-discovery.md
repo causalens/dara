@@ -18,7 +18,7 @@ Fortunately, this is not necessary in the vast majority of cases, as Dara has an
 
 ## How it works
 
-When running a Dara app (e.g. via `dara start` CLI), all globals available in the root module (the module containing `ConfigurationBuilder`) are scanned. Any components and actions found are collected and automatically registered in your application.
+When running a Dara app (e.g. via `dara dev` CLI), all globals available in the root module (the module containing `ConfigurationBuilder`) are scanned. Any components and actions found are collected and automatically registered in your application.
 
 In addition, the source module of any global is inspected - that means we can recurse into that module to discover other components required if:
 
@@ -76,16 +76,20 @@ As a rule of thumb, if you are developing a reusable Dara package you should mar
 
 2. Local JS components
 
-Local JS components (or actions) are not handled by the import discovery algorithm. They have to be explicitly registered with:
+Local components and actions participate in the same discovery process as package implementations. Declare their module directly:
 
 ```python
-class LocalComponent(ComponentInstance): ...
+from typing import ClassVar
 
 
-config.add_component(LocalComponent, local=True)
+class LocalComponent(ComponentInstance):
+    js_source: ClassVar[str] = './js/local-component.tsx'
+
+
+config.add_component(LocalComponent)
 ```
 
-The local flag marks the component as a local one, meaning it does not need to define the `js_module` field - this is normally required to defined the `npm` JavaScript package containing the component implementation. This is because the local module is defined via the `dara.config.json` file. This is described in detail in the [custom JS page](./custom-js.mdx).
+Explicit registration is useful for dynamically imported classes. The JavaScript module must default-export its implementation. See the [custom JS guide](./custom-js.mdx).
 
 3. Importing component *instances*
 

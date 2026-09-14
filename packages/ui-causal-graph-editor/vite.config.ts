@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => ({
             entry: resolve(__dirname, 'src/index.tsx'),
             name: 'UiCausalGraphEditor',
             fileName: 'index',
+            formats: ['es'],
         },
         rolldownOptions: {
             output: {

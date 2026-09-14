@@ -92,7 +92,7 @@ Your `main.py` file is where you want to set up your configuration with the `dar
 Try running your app with the following command within the outermost `my_first_app` directory:
 
 ```sh
-uv run dara start
+uv run dara dev
 ```
 
 Your app will be a blank page with the text `Hello World!` on it.

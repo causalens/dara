@@ -5,15 +5,11 @@ title: Changelog
 ## NEXT
 
 - Breaking: replaced the legacy frontend pipeline with an app-root Vite pipeline. `dara dev` prepares and supervises the frontend behind the Python server, `dara build` produces a frozen production build and `dara start` serves it without a JavaScript toolchain. Node and pnpm are prerequisites for development and builds.
-- Breaking: components and actions declare their implementation with `js_source`, an ES module specifier, replacing `js_module`, `js_component` and `local=True` registration.
-- Breaking: removed auth component `js_name`; authentication screens are identified by their `js_source`.
-- Added a Dara 2.0 migration guide and the `dara-2-migration` agent skill. `dara lock` and `dara dev` convert supported `dara.config.json` settings into `package.json` automatically; source changes follow the skill.
-- Several apps can share one pnpm workspace and a workspace library can publish compiled exports; preparation reconciles the shared Dara catalog across apps and reports conflicting Python environments. `dara build --no-deps-build` skips rebuilding workspace dependencies.
-- Static assets registered with `add_static_folder` update live during development and report path collisions. `dara start` refuses a stale build whose sources, configuration or workspace inputs changed; see the new static assets guide.
-- Removed the obsolete `DownloadContentImpl` component; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
+- Breaking: components and actions declare their implementation with `js_source`, an ES module specifier. This replaces `js_module`, `js_component`, `local=True` registration and auth `js_name`.
+- Breaking: removed the UMD bundles, `dara setup-custom-js`, `dara.config.json` and the legacy `dara start` frontend flags. Removed settings and commands report their replacement.
+- Added a Dara 2.0 migration guide and the `dara-2-migration` agent skill, which converts supported `dara.config.json` settings automatically and drives the remaining source changes.
 - Added `ConfigurationBuilder.add_components(module)` to register every public component class in a module.
 - Fixed bootstrap JSON strings closing their HTML script element.
-- Fixed registering actions whose names collide with object prototype properties such as `__proto__`.
 
 ## 1.29.9
 

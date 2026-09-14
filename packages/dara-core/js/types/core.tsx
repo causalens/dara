@@ -121,12 +121,9 @@ export interface RouterPath extends Path {
     params: Record<string, any>;
 }
 
-type BuildMode = 'AUTO_JS' | 'PRODUCTION';
-
 export interface DaraData {
     auth_components: AuthComponents;
     actions: Record<string, ActionDef>;
-    build_mode: BuildMode;
     build_dev: boolean;
     components: Record<string, JsComponent>;
     application_name: string;

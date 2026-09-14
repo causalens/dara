@@ -29,6 +29,12 @@ Replace generated library script tags and script-order settings with module impo
 
 Vite configuration uses `defineConfig` and the plugin from `@darajs/vite-plugin`. Preserve ordinary plugins and aliases. Dara supplies the application entry, HTML and output publication. If a custom plugin reads extra files or environment variables, declare them through the Dara plugin's `inputs`, `directories` and `environment` options so freshness checks include them.
 
+## Removed internals
+
+`DownloadContentImpl` no longer exists. The deprecated `DownloadContent` wrapper still works and now calls `ctx.download_file()`; replace any direct use of the impl class with that call.
+
+Actions whose names collide with object prototype properties, such as `__proto__`, now register correctly. No migration is needed, but an application that worked around the old collision can drop the workaround.
+
 ## Authentication UI
 
 Inspect custom `AuthComponent` dictionaries as well as ordinary component classes. Replace their legacy JS selection with `js_source`, retaining `py_module` and the auth configuration's other fields. Give the login or logout UI a default-export source. Verify both authentication transitions in the application; rendering the ordinary page alone does not cover this branch.
