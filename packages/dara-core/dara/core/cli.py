@@ -158,6 +158,8 @@ def dev(
     reference, serving = _serving('dev', **options)
     os.environ['DARA_LIVE_RELOAD'] = 'FALSE' if no_reload or frontend_only else 'TRUE'
     os.environ['DARA_ENFORCE_SSO'] = 'FALSE'
+    # The served app reports how to start the missing half of a split session.
+    os.environ['DARA_BACKEND_ONLY'] = 'TRUE' if backend_only else 'FALSE'
     if not backend_only:
         check_toolchain()
     supervise(
