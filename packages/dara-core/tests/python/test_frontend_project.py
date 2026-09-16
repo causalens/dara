@@ -105,6 +105,15 @@ def test_auth_routes_use_source_identity_and_share_implementations(tmp_path, mon
     assert manifest.python_packages['@custom/auth'] == 'custom_auth'
 
 
+def test_uninstalled_declaring_package_is_a_diagnostic(monkeypatch):
+    from importlib.metadata import PackageNotFoundError
+
+    monkeypatch.setattr(project, 'version', lambda name: (_ for _ in ()).throw(PackageNotFoundError(name)))
+    with pytest.raises(ProjectError, match='not an installed Python distribution') as error:
+        project.npm_version('mui_bridge')
+    assert error.value.diagnostic.code == 'dependency.mapping'
+
+
 def test_registered_concrete_class_needs_a_source():
     class Missing(ComponentInstance):
         pass

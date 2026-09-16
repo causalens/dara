@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Breaking: the package no longer ships a UMD bundle; only ESM output is published.
 - Aligned the `@types/react` dependency range with `@darajs/core`.
 
 ## 1.29.3

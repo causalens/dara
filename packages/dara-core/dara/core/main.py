@@ -275,6 +275,9 @@ def _start_application(config: Configuration):
                 yield
             finally:
                 # SHUTDOWN
+                proxy = getattr(app.state, 'frontend_proxy', None)
+                if proxy is not None:
+                    await proxy.aclose()
                 with observe_internal_operation('application', 'shutdown'):
                     # Run user-defined cleanup functions in reverse order (LIFO)
                     eng_logger.debug(f'Running {len(cleanup_functions)} cleanup functions')
@@ -473,7 +476,9 @@ def _start_application(config: Configuration):
     # Serve statics, only if we have any pages defined
     if len(config.router.children) > 0:
         if development:
-            app.mount('/static', FrontendProxy(root, os.environ.get('DARA_BASE_URL', '')), name='static')
+            frontend_proxy = FrontendProxy(root, os.environ.get('DARA_BASE_URL', ''))
+            app.state.frontend_proxy = frontend_proxy
+            app.mount('/static', frontend_proxy, name='static')
         else:
             app.mount('/static', ArtifactFiles(directory=manifest.out_dir), name='static')
 
@@ -527,7 +532,6 @@ def _start_application(config: Configuration):
             # For backwards compatibility
             'powered_by_causalens': config.powered_by_causalens,
             'router': config.router,
-            'build_mode': 'PRODUCTION',
             'build_dev': development,
         }
         # HTML parsers recognize closing script tags even inside JSON strings. Escape

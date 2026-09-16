@@ -87,7 +87,6 @@ interface DaraGlobals {
 }
 
 export const daraData: DaraData = {
-    build_mode: 'PRODUCTION',
     build_dev: false,
     auth_components: {
         login: {
@@ -166,7 +165,6 @@ export const Wrapper = ({ children, client, withRouter = true, withTaskCtx = tru
     return (
         <ConfigContextProvider
             initialConfig={{
-                build_mode: 'PRODUCTION',
                 build_dev: false,
                 auth_components: {
                     login: {

@@ -6,6 +6,7 @@ import os
 from contextlib import suppress
 from functools import lru_cache
 from pathlib import Path
+from string import Template
 from urllib.parse import quote, unquote_to_bytes, urlparse
 
 import anyio
@@ -65,6 +66,13 @@ def frontend_status(root: Path) -> dict:
 
 # Bounds idle upstream operations while allowing Vite's initial compilation to take time.
 _PROXY_TIMEOUT = httpx.Timeout(connect=10, read=120, write=60, pool=10)
+# A dev page load is hundreds of unbundled module requests. Keep the upstream
+# connections alive across them; a per-request pool costs a handshake each time.
+# Browsers cap HTTP/1.1 at roughly six connections per origin, so the proxy never
+# sees deep concurrency. Keep the pool small regardless: httpcore re-sweeps every
+# queued request against every connection each time one is added or removed, so a
+# large keep-alive pool turns a burst into quadratic bookkeeping.
+_PROXY_LIMITS = httpx.Limits(max_connections=100, max_keepalive_connections=10, keepalive_expiry=60)
 _WEBSOCKET_OPEN_TIMEOUT = 10
 _WEBSOCKET_CLOSE_TIMEOUT = 2
 
@@ -128,6 +136,22 @@ class FrontendProxy:
         """Bind forwarding to this app's supervised frontend and public static prefix."""
         self.root = root
         self.prefix = base_url.rstrip('/') + '/static/'
+        self._client: httpx.AsyncClient | None = None
+
+    def _pool(self) -> httpx.AsyncClient:
+        """Reuse one keep-alive pool for every proxied request.
+
+        Created on first use so the client binds to the running event loop.
+        """
+        if self._client is None:
+            self._client = httpx.AsyncClient(trust_env=False, timeout=_PROXY_TIMEOUT, limits=_PROXY_LIMITS)
+        return self._client
+
+    async def aclose(self) -> None:
+        """Release the upstream pool when the application shuts down."""
+        client, self._client = self._client, None
+        if client is not None:
+            await client.aclose()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Stream frontend traffic and release both connections when either side disconnects."""
@@ -233,7 +257,7 @@ class FrontendProxy:
             return message
 
         request = Request(scope, receive_body)
-        client = httpx.AsyncClient(trust_env=False, timeout=_PROXY_TIMEOUT)
+        client = self._pool()
         response: httpx.Response | None = None
         stream_error: httpx.HTTPError | None = None
         try:
@@ -281,14 +305,147 @@ class FrontendProxy:
                 finally:
                     group.cancel_scope.cancel()
         finally:
+            # Closing the response returns its connection to the shared pool.
             with anyio.move_on_after(5, shield=True):
-                try:
-                    if response is not None:
-                        await response.aclose()
-                finally:
-                    await client.aclose()
+                if response is not None:
+                    await response.aclose()
         if stream_error is not None:
             raise stream_error
+
+
+# Served while the frontend is unavailable, so it cannot reference anything under
+# /static: no stylesheet, no web font, no image. Colours mirror the Dara light and
+# dark themes; the layout mirrors the authentication screens.
+_DEVELOPMENT_PAGE = Template("""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>$title · Dara</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --background: #F8F9FF;
+    --text: #1E244D;
+    --muted: rgba(30, 36, 77, 0.65);
+    --surface: rgba(255, 255, 255, 0.72);
+    --border: #DFE2EB;
+    --accent: #3796F6;
+    --error: #DA6087;
+    --glow-a: rgba(248, 249, 255, 0.1);
+    --glow-b: rgba(196, 223, 252, 0.2);
+    --glow-c: rgba(218, 96, 135, 0.2);
+    --glow-d: rgba(196, 223, 252, 0.8);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #111314;
+      --text: #EDEEFA;
+      --muted: rgba(237, 238, 250, 0.65);
+      --surface: rgba(255, 255, 255, 0.06);
+      --border: #43474E;
+      --accent: #2485E8;
+      --error: #CA456F;
+      --glow-a: rgba(17, 19, 20, 0.1);
+      --glow-b: rgba(32, 67, 104, 0.35);
+      --glow-c: rgba(202, 69, 111, 0.25);
+      --glow-d: rgba(32, 67, 104, 0.8);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Commands contain `--flags`; ligatures would render those as a single dash. */
+    font-variant-ligatures: none;
+    color: var(--text);
+    background-color: var(--background);
+    background-image:
+      radial-gradient(circle closest-corner at 50% 40%, var(--glow-a) 0%, var(--glow-b) 70%),
+      radial-gradient(circle closest-corner at 20% 150%, var(--glow-c) 0%, var(--glow-d) 230%);
+  }
+  main {
+    width: min(34rem, 100%);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.08);
+  }
+  .status { display: flex; align-items: center; gap: 0.625rem; }
+  .dot {
+    width: 0.5rem; height: 0.5rem; border-radius: 50%;
+    background: var(--accent); flex: none;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .dot:nth-of-type(2) { animation-delay: 0.2s; }
+  .dot:nth-of-type(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; opacity: 0.6; } }
+  /* A blocked project is not making progress, so the indicator should not imply it is. */
+  .blocked .dot { background: var(--error); animation: none; opacity: 1; }
+  /* Nothing is preparing the frontend either, so the dots should sit still. */
+  .idle .dot { animation: none; opacity: 0.45; }
+  .blocked pre { border-color: var(--error); }
+  h1 {
+    margin: 0.875rem 0 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  p { margin: 0.5rem 0 0; line-height: 1.5; color: var(--muted); }
+  pre {
+    margin: 1rem 0 0;
+    padding: 0.75rem 0.875rem;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background: rgba(127, 127, 127, 0.08);
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    color: var(--text);
+  }
+  footer { margin: 1rem 0 0; font-size: 0.75rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="$state" role="status" aria-live="polite">
+  <div class="status" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <h1>$title</h1>
+  <p>$message</p>
+  $fix
+  <footer>$footer</footer>
+</main>
+<script>
+  setInterval(async () => {
+    try {
+      const response = await fetch($status_url);
+      if (response.ok && (await response.json()).state === "ready") location.reload();
+    } catch {}
+  }, 1000);
+</script>
+</body>
+</html>""")
+
+
+def _frontend_supervised(root: Path) -> bool:
+    """Report whether a live `dara dev` supervisor owns this project's frontend.
+
+    `dara dev --backend-only` never claims one, so nothing is preparing the frontend
+    and the page should say so rather than implying work is under way.
+    """
+    try:
+        owner = read_json(root / 'node_modules/.dara/supervisor.json')
+        os.kill(owner['pid'], 0)
+    except (OSError, KeyError, TypeError, ValueError, ProjectError):
+        return False
+    return True
 
 
 def render_frontend(request: Request, root: Path, output: Path, context: dict, development: bool):
@@ -297,11 +454,46 @@ def render_frontend(request: Request, root: Path, output: Path, context: dict, d
         state = frontend_status(root)
         if state.get('state') != 'ready':
             diagnostic = state.get('diagnostic', {})
-            message = html.escape(diagnostic.get('message', 'Preparing the frontend project…'))
-            fix = html.escape(diagnostic.get('fix', ''))
-            status_url = json.dumps(context['base_url'] + '/__dara/status').replace('<', '\\u003c')
+            blocked = state.get('state') == 'blocked'
+            supervised = blocked or _frontend_supervised(root)
+            if blocked:
+                title = 'Frontend blocked'
+                message = diagnostic.get('message') or 'The frontend project cannot be prepared.'
+                fix = diagnostic.get('fix') or ''
+                footer = 'This page reloads by itself once the problem is fixed.'
+            elif supervised:
+                title = 'Waiting for the frontend'
+                message = diagnostic.get('message') or 'Preparing the frontend project…'
+                fix = diagnostic.get('fix') or ''
+                footer = 'This page reloads by itself once the frontend is ready.'
+            elif os.environ.get('DARA_BACKEND_ONLY') == 'TRUE':
+                title = 'Backend-only mode'
+                message = (
+                    'This server started with --backend-only, so nothing is preparing the '
+                    'frontend. Start it in another terminal:'
+                )
+                fix = 'dara dev --frontend-only'
+                footer = 'This page reloads by itself once the frontend starts.'
+            else:
+                # Development posture is the default for anything that is not `dara start`,
+                # so this is what a server launched outside the Dara CLI looks like.
+                title = 'No frontend is running'
+                message = (
+                    'This server is in development mode, but nothing is preparing the '
+                    'frontend. That usually means it was started directly rather than '
+                    'through the Dara CLI. Run one of these from the application root:'
+                )
+                fix = 'dara dev    # develop, building and reloading the frontend\ndara start  # serve an existing production build'
+                footer = 'This page reloads by itself once a frontend starts.'
             return HTMLResponse(
-                f'<!doctype html><title>Dara development</title><h1>Frontend waiting</h1><p>{message}</p><pre>{fix}</pre><script>setInterval(async()=>{{try{{const r=await fetch({status_url});if(r.ok&&(await r.json()).state==="ready")location.reload()}}catch{{}}}},1000)</script>',
+                _DEVELOPMENT_PAGE.substitute(
+                    state='blocked' if blocked else 'waiting' if supervised else 'idle',
+                    title=title,
+                    footer=footer,
+                    message=html.escape(message),
+                    fix=f'<pre>{html.escape(fix)}</pre>' if fix else '',
+                    status_url=json.dumps(context['base_url'] + '/__dara/status').replace('<', '\\u003c'),
+                ),
                 status_code=503,
             )
         directory = root / 'node_modules/.dara'

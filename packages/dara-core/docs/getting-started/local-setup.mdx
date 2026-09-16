@@ -13,8 +13,8 @@ This page will walk you through the installation of Dara framework and the creat
 
 There are two prerequisites to being able to use the Dara framework:
 
-- Python v3.10+
-- NodeJS v20.19+ (Don't worry - you don't need to understand any JS, this is used to build the application in production mode)
+- Python 3.10–3.12
+- Node.js >=22.12.0 and pnpm 12 for development and builds. Generated apps include optional `mise.toml` pins; run `mise install` to use them. Deployment with `dara start` needs only Python and compiled output.
 
 You can install both of these via the Homebrew package manager on MacOS or follow the instructions on their
 websites: [Python](https://www.Python.org/about/gettingstarted/) [node](https://nodejs.org/en/).
@@ -230,7 +230,7 @@ Once you've got your project setup, you will want to run the application so you 
 To start the app:
 
 ```sh
-uv run dara start --reload
+uv run dara dev
 ```
 
 </TabItem>
@@ -245,7 +245,7 @@ source .venv/bin/activate
 Then start the app:
 
 ```sh
-dara start --reload
+dara dev
 ```
 
 :::note
@@ -277,11 +277,11 @@ instead of the default one.
     - pyproject.toml
 
 # Will watch for changes in these directories: ['(...)/decision-app/decision_app']
-dara start --reload
+dara dev
 # Will watch for changes in these directories: ['(...)/decision-app/decision_app/pages']
-dara start --reload-dir decision_app/pages
+dara dev --reload-dir decision_app/pages
 # Will watch for changes in these directories: ['(...)/decision-app/decision_app/utils', '(...)/decision-app/decision_app/pages']
-dara start --reload-dir decision_app/pages --reload-dir decision_app/utils
+dara dev --reload-dir decision_app/pages --reload-dir decision_app/utils
 ```
 
 :::
