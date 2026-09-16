@@ -475,9 +475,15 @@ def render_frontend(request: Request, root: Path, output: Path, context: dict, d
                 fix = 'dara dev --frontend-only'
                 footer = 'This page reloads by itself once the frontend starts.'
             else:
+                # Development posture is the default for anything that is not `dara start`,
+                # so this is what a server launched outside the Dara CLI looks like.
                 title = 'No frontend is running'
-                message = 'Nothing is preparing the frontend for this project. Start one with:'
-                fix = 'dara dev'
+                message = (
+                    'This server is in development mode, but nothing is preparing the '
+                    'frontend. That usually means it was started directly rather than '
+                    'through the Dara CLI. Run one of these from the application root:'
+                )
+                fix = 'dara dev    # develop, building and reloading the frontend\ndara start  # serve an existing production build'
                 footer = 'This page reloads by itself once a frontend starts.'
             return HTMLResponse(
                 _DEVELOPMENT_PAGE.substitute(
