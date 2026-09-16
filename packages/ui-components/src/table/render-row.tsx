@@ -205,7 +205,9 @@ const RenderRow = React.memo(
                 void throttledClickRow(row.original);
             }
         };
-        const { style: rowStyle, ...restRow } = row.getRowProps({ style: renderRowStyle });
+        // react-table returns `key` inside these prop bags. Spreading it into JSX is a
+        // React error, so it is pulled out and the explicit key below is used instead.
+        const { style: rowStyle, key: _rowKey, ...restRow } = row.getRowProps({ style: renderRowStyle });
         let cols: string[];
         if (!rowDataIdColumn) {
             cols = [];
@@ -232,7 +234,7 @@ const RenderRow = React.memo(
                 }}
             >
                 {row.cells.map((cell: any, colIdx: number) => {
-                    const cellProps = cell.getCellProps();
+                    const { key: _cellKey, ...cellProps } = cell.getCellProps();
                     return (
                         <Cell
                             key={`cell-${index}-${colIdx}`}
