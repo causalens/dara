@@ -65,6 +65,13 @@ def frontend_status(root: Path) -> dict:
 
 # Bounds idle upstream operations while allowing Vite's initial compilation to take time.
 _PROXY_TIMEOUT = httpx.Timeout(connect=10, read=120, write=60, pool=10)
+# A dev page load is hundreds of unbundled module requests. Keep the upstream
+# connections alive across them; a per-request pool costs a handshake each time.
+# Browsers cap HTTP/1.1 at roughly six connections per origin, so the proxy never
+# sees deep concurrency. Keep the pool small regardless: httpcore re-sweeps every
+# queued request against every connection each time one is added or removed, so a
+# large keep-alive pool turns a burst into quadratic bookkeeping.
+_PROXY_LIMITS = httpx.Limits(max_connections=100, max_keepalive_connections=10, keepalive_expiry=60)
 _WEBSOCKET_OPEN_TIMEOUT = 10
 _WEBSOCKET_CLOSE_TIMEOUT = 2
 
@@ -128,6 +135,22 @@ class FrontendProxy:
         """Bind forwarding to this app's supervised frontend and public static prefix."""
         self.root = root
         self.prefix = base_url.rstrip('/') + '/static/'
+        self._client: httpx.AsyncClient | None = None
+
+    def _pool(self) -> httpx.AsyncClient:
+        """Reuse one keep-alive pool for every proxied request.
+
+        Created on first use so the client binds to the running event loop.
+        """
+        if self._client is None:
+            self._client = httpx.AsyncClient(trust_env=False, timeout=_PROXY_TIMEOUT, limits=_PROXY_LIMITS)
+        return self._client
+
+    async def aclose(self) -> None:
+        """Release the upstream pool when the application shuts down."""
+        client, self._client = self._client, None
+        if client is not None:
+            await client.aclose()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Stream frontend traffic and release both connections when either side disconnects."""
@@ -233,7 +256,7 @@ class FrontendProxy:
             return message
 
         request = Request(scope, receive_body)
-        client = httpx.AsyncClient(trust_env=False, timeout=_PROXY_TIMEOUT)
+        client = self._pool()
         response: httpx.Response | None = None
         stream_error: httpx.HTTPError | None = None
         try:
@@ -281,12 +304,10 @@ class FrontendProxy:
                 finally:
                     group.cancel_scope.cancel()
         finally:
+            # Closing the response returns its connection to the shared pool.
             with anyio.move_on_after(5, shield=True):
-                try:
-                    if response is not None:
-                        await response.aclose()
-                finally:
-                    await client.aclose()
+                if response is not None:
+                    await response.aclose()
         if stream_error is not None:
             raise stream_error
 
