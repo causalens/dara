@@ -2,11 +2,6 @@
   "name": "@darajs/demo-app",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "uv run --locked dara dev",
-    "build": "uv run --locked dara build",
-    "check": "uv run --locked dara check --json"
-  },
   "devDependencies": {
     "@darajs/core": "workspace:*",
     "@darajs/components": "workspace:*",
