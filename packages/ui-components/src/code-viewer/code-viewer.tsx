@@ -151,9 +151,11 @@ function CodeViewer(props: CodeViewerProps): JSX.Element {
                         }}
                     >
                         {tokens.map((line, i) => (
-                            <div key={i} {...getLineProps({ key: i, line })}>
+                            // Passing `key` through these helpers returns it inside the prop
+                            // bag, and spreading a `key` into JSX is a React error.
+                            <div key={i} {...getLineProps({ line })}>
                                 {line.map((token, key) => (
-                                    <code key={key} {...getTokenProps({ key, token })} />
+                                    <code key={key} {...getTokenProps({ token })} />
                                 ))}
                             </div>
                         ))}
