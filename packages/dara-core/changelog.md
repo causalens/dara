@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed bootstrap JSON strings escaping their HTML script element.
+
 ## 1.29.9
 
 - Fixed stale authentication requests interrupting logout and sending users back through a login/logout loop.
