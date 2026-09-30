@@ -421,6 +421,7 @@ describe('Route Loader', () => {
     });
 
     it('executes on_load actions', async () => {
+        const routeRequests = vi.fn();
         const inputVar: SingleVariable<string> = {
             __typename: 'Variable',
             default: 'test',
@@ -452,6 +453,7 @@ describe('Route Loader', () => {
         server.use(
             // mock the route loader endpoint
             http.post('/api/core/route/:route_id', async (ctx) => {
+                routeRequests();
                 // action payload sent, not checking content exactly here
                 const body = (await ctx.request.json()) as Record<string, any>;
                 expect(body!.action_payloads).toHaveLength(1);
@@ -504,10 +506,12 @@ describe('Route Loader', () => {
         function Root(): JSX.Element {
             const getSnapshot = useRecoilCallback((ctx) => () => ctx.snapshot, []);
             const [varValue] = useVariable(inputVar);
-            const [parsedRoute] = React.useState(() => createRoute(route, getSnapshot, new Map()));
+            // The on_load action rerenders this root; keep its router and loader stable.
+            const [router] = React.useState(() => createBrowserRouter([createRoute(route, getSnapshot, new Map())]));
+            React.useEffect(() => () => router.dispose(), [router]);
             return (
                 <>
-                    <RouterProvider router={createBrowserRouter([parsedRoute])} />
+                    <RouterProvider router={router} />
                     <div data-testid="content">{varValue}</div>
                 </>
             );
@@ -525,6 +529,7 @@ describe('Route Loader', () => {
         );
         // action has run so the input variable should have been updated
         expect(container.getByTestId('content').textContent).toBe('test2');
+        expect(routeRequests).toHaveBeenCalledTimes(1);
     });
 
     it('preloads Derived Variables', async () => {
