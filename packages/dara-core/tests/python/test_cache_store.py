@@ -404,3 +404,126 @@ async def test_cache_store_sizes_are_separate_across_scopes():
         assert store._size == total_size('replacement')
     finally:
         SESSION_ID.reset(token)
+
+
+def assert_lru_links(cache):
+    forward = []
+    node = cache.head
+    previous = None
+    while node is not None:
+        assert node not in forward
+        assert node.prev is previous
+        forward.append(node)
+        previous, node = node, node.next
+    assert previous is cache.tail
+    assert {node.key for node in forward} == set(cache.cache)
+    backward = []
+    node = cache.tail
+    following = None
+    while node is not None:
+        assert node not in backward
+        assert node.next is following
+        backward.append(node)
+        following, node = node, node.prev
+    assert backward == list(reversed(forward))
+
+
+async def test_lru_accounting_after_repeated_head_updates_and_draining():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='lru-links', cache=Cache.Policy.LRU(max_size=3))
+    operations = [
+        ('a', True),
+        ('b', True),
+        ('b', True),
+        ('a', False),
+        ('a', None),
+        ('c', False),
+        ('d', True),
+        ('e', True),
+    ]
+    for key, pin in operations:
+        if pin is None:
+            await store.delete(entry, key)
+        else:
+            await store.set(entry, key, 'value', pin=pin)
+        cache = next(iter(store.registry_stores[entry.to_store_key()].caches.values()))
+        assert_lru_links(cache)
+        assert store._size == len(cache) * total_size('value')
+    assert set(cache.cache) == {'b', 'd', 'e'}
+    for key in ('b', 'd', 'e'):
+        await store.get(entry, key, unpin=True)
+        await store.delete(entry, key)
+        assert_lru_links(cache)
+        assert store._size == len(cache) * total_size('value')
+    assert store._size == 0
+    assert len(cache) == 0
+
+
+async def test_lru_eviction_preserves_pinned_tail_and_middle_links():
+    cache = LRUCache(Cache.Policy.LRU(max_size=3))
+    await cache.set('pinned-tail', 'tail', pin=True)
+    await cache.set('unpinned-middle', 'middle')
+    await cache.set('pinned-head', 'head', pin=True)
+    await cache.get('pinned-head')
+    await cache.set('new', 'new')
+    assert set(cache.cache) == {'pinned-tail', 'pinned-head', 'new'}
+    assert_lru_links(cache)
+    assert cache.size_bytes == sum(total_size(value) for value in ('tail', 'head', 'new'))
+    await cache.get('pinned-tail')
+    assert_lru_links(cache)
+    assert cache.head.key == 'pinned-tail'
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.MostRecent(), Cache.Policy.LRU(max_size=2)])
+async def test_lru_does_not_measure_values_discarded_by_pinned_capacity(policy):
+    class MeasuredValue:
+        measurements = 0
+
+        def __sizeof__(self):
+            self.measurements += 1
+            return 1000
+
+    cache = LRUCache(policy)
+    for index in range(policy.max_size):
+        await cache.set(str(index), 'pinned', pin=True)
+    discarded = MeasuredValue()
+    await cache.set('discarded', discarded)
+    assert discarded.measurements == 0
+    assert await cache.get('discarded') is None
+    assert cache.size_bytes == policy.max_size * total_size('pinned')
+    assert_lru_links(cache)
+    await cache.get('0', unpin=True)
+    await cache.set('retained', discarded)
+    assert discarded.measurements == 1
+    assert await cache.get('retained') is discarded
+    assert_lru_links(cache)
+
+
+@pytest.mark.parametrize('pins', [(False, False), (False, True, False)])
+async def test_ttl_replacement_ignores_old_expiration_records(pins):
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='ttl-replacement', cache=Cache.Policy.TTL(ttl=10))
+    with freeze_time('2023-01-01 12:00:00'):
+        await store.set(entry, 'key', 'old', pin=pins[0])
+    if len(pins) == 3:
+        with freeze_time('2023-01-01 12:00:03'):
+            await store.set(entry, 'key', 'pinned', pin=pins[1])
+    with freeze_time('2023-01-01 12:00:05'):
+        await store.set(entry, 'key', 'fresh', pin=pins[-1])
+    with freeze_time('2023-01-01 12:00:11'):
+        assert await store.get(entry, 'key') == 'fresh'
+        assert store._size == total_size('fresh')
+    with freeze_time('2023-01-01 12:00:15'):
+        assert await store.get(entry, 'key') is None
+        assert store._size == 0
+
+
+async def test_lru_discard_still_evicts_unpinned_entries_from_overflow():
+    cache = LRUCache(Cache.Policy.MostRecent())
+    await cache.set('first', 'first', pin=True)
+    await cache.set('second', 'second', pin=True)
+    await cache.get('first', unpin=True)
+    await cache.set('discarded', 'discarded')
+    assert set(cache.cache) == {'second'}
+    assert cache.size_bytes == total_size('second')
+    assert_lru_links(cache)

@@ -18,6 +18,7 @@ limitations under the License.
 import copy
 from collections.abc import MutableMapping
 from enum import Enum
+from sys import getsizeof
 from typing import Generic, TypeVar
 
 from dara.core.metrics import total_size
@@ -51,7 +52,13 @@ class RegistryType(str, Enum):
 
 class Registry(Generic[T]):
     """
-    A generic registry class that allows for new registries to be quickly added and expose a common interface
+    A generic registry class that allows for new registries to be quickly added and expose a common interface.
+
+    Size metrics include the shallow mapping allocation and insertion-time key/value
+    estimates. Entries are measured independently, so shared objects across entries
+    (or between a key and its value) can be counted more than once. In-place mutations
+    through get/get_all or an aliased mapping are not tracked; set or replace refreshes
+    the relevant estimates. replace measures the installed mapping after any deepcopy.
     """
 
     _registry: MutableMapping[str, T]
@@ -73,7 +80,8 @@ class Registry(Generic[T]):
         if initial_registry is not None:
             self._registry = copy.deepcopy(initial_registry)
 
-        self._size = total_size(self._registry)
+        self._entry_sizes = {key: total_size(key) + total_size(value) for key, value in self._registry.items()}
+        self._entries_size = sum(self._entry_sizes.values())
         self._update_metrics()
 
     def register(self, key: str, value: T):
@@ -81,9 +89,7 @@ class Registry(Generic[T]):
         if not self.allow_duplicates and key in self._registry:
             raise ValueError(f'Invalid uid value: {key}, is already taken')
 
-        self._registry[key] = value
-        self._size = total_size(self._registry)
-        self._update_metrics()
+        self.set(key, value)
 
     def get(self, key: str) -> T:
         """Fetch an entity from the registry, will raise if it's not found"""
@@ -95,8 +101,10 @@ class Registry(Generic[T]):
 
     def set(self, key: str, value: T):
         """Set an entity for the registry, if already present overwrites it"""
+        size = total_size(key) + total_size(value)
         self._registry[key] = value
-        self._size = total_size(self._registry)
+        self._entries_size += size - self._entry_sizes.get(key, 0)
+        self._entry_sizes[key] = size
         self._update_metrics()
 
     def get_all(self) -> MutableMapping[str, T]:
@@ -108,6 +116,7 @@ class Registry(Generic[T]):
         Notify the cache metrics tracker.
         """
         name = self.name.value if isinstance(self.name, RegistryType) else self.name
+        self._size = getsizeof(self._registry) + self._entries_size
         record_registry_cache_metrics(name, self._size, len(self._registry))
 
     def remove(self, key: str):
@@ -115,18 +124,18 @@ class Registry(Generic[T]):
         Remove the key from registry, will raise if it's not found
         """
         self._registry.pop(key)
-        self._size = total_size(self._registry)
+        self._entries_size -= self._entry_sizes.pop(key, 0)
         self._update_metrics()
 
     def replace(self, new_registry: MutableMapping[str, T], deepcopy=True):
         """
         Replace the entire registry with a new one
         """
-        self._size = total_size(new_registry)
-
         if deepcopy:
             self._registry = copy.deepcopy(new_registry)
         else:
             self._registry = new_registry
 
+        self._entry_sizes = {key: total_size(key) + total_size(value) for key, value in self._registry.items()}
+        self._entries_size = sum(self._entry_sizes.values())
         self._update_metrics()

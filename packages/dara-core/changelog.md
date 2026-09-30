@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Fixed LRU list corruption and size accounting, skipped measuring entries discarded by pinned capacity, and prevented stale TTL expiry records from removing replacement values.
+- Changed registry size metrics to insertion-time key/value estimates so unrelated registry updates no longer remeasure large values.
 - Fixed cache metrics repeatedly measuring all cached values during reads and writes by tracking insertion-time sizes and accounting for eviction incrementally.
 - Fixed bootstrap JSON strings escaping their HTML script element.
 

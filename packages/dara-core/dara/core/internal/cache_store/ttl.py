@@ -52,10 +52,12 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
         """
         now = time.time()
         while self.expiration_heap and self.expiration_heap[0][0] <= now:
-            _, key = heapq.heappop(self.expiration_heap)
-            node = self.unpinned_cache.pop(key, None)
-            if node is not None:
-                self.size_bytes -= node.size_bytes
+            expiration_time, key = heapq.heappop(self.expiration_heap)
+            node = self.unpinned_cache.get(key)
+            if node is None or node.expiration_time != expiration_time:
+                continue
+            del self.unpinned_cache[key]
+            self.size_bytes -= node.size_bytes
 
     async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any:
         """
