@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Fixed cache metrics repeatedly measuring all cached values during reads and writes by tracking insertion-time sizes and accounting for eviction incrementally.
 - Fixed bootstrap JSON strings escaping their HTML script element.
 
 ## 1.29.9

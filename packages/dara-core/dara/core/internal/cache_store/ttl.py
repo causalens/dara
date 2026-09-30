@@ -6,6 +6,7 @@ import anyio
 
 from dara.core.base_definitions import TTLCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
+from dara.core.metrics import total_size
 
 
 class Node:
@@ -22,6 +23,7 @@ class Node:
         :param pin: Whether the entry should be preserved even if its TTL has expired.
         """
         self.value = value
+        self.size_bytes = total_size(value)
         self.expiration_time = expiration_time
         self.pin = pin
 
@@ -50,7 +52,9 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
         now = time.time()
         while self.expiration_heap and self.expiration_heap[0][0] <= now:
             _, key = heapq.heappop(self.expiration_heap)
-            self.unpinned_cache.pop(key, None)
+            node = self.unpinned_cache.pop(key, None)
+            if node is not None:
+                self.size_bytes -= node.size_bytes
 
     async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any:
         """
@@ -93,6 +97,8 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
 
             expiration_time = time.time() + self.policy.ttl
             node = Node(value, expiration_time, pin)
+            previous = self.pinned_cache.get(key) or self.unpinned_cache.get(key)
+            self.size_bytes += node.size_bytes - (previous.size_bytes if previous is not None else 0)
             if pin:
                 self.pinned_cache[key] = node
                 self.unpinned_cache.pop(key, None)  # Ensure the key is removed from unpinned cache if it exists
@@ -112,11 +118,13 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
 
             if key in self.unpinned_cache:
                 node = self.unpinned_cache.pop(key)
+                self.size_bytes -= node.size_bytes
                 self.expiration_heap = [(t, k) for t, k in self.expiration_heap if k != key]
                 heapq.heapify(self.expiration_heap)
                 return node.value
             elif key in self.pinned_cache:
                 node = self.pinned_cache.pop(key)
+                self.size_bytes -= node.size_bytes
                 return node.value
 
     async def clear(self):
@@ -127,6 +135,7 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
             self.pinned_cache = {}
             self.unpinned_cache = {}
             self.expiration_heap = []
+            self.size_bytes = 0
 
     def __len__(self) -> int:
         """Return the number of entries currently held by this cache."""

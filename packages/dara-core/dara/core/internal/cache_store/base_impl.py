@@ -9,6 +9,8 @@ PolicyT = TypeVar('PolicyT', bound=BaseCachePolicy)
 class CacheStoreImpl(abc.ABC, Generic[PolicyT]):
     def __init__(self, policy: PolicyT):
         self.policy = policy
+        # Sum of value sizes measured at insertion. In-place mutations are not tracked.
+        self.size_bytes = 0
 
     @abc.abstractmethod
     async def delete(self, key: str) -> Any:

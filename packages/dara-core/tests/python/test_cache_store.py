@@ -271,3 +271,120 @@ async def test_cache_store_pinning():
     assert await store.get(reg_entry, key='test_key') is None
     assert await store.get(reg_entry, key='test_key_2') is None
     assert await store.get(reg_entry, key='test_key_3') == 'test_value_3'
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_store_incremental_sizes(policy, monkeypatch):
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='measurements', cache=policy)
+    measurements = []
+    monkeypatch.setattr(
+        'dara.core.internal.cache_store.cache_store.record_cache_store_metrics',
+        lambda size, count: measurements.append((size, count)),
+    )
+    await store.set(entry, 'first', [1, 2])
+    await store.set(entry, 'second', None)
+    assert measurements[-1] == (total_size([1, 2]), 2)
+    await store.set(entry, 'first', 'replacement')
+    assert measurements[-1] == (total_size('replacement'), 2)
+    assert await store.delete(entry, 'first') == 'replacement'
+    assert measurements[-1] == (0, 1)
+    await store.delete(entry, 'missing')
+    assert measurements[-1] == (0, 1)
+    await store.set(entry, 'remaining', 'remaining-value')
+    scope_store = store.registry_stores[entry.to_store_key()]
+    caches = list(scope_store.caches.values())
+    await store.clear()
+    assert measurements[-1] == (0, 0)
+    assert all(cache.size_bytes == 0 and len(cache) == 0 for cache in caches)
+    await store.set(entry, 'new', 'new-value')
+    assert measurements[-1] == (total_size('new-value'), 1)
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_store_does_not_remeasure_unrelated_values(policy):
+    class MeasuredValue:
+        def __init__(self):
+            self.measurements = 0
+
+        def __sizeof__(self):
+            self.measurements += 1
+            return 1000
+
+    store = CacheStore()
+    large_entry = CachedRegistryEntry(uid='large', cache=policy)
+    status_entry = CachedRegistryEntry(uid='status', cache=Cache.Policy.KeepAll())
+    large = MeasuredValue()
+    await store.set(large_entry, 'large', large)
+    assert large.measurements == 1
+    await store.set(status_entry, 'latest', 'cache-key')
+    await store.set(status_entry, 'result', 'ready')
+    assert await store.get(large_entry, 'large') is large
+    await store.get(status_entry, 'latest')
+    await store.delete(status_entry, 'latest')
+    await store.delete(large_entry, 'large')
+    await store.clear()
+    assert large.measurements == 1
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_store_sizes_use_insertion_estimates_for_mutable_values(policy):
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='mutable', cache=policy)
+    value = [1]
+    await store.set(entry, 'value', value)
+    insertion_size = store._size
+    value.extend(range(100))
+    await store.get(entry, 'value')
+    assert store._size == insertion_size
+    await store.set(entry, 'value', value)
+    assert store._size == total_size(value)
+    await store.delete(entry, 'value')
+    assert store._size == 0
+
+
+async def test_cache_store_sizes_follow_pinning_and_eviction():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='pinned', cache=Cache.Policy.MostRecent())
+    await store.set(entry, 'pinned', 'kept', pin=True)
+    await store.set(entry, 'discarded', 'discarded')
+    assert store._size == total_size('kept')
+    await store.delete(entry, 'pinned')
+    assert store._size == total_size('kept')
+    await store.get(entry, 'pinned', unpin=True)
+    await store.set(entry, 'new', 'new-value')
+    assert store._size == total_size('new-value')
+
+
+async def test_cache_store_ttl_sizes_follow_unpinning_and_missing_reads():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='ttl', cache=Cache.Policy.TTL(ttl=2))
+    with freeze_time('2023-01-01 12:00:00'):
+        await store.set(entry, 'pinned', 'first-value', pin=True)
+        await store.set(entry, 'pinned', 'replacement', pin=False)
+        await store.set(entry, 'kept', 'kept-value', pin=True)
+    with freeze_time('2023-01-01 12:00:03'):
+        with pytest.raises(KeyError):
+            await store.get(entry, 'missing', raise_for_missing=True)
+        assert store._size == total_size('kept-value')
+        await store.get(entry, 'kept', unpin=True)
+        assert await store.get(entry, 'kept') is None
+        assert store._size == 0
+
+
+async def test_cache_store_sizes_are_separate_across_scopes():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='scoped', cache=Cache.Policy.KeepAll(cache_type=Cache.Type.SESSION))
+    token = SESSION_ID.set('first')
+    try:
+        await store.set(entry, 'same-key', 'first-value')
+        SESSION_ID.set('second')
+        await store.set(entry, 'same-key', 'second-value')
+        assert store._size == total_size('first-value') + total_size('second-value')
+        await store.delete(entry, 'same-key')
+        assert store._size == total_size('first-value')
+        SESSION_ID.set('first')
+        await store.set(entry, 'same-key', 'replacement')
+        assert store._size == total_size('replacement')
+    finally:
+        SESSION_ID.reset(token)

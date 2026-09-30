@@ -4,6 +4,7 @@ import anyio
 
 from dara.core.base_definitions import LruCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
+from dara.core.metrics import total_size
 
 
 class Node:
@@ -19,6 +20,7 @@ class Node:
         """
         self.key = key
         self.value = value
+        self.size_bytes = total_size(value)
         self.pin = pin
         self.prev: Node | None = None
         self.next: Node | None = None
@@ -86,6 +88,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
 
             # Delete from the dictionary
             self.cache.pop(key, None)
+            self.size_bytes -= node.size_bytes
             return node.value
 
     async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any | None:
@@ -121,12 +124,16 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         async with self.lock:
             if key in self.cache:
                 node = self.cache[key]
+                size_bytes = total_size(value)
+                self.size_bytes += size_bytes - node.size_bytes
+                node.size_bytes = size_bytes
                 node.value = value
                 node.pin = pin
                 self._move_to_front(node)
             else:
                 node = Node(key, value, pin)
                 self.cache[key] = node
+                self.size_bytes += node.size_bytes
                 if self.head:
                     self.head.prev = node
                 node.next = self.head
@@ -148,6 +155,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
                             self.tail.next = None
                         # Use pop instead of delete just in case
                         self.cache.pop(evict_node.key, None)
+                        self.size_bytes -= evict_node.size_bytes
                     else:
                         # all nodes are pinned, can't evict
                         break
@@ -158,6 +166,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         """
         async with self.lock:
             self.cache = {}
+            self.size_bytes = 0
             self.head = None
             self.tail = None
 
