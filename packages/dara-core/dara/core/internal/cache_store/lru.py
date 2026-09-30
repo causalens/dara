@@ -4,21 +4,24 @@ import anyio
 
 from dara.core.base_definitions import LruCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
+from dara.core.metrics import total_size
 
 
 class Node:
     """A node in a doubly linked list."""
 
-    def __init__(self, key: str, value: Any, pin: bool = False):
+    def __init__(self, key: str, value: Any, size_bytes: int, pin: bool = False):
         """
         Initialize a new node.
 
         :param key: The key associated with this node.
         :param value: The value associated with this node.
+        :param size_bytes: The precomputed approximate size of the value.
         :param pin: If true, the node will not be evicted until read.
         """
         self.key = key
         self.value = value
+        self.size_bytes = size_bytes
         self.pin = pin
         self.prev: Node | None = None
         self.next: Node | None = None
@@ -40,18 +43,28 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         self.tail: Node | None = None  # No sentinel, can be None
         self.lock = anyio.Lock()
 
+    def _detach(self, node: Node) -> None:
+        """Unlink a node, preserving both endpoints and its neighbours."""
+        if node.prev:
+            node.prev.next = node.next
+        else:
+            self.head = node.next
+        if node.next:
+            node.next.prev = node.prev
+        else:
+            self.tail = node.prev
+        node.prev = None
+        node.next = None
+
     def _move_to_front(self, node: Node):
         """
         Move the given node to the front of the list, indicating it was recently accessed.
 
         :param node: The node to move to the front.
         """
-        if node.prev:
-            node.prev.next = node.next
-        if node.next:
-            node.next.prev = node.prev
-        if self.tail == node:
-            self.tail = node.prev
+        if node is self.head:
+            return
+        self._detach(node)
         node.next = self.head
         node.prev = None
         if self.head:
@@ -74,18 +87,12 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
             if node.pin:
                 return None  # Entry is pinned, do not delete
 
-            # Delete from the doubly linked list
-            if node.prev:
-                node.prev.next = node.next
-            if node.next:
-                node.next.prev = node.prev
-            if self.head == node:
-                self.head = node.next
-            if self.tail == node:
-                self.tail = node.prev
+            self._detach(node)
 
             # Delete from the dictionary
-            self.cache.pop(key, None)
+            removed = self.cache.pop(key, None)
+            if removed is not None:
+                self.size_bytes -= removed.size_bytes
             return node.value
 
     async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any | None:
@@ -118,15 +125,29 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         :param value: The value to associate with the key.
         :param pin: If true, the entry will not be evicted until read.
         """
+        # New unpinned entries cannot survive when pinned entries occupy all capacity.
+        # Decide before measuring, but keep the expensive measurement outside the lock.
         async with self.lock:
+            if self._would_discard(key, pin):
+                self._evict_to_capacity()
+                return
+        size_bytes = total_size(value)
+        async with self.lock:
+            # Another writer may have changed capacity while we waited for the lock.
+            if self._would_discard(key, pin):
+                self._evict_to_capacity()
+                return
             if key in self.cache:
                 node = self.cache[key]
+                self._replace_size(size_bytes, node.size_bytes)
+                node.size_bytes = size_bytes
                 node.value = value
                 node.pin = pin
                 self._move_to_front(node)
             else:
-                node = Node(key, value, pin)
+                node = Node(key, value, size_bytes, pin)
                 self.cache[key] = node
+                self._replace_size(size_bytes)
                 if self.head:
                     self.head.prev = node
                 node.next = self.head
@@ -134,23 +155,29 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
                 if not self.tail:
                     self.tail = node
 
-                # Check and perform eviction
-                while len(self.cache) > self.policy.max_size:
-                    evict_node: Node | None = self.tail
+                self._evict_to_capacity()
 
-                    # Skip over pinned nodes
-                    while evict_node and evict_node.pin:
-                        evict_node = evict_node.prev
+    def _evict_to_capacity(self) -> None:
+        """Evict unpinned entries while holding the lock, preserving pinned nodes."""
+        while len(self.cache) > self.policy.max_size:
+            evict_node = self.tail
+            while evict_node and evict_node.pin:
+                evict_node = evict_node.prev
+            if evict_node is None:
+                break
+            self._detach(evict_node)
+            removed = self.cache.pop(evict_node.key, None)
+            if removed is not None:
+                self.size_bytes -= removed.size_bytes
 
-                    if evict_node:
-                        self.tail = evict_node.prev
-                        if self.tail:
-                            self.tail.next = None
-                        # Use pop instead of delete just in case
-                        self.cache.pop(evict_node.key, None)
-                    else:
-                        # all nodes are pinned, can't evict
-                        break
+    def _would_discard(self, key: str, pin: bool) -> bool:
+        """Check immediate eviction for a new entry while holding the lock."""
+        return (
+            key not in self.cache
+            and not pin
+            and len(self.cache) >= self.policy.max_size
+            and sum(node.pin for node in self.cache.values()) >= self.policy.max_size
+        )
 
     async def clear(self):
         """
@@ -158,6 +185,7 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         """
         async with self.lock:
             self.cache = {}
+            self.size_bytes = 0
             self.head = None
             self.tail = None
 

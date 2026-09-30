@@ -4,15 +4,17 @@ import anyio
 
 from dara.core.base_definitions import KeepAllCachePolicy
 from dara.core.internal.cache_store.base_impl import CacheStoreImpl
+from dara.core.metrics import total_size
 
 
 class Entry:
     value: Any
     pin: bool
 
-    def __init__(self, value: Any, pin: bool = False):
+    def __init__(self, value: Any, size_bytes: int, pin: bool = False):
         self.value = value
         self.pin = pin
+        self.size_bytes = size_bytes
 
 
 class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
@@ -40,6 +42,7 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
                 return None
 
             del self.cache[key]
+            self.size_bytes -= entry.size_bytes
             return entry.value
 
     async def get(self, key: str, unpin: bool = False, raise_for_missing: bool = False) -> Any | None:
@@ -72,8 +75,12 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         :param value: The value to associate with the key.
         :param pin: This parameter is ignored in KeepAllCache as entries are never evicted.
         """
+        size_bytes = total_size(value)
         async with self.lock:
-            self.cache[key] = Entry(value, pin)
+            entry = Entry(value, size_bytes, pin)
+            previous = self.cache.get(key)
+            self._replace_size(size_bytes, previous.size_bytes if previous is not None else 0)
+            self.cache[key] = entry
 
     async def clear(self):
         """
@@ -81,6 +88,7 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         """
         async with self.lock:
             self.cache = {}
+            self.size_bytes = 0
 
     def __len__(self) -> int:
         """Return the number of entries currently held by this cache."""

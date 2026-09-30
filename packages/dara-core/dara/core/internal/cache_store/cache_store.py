@@ -13,7 +13,6 @@ from dara.core.internal.cache_store.keep_all import KeepAllCache
 from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.ttl import TTLCache
 from dara.core.internal.utils import CacheScope, get_cache_scope
-from dara.core.metrics import total_size
 from dara.core.telemetry import observe_internal_operation, record_cache_store_metrics
 
 
@@ -117,6 +116,11 @@ class CacheScopeStore(Generic[PolicyT]):
         """Return a point-in-time snapshot of values across every cache scope."""
         return [value for cache in self.caches.values() for value in cache.values()]
 
+    @property
+    def size_bytes(self) -> int:
+        """Return the sum of insertion-time value sizes across every cache scope."""
+        return sum(cache.size_bytes for cache in self.caches.values())
+
 
 class CacheStore:
     """
@@ -125,18 +129,15 @@ class CacheStore:
 
     def __init__(self):
         self.registry_stores: dict[str, CacheScopeStore] = {}
-        # The size is not totally accurate as we only add/subtract values stored, without accounting for keys
-        # or extra memory due to hash collisions, internal cache implementation; its a 'good enough' approximation
-        # of just the values stored
+        # Aggregate insertion-time estimates maintained by CacheStoreImpl; in-place mutations,
+        # keys, and internal cache overhead are not included.
         self._size = 0
 
     def _update_metrics(self):
         """
-        Recompute current values so policy-driven eviction cannot drift the gauges.
+        Aggregate cached counters without traversing stored values.
         """
-        self._size = sum(
-            total_size(value) for registry_store in self.registry_stores.values() for value in registry_store.values()
-        )
+        self._size = sum(registry_store.size_bytes for registry_store in self.registry_stores.values())
         entries = sum(len(registry_store) for registry_store in self.registry_stores.values())
         record_cache_store_metrics(self._size, entries)
 
@@ -182,9 +183,11 @@ class CacheStore:
                 raise KeyError(f'No cache store found for {registry_entry.to_store_key()}')
             return None
 
-        value = await registry_store.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
-        self._update_metrics()
-        return value
+        try:
+            return await registry_store.get(key, unpin=unpin, raise_for_missing=raise_for_missing)
+        finally:
+            # TTL cleanup can evict entries even when the requested key is missing.
+            self._update_metrics()
 
     async def get_or_wait(self, registry_entry: CachedRegistryEntry, key: str):
         """
@@ -248,5 +251,4 @@ class CacheStore:
         for registry_store in self.registry_stores.values():
             await registry_store.clear()
         self.registry_stores = {}
-        self._size = 0
         self._update_metrics()

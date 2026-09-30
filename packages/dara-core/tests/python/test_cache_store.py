@@ -3,7 +3,7 @@ from freezegun import freeze_time
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
 from dara.core.base_definitions import Cache, CachedRegistryEntry
-from dara.core.internal.cache_store.cache_store import CacheStore
+from dara.core.internal.cache_store.cache_store import CacheStore, cache_impl_for_policy
 from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.ttl import TTLCache
 from dara.core.metrics import total_size
@@ -271,3 +271,259 @@ async def test_cache_store_pinning():
     assert await store.get(reg_entry, key='test_key') is None
     assert await store.get(reg_entry, key='test_key_2') is None
     assert await store.get(reg_entry, key='test_key_3') == 'test_value_3'
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_size_measurement_runs_outside_lock(policy, monkeypatch):
+    cache = cache_impl_for_policy(policy)
+    lock_states = []
+
+    def measure(value):
+        lock_states.append(cache.lock.locked())
+        return total_size(value)
+
+    monkeypatch.setattr(f'{type(cache).__module__}.total_size', measure)
+    await cache.set('key', 'first')
+    await cache.set('key', 'replacement')
+    assert lock_states == [False, False]
+    assert cache.size_bytes == total_size('replacement')
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_store_incremental_sizes(policy, monkeypatch):
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='measurements', cache=policy)
+    measurements = []
+    monkeypatch.setattr(
+        'dara.core.internal.cache_store.cache_store.record_cache_store_metrics',
+        lambda size, count: measurements.append((size, count)),
+    )
+    await store.set(entry, 'first', [1, 2])
+    await store.set(entry, 'second', None)
+    assert measurements[-1] == (total_size([1, 2]), 2)
+    await store.set(entry, 'first', 'replacement')
+    assert measurements[-1] == (total_size('replacement'), 2)
+    assert await store.delete(entry, 'first') == 'replacement'
+    assert measurements[-1] == (0, 1)
+    await store.delete(entry, 'missing')
+    assert measurements[-1] == (0, 1)
+    await store.set(entry, 'remaining', 'remaining-value')
+    scope_store = store.registry_stores[entry.to_store_key()]
+    caches = list(scope_store.caches.values())
+    await store.clear()
+    assert measurements[-1] == (0, 0)
+    assert all(cache.size_bytes == 0 and len(cache) == 0 for cache in caches)
+    await store.set(entry, 'new', 'new-value')
+    assert measurements[-1] == (total_size('new-value'), 1)
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_store_does_not_remeasure_unrelated_values(policy):
+    class MeasuredValue:
+        def __init__(self):
+            self.measurements = 0
+
+        def __sizeof__(self):
+            self.measurements += 1
+            return 1000
+
+    store = CacheStore()
+    large_entry = CachedRegistryEntry(uid='large', cache=policy)
+    status_entry = CachedRegistryEntry(uid='status', cache=Cache.Policy.KeepAll())
+    large = MeasuredValue()
+    await store.set(large_entry, 'large', large)
+    assert large.measurements == 1
+    await store.set(status_entry, 'latest', 'cache-key')
+    await store.set(status_entry, 'result', 'ready')
+    assert await store.get(large_entry, 'large') is large
+    await store.get(status_entry, 'latest')
+    await store.delete(status_entry, 'latest')
+    await store.delete(large_entry, 'large')
+    await store.clear()
+    assert large.measurements == 1
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_store_sizes_use_insertion_estimates_for_mutable_values(policy):
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='mutable', cache=policy)
+    value = [1]
+    await store.set(entry, 'value', value)
+    insertion_size = store._size
+    value.extend(range(100))
+    await store.get(entry, 'value')
+    assert store._size == insertion_size
+    await store.set(entry, 'value', value)
+    assert store._size == total_size(value)
+    await store.delete(entry, 'value')
+    assert store._size == 0
+
+
+async def test_cache_store_sizes_follow_pinning_and_eviction():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='pinned', cache=Cache.Policy.MostRecent())
+    await store.set(entry, 'pinned', 'kept', pin=True)
+    await store.set(entry, 'discarded', 'discarded')
+    assert store._size == total_size('kept')
+    await store.delete(entry, 'pinned')
+    assert store._size == total_size('kept')
+    await store.get(entry, 'pinned', unpin=True)
+    await store.set(entry, 'new', 'new-value')
+    assert store._size == total_size('new-value')
+
+
+async def test_cache_store_ttl_sizes_follow_unpinning_and_missing_reads():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='ttl', cache=Cache.Policy.TTL(ttl=2))
+    with freeze_time('2023-01-01 12:00:00'):
+        await store.set(entry, 'pinned', 'first-value', pin=True)
+        await store.set(entry, 'pinned', 'replacement', pin=False)
+        await store.set(entry, 'kept', 'kept-value', pin=True)
+    with freeze_time('2023-01-01 12:00:03'):
+        with pytest.raises(KeyError):
+            await store.get(entry, 'missing', raise_for_missing=True)
+        assert store._size == total_size('kept-value')
+        await store.get(entry, 'kept', unpin=True)
+        assert await store.get(entry, 'kept') is None
+        assert store._size == 0
+
+
+async def test_cache_store_sizes_are_separate_across_scopes():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='scoped', cache=Cache.Policy.KeepAll(cache_type=Cache.Type.SESSION))
+    token = SESSION_ID.set('first')
+    try:
+        await store.set(entry, 'same-key', 'first-value')
+        SESSION_ID.set('second')
+        await store.set(entry, 'same-key', 'second-value')
+        assert store._size == total_size('first-value') + total_size('second-value')
+        await store.delete(entry, 'same-key')
+        assert store._size == total_size('first-value')
+        SESSION_ID.set('first')
+        await store.set(entry, 'same-key', 'replacement')
+        assert store._size == total_size('replacement')
+    finally:
+        SESSION_ID.reset(token)
+
+
+def assert_lru_links(cache):
+    forward = []
+    node = cache.head
+    previous = None
+    while node is not None:
+        assert node not in forward
+        assert node.prev is previous
+        forward.append(node)
+        previous, node = node, node.next
+    assert previous is cache.tail
+    assert {node.key for node in forward} == set(cache.cache)
+    backward = []
+    node = cache.tail
+    following = None
+    while node is not None:
+        assert node not in backward
+        assert node.next is following
+        backward.append(node)
+        following, node = node, node.prev
+    assert backward == list(reversed(forward))
+
+
+async def test_lru_accounting_after_repeated_head_updates_and_draining():
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='lru-links', cache=Cache.Policy.LRU(max_size=3))
+    operations = [
+        ('a', True),
+        ('b', True),
+        ('b', True),
+        ('a', False),
+        ('a', None),
+        ('c', False),
+        ('d', True),
+        ('e', True),
+    ]
+    for key, pin in operations:
+        if pin is None:
+            await store.delete(entry, key)
+        else:
+            await store.set(entry, key, 'value', pin=pin)
+        cache = next(iter(store.registry_stores[entry.to_store_key()].caches.values()))
+        assert_lru_links(cache)
+        assert store._size == len(cache) * total_size('value')
+    assert set(cache.cache) == {'b', 'd', 'e'}
+    for key in ('b', 'd', 'e'):
+        await store.get(entry, key, unpin=True)
+        await store.delete(entry, key)
+        assert_lru_links(cache)
+        assert store._size == len(cache) * total_size('value')
+    assert store._size == 0
+    assert len(cache) == 0
+
+
+async def test_lru_eviction_preserves_pinned_tail_and_middle_links():
+    cache = LRUCache(Cache.Policy.LRU(max_size=3))
+    await cache.set('pinned-tail', 'tail', pin=True)
+    await cache.set('unpinned-middle', 'middle')
+    await cache.set('pinned-head', 'head', pin=True)
+    await cache.get('pinned-head')
+    await cache.set('new', 'new')
+    assert set(cache.cache) == {'pinned-tail', 'pinned-head', 'new'}
+    assert_lru_links(cache)
+    assert cache.size_bytes == sum(total_size(value) for value in ('tail', 'head', 'new'))
+    await cache.get('pinned-tail')
+    assert_lru_links(cache)
+    assert cache.head.key == 'pinned-tail'
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.MostRecent(), Cache.Policy.LRU(max_size=2)])
+async def test_lru_does_not_measure_values_discarded_by_pinned_capacity(policy):
+    class MeasuredValue:
+        measurements = 0
+
+        def __sizeof__(self):
+            self.measurements += 1
+            return 1000
+
+    cache = LRUCache(policy)
+    for index in range(policy.max_size):
+        await cache.set(str(index), 'pinned', pin=True)
+    discarded = MeasuredValue()
+    await cache.set('discarded', discarded)
+    assert discarded.measurements == 0
+    assert await cache.get('discarded') is None
+    assert cache.size_bytes == policy.max_size * total_size('pinned')
+    assert_lru_links(cache)
+    await cache.get('0', unpin=True)
+    await cache.set('retained', discarded)
+    assert discarded.measurements == 1
+    assert await cache.get('retained') is discarded
+    assert_lru_links(cache)
+
+
+@pytest.mark.parametrize('pins', [(False, False), (False, True, False)])
+async def test_ttl_replacement_ignores_old_expiration_records(pins):
+    store = CacheStore()
+    entry = CachedRegistryEntry(uid='ttl-replacement', cache=Cache.Policy.TTL(ttl=10))
+    with freeze_time('2023-01-01 12:00:00'):
+        await store.set(entry, 'key', 'old', pin=pins[0])
+    if len(pins) == 3:
+        with freeze_time('2023-01-01 12:00:03'):
+            await store.set(entry, 'key', 'pinned', pin=pins[1])
+    with freeze_time('2023-01-01 12:00:05'):
+        await store.set(entry, 'key', 'fresh', pin=pins[-1])
+    with freeze_time('2023-01-01 12:00:11'):
+        assert await store.get(entry, 'key') == 'fresh'
+        assert store._size == total_size('fresh')
+    with freeze_time('2023-01-01 12:00:15'):
+        assert await store.get(entry, 'key') is None
+        assert store._size == 0
+
+
+async def test_lru_discard_still_evicts_unpinned_entries_from_overflow():
+    cache = LRUCache(Cache.Policy.MostRecent())
+    await cache.set('first', 'first', pin=True)
+    await cache.set('second', 'second', pin=True)
+    await cache.get('first', unpin=True)
+    await cache.set('discarded', 'discarded')
+    assert set(cache.cache) == {'second'}
+    assert cache.size_bytes == total_size('second')
+    assert_lru_links(cache)
