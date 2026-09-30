@@ -3,7 +3,7 @@ from freezegun import freeze_time
 
 from dara.core.auth.definitions import SESSION_ID, USER, UserData
 from dara.core.base_definitions import Cache, CachedRegistryEntry
-from dara.core.internal.cache_store.cache_store import CacheStore
+from dara.core.internal.cache_store.cache_store import CacheStore, cache_impl_for_policy
 from dara.core.internal.cache_store.lru import LRUCache
 from dara.core.internal.cache_store.ttl import TTLCache
 from dara.core.metrics import total_size
@@ -271,6 +271,22 @@ async def test_cache_store_pinning():
     assert await store.get(reg_entry, key='test_key') is None
     assert await store.get(reg_entry, key='test_key_2') is None
     assert await store.get(reg_entry, key='test_key_3') == 'test_value_3'
+
+
+@pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])
+async def test_cache_size_measurement_runs_outside_lock(policy, monkeypatch):
+    cache = cache_impl_for_policy(policy)
+    lock_states = []
+
+    def measure(value):
+        lock_states.append(cache.lock.locked())
+        return total_size(value)
+
+    monkeypatch.setattr(f'{type(cache).__module__}.total_size', measure)
+    await cache.set('key', 'first')
+    await cache.set('key', 'replacement')
+    assert lock_states == [False, False]
+    assert cache.size_bytes == total_size('replacement')
 
 
 @pytest.mark.parametrize('policy', [Cache.Policy.KeepAll(), Cache.Policy.LRU(max_size=2), Cache.Policy.TTL(ttl=60)])

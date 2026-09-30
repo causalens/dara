@@ -11,10 +11,10 @@ class Entry:
     value: Any
     pin: bool
 
-    def __init__(self, value: Any, pin: bool = False):
+    def __init__(self, value: Any, size_bytes: int, pin: bool = False):
         self.value = value
         self.pin = pin
-        self.size_bytes = total_size(value)
+        self.size_bytes = size_bytes
 
 
 class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
@@ -75,10 +75,11 @@ class KeepAllCache(CacheStoreImpl[KeepAllCachePolicy]):
         :param value: The value to associate with the key.
         :param pin: This parameter is ignored in KeepAllCache as entries are never evicted.
         """
+        size_bytes = total_size(value)
         async with self.lock:
-            entry = Entry(value, pin)
+            entry = Entry(value, size_bytes, pin)
             previous = self.cache.get(key)
-            self.size_bytes += entry.size_bytes - (previous.size_bytes if previous is not None else 0)
+            self._replace_size(size_bytes, previous.size_bytes if previous is not None else 0)
             self.cache[key] = entry
 
     async def clear(self):

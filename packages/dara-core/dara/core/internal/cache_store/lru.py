@@ -10,17 +10,18 @@ from dara.core.metrics import total_size
 class Node:
     """A node in a doubly linked list."""
 
-    def __init__(self, key: str, value: Any, pin: bool = False):
+    def __init__(self, key: str, value: Any, size_bytes: int, pin: bool = False):
         """
         Initialize a new node.
 
         :param key: The key associated with this node.
         :param value: The value associated with this node.
+        :param size_bytes: The precomputed approximate size of the value.
         :param pin: If true, the node will not be evicted until read.
         """
         self.key = key
         self.value = value
-        self.size_bytes = total_size(value)
+        self.size_bytes = size_bytes
         self.pin = pin
         self.prev: Node | None = None
         self.next: Node | None = None
@@ -121,19 +122,19 @@ class LRUCache(CacheStoreImpl[LruCachePolicy]):
         :param value: The value to associate with the key.
         :param pin: If true, the entry will not be evicted until read.
         """
+        size_bytes = total_size(value)
         async with self.lock:
             if key in self.cache:
                 node = self.cache[key]
-                size_bytes = total_size(value)
-                self.size_bytes += size_bytes - node.size_bytes
+                self._replace_size(size_bytes, node.size_bytes)
                 node.size_bytes = size_bytes
                 node.value = value
                 node.pin = pin
                 self._move_to_front(node)
             else:
-                node = Node(key, value, pin)
+                node = Node(key, value, size_bytes, pin)
                 self.cache[key] = node
-                self.size_bytes += node.size_bytes
+                self._replace_size(size_bytes)
                 if self.head:
                     self.head.prev = node
                 node.next = self.head

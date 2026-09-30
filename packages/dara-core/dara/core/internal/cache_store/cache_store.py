@@ -129,9 +129,8 @@ class CacheStore:
 
     def __init__(self):
         self.registry_stores: dict[str, CacheScopeStore] = {}
-        # The size is not totally accurate as we only add/subtract values stored, without accounting for keys
-        # or extra memory due to hash collisions, internal cache implementation; its a 'good enough' approximation
-        # of just the values stored
+        # Aggregate insertion-time estimates maintained by CacheStoreImpl; in-place mutations,
+        # keys, and internal cache overhead are not included.
         self._size = 0
 
     def _update_metrics(self):
@@ -252,5 +251,4 @@ class CacheStore:
         for registry_store in self.registry_stores.values():
             await registry_store.clear()
         self.registry_stores = {}
-        self._size = 0
         self._update_metrics()

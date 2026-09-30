@@ -12,6 +12,10 @@ class CacheStoreImpl(abc.ABC, Generic[PolicyT]):
         # Sum of value sizes measured at insertion. In-place mutations are not tracked.
         self.size_bytes = 0
 
+    def _replace_size(self, new_size: int, previous_size: int = 0) -> None:
+        """Account for an insertion or replacement while holding the cache lock."""
+        self.size_bytes += new_size - previous_size
+
     @abc.abstractmethod
     async def delete(self, key: str) -> Any:
         """

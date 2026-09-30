@@ -14,16 +14,17 @@ class Node:
     A node to hold the value, expiration time, and pin status of each cache entry.
     """
 
-    def __init__(self, value: Any, expiration_time: float, pin: bool = False):
+    def __init__(self, value: Any, expiration_time: float, size_bytes: int, pin: bool = False):
         """
         Initialize a new node.
 
         :param value: The value to be stored.
         :param expiration_time: The time at which the value expires.
+        :param size_bytes: The precomputed approximate size of the value.
         :param pin: Whether the entry should be preserved even if its TTL has expired.
         """
         self.value = value
-        self.size_bytes = total_size(value)
+        self.size_bytes = size_bytes
         self.expiration_time = expiration_time
         self.pin = pin
 
@@ -92,13 +93,14 @@ class TTLCache(CacheStoreImpl[TTLCachePolicy]):
         :param value: The value to associate with the key.
         :param pin: If true, the entry will not be evicted until read.
         """
+        size_bytes = total_size(value)
         async with self.lock:
             await self._cleanup()
 
             expiration_time = time.time() + self.policy.ttl
-            node = Node(value, expiration_time, pin)
+            node = Node(value, expiration_time, size_bytes, pin)
             previous = self.pinned_cache.get(key) or self.unpinned_cache.get(key)
-            self.size_bytes += node.size_bytes - (previous.size_bytes if previous is not None else 0)
+            self._replace_size(size_bytes, previous.size_bytes if previous is not None else 0)
             if pin:
                 self.pinned_cache[key] = node
                 self.unpinned_cache.pop(key, None)  # Ensure the key is removed from unpinned cache if it exists
