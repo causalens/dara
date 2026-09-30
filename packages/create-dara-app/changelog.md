@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.11
 
 - `create-dara-app` now generates uv-compatible projects instead of Poetry projects. The scaffolded `pyproject.toml` uses a standard Hatchling build backend with a `dependency-groups` dev section, dependencies are installed with `uv sync --locked --all-groups` when available (falling back to `pip`), a `mise.toml` ships with lint/type-check/build/run tasks, and the `--packaging pip|poetry` flag has been removed.
 

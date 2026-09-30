@@ -1,7 +1,7 @@
 [project]
 name = "dara"
 # Bookkeeping only: this is a virtual workspace root that is never built or published.
-version = "1.29.10"
+version = "1.29.11"
 requires-python = ">=3.10.0,<3.13.0"
 dependencies = []
 

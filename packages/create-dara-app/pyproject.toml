@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "create-dara-app"
-version = "1.29.10"
+version = "1.29.11"
 description = "CLI to quickly bootstrap a Dara app"
 readme = "README.md"
 license = "Apache-2.0"

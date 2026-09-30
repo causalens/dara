@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.11
 
 - Fixed LRU list corruption and size accounting, skipped measuring entries discarded by pinned capacity, and prevented stale TTL expiry records from removing replacement values.
 - Changed registry size metrics to insertion-time key/value estimates so unrelated registry updates no longer remeasure large values.

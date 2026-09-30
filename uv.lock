@@ -437,7 +437,7 @@ wheels = [
 
 [[package]]
 name = "create-dara-app"
-version = "1.29.10"
+version = "1.29.11"
 source = { editable = "packages/create-dara-app" }
 dependencies = [
     { name = "certifi" },
@@ -535,12 +535,12 @@ wheels = [
 
 [[package]]
 name = "dara"
-version = "1.29.10"
+version = "1.29.11"
 source = { virtual = "." }
 
 [[package]]
 name = "dara-components"
-version = "1.29.10"
+version = "1.29.11"
 source = { editable = "packages/dara-components" }
 dependencies = [
     { name = "bokeh" },
@@ -592,7 +592,7 @@ dev = [
 
 [[package]]
 name = "dara-core"
-version = "1.29.10"
+version = "1.29.11"
 source = { editable = "packages/dara-core" }
 dependencies = [
     { name = "aiorwlock" },
@@ -735,7 +735,7 @@ wheels = [
 
 [[package]]
 name = "demo-app"
-version = "1.29.10"
+version = "1.29.11"
 source = { editable = "packages/demo-app" }
 dependencies = [
     { name = "dara-components" },

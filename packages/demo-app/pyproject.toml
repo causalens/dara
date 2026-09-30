@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "demo-app"
-version = "1.29.10"
+version = "1.29.11"
 description = "Demo App"
 authors = [{ name = "Author", email = "author@example.com" }]
 requires-python = ">=3.10.0,<3.13.0"
