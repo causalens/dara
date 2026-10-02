@@ -232,6 +232,8 @@ def supervise(
                 '--log-config',
                 str(serving['log_config']),
             ]
+            if 'limit_max_requests' in serving:
+                command += ['--limit-max-requests', str(serving['limit_max_requests'])]
             for directory in reload_dirs or (str(root),):
                 command += ['--reload-dir', directory]
             command += ['--reload-exclude', 'node_modules', '--reload-exclude', '.venv']

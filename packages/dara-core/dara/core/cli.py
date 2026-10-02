@@ -118,12 +118,17 @@ def _serving(
     )
     if not disable_metrics:
         os.environ['DARA_METRICS_PORT'] = str(metrics_port or find_available_port(host, 10000, 10100))
-    return reference, {
+    serving = {
         'host': host,
         'port': port or find_available_port(host, 8000, 8100),
         'root_path': base_url.rstrip('/'),
         'log_config': str(Path(__file__).parent / 'log_configs/logging.yaml'),
     }
+    # Deployments recycle the server after a number of requests, as in Dara 1.x.
+    limit = os.environ.get('LIMIT_MAX_REQUESTS', '')
+    if limit.isdecimal():
+        serving['limit_max_requests'] = int(limit)
+    return reference, serving
 
 
 @cli.command(cls=StartCommand)

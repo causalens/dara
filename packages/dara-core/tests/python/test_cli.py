@@ -117,3 +117,13 @@ def test_check_reports_a_consistent_project():
     diagnostics = json.loads(result.stdout)
     assert [d['code'] for d in diagnostics] == ['toolchain.ready', 'project.ready']
     assert all(d['fix'] == '' for d in diagnostics)
+
+
+@pytest.mark.parametrize(('value', 'expected'), [('500', 500), ('', None), ('many', None)])
+def test_start_honours_the_request_limit_variable(monkeypatch, value, expected):
+    """LIMIT_MAX_REQUESTS recycles the server after that many requests, as in Dara 1.x."""
+    monkeypatch.setenv('LIMIT_MAX_REQUESTS', value)
+    with patch('dara.core.cli.uvicorn.run') as run:
+        result = CliRunner().invoke(cli, ['start', '--disable-metrics'])
+    assert result.exception is None
+    assert run.call_args.kwargs.get('limit_max_requests') == expected
