@@ -68,7 +68,7 @@ from dara.core.internal.registries import (
 )
 from dara.core.internal.registry_lookup import RegistryLookup
 from dara.core.internal.routing import core_api_router, create_loader_route, error_decorator
-from dara.core.internal.runtime_env import is_backend_reload_enabled, is_deploy_mode
+from dara.core.internal.runtime_env import is_backend_reload_enabled, is_deploy_mode, serving_command
 from dara.core.internal.scheduler import stop_scheduled_process
 from dara.core.internal.settings import get_settings
 from dara.core.internal.tasks import TaskManager
@@ -575,6 +575,8 @@ def start(extra=None):
     it's necessary to prevent errors such as `start() takes 0 positional arguments but 1 was given` happening
     which prevent real errors from showing up in the console.
     """
+    serving_command()
+
     # Set debug logging level based on the environment variable set by CLI
     debug_level = os.environ.get('DARA_DEBUG_LOG_LEVEL', 'NONE')
     if debug_level != 'NONE':

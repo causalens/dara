@@ -16,6 +16,27 @@ limitations under the License.
 """
 
 import os
+from typing import Literal, cast
+
+ServingCommand = Literal['dev', 'start']
+SERVING_COMMANDS: tuple[ServingCommand, ...] = ('dev', 'start')
+
+
+def serving_command() -> ServingCommand:
+    """
+    Parse the command that launched the ASGI app, refusing launches that bypassed the CLI.
+
+    Posture (API docs, signing keys, frontend proxy vs. compiled artifacts) follows the command, so a
+    server started without one would silently run with development posture.
+    """
+    command = os.environ.get('DARA_COMMAND')
+    if command not in SERVING_COMMANDS:
+        found = 'is not set' if command is None else f'is {command!r}'
+        raise RuntimeError(
+            f'DARA_COMMAND {found}. Launch the app with `dara dev` or `dara start`; to serve a build '
+            'with another ASGI server, run `dara build` and set DARA_COMMAND=start.'
+        )
+    return cast(ServingCommand, command)
 
 
 def env_flag(name: str) -> bool:

@@ -16,7 +16,7 @@ from dara.core.definitions import ComponentInstance
 from dara.core.http import get
 from dara.core.internal.settings import get_settings
 from dara.core.internal.websocket import WebsocketManager
-from dara.core.main import _start_application
+from dara.core.main import _start_application, start
 from dara.core.metrics import DARA_METRICS_REGISTRY
 from dara.core.router import LayoutRoute, Outlet
 from dara.core.visual.components.router_content import RouterContent
@@ -237,6 +237,18 @@ def frontend_template(tmp_path, monkeypatch):
     (private / 'index.dev.html').write_text(template)
     monkeypatch.setattr('dara.core.main.validate_build', lambda *args: None)
     monkeypatch.setattr('dara.core.js_tooling.runtime.frontend_status', lambda root: {'state': 'ready'})
+
+
+@pytest.mark.parametrize('command', [None, 'build'])
+def test_start_refuses_launch_outside_a_serving_command(monkeypatch, command):
+    """A server launched without dara dev or dara start must not fall back to development posture."""
+    if command is None:
+        monkeypatch.delenv('DARA_COMMAND', raising=False)
+    else:
+        monkeypatch.setenv('DARA_COMMAND', command)
+    monkeypatch.setenv('DARA_CONFIG_PATH', 'unused.main:config')
+    with pytest.raises(RuntimeError, match='DARA_COMMAND=start'):
+        start()
 
 
 @pytest.mark.parametrize('command', ['dev', 'start'])

@@ -175,7 +175,7 @@ def _run_server(app_root: Path, port: int, env: dict[str, str], *, use_cli_reloa
             'NONE',
         ]
     else:
-        env = {**env, 'DARA_CONFIG_PATH': 'reload_app.main:config'}
+        env = {**env, 'DARA_COMMAND': 'dev', 'DARA_CONFIG_PATH': 'reload_app.main:config'}
         command = [
             sys.executable,
             '-m',

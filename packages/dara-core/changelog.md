@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Breaking: the ASGI app refuses to start unless launched by `dara dev` or `dara start`, so servers that bypass the CLI no longer fall back to development posture. To serve a build with another ASGI server, set `DARA_COMMAND=start`.
 - Breaking: replaced the legacy frontend pipeline with an app-root Vite pipeline. `dara dev` prepares and supervises the frontend behind the Python server, `dara build` produces a frozen production build and `dara start` serves it without a JavaScript toolchain. Node and pnpm are prerequisites for development and builds.
 - Breaking: components and actions declare their implementation with `js_source`, an ES module specifier, replacing `js_module`, `js_component` and `local=True` registration.
 - Breaking: removed auth component `js_name`; authentication screens are identified by their `js_source`.
