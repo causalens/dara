@@ -9,11 +9,18 @@ import DynamicComponent from '../shared/dynamic-component/dynamic-component';
 import { useVariable } from '../shared/interactivity';
 import useComponentStyles from '../shared/utils/use-component-styles';
 import { getVariableHookSignature } from '../shared/utils/variable-hook-signature';
-import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable } from '../types';
+import {
+    type ComponentInstance,
+    type DeclaredProps,
+    type RouterPath,
+    type StyledComponentProps,
+    type Variable,
+} from '../types';
 
 type MaybeVariable<T> = T | Variable<T>;
 
-export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'style' | 'children' | 'prefetch' | 'to'> {
+export interface LinkProps
+    extends StyledComponentProps, Omit<NavLinkProps, 'style' | 'children' | 'prefetch' | 'to' | 'color' | 'className'> {
     className?: string;
     case_sensitive: boolean;
     children: Array<ComponentInstance>;
@@ -27,9 +34,8 @@ export interface LinkProps extends StyledComponentProps, Omit<NavLinkProps, 'sty
     referrer_policy?: NavLinkProps['referrerPolicy'];
 }
 
-type ResolvedLinkProps = Omit<LinkProps, 'to'> & {
+type ResolvedLinkProps = Omit<DeclaredProps<LinkProps>, 'to'> & {
     to: string | Partial<RouterPath>;
-    children: Array<ComponentInstance>;
 };
 
 function getResolvedToHookKey(to: string | Partial<RouterPath>): string {
@@ -54,7 +60,7 @@ const NavLinkWrapper = React.forwardRef(
             <NavLink
                 ref={ref}
                 to={to}
-                className={className}
+                {...(className === undefined ? {} : { className })}
                 style={({ isActive }) => {
                     return {
                         ...style,
@@ -148,12 +154,12 @@ function LinkImpl(props: ResolvedLinkProps): React.ReactNode {
         <DisplayCtx.Provider value={{ component: 'anchor', direction: displayCtx.direction }}>
             <StyledNavLink
                 id={props.id_}
-                className={props.className}
+                className={props.className ?? ''}
                 to={to}
-                end={props.end}
+                end={props.end ?? false}
                 caseSensitive={props.case_sensitive}
-                replace={props.replace}
-                relative={props.relative}
+                replace={props.replace ?? false}
+                relative={props.relative ?? 'route'}
                 $activeCss={css + activeCss}
                 $inactiveCss={css + inactiveCss}
                 style={style}

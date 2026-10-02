@@ -280,13 +280,13 @@ export class WebSocketClient implements WebSocketClientInterface {
 
     maxAttemptsReached: boolean;
 
-    #pingInterval: NodeJS.Timeout | null;
+    #pingInterval: ReturnType<typeof setTimeout> | null;
 
     #socketUrl: string;
 
     #reconnectCount: number;
 
-    #reconnectTimeout: NodeJS.Timeout | null;
+    #reconnectTimeout: ReturnType<typeof setTimeout> | null;
 
     #resumeSignalHandler: () => void;
 

@@ -11,6 +11,7 @@ title: Changelog
 - Breaking: removed auth component `js_name`; authentication screens are identified by their `js_source`.
 - Removed the obsolete `DownloadContentImpl` component; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
 - Added `ConfigurationBuilder.add_components(module)` to register every public component class in a module.
+- Fixed registering actions whose names collide with object prototype properties such as `__proto__`.
 
 ## 1.29.11
 

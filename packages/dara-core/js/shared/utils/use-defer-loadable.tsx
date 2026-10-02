@@ -16,7 +16,7 @@ export default function useDeferLoadable<T>(loadable: Loadable<T>, suspendOverri
     // Suspend on first render with getValue()
     const [availableState, setAvailableState] = useState(() => loadable.getValue());
 
-    const timerId = useRef<NodeJS.Timeout | null>(null);
+    const timerId = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRender = useRef(true);
     const [showFallback, setShowFallback] = useState(false);
 

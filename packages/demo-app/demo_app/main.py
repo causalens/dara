@@ -5,6 +5,7 @@ from dara.core import ConfigurationBuilder, MenuLink, Outlet, SideBarFrame
 from dara.core.css import get_icon
 
 from demo_app.pages.components_page import components_page
+from demo_app.pages.custom_js_page import CustomCounter, IncrementCounter, custom_js_page
 from demo_app.pages.download_xlsx_page import download_xlsx_page
 from demo_app.pages.intro_page import intro_page
 from demo_app.pages.markdown_editor_page import markdown_editor_page
@@ -13,6 +14,8 @@ from demo_app.pages.polling_page import polling_page
 
 # Create the configuration builder
 config = ConfigurationBuilder()
+config.add_component(CustomCounter)
+config.add_action(IncrementCounter)
 
 if os.getenv('DARA_DEMO_AUTH') == 'oidc':
     from dara.core.auth.oidc import OIDCAuthConfig
@@ -34,6 +37,11 @@ def RootLayout():
                 Icon(icon=get_icon('spell-check')),
                 Text('A-Z Components'),
                 to='/components',
+            ),
+            MenuLink(
+                Icon(icon=get_icon('code')),
+                Text('Custom JavaScript'),
+                to='/custom-js',
             ),
             MenuLink(
                 Icon(icon=get_icon('clock')),
@@ -63,6 +71,7 @@ def RootLayout():
 root = config.router.add_layout(content=RootLayout)
 root.add_page(path='/', content=intro_page)
 root.add_page(path='/components', content=components_page)
+root.add_page(path='/custom-js', content=custom_js_page)
 root.add_page(path='/polling', content=polling_page)
 root.add_page(path='/download-xlsx', content=download_xlsx_page)
 root.add_page(path='/plotting-assets', content=plotting_assets_page)

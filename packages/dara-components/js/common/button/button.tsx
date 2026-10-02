@@ -4,6 +4,7 @@ import {
     type Action,
     type ComponentInstance,
     type Condition,
+    type DeclaredProps,
     DisplayCtx,
     DynamicComponent,
     type StyledComponentProps,
@@ -20,11 +21,7 @@ import { Button as UiButton } from '@darajs/ui-components';
 
 import { ComponentType } from '../constants';
 
-type OmitFromMappedType<Type, ToOmit> = {
-    [Property in keyof Type as Exclude<Property, ToOmit>]: Type[Property];
-};
-
-type ButtonProps = OmitFromMappedType<StyledComponentProps, 'children'> &
+type ButtonProps = Omit<DeclaredProps<StyledComponentProps>, 'children'> &
     React.HTMLAttributes<HTMLButtonElement> & {
         children: Array<ComponentInstance> | string;
         /** Passthrough the className property */
@@ -65,7 +62,7 @@ function Button(
     { children, className, disabled, icon, onclick, outline, styling, loading, ...props }: ButtonProps,
     ref: React.ForwardedRef<HTMLElement>
 ): JSX.Element {
-    const [style, css] = useComponentStyles(props as Omit<ButtonProps, 'children'>); // the styles hook doesn't care about children though here it's wider, includes string
+    const [style, css] = useComponentStyles(props);
     const onClick = useAction(onclick);
     const actionLoading = useActionIsLoading(onclick);
     const disabledValue = useConditionOrVariable(disabled);

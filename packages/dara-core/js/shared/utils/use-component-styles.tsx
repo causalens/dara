@@ -8,9 +8,9 @@ import { default as DisplayCtx, type DisplayCtxValue } from '../context/display-
 import { useVariable } from '../interactivity/use-variable';
 
 interface FlexProps {
-    flexBasis?: string;
-    flexGrow?: string;
-    flexShrink?: string;
+    flexBasis: React.CSSProperties['flexBasis'];
+    flexGrow: React.CSSProperties['flexGrow'];
+    flexShrink: React.CSSProperties['flexShrink'];
 }
 
 /**
@@ -28,9 +28,9 @@ interface CustomCSSProperties extends React.CSSProperties {
  * @param useDisplayContext whether or not to consider width/height in conjunction with displayCtx for some components such as Modal, these do not care for the context of their parent
  */
 function flexStyles(props: StyledComponentProps, displayCtx: DisplayCtxValue, useDisplayContext: boolean): FlexProps {
-    let flexBasis = props.basis;
-    let flexShrink = props.shrink;
-    let flexGrow = props.grow;
+    let flexBasis = props.basis ?? undefined;
+    let flexShrink = props.shrink ?? undefined;
+    let flexGrow = props.grow ?? undefined;
 
     if (useDisplayContext) {
         // In a horizontal Stack setting the width should also set the flex-basis

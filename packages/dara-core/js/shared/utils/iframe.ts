@@ -3,5 +3,5 @@
  */
 export function isEmbedded(): boolean {
     const frame = window.frameElement as HTMLIFrameElement | null;
-    return Boolean(frame?.dataset?.daraPageId);
+    return Boolean(frame?.dataset?.['daraPageId']);
 }

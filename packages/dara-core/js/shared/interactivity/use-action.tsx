@@ -252,18 +252,15 @@ async function invokeAction(
     }
 }
 
-/**
- * Global cache of action handlers by name. Used for perf so each action will only have to be
- * resolved once.
- */
-const ACTION_HANDLER_BY_NAME: Record<string, ActionHandler> = {};
+/** Implementations keyed by the existing serialized action names. */
+const ACTION_HANDLERS = new Map<string, ActionHandler>();
 
 /** Install the ready-made action map without resolving package barrels at runtime. */
 export function registerActions(actions: Record<string, ActionHandler<any>>): void {
-    for (const name of Object.keys(ACTION_HANDLER_BY_NAME)) {
-        delete ACTION_HANDLER_BY_NAME[name];
+    ACTION_HANDLERS.clear();
+    for (const [name, handler] of Object.entries(actions)) {
+        ACTION_HANDLERS.set(name, handler);
     }
-    Object.assign(ACTION_HANDLER_BY_NAME, actions);
 }
 
 /**
@@ -271,7 +268,7 @@ export function registerActions(actions: Record<string, ActionHandler<any>>): vo
  * This is only used for testing.
  */
 export function clearActionHandlerCache_TEST(): void {
-    Object.keys(ACTION_HANDLER_BY_NAME).forEach((k) => delete ACTION_HANDLER_BY_NAME[k]);
+    ACTION_HANDLERS.clear();
 }
 
 /**
@@ -293,21 +290,11 @@ class UnhandledActionError extends Error {
  * @param actionCtx action execution context
  */
 function resolveActionImpl(actionImpl: ActionImpl, actionCtx: ActionContext): ActionHandler<ActionImpl> {
-    let actionHandler: ActionHandler;
-
-    // all action handlers would have been registered by bootstrap
-    if (!ACTION_HANDLER_BY_NAME[actionImpl.name]) {
-        // if we failed to resolve the action handler, use the catch-all handler if defined
-        if (actionCtx.onUnhandledAction) {
-            // this one is explicitly not cached since it's an arbitrary user-defined handler
-            actionHandler = actionCtx.onUnhandledAction;
-        } else {
-            throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
-        }
-    } else {
-        actionHandler = ACTION_HANDLER_BY_NAME[actionImpl.name]!;
+    // The per-call fallback never becomes a registered implementation.
+    const actionHandler = ACTION_HANDLERS.get(actionImpl.name) ?? actionCtx.onUnhandledAction;
+    if (!actionHandler) {
+        throw new UnhandledActionError(`Action definition for impl "${actionImpl.name}" not found`, actionImpl);
     }
-
     return actionHandler;
 }
 

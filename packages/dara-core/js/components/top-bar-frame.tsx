@@ -10,7 +10,7 @@ import { type ComponentInstance } from '../types';
 import { prependBaseUrl } from '../utils';
 
 interface TopBarProps {
-    height?: string;
+    height?: string | undefined;
 }
 
 const shouldForwardProp = (prop: any): boolean => !['width'].includes(prop);
@@ -95,7 +95,7 @@ const BuiltWithSpan = styled.span`
 `;
 
 interface LogoProps {
-    width?: string;
+    width?: string | undefined;
 }
 
 const LogoImage = styled.img<LogoProps>`
@@ -108,9 +108,9 @@ interface TopBarFrameProps {
     content: ComponentInstance;
     hide_logo?: boolean;
     logo_path?: string;
-    logo_width?: string;
+    logo_width?: string | undefined;
     top_bar: ComponentInstance;
-    top_bar_height?: string;
+    top_bar_height?: string | undefined;
     top_bar_padding?: string;
 }
 

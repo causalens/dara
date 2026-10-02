@@ -137,7 +137,7 @@ export async function fetchDerivedVariable<T>({
             method: HTTP_METHOD.POST,
         },
         extras,
-        { signal }
+        { signal: signal ?? null }
     );
     await handleAuthErrors(res, { authenticationFailureRedirect: 'login' });
     try {
@@ -734,7 +734,7 @@ export function getOrRegisterDerivedVariableValue(
                                 if (shouldFetchTask) {
                                     const taskResult = await fetchTaskResult<any>(taskId, {
                                         ...extras,
-                                        signal,
+                                        signal: signal ?? null,
                                     });
                                     if (taskResult.status === 'ok') {
                                         variableValue = taskResult.result;
@@ -762,7 +762,7 @@ export function getOrRegisterDerivedVariableValue(
 
                                     const result = await fetchTaskResult<any>(taskId, {
                                         ...extras,
-                                        signal,
+                                        signal: signal ?? null,
                                     });
                                     if (result.status === 'not_found') {
                                         throw new Error('Task result not found');
