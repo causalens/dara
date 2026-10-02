@@ -1,4 +1,4 @@
-"""Dara commands describe operations; only development prepares project files automatically."""
+"""Dara commands describe operations; lock and development prepare project files automatically."""
 
 import json
 import os
@@ -28,6 +28,7 @@ from dara.core.js_tooling.project import (
     write_manifest,
 )
 from dara.core.js_tooling.runtime import validate_build
+from dara.core.js_tooling.source import MIGRATION_SKILL
 from dara.core.js_tooling.supervisor import supervise
 
 T = TypeVar('T')
@@ -291,7 +292,7 @@ def check(config: str | None, as_json: bool):
 def setup_custom_js():
     """Explain the removed optional custom-JS setup workflow."""
     raise click.ClickException(
-        'Every app now has js/index.tsx. Run dara dev to prepare the project; see the Dara 2.0 migration guide for legacy configuration.'
+        f'Every app now has js/index.tsx. Run dara dev to prepare the project. {MIGRATION_SKILL}'
     )
 
 

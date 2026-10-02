@@ -47,7 +47,7 @@ from dara.core.base_definitions import DaraBaseModel as BaseModel
 from dara.core.css import CSSProperties
 from dara.core.interactivity import AnyVariable
 from dara.core.interactivity.client_variable import ClientVariable
-from dara.core.js_tooling.source import JsSource
+from dara.core.js_tooling.source import MIGRATION_SKILL, JsSource
 
 
 class HttpMethod(Enum):
@@ -132,6 +132,15 @@ class ComponentInstance(BaseModel):
 
     required_routes: ClassVar[list[ApiRoute]] = []
     """List of routes the component depends on. Will be implicitly added to the app if this component is used"""
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        removed = {'js_module', 'js_component'}.intersection(cls.__dict__)
+        if removed:
+            raise TypeError(
+                f'{cls.__name__} uses removed JavaScript metadata {sorted(removed)}. '
+                f'Declare js_source as a default-export module. {MIGRATION_SKILL}'
+            )
 
     raw_css: Annotated[Any | None, BeforeValidator(transform_raw_css)] = None
     """
