@@ -65,21 +65,25 @@ def cli():
     """Develop, build and serve a Dara application."""
 
 
-def _serving_options(function):
-    options = [
-        click.option('--config', help='Override [tool.dara].config with module:object'),
-        click.option('--port', type=click.IntRange(1, 65535)),
-        # Preserve the public server default; --host selects a narrower interface.
-        click.option('--host', default='0.0.0.0', show_default=True),  # nosec B104
-        click.option('--base-url', default=lambda: os.environ.get('DARA_BASE_URL', '')),
-        click.option('--metrics-port', type=click.IntRange(1, 65535)),
-        click.option('--disable-metrics', is_flag=True),
-        click.option('--debug', default=lambda: os.environ.get('DARA_DEBUG_LOG_LEVEL', 'NONE')),
-        click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', 'NONE')),
-    ]
-    for option in reversed(options):
-        function = option(function)
-    return function
+def _serving_options(host: str):
+    """Shared serving options; each command chooses its default bind interface."""
+
+    def decorate(function):
+        options = [
+            click.option('--config', help='Override [tool.dara].config with module:object'),
+            click.option('--port', type=click.IntRange(1, 65535)),
+            click.option('--host', default=host, show_default=True),
+            click.option('--base-url', default=lambda: os.environ.get('DARA_BASE_URL', '')),
+            click.option('--metrics-port', type=click.IntRange(1, 65535)),
+            click.option('--disable-metrics', is_flag=True),
+            click.option('--debug', default=lambda: os.environ.get('DARA_DEBUG_LOG_LEVEL', 'NONE')),
+            click.option('--log', default=lambda: os.environ.get('DARA_DEV_LOG_LEVEL', 'NONE')),
+        ]
+        for option in reversed(options):
+            function = option(function)
+        return function
+
+    return decorate
 
 
 def _serving(
@@ -117,7 +121,8 @@ def _serving(
 
 
 @cli.command(cls=StartCommand)
-@_serving_options
+# Deployments keep the public bind default; --host selects a narrower interface.
+@_serving_options(host='0.0.0.0')  # nosec B104
 @click.option('--api-docs', is_flag=True, help='Expose API documentation in deployment posture')
 @click.option('--require-sso', is_flag=True, help='Require an SSO authentication configuration')
 def start(api_docs: bool, require_sso: bool, **options):
@@ -130,7 +135,8 @@ def start(api_docs: bool, require_sso: bool, **options):
 
 
 @cli.command()
-@_serving_options
+# The dev proxy serves project source files through Vite, so it stays local unless --host widens it.
+@_serving_options(host='127.0.0.1')
 @click.option('--root', type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option('--frozen', is_flag=True, help='Report checked-in drift without repairing it')
 @click.option('--open', 'open_browser', is_flag=True, help='Open the browser once the app is ready')

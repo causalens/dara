@@ -199,6 +199,18 @@ await test("development reloads configuration, recovers from errors and protects
         }
       }
     }
+    // Credentials beside sources stay private, including Vite's own .npmrc default. Writing .env
+    // here would restart Vite, so its default stays covered by Vite's tests.
+    for (const file of [".npmrc", ".pypirc", ".netrc"]) {
+      fs.writeFileSync(path.join(root, file), "token=secret\n");
+      for (const request of [`/static/${file}`, `/static/@fs/${fs.realpathSync(root)}/${file}`]) {
+        for (const suffix of ["", "?raw", "?import"]) {
+          const response = await fetch(first.origin + request + suffix);
+          assert.equal(response.status, 403, request + suffix);
+          assert.doesNotMatch(await response.text(), /secret/, request + suffix);
+        }
+      }
+    }
     assert.equal((await fetch(first.origin + "/static/js/index.tsx")).status, 200);
     configure(root, "second");
     await until(async () => {

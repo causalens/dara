@@ -18,6 +18,25 @@ import {
 import { assetMiddleware } from "./assets.js";
 import { fileHash } from "./files.js";
 
+/**
+ * Vite's own development deny list. A configured server.fs.deny replaces it rather than
+ * extending it, so Dara restates it whenever the app has not configured its own.
+ */
+const viteDefaultDeny = [
+  ".env",
+  ".env.*",
+  "*.{crt,pem,key,p12,pfx,cer,der}",
+  ".npmrc",
+  ".yarnrc.yml",
+  "**/.git/**",
+];
+
+/**
+ * Private runner state and credential files that sit beside sources Vite may serve. Vite compiles
+ * the deny list before configResolved, so these must be returned from the config hook.
+ */
+const daraDeny = ["**/.dara*/**", "**/.dara-build.json", "**/index.dev.html", ".pypirc", ".netrc"];
+
 /** HTML belongs to Vite; Python fills runtime JSON and URL placeholders when serving it. */
 export function htmlTemplate(
   scripts: string[],
@@ -91,6 +110,11 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
         }
         return {
           base: api.project?.base ?? "/static/",
+          // Vite concatenates this with application exclusions. Denied files stay private
+          // even through transform URLs such as ?raw or @fs.
+          server: {
+            fs: { deny: [...(config.server?.fs?.deny ? [] : viteDefaultDeny), ...daraDeny] },
+          },
           publicDir: false,
           appType: "custom",
           resolve: {
@@ -122,9 +146,6 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
           ),
           "import",
         ];
-        // Retain Vite's defaults and application exclusions. This also protects
-        // private files requested through transform URLs such as ?raw or @fs.
-        config.server.fs.deny.push("**/.dara*/**", "**/.dara-build.json", "**/index.dev.html");
       },
       resolveId(source) {
         if (source === virtualEntry || source === "/@dara/entry") {

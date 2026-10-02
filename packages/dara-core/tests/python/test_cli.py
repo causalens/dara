@@ -27,6 +27,8 @@ def test_dev_supervises_from_project_root(tmp_path, monkeypatch):
     assert root == tmp_path.resolve()
     assert reference == 'example.main:config'
     assert serving['port'] == 3100
+    # The dev proxy serves project files, so it stays on loopback unless --host widens it.
+    assert serving['host'] == '127.0.0.1'
     assert os.environ['DARA_COMMAND'] == 'dev'
     assert os.environ['DARA_LIVE_RELOAD'] == 'TRUE'
 
@@ -50,6 +52,7 @@ def test_start_uses_deployment_posture_without_tools(monkeypatch):
         result = CliRunner().invoke(cli, ['start', '--port', '3100', '--disable-metrics'])
     assert result.exception is None
     assert run.call_args.kwargs['port'] == 3100
+    assert run.call_args.kwargs['host'] == '0.0.0.0'  # nosec B104
     assert 'reload' not in run.call_args.kwargs
     assert os.environ['DARA_COMMAND'] == 'start'
     assert os.environ['DARA_LIVE_RELOAD'] == 'FALSE'

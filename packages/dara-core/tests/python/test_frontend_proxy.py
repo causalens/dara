@@ -200,7 +200,7 @@ async def test_http_streams_upload_and_compressed_response_without_losing_header
         receive,
         send,
     )
-    assert received[0].headers['host'] == '127.0.0.1:1234'
+    assert received[0].headers['host'] == 'public.example'
     assert received[0].headers['cookie'] == 'session=123'
     assert received[0].headers['range'] == 'bytes=0-41'
     assert 'x-browser-only' not in received[0].headers
@@ -631,6 +631,9 @@ async def test_real_vite_hmr_and_configuration_recovery_through_python(tmp_path,
                     assert (await client.get(public + '/@dara/entry')).status_code == 200
                     response = await client.get(public + '/js/index.tsx')
                     assert response.status_code == 200 and 'value = 1' in response.text
+                    # A DNS-rebinding page reaches Python with a foreign Host; Vite must still refuse it.
+                    rebound = await client.get(public + '/js/index.tsx', headers={'host': 'attacker.example'})
+                    assert rebound.status_code == 403 and 'value = 1' not in rebound.text
                     source.write_text('export const value = 2;\nif (import.meta.hot) import.meta.hot.accept();\n')
                     message = await next_message(browser, 'update')
                     assert any(update['path'].endswith('/js/index.tsx') for update in message['updates'])

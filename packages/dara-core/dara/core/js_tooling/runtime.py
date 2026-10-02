@@ -210,9 +210,13 @@ def _proxy_url(scope: Scope, origin: str, prefix: str) -> httpx.URL:
 
 
 def _proxy_headers(headers: list[tuple[bytes, bytes]], *, websocket: bool = False) -> list[tuple[bytes, bytes]]:
-    """Preserve duplicate end-to-end headers while stripping connection-local fields."""
+    """
+    Preserve duplicate end-to-end headers while stripping connection-local fields.
+
+    HTTP keeps the browser's Host so Vite's allowedHosts check still rejects DNS-rebinding requests
+    for project files. The websocket client always writes its own Host, so it is dropped there.
+    """
     excluded = {
-        b'host',
         b'connection',
         b'upgrade',
         b'keep-alive',
@@ -222,6 +226,8 @@ def _proxy_headers(headers: list[tuple[bytes, bytes]], *, websocket: bool = Fals
         b'trailer',
         b'transfer-encoding',
     }
+    if websocket:
+        excluded.add(b'host')
     for key, value in headers:
         if key.lower() == b'connection':
             excluded.update(token.strip().lower() for token in value.split(b','))
