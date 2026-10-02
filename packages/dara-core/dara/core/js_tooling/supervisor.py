@@ -29,6 +29,9 @@ from dara.core.js_tooling.runtime import frontend_status
 
 # Installation and unexpected preparation failures are retried with these delays, then dara dev exits.
 RETRY_DELAYS = (2.0, 5.0, 10.0)
+# uvicorn drains open connections for this long on shutdown. It must stay below
+# processes.STOP_GRACE_SECONDS, leaving time for the app's lifespan shutdown hooks before SIGKILL.
+BACKEND_DRAIN_SECONDS = 3
 RETRIED_CODES = frozenset({'dependency.install', 'frontend.prepare'})
 
 
@@ -212,7 +215,9 @@ def supervise(
         if not frontend_only:
             if no_reload:
                 # The server remains in this process for IDE debugger breakpoints.
-                uvicorn.run('dara.core.main:start', factory=True, timeout_graceful_shutdown=5, **serving)
+                uvicorn.run(
+                    'dara.core.main:start', factory=True, timeout_graceful_shutdown=BACKEND_DRAIN_SECONDS, **serving
+                )
                 return
             command = [
                 sys.executable,
@@ -222,7 +227,7 @@ def supervise(
                 '--factory',
                 '--reload',
                 '--timeout-graceful-shutdown',
-                '5',
+                str(BACKEND_DRAIN_SECONDS),
                 '--host',
                 serving['host'],
                 '--port',

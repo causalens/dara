@@ -13,6 +13,9 @@ from typing import Any
 
 from filelock import FileLock, Timeout
 
+# How long a stopped process tree may run after SIGTERM before it is killed.
+STOP_GRACE_SECONDS = 5.0
+
 
 class ProcessCancelled(Exception):
     """The development supervisor stopped while an operation was in progress."""
@@ -106,7 +109,7 @@ class ProcessOwner:
             except (ProcessLookupError, PermissionError):
                 # macOS also reports EPERM for groups containing only orphaned zombies.
                 pass
-        deadline = time.monotonic() + 5
+        deadline = time.monotonic() + STOP_GRACE_SECONDS
         for process in processes:
             with contextlib.suppress(subprocess.TimeoutExpired):
                 process.wait(timeout=max(0, deadline - time.monotonic()))
