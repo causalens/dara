@@ -5,7 +5,7 @@ import { z } from "zod";
 import { checkTypes, buildProject } from "./build.js";
 import { ProjectError, diagnostic } from "./contract.js";
 import { serveProject } from "./dev.js";
-import { initialize, loadProject } from "./project.js";
+import { initialize, loadProject, resolveProjectSources } from "./project.js";
 import { readJson } from "./files.js";
 
 // Configuration may log while loading. Reserve stdout for the runner protocol.
@@ -55,6 +55,7 @@ try {
     }
     const project = await loadProject(root, raw, operation === "build" ? "build" : "serve");
     if (operation === "check") {
+      await resolveProjectSources(project);
       await checkTypes(project);
     }
     const result =

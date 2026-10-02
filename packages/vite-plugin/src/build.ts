@@ -1,3 +1,4 @@
+import { resolveProjectSources } from "./project.js";
 import fs from "node:fs";
 import type { Project } from "./project.js";
 import path from "node:path";
@@ -7,7 +8,7 @@ import { build } from "vite";
 import { ProjectError, errorMessage, digest, portable, version, virtualEntry } from "./contract.js";
 import { collectAssets, copyAssets } from "./assets.js";
 import { atomicWrite, fileHash, inside, treeFiles } from "./files.js";
-import { compilerExecutable } from "./compiler.js";
+import { compilerArguments, compilerExecutable } from "./compiler.js";
 
 /** Run a package executable with arguments and forward diagnostics without using a shell. */
 export async function runCommand(command: string, args: string[], cwd: string): Promise<void> {
@@ -15,7 +16,7 @@ export async function runCommand(command: string, args: string[], cwd: string): 
     const child = spawn(command, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: "false" },
     });
     child.stdout.on("data", (data) => process.stderr.write(data));
     child.stderr.on("data", (data) => process.stderr.write(data));
@@ -35,10 +36,10 @@ export async function runCommand(command: string, args: string[], cwd: string): 
 }
 
 /** Type errors prevent publishing any production output. */
-export async function checkTypes(project: Project) {
+export async function checkTypes(project: Project, mode = "check") {
   await runCommand(
     compilerExecutable(project.root),
-    ["--project", path.join(project.root, "tsconfig.json"), "--noEmit", "--pretty", "false"],
+    compilerArguments(project, mode),
     project.root,
   );
 }
@@ -197,14 +198,15 @@ export async function buildProject(
   project.assets = collectAssets(project.manifest);
   project.state = "ready";
   project.base = "./";
-  if (!noDepsBuild && project.workspace !== project.root) {
+  if (!noDepsBuild && project.workspacePackages?.some((entry) => entry.root !== project.root)) {
     await runCommand(
       "pnpm",
-      ["--filter", `${project.packageJson.name}^...`, "run", "build"],
+      ["--fail-if-no-match", "--filter", `${project.packageJson.name}^...`, "run", "build"],
       project.workspace,
     );
   }
-  await checkTypes(project);
+  await resolveProjectSources(project);
+  await checkTypes(project, "build");
   const snapshot = inputSnapshot(project);
   project.observedHashes = snapshot.hashes;
   const staging = `${output}.dara-staging-${randomUUID()}`;

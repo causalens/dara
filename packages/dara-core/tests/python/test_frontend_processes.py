@@ -31,7 +31,8 @@ def _running(pid: int) -> bool:
 
 @pytest.mark.skipif(os.name != 'posix', reason='Exercise POSIX signals and process groups')
 @pytest.mark.parametrize(
-    'phase, interruption', [('install', signal.SIGTERM), ('install', signal.SIGINT), ('serve', signal.SIGTERM)]
+    'phase, interruption',
+    [('install', signal.SIGTERM), ('install', signal.SIGINT), ('serve', signal.SIGTERM), ('list', signal.SIGTERM)],
 )
 def test_supervisor_shutdown_cleans_preparation_and_frontend_trees(tmp_path, phase, interruption):
     binaries = tmp_path / 'bin'
@@ -73,6 +74,9 @@ supervisor.supervise(root, 'app:config', {}, frontend_only=True)
     }
     if phase == 'serve':
         (tmp_path / 'package.json').write_text('{"devDependencies": []}')
+    elif phase == 'list':
+        (tmp_path / 'package.json').write_text('{"name": "app"}')
+        (tmp_path / 'pnpm-workspace.yaml').write_text('packages: ["apps/*"]\n')
     process_ids = []
     with (tmp_path / 'supervisor.log').open('w+') as log:
         supervisor = subprocess.Popen(

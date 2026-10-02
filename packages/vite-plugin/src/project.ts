@@ -44,6 +44,7 @@ export interface Project extends ProjectConfig {
    * every package that supplies a registered implementation and exports `./setup`.
    */
   setupSources: string[];
+  workspacePackages: ReturnType<typeof workspaceGraph>["packages"];
   assets: Map<string, string>;
   state: "waiting" | "ready" | "blocked";
   base: string;
@@ -52,6 +53,7 @@ export interface Project extends ProjectConfig {
   server?: ViteDevServer;
 }
 
+import { workspaceGraph } from "./workspace.js";
 const defaults = {
   "vite.config.ts": `import dara from '@darajs/vite-plugin';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [dara()] });\n`,
   "tsconfig.json":
@@ -276,6 +278,52 @@ function exportsSetup(name: string, file: string): boolean {
   }
 }
 
+async function checkLibraryOutput(project: Project) {
+  const { root, manifest } = project;
+  const file = path.join(root, "vite.lib.config.ts");
+  if (!fs.existsSync(file)) {
+    return;
+  }
+  const nodeEnv = process.env["NODE_ENV"];
+  let loaded;
+  let library;
+  try {
+    process.env["NODE_ENV"] = "production";
+    loaded = await loadConfigFromFile({ command: "build", mode: "production" }, file, root, "warn");
+    if (!loaded) {
+      throw new ProjectError("workspace.library", `Cannot load ${file}`, "edit vite.lib.config.ts");
+    }
+    library = await resolveConfig(
+      {
+        ...loaded.config,
+        root: path.resolve(root, loaded.config.root ?? "."),
+        configFile: false,
+      },
+      "build",
+      "production",
+    );
+  } finally {
+    if (nodeEnv === undefined) {
+      delete process.env["NODE_ENV"];
+    } else {
+      process.env["NODE_ENV"] = nodeEnv;
+    }
+  }
+  const libraryOutput = path.resolve(library.root, library.build.outDir);
+  const appOutput = path.resolve(root, manifest.outDir);
+  if (inside(libraryOutput, appOutput) || inside(appOutput, libraryOutput)) {
+    throw new ProjectError(
+      "workspace.output",
+      `Library output ${libraryOutput} overlaps app output ${appOutput}`,
+      "choose separate app and library output directories",
+    );
+  }
+  project.inputs.add(file);
+  for (const dependency of loaded.dependencies) {
+    project.inputs.add(dependency);
+  }
+}
+
 /** Load and validate the app once at the Node boundary; runners consume the returned project. */
 export async function loadProject(
   appRoot: string,
@@ -294,6 +342,7 @@ export async function loadProject(
   const packageJson = readPackageJson(path.join(root, "package.json"));
   const workspace = workspaceRoot(root);
   const dependencyInputs = checkDependencies(root, workspace, manifest, packageJson);
+  const graph = workspaceGraph(root, workspace);
   for (const name of Object.keys(defaults)) {
     if (!fs.existsSync(path.join(root, name))) {
       throw new ProjectError(
@@ -329,6 +378,7 @@ export async function loadProject(
     ...chosen,
     inputs: new Set([
       ...dependencyInputs,
+      ...graph.inputs,
       ...configs.flatMap((config) => config.configInputs),
       ...typescript.hashes.keys(),
     ]),
@@ -337,7 +387,15 @@ export async function loadProject(
     assets: new Map<string, string>(),
     state: "waiting",
     base: "/static/",
+    workspacePackages: graph.packages,
   };
+  await checkLibraryOutput(project);
+  return project;
+}
+
+/** Resolve registered imports only after the active runner has prepared their dependencies. */
+export async function resolveProjectSources(project: Project) {
+  const { root, manifest } = project;
   project.api.project = project;
   // Use Vite's real plugin container, so user resolvers and the app's exports participate.
   project.api.resolving = true;
@@ -363,10 +421,19 @@ export async function loadProject(
     const resolve = async (item: { name: string; source: string }) => {
       const local = sourcePackage(item.source) === null;
       const specifier = local ? path.resolve(root, item.source) : item.source;
-      const resolved = await client.pluginContainer.resolveId(
-        specifier,
-        path.join(root, "js/index.tsx"),
-      );
+      let resolved;
+      try {
+        resolved = await client.pluginContainer.resolveId(
+          specifier,
+          path.join(root, "js/index.tsx"),
+        );
+      } catch (error) {
+        throw new ProjectError(
+          "source.unresolved",
+          `${item.name}: cannot resolve ${item.source}: ${errorMessage(error)}`,
+          "build the workspace package, start its watcher, or add dara-source exports",
+        );
+      }
       if (!resolved || resolved.external) {
         throw new ProjectError(
           "source.unresolved",

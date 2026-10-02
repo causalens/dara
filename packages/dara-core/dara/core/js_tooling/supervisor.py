@@ -33,6 +33,9 @@ RETRY_DELAYS = (2.0, 5.0, 10.0)
 # processes.STOP_GRACE_SECONDS, leaving time for the app's lifespan shutdown hooks before SIGKILL.
 BACKEND_DRAIN_SECONDS = 3
 RETRIED_CODES = frozenset({'dependency.install', 'frontend.prepare'})
+# Dependency files are compared on every 200ms tick, but re-walking the workspace for added or
+# removed members is the expensive part; reuse a walk for this long between ticks.
+INVENTORY_MAX_AGE = 2.0
 
 
 def supervise(
@@ -135,8 +138,14 @@ def supervise(
                     for name in ('vite.config.ts', 'tsconfig.json')
                 ]
                 signature = (
-                    json.dumps([r.model_dump() for r in current.package_requirements]),
-                    dependency_fingerprint(root),
+                    json.dumps(
+                        {
+                            'requirements': [r.model_dump() for r in current.package_requirements],
+                            'pythonPackages': current.python_packages,
+                        },
+                        sort_keys=True,
+                    ),
+                    dependency_fingerprint(root, processes=processes, inventory_max_age=INVENTORY_MAX_AGE),
                     tuple(config_contents),
                 )
                 if signature != attempted:
@@ -148,7 +157,11 @@ def supervise(
                     prepare_project(root, current, frozen=frozen, processes=processes)
                     failures = 0
                     config_contents = [(root / name).read_text() for name in ('vite.config.ts', 'tsconfig.json')]
-                    attempted = (signature[0], dependency_fingerprint(root), tuple(config_contents))
+                    attempted = (
+                        signature[0],
+                        dependency_fingerprint(root, processes=processes, inventory_max_age=INVENTORY_MAX_AGE),
+                        tuple(config_contents),
+                    )
                     command = [
                         'pnpm',
                         '--silent',

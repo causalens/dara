@@ -87,18 +87,18 @@ def test_check_reports_every_independent_failure():
 
 
 def test_check_skips_the_plugin_when_its_prerequisites_failed(tmp_path, monkeypatch):
-    """Dependency drift and a missing toolchain are both reported; the plugin needs both and is skipped."""
+    """Dependency drift and a missing node are both reported; the plugin needs both and is skipped."""
     monkeypatch.chdir(tmp_path)
     manifest = type('Manifest', (), {'out_dir': str(tmp_path / 'dist')})()
     with (
-        patch('dara.core.cli.check_binary', _missing),
+        patch('dara.core.cli.check_binary', lambda binary, **kw: _missing(binary) if binary == 'node' else '12.4.0'),
         patch('dara.core.cli._manifest', lambda config: (tmp_path, manifest)),
         patch('dara.core.cli.dependency_plan', lambda root, manifest: {tmp_path / 'package.json': '{}'}),
         patch('dara.core.cli.run_plugin') as plugin,
     ):
         result = CliRunner().invoke(cli, ['check', '--json'])
     assert result.exit_code == 1
-    assert [d['code'] for d in json.loads(result.stdout)] == ['toolchain.node', 'toolchain.pnpm', 'dependency.drift']
+    assert [d['code'] for d in json.loads(result.stdout)] == ['toolchain.node', 'dependency.drift']
     plugin.assert_not_called()
 
 

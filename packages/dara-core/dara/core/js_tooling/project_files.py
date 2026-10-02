@@ -9,7 +9,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 from typing_extensions import Self
 
-from dara.core.js_tooling.models import ProjectError
+from dara.core.js_tooling.models import FrontendManifest, ProjectError, Requirement
 
 
 class ProjectFields(BaseModel):
@@ -53,6 +53,33 @@ class WorkspaceFields(ProjectFields):
     """Named catalogs used for Dara's dependency requirements."""
 
     catalogs: dict[str, dict[str, str]] = Field(default_factory=dict)
+    packages: list[str] = Field(default_factory=list)
+    catalog: dict[str, str] = Field(default_factory=dict)
+
+
+class PreparedRequirements(ProjectFields):
+    """A prepared app's complete requirements and their Python distribution owners."""
+
+    daraVersion: str
+    packageRequirements: list[Requirement]
+    pythonPackages: dict[str, str] = Field(default_factory=dict)
+
+    @classmethod
+    def from_manifest(cls, manifest: FrontendManifest) -> Self:
+        """Capture authoritative ownership while the current app configuration is available."""
+        return cls(
+            daraVersion=manifest.dara_version,
+            packageRequirements=manifest.package_requirements,
+            pythonPackages=manifest.python_packages,
+        )
+
+
+class InstalledProjectFields(ProjectFields):
+    """The successful installation fingerprint and environment used to derive requirements."""
+
+    digest: str
+    pythonEnvironment: str | None = None
+    requirements: PreparedRequirements | None = None
 
 
 class LockedDependency(ProjectFields):
@@ -106,11 +133,20 @@ class PythonProjectFields(ProjectFields):
 def read_json(path: Path) -> dict[str, Any]:
     """Read a JSON object, reporting malformed project files at the CLI boundary."""
     try:
-        value = json.loads(path.read_text())
+        contents = path.read_bytes()
+    except OSError as exc:
+        raise ProjectError('project.file', f'{path}: {exc}', f'edit {path}') from exc
+    return parse_json(path, contents)
+
+
+def parse_json(path: Path, contents: bytes) -> dict[str, Any]:
+    """Parse JSON object contents already read from path, with read_json's diagnostics."""
+    try:
+        value = json.loads(contents)
         if not isinstance(value, dict):
             raise ValueError('expected an object')
         return value
-    except (OSError, ValueError) as exc:
+    except ValueError as exc:
         raise ProjectError('project.file', f'{path}: {exc}', f'edit {path}') from exc
 
 
