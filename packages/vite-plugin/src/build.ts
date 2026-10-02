@@ -64,6 +64,7 @@ export async function buildProject(
   project: Project,
   { noDepsBuild = false }: { noDepsBuild?: boolean } = {},
 ) {
+  process.env["NODE_ENV"] = "production";
   const output = path.resolve(project.root, project.manifest.outDir);
   if (
     inside(output, project.root) ||

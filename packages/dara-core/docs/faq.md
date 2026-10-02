@@ -93,9 +93,9 @@ deactivate
 source .path/to/venv/bin/activate
 ```
 
-<h4> 4. Delete your `dist/` folder and run your app again </h4>
+<h4> 4. Rebuild your frontend output </h4>
 
-The `dist/` folder contains the assets that can actually be hosted on the server. It may not be updated with your latest versions, so it is worth deleting the folder and running `uv run dara start` again to let it rebuild.
+The `dist/` folder contains the assets that can actually be hosted on the server. Run `uv run dara build` to rebuild it, then `uv run dara start` to serve the artifact. For development, use `uv run dara dev`.
 
 <h4> 5. Check if your environment has the right package versions </h4>
 
@@ -259,7 +259,7 @@ You may have installed and imported an extension but the components from that pa
 This is probably because you added a new extension and did not rebuild the JavaScript, so the implementation of the new components is not included in your application. You can force the rebuild by running
 
 ```sh
-uv run dara start --rebuild
+uv run dara build
 ```
 
 If that still does not work, this might mean your component is not registered in the application correctly. The [`import discovery`](./advanced/import-discovery) process should automatically register all the components you are using, however there might be edge cases where that is not possible. You can try explicitly registering the component in question with

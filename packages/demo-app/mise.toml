@@ -2,6 +2,22 @@
 node = "24.13.0"
 pnpm = "12.4.0"
 
+[tasks.dev]
+description = "Start development: Python, Vite and TypeScript behind one origin"
+run = "uv run --locked dara dev"
+
+[tasks.build-frontend]
+description = "Build the deployable frontend output"
+run = "uv run --locked dara build"
+
+[tasks.run]
+description = "Serve the built app"
+run = "uv run --locked dara start"
+
+[tasks.check]
+description = "Report frontend diagnostics as JSON"
+run = "uv run --locked dara check --json"
+
 [tasks.lint]
 description = "Lint the playground application"
 run = "uv run --locked --package demo-app --group dev ruff check ."

@@ -42,8 +42,8 @@ Dara stores browser auth sessions server-side. The browser receives an opaque `H
 By default, Dara chooses the backend for the current runtime:
 
 -   Normal runtime uses `InMemoryAuthSessionBackend`. Sessions are process-local and users must log in again after a server restart.
--   Local `dara start --reload` uses `FileAuthSessionBackend`. Sessions are written to local disk so code reloads do not force repeated logins during development.
--   Docker and production modes keep using the in-memory backend unless you explicitly configure another backend.
+-   Local `dara dev` uses `FileAuthSessionBackend`. Sessions are written to local disk so code reloads do not force repeated logins during development.
+-   `dara start` uses the in-memory backend unless you explicitly configure another backend.
 
 You can configure the backend directly on `ConfigurationBuilder`:
 

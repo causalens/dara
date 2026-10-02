@@ -143,7 +143,9 @@ jobs:
           else
             ./tooling/scripts/bump_python_versions.sh "$version"
             pnpm lerna version "$version" --no-private --no-git-tag-version --force-publish --exact --yes
-            pnpm i --lockfile-only
+            # Refresh every workspace importer; dara lock only installs the filtered app graphs.
+            pnpm install --lockfile-only
+            mise run lock-frontends
             tooling/changelog-parser/main.js "$version" >/tmp/release-changelog.json
 
             git add .
@@ -242,13 +244,18 @@ jobs:
         run: |
           changelog=$(tooling/changelog-parser/main.js ${{ steps.extract_tag.outputs.version }})
           echo "changelog=$changelog" >> "$GITHUB_OUTPUT"
+      - name: Prepare resources required for packaging
+        if: steps.release_status.outputs.exists != 'true'
+        run: mise run prepare
+      # npm goes first: a 2.x wheel needs its matching @darajs packages, so a failed npm publish
+      # must not leave wheels on PyPI. Both steps skip versions that are already published.
+      - name: Publish npm packages
+        if: steps.release_status.outputs.exists != 'true'
+        run: mise run publish-npm
       - name: Update READMEs to work on PyPi before publishing
         if: steps.release_status.outputs.exists != 'true'
         run: |
           python ./tooling/scripts/update-readmes.py ${{ steps.extract_tag.outputs.tag }}
-      - name: Prepare resources required for packaging
-        if: steps.release_status.outputs.exists != 'true'
-        run: mise run prepare
       - name: Make Python packages
         if: steps.release_status.outputs.exists != 'true'
         run: mise run package
@@ -260,9 +267,6 @@ jobs:
       - name: Restore tracked files after Python publishing
         if: steps.release_status.outputs.exists != 'true'
         run: git restore -- ':(glob)packages/*/README.md'
-      - name: Publish npm packages
-        if: steps.release_status.outputs.exists != 'true'
-        run: mise run publish-npm
       - name: Package and Publish Docs
         if: steps.release_status.outputs.exists != 'true'
         run: mise run publish-docs
