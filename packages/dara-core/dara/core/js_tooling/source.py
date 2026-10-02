@@ -11,11 +11,12 @@ _PACKAGE = re.compile(r'^(?:@[a-z0-9._-]+/)?[a-z0-9._-]+(?:/[\w./-]+)?$')
 
 def parse_js_source(value: str) -> str:
     """Accept a package import or an app-relative implementation contained in ``js/``."""
-    if value.startswith('./'):
+    # A trailing slash names a directory, never a module.
+    if value.startswith('./') and not value.endswith('/'):
         normalized = posixpath.normpath(value)
         if normalized.startswith('js/') and '\\' not in value:
             return './' + normalized
-    elif _PACKAGE.fullmatch(value) and not value.startswith(('.', '/', '#')):
+    elif _PACKAGE.fullmatch(value) and not value.startswith(('.', '/', '#')) and not value.endswith('/'):
         if all(part not in ('.', '..') for part in value.split('/')):
             return value
     raise ValueError(

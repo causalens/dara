@@ -46,7 +46,15 @@ function manifest(overrides: Partial<Manifest> = {}): Manifest {
 await test("manifest version and source syntax fail before resolution", () => {
   assert.throws(() => parseManifest({ ...manifest(), schema: 2 }), /schema/);
   assert.throws(() => parseManifest(manifest({ daraVersion: "0.0.0" })), /does not match/);
-  for (const source of ["../secret", "./js/../../secret", "https://host/module", "@pkg/a/../b"]) {
+  for (const source of [
+    "../secret",
+    "./js/../../secret",
+    "https://host/module",
+    "@pkg/a/../b",
+    "./js/",
+    "./js/widgets/",
+    "@pkg/a/",
+  ]) {
     assert.throws(() => sourcePackage(source), /js_source/);
   }
   assert.equal(sourcePackage("@pkg/library/button"), "@pkg/library");

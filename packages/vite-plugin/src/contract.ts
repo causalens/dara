@@ -83,18 +83,18 @@ export function diagnostic(error: unknown): Diagnostic {
       };
 }
 
-const source = z
-  .string()
-  .refine(
-    (value) =>
-      !value.includes("\\") &&
-      (value.startsWith("./")
-        ? path.posix.normalize(value).startsWith("js/")
-        : /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+(?:\/[\w./-]+)?$/.test(value) &&
-          !value.startsWith(".") &&
-          !value.split("/").some((part) => part === ".." || part === ".")),
-    { message: "expected a package import or ./js/ file" },
-  );
+const source = z.string().refine(
+  (value) =>
+    !value.includes("\\") &&
+    // A source names a module; a trailing slash names a directory.
+    !value.endsWith("/") &&
+    (value.startsWith("./")
+      ? path.posix.normalize(value).startsWith("js/")
+      : /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+(?:\/[\w./-]+)?$/.test(value) &&
+        !value.startsWith(".") &&
+        !value.split("/").some((part) => part === ".." || part === ".")),
+  { message: "expected a package import or a ./js/ module file" },
+);
 
 /** Parse an import specifier before extracting its package identity. */
 export function sourcePackage(value: unknown): string | null {

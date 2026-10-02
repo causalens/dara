@@ -40,6 +40,9 @@ def manifest():
         'C:\\app\\component.tsx',
         'https://example.com/component.js',
         '@pkg/name/../private',
+        './js/',
+        './js/widgets/',
+        '@pkg/name/',
     ],
 )
 def test_sources_cannot_escape_the_import_contract(source):
