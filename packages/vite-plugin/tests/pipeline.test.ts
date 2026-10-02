@@ -5,6 +5,7 @@ import path from "node:path";
 import type { TestContext } from "node:test";
 import type { Manifest } from "../dist/contract.js";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { fileHash } from "../dist/files.js";
 import { collectAssets } from "../dist/assets.js";
 import { inputSnapshot, publishBuild, verifySnapshot } from "../dist/build.js";
@@ -16,6 +17,7 @@ import {
   version,
 } from "../dist/contract.js";
 import { checkTypescript, initialize } from "../dist/project.js";
+import { htmlTemplate } from "../dist/index.js";
 
 function fixture(t: TestContext) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "dara-pipeline-")));
@@ -193,4 +195,23 @@ await test("effective TS config follows JSONC, arrays and local package presets"
   verifySnapshot(snapshot);
   fs.writeFileSync(extra, '{ "compilerOptions": { "strict": false } }');
   assert.throws(() => verifySnapshot(snapshot), /changed/);
+});
+
+await test("generated HTML defines the jQuery global before application modules run", () => {
+  // The script must name the path dara-core's registered static folder is published at.
+  const common = fileURLToPath(
+    new URL("../../dara-core/dara/core/_assets/common", import.meta.url),
+  );
+  const assets = collectAssets(
+    manifest({ static: [{ package: "dara.core", source: common, target: "." }] }),
+  );
+  for (const development of [false, true]) {
+    const html = htmlTemplate(["entry.js"], [], development);
+    const script = /<script defer src="\{\{ static_url \}\}\/([^"]+)"><\/script>/.exec(html);
+    assert.ok(
+      script?.[1] && assets.has(script[1]),
+      `jQuery must load a published asset: ${script?.[1]}`,
+    );
+    assert.ok(script.index < html.indexOf('<script type="module"'), "jQuery must precede modules");
+  }
 });

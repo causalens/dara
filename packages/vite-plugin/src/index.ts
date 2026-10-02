@@ -37,7 +37,12 @@ const viteDefaultDeny = [
  */
 const daraDeny = ["**/.dara*/**", "**/.dara-build.json", "**/index.dev.html", ".pypirc", ".netrc"];
 
-/** HTML belongs to Vite; Python fills runtime JSON and URL placeholders when serving it. */
+/**
+ * HTML belongs to Vite; Python fills runtime JSON and URL placeholders when serving it.
+ *
+ * dara-core's static jquery.min.js stays a deferred classic script, so the `$` global that Bokeh
+ * widgets expect exists before any module runs, until vendored libraries move to npm imports.
+ */
 export function htmlTemplate(
   scripts: string[],
   styles: string[] = [],
@@ -51,6 +56,7 @@ export function htmlTemplate(
 <script id="__DARA_URLS__" type="application/json">{{ runtime_urls | safe }}</script>
 <script>window.dara=JSON.parse(document.getElementById('__DARA_URLS__').textContent);window.__toDaraUrl=(filename)=>window.dara.static_url+filename;</script>
 ${styles.map((file) => `<link rel="stylesheet" href="{{ static_url }}/${file}">`).join("\n")}
+<script defer src="{{ static_url }}/dara.core/jquery.min.js"></script>
 ${development ? `<script type="module">import RefreshRuntime from '{{ static_url }}/@react-refresh';RefreshRuntime.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;</script>` : ""}
 ${scripts.map((file) => `<script type="module" src="{{ static_url }}/${file}"></script>`).join("\n")}
 </head><body><div id="dara_root"></div></body></html>`;
