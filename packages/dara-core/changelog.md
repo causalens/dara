@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Added `dara check --json`, which reports every independent project diagnostic in one run. Each diagnostic names its repair, and the codes are listed in the new [project diagnostics](./advanced/diagnostics) reference.
 - `dara dev` binds to `127.0.0.1` by default because its frontend proxy serves project files; pass `--host` to expose it. Development requests keep their `Host`, so names other than localhost or an IP need `server.allowedHosts` in `vite.config.ts`.
 - Breaking: the ASGI app refuses to start unless launched by `dara dev` or `dara start`, so servers that bypass the CLI no longer fall back to development posture. To serve a build with another ASGI server, set `DARA_COMMAND=start`.
 - Breaking: replaced the legacy frontend pipeline with an app-root Vite pipeline. `dara dev` prepares and supervises the frontend behind the Python server, `dara build` produces a frozen production build and `dara start` serves it without a JavaScript toolchain. Node and pnpm are prerequisites for development and builds.

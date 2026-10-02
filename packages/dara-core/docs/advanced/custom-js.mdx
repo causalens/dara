@@ -203,7 +203,7 @@ During development Dara watches the static roots. If two packages claim the same
 
 ## Build and deploy
 
-`dara check --json` reports diagnostics without changing anything.
+`dara check --json` reports every diagnostic without changing anything; see [project diagnostics](./diagnostics) for the codes.
 
 `dara build` type-checks and produces `dist/`, then `dara start` serves it. Build never repairs dependency drift, so commit your dependency files first. Start always runs in deployment posture; opt into API docs with `--api-docs`.
 
