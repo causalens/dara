@@ -172,6 +172,35 @@ def test_membership_cache_reuses_pnpm_but_tracks_additions_deletions_and_pattern
     assert query.call_count == 4
 
 
+def test_polling_reuses_a_recent_inventory_but_reads_dependency_files_afresh(apps, monkeypatch):
+    """Polling delays member discovery by at most its bound; file edits are seen on the next tick."""
+    a, b = apps
+    root = a.parent.parent
+    clock = [100.0]
+    monkeypatch.setattr(workspace.time, 'monotonic', lambda: clock[0])
+    members = [a, b]
+    query = Mock(side_effect=lambda root, processes=None: tuple(members))
+    monkeypatch.setattr(workspace, '_query_members', query)
+    first = project.dependency_fingerprint(a, inventory_max_age=2.0)
+    (b / 'package.json').write_text('{"name":"b","dependencies":{"new":"^1"}}')
+    edited = project.dependency_fingerprint(a, inventory_max_age=2.0)
+    assert edited != first
+    c = root / 'apps/c'
+    c.mkdir()
+    (c / 'package.json').write_text('{"name":"c"}')
+    members.append(c)
+    clock[0] += 1.9
+    assert project.dependency_fingerprint(a, inventory_max_age=2.0) == edited
+    assert query.call_count == 1
+    clock[0] += 0.1
+    assert project.dependency_fingerprint(a, inventory_max_age=2.0) != edited
+    assert query.call_count == 2
+    (b / 'package.json').write_text('{')
+    with pytest.raises(ProjectError) as raised:
+        project.dependency_fingerprint(a, inventory_max_age=2.0)
+    assert raised.value.diagnostic.code == 'project.file'
+
+
 def test_root_member_and_visible_dots_do_not_scan_python_environments(apps, monkeypatch):
     a, b = apps
     root = a.parent.parent

@@ -39,13 +39,20 @@ from dara.core.js_tooling.project_files import (
     PackageFields,
     PreparedRequirements,
     PythonProjectFields,
+    parse_json,
     read_json,
     read_lockfile,
 )
 from dara.core.js_tooling.source import source_package
 from dara.core.js_tooling.versions import distribution_name
 from dara.core.js_tooling.versions import npm_version as convert_npm_version
-from dara.core.js_tooling.workspace import read_catalog_peers, read_workspace, reconcile_catalog, workspace_root
+from dara.core.js_tooling.workspace import (
+    read_catalog_peers,
+    read_workspace,
+    reconcile_catalog,
+    workspace_members,
+    workspace_root,
+)
 
 ENGINES = {'node': '>=22.12.0', 'pnpm': '>=12 <13'}
 RUNTIME_REQUIREMENTS = {
@@ -441,9 +448,14 @@ def lockfile_agrees(root: Path, *, processes: ProcessOwner | None = None) -> boo
     return verify_lockfile(workspace, processes=processes)
 
 
-def dependency_fingerprint(root: Path, *, processes: ProcessOwner | None = None) -> str:
-    """Identify dependency files used by the last successful local installation."""
-    workspace = workspace_root(root)
+def dependency_fingerprint(root: Path, *, processes: ProcessOwner | None = None, inventory_max_age: float = 0.0) -> str:
+    """
+    Identify dependency files used by the last successful local installation.
+
+    Polling callers pass inventory_max_age to reuse a recent workspace inventory; see
+    workspace_members. File contents are always read afresh.
+    """
+    workspace, members = workspace_members(root, processes=processes, inventory_max_age=inventory_max_age)
     digest = hashlib.sha256()
     for path in [
         root / 'package.json',
@@ -452,10 +464,27 @@ def dependency_fingerprint(root: Path, *, processes: ProcessOwner | None = None)
         workspace / 'node_modules' / '.modules.yaml',
     ]:
         digest.update(path.read_bytes() if path.exists() else b'missing')
-    for path, package in sorted(read_workspace(root, processes=processes).projects.items()):
-        digest.update(str(path.relative_to(workspace)).encode())
-        digest.update(json_text(package.document).encode())
+    for member in members:
+        digest.update(str(member.relative_to(workspace)).encode())
+        digest.update(_normalized_package(member / 'package.json').encode())
     return digest.hexdigest()
+
+
+_normalized: dict[Path, tuple[bytes, str]] = {}
+
+
+def _normalized_package(path: Path) -> str:
+    """Validate and normalize a member manifest, re-parsing only when its bytes change."""
+    try:
+        contents = path.read_bytes()
+    except OSError as exc:
+        raise ProjectError('project.file', f'{path}: {exc}', f'edit {path}') from exc
+    cached = _normalized.get(path)
+    if cached is None or cached[0] != contents:
+        package = parse_json(path, contents)
+        PackageFields.parse(package, path)
+        _normalized[path] = cached = contents, json_text(package)
+    return cached[1]
 
 
 def prepare_project(

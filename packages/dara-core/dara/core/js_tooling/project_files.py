@@ -133,11 +133,20 @@ class PythonProjectFields(ProjectFields):
 def read_json(path: Path) -> dict[str, Any]:
     """Read a JSON object, reporting malformed project files at the CLI boundary."""
     try:
-        value = json.loads(path.read_text())
+        contents = path.read_bytes()
+    except OSError as exc:
+        raise ProjectError('project.file', f'{path}: {exc}', f'edit {path}') from exc
+    return parse_json(path, contents)
+
+
+def parse_json(path: Path, contents: bytes) -> dict[str, Any]:
+    """Parse JSON object contents already read from path, with read_json's diagnostics."""
+    try:
+        value = json.loads(contents)
         if not isinstance(value, dict):
             raise ValueError('expected an object')
         return value
-    except (OSError, ValueError) as exc:
+    except ValueError as exc:
         raise ProjectError('project.file', f'{path}: {exc}', f'edit {path}') from exc
 
 

@@ -4,6 +4,7 @@ import json
 import os
 import re
 import subprocess
+import time
 from dataclasses import dataclass
 from importlib.metadata import distributions
 from pathlib import Path
@@ -54,6 +55,9 @@ class _Membership(ProjectFields):
 # are read afresh. The cache key includes workspace configuration and package-path
 # additions/deletions, so supervisor polling needs no recurring pnpm subprocess.
 _membership: dict[tuple[Path, bytes, tuple[Path, ...]], tuple[Path, ...]] = {}
+# The package-path inventory walks the whole workspace tree. Polling callers may reuse a
+# recent walk, delaying the detection of an added or removed member by at most their bound.
+_inventory: dict[tuple[Path, tuple[str, ...]], tuple[float, tuple[Path, ...]]] = {}
 
 
 def workspace_root(root: Path) -> Path:
@@ -127,34 +131,75 @@ def _query_members(root: Path, processes: ProcessOwner | None = None) -> tuple[P
     return members
 
 
-def read_workspace(root: Path, *, processes: ProcessOwner | None = None) -> WorkspaceSnapshot:
-    """Resolve authoritative pnpm membership and parse every consumed member declaration."""
+def workspace_members(
+    root: Path, *, processes: ProcessOwner | None = None, inventory_max_age: float = 0.0
+) -> tuple[Path, tuple[Path, ...]]:
+    """
+    Return the workspace root and pnpm's declared members, without parsing member manifests.
+
+    With a positive inventory_max_age, a package-path inventory walked within that many seconds
+    is reused; pnpm is queried again only when the inventory or the workspace file changes.
+    """
     workspace = workspace_root(root)
     path = workspace / 'pnpm-workspace.yaml'
-    document = read_yaml(path) if path.exists() else {}
-    fields = WorkspaceFields.parse(document, path)
-    if fields.packages:
-        key = workspace, path.read_bytes(), _candidate_paths(workspace, fields.packages)
-        if key not in _membership:
-            members = _query_members(workspace, processes)
-            # Retain only the latest inventory for each root.
-            for stale in [entry for entry in _membership if entry[0] == workspace]:
-                del _membership[stale]
-            _membership[key] = members
-        members = _membership[key]
-    else:
+    contents = path.read_bytes() if path.exists() else b''
+    patterns = _workspace_fields(path, contents).packages
+    if not patterns:
         members = (workspace,) if (workspace / 'package.json').is_file() else ()
-    projects = {}
-    for member in members:
-        package_path = member / 'package.json'
-        package = read_json(package_path)
-        projects[member] = WorkspaceProject(member, package, PackageFields.parse(package, package_path))
-    if root != workspace and (root / 'package.json').exists() and root not in projects:
+        if root != workspace and (root / 'package.json').exists():
+            raise ProjectError(
+                'workspace.member',
+                f'{root} is not a declared pnpm workspace member.',
+                f'add its directory to {workspace / "pnpm-workspace.yaml"} packages',
+            )
+        return workspace, members
+    now = time.monotonic()
+    walked = _inventory.get((workspace, tuple(patterns)))
+    if walked is None or now - walked[0] >= inventory_max_age:
+        walked = now, _candidate_paths(workspace, patterns)
+        for stale in [entry for entry in _inventory if entry[0] == workspace]:
+            del _inventory[stale]
+        _inventory[(workspace, tuple(patterns))] = walked
+    key = workspace, contents, walked[1]
+    if key not in _membership:
+        members = _query_members(workspace, processes)
+        # Retain only the latest inventory for each root.
+        for stale in [entry for entry in _membership if entry[0] == workspace]:
+            del _membership[stale]
+        _membership[key] = members
+    members = _membership[key]
+    if root != workspace and (root / 'package.json').exists() and root not in members:
         raise ProjectError(
             'workspace.member',
             f'{root} is not a declared pnpm workspace member.',
             f'add its directory to {workspace / "pnpm-workspace.yaml"} packages',
         )
+    return workspace, members
+
+
+_fields_cache: dict[Path, tuple[bytes, WorkspaceFields]] = {}
+
+
+def _workspace_fields(path: Path, contents: bytes) -> WorkspaceFields:
+    """Parse the workspace read model once per file content; callers never share the document."""
+    cached = _fields_cache.get(path)
+    if cached is None or cached[0] != contents:
+        fields = WorkspaceFields.parse(read_yaml(path) if contents else {}, path)
+        _fields_cache[path] = cached = contents, fields
+    return cached[1]
+
+
+def read_workspace(root: Path, *, processes: ProcessOwner | None = None) -> WorkspaceSnapshot:
+    """Resolve authoritative pnpm membership and parse every consumed member declaration."""
+    workspace, members = workspace_members(root, processes=processes)
+    path = workspace / 'pnpm-workspace.yaml'
+    document = read_yaml(path) if path.exists() else {}
+    fields = WorkspaceFields.parse(document, path)
+    projects = {}
+    for member in members:
+        package_path = member / 'package.json'
+        package = read_json(package_path)
+        projects[member] = WorkspaceProject(member, package, PackageFields.parse(package, package_path))
     return WorkspaceSnapshot(workspace, document, fields, projects)
 
 
