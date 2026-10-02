@@ -36,6 +36,11 @@ export interface Project extends ProjectConfig {
   typescript: NonNullable<ReturnType<typeof getTsconfig>>;
   inputs: Set<string>;
   sourceFiles: Set<string>;
+  /**
+   * Package setup entries imported before any implementation: explicit module dependencies, then
+   * every package that supplies a registered implementation and exports `./setup`.
+   */
+  setupSources: string[];
   assets: Map<string, string>;
   state: "waiting" | "ready" | "blocked";
   base: string;
@@ -240,6 +245,26 @@ async function resolveProjectConfig(
   };
 }
 
+/** Whether the package that owns a resolved implementation file declares a `./setup` export. */
+function exportsSetup(name: string, file: string): boolean {
+  let current = path.dirname(fs.existsSync(file) ? fs.realpathSync(file) : file);
+  while (true) {
+    const manifest = path.join(current, "package.json");
+    if (fs.existsSync(manifest)) {
+      const json = readPackageJson(manifest);
+      if (json.name === name) {
+        const exports: unknown = json["exports"];
+        return typeof exports === "object" && exports !== null && "./setup" in exports;
+      }
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return false;
+    }
+    current = parent;
+  }
+}
+
 /** Load and validate the app once at the Node boundary; runners consume the returned project. */
 export async function loadProject(
   appRoot: string,
@@ -312,6 +337,7 @@ export async function loadProject(
       ...typescript.hashes.keys(),
     ]),
     sourceFiles: new Set<string>(),
+    setupSources: [],
     assets: new Map<string, string>(),
     state: "waiting",
     base: "/static/",
@@ -337,14 +363,8 @@ export async function loadProject(
         "edit vite.config.ts",
       );
     }
-    const imports = [
-      { name: "Dara bootstrap", source: "@darajs/core/bootstrap" },
-      ...manifest.moduleDependencies.map((item) => ({ name: item.python, source: item.source })),
-      ...manifest.components,
-      ...manifest.actions,
-      ...manifest.auth,
-    ];
-    for (const item of imports) {
+    const explicitSetups = manifest.moduleDependencies.map((item) => item.source);
+    const resolve = async (item: { name: string; source: string }) => {
       const local = sourcePackage(item.source) === null;
       const specifier = local ? path.resolve(root, item.source) : item.source;
       const resolved = await client.pluginContainer.resolveId(
@@ -372,7 +392,31 @@ export async function loadProject(
       if (fs.existsSync(file)) {
         project.sourceFiles.add(fs.realpathSync(file));
       }
+      return file;
+    };
+    await resolve({ name: "Dara bootstrap", source: "@darajs/core/bootstrap" });
+    for (const item of manifest.moduleDependencies) {
+      await resolve({ name: item.python, source: item.source });
     }
+    const providers = new Map<string, string>();
+    for (const item of [...manifest.components, ...manifest.actions, ...manifest.auth]) {
+      const file = await resolve(item);
+      const name = sourcePackage(item.source);
+      if (name !== null && !providers.has(name)) {
+        providers.set(name, file);
+      }
+    }
+    // A package's setup (global CSS, registrations) runs whenever any of its implementations is
+    // used, as loading the whole package bundle did before per-implementation imports.
+    const implicitSetups = [...providers]
+      .filter(([name, file]) => exportsSetup(name, file))
+      .map(([name]) => `${name}/setup`)
+      .filter((source) => !explicitSetups.includes(source))
+      .sort();
+    for (const source of implicitSetups) {
+      await resolve({ name: `${sourcePackage(source)} setup`, source });
+    }
+    project.setupSources = [...explicitSetups, ...implicitSetups];
   } finally {
     await resolver?.close();
     project.api.resolving = false;

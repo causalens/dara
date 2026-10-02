@@ -184,7 +184,7 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
             "dara check",
           );
         }
-        return generateEntry(api.project.manifest);
+        return generateEntry(api.project.manifest, api.project.setupSources);
       },
       configureServer(server) {
         if (api.resolving || !api.project) {

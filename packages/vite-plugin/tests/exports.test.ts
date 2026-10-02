@@ -147,6 +147,7 @@ await test("the self hook retains Vite browser defaults and evaluates the active
         typescript: { path: path.join(app, "tsconfig.json"), config: {} },
         inputs: new Set(),
         sourceFiles: new Set(),
+        setupSources: [],
         initialHashes: new Map(),
         assets: new Map(),
         state: "waiting",

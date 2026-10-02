@@ -205,11 +205,14 @@ export function portable(manifest: Manifest) {
   );
 }
 
-/** Build direct imports and maps; serialization prevents source and name injection. */
-export function generateEntry(manifest: Manifest): string {
+/**
+ * Build direct imports and maps; serialization prevents source and name injection.
+ * Setup sources are imported for their side effects before the app entry and implementations.
+ */
+export function generateEntry(manifest: Manifest, setupSources: readonly string[]): string {
   const js = [
     "import bootstrap from '@darajs/core/bootstrap';",
-    ...manifest.moduleDependencies.map((item) => `import ${JSON.stringify(item.source)};`),
+    ...setupSources.map((setup) => `import ${JSON.stringify(setup)};`),
     "import '/js/index.tsx';",
   ];
   const maps = [];

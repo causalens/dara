@@ -65,6 +65,7 @@ await test("entry uses dedicated default imports and preserves serialized names"
         ],
       }),
     ),
+    ["@pkg/library/setup"],
   );
   assert.match(entry, /import implementation0 from "\/js\/button.tsx"/);
   assert.match(entry, /\["__proto__"\]: implementation0/);

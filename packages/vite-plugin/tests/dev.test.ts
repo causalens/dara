@@ -90,6 +90,43 @@ async function until<T>(read: () => T | Promise<T>, description: string): Promis
   throw new Error(`Timed out waiting for ${description}`);
 }
 
+await test("used packages import their setup after explicit module dependencies", async (t) => {
+  const { root, manifest } = fixture(t);
+  configure(root, "setup");
+  const library = (name: string, exports: Record<string, string>) => {
+    const directory = path.join(root, "node_modules", name);
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(
+      path.join(directory, "package.json"),
+      JSON.stringify({ name, type: "module", exports }),
+    );
+    for (const target of Object.values(exports)) {
+      fs.writeFileSync(path.join(directory, target), "export default () => null;\n");
+    }
+  };
+  library("@pkg/styled", {
+    "./widget": "./widget.js",
+    "./act": "./act.js",
+    "./setup": "./setup.js",
+  });
+  library("@pkg/plain", { "./widget": "./widget.js" });
+  library("@pkg/explicit", { "./setup": "./setup.js" });
+  library("@pkg/unused", { "./setup": "./setup.js" });
+  const project = await loadProject(root, {
+    ...manifest,
+    moduleDependencies: [
+      { python: "explicit", package: "@pkg/explicit", source: "@pkg/explicit/setup" },
+    ],
+    components: [
+      { name: "Styled", source: "@pkg/styled/widget" },
+      { name: "Plain", source: "@pkg/plain/widget" },
+    ],
+    actions: [{ name: "StyledAction", source: "@pkg/styled/act" }],
+  });
+  assert.deepEqual(project.setupSources, ["@pkg/explicit/setup", "@pkg/styled/setup"]);
+  assert.ok(project.sourceFiles.has(path.join(root, "node_modules/@pkg/styled/setup.js")));
+});
+
 await test("configuration validation keeps each operation's NODE_ENV posture", async (t) => {
   const { root, manifest } = fixture(t);
   configure(root, "posture");
