@@ -10,6 +10,7 @@ import semver from "semver";
 import { createServer, loadConfigFromFile, resolveConfig } from "vite";
 import { parse as parseYaml } from "yaml";
 import { ProjectError, errorMessage, parseManifest, sourcePackage } from "./contract.js";
+import { checkUserConfig, type Serving } from "./ownership.js";
 import { atomicWrite, inside, readPackageJson, workspaceRoot } from "./files.js";
 
 export interface DaraPluginApi {
@@ -17,6 +18,8 @@ export interface DaraPluginApi {
   resolving: boolean;
   conditions?: string[];
   options: ParsedDaraOptions;
+  /** Set by the development runner before it creates the Vite server. */
+  serving?: Serving;
 }
 
 export type DaraPlugin = Plugin<DaraPluginApi> & { api: DaraPluginApi };
@@ -314,23 +317,7 @@ export async function loadProject(
   }
   const chosen = configs[command === "serve" ? 0 : 1];
   for (const config of configs) {
-    if (
-      config.userConfig.build?.outDir &&
-      path.resolve(root, config.userConfig.build.outDir) !== path.resolve(root, manifest.outDir)
-    ) {
-      throw new ProjectError(
-        "vite.output",
-        `build.outDir disagrees with Dara output ${manifest.outDir}`,
-        "edit vite.config.ts",
-      );
-    }
-    if (config.userConfig.root && path.resolve(root, config.userConfig.root) !== root) {
-      throw new ProjectError(
-        "vite.root",
-        "Vite root must be the Dara app root",
-        "edit vite.config.ts",
-      );
-    }
+    checkUserConfig(config.userConfig, root, manifest.outDir);
   }
   const project: Project = {
     root,

@@ -92,6 +92,8 @@ export async function serveProject(
         // installing its own SIGTERM handler, which exits before our cleanup.
         const listener = createHttpServer();
         httpServer = listener;
+        // Dara's endpoints are applied by the dara:owned plugin after every other plugin.
+        next.api.serving = { httpServer: listener, workspace: next.workspace };
         server = await createServer({
           ...next.userConfig,
           configFile: false,
@@ -100,13 +102,6 @@ export async function serveProject(
           logLevel: "warn",
           server: {
             ...next.userConfig.server,
-            middlewareMode: true,
-            host: "127.0.0.1",
-            port: 0,
-            strictPort: false,
-            // Omitting clientPort lets the browser use Python's port. No direct-origin fallback is needed.
-            hmr: { server: httpServer, path: "@dara/hmr" },
-            fs: { ...next.userConfig.server?.fs, strict: true, allow: [next.workspace] },
             watch: {
               ...next.userConfig.server?.watch,
               ignored: [

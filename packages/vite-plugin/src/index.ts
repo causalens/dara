@@ -17,10 +17,11 @@ import {
 } from "./contract.js";
 import { assetMiddleware } from "./assets.js";
 import { fileHash } from "./files.js";
+import { applyServing, verifyServing } from "./ownership.js";
 
 /**
  * Vite's own development deny list. A configured server.fs.deny replaces it rather than
- * extending it, so Dara restates it whenever the app has not configured its own.
+ * extending it, so Dara always restates it alongside the app's own exclusions.
  */
 const viteDefaultDeny = [
   ".env",
@@ -72,55 +73,12 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
       name: "dara:app",
       api,
       enforce: "pre",
-      config(config) {
-        if (!api.project) {
-          if (config.base && config.base !== "/static/") {
-            throw new ProjectError(
-              "vite.base",
-              "Dara owns base URLs; pass --base-url to the Python command",
-              "edit vite.config.ts",
-            );
-          }
-          if (config.publicDir) {
-            throw new ProjectError(
-              "vite.public",
-              "Use static/ or add_static_folder instead of Vite publicDir",
-              "edit vite.config.ts",
-            );
-          }
-          if (
-            config.build?.lib ||
-            config.build?.rollupOptions?.input ||
-            config.build?.rolldownOptions?.input
-          ) {
-            throw new ProjectError(
-              "vite.entry",
-              "Dara owns the application entry; use vite.lib.config.ts for a separate library build",
-              "edit vite.config.ts",
-            );
-          }
-          if (
-            config.server?.port ||
-            config.server?.host ||
-            config.server?.hmr ||
-            config.server?.ws ||
-            config.server?.origin ||
-            config.server?.proxy
-          ) {
-            throw new ProjectError(
-              "vite.server",
-              "Dara owns development endpoints and proxies them through Python",
-              "edit vite.config.ts",
-            );
-          }
-        }
+      config() {
         return {
           base: api.project?.base ?? "/static/",
-          // Vite concatenates this with application exclusions. Denied files stay private
-          // even through transform URLs such as ?raw or @fs.
-          server: {
-            fs: { deny: [...(config.server?.fs?.deny ? [] : viteDefaultDeny), ...daraDeny] },
-          },
+          // Vite concatenates this with application exclusions, which would otherwise replace
+          // its defaults. Denied files stay private even through transform URLs such as ?raw or @fs.
+          server: { fs: { deny: [...viteDefaultDeny, ...daraDeny] } },
           publicDir: false,
           appType: "custom",
           resolve: {
@@ -250,6 +208,22 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
               api.project.sourceFiles.add(fs.realpathSync(file));
             }
           }
+        }
+      },
+    },
+    {
+      // Runs after every other plugin's config hook, so Dara's development endpoints win over
+      // values contributed by plugins; the app's own owned settings were already reported.
+      name: "dara:owned",
+      enforce: "post",
+      config(config) {
+        if (api.serving) {
+          applyServing(config, api.serving);
+        }
+      },
+      configResolved(config) {
+        if (api.serving) {
+          verifyServing(config, api.serving);
         }
       },
     },
