@@ -115,12 +115,14 @@ def npm_version(python_package: str) -> str:
             f'{distribution} has no npm version mapping for {parsed}',
             'install a release, pre-release or dev version; post and local versions are not published to npm',
         )
+    # Each pre-release and dev part becomes its own identifier, so 2.0.0a1.dev3 stays distinct from 2.0.0a1.
+    identifiers = []
     if parsed.pre:
         label, number = parsed.pre
-        return f'{parsed.base_version}-{dict(a="alpha", b="beta").get(label, label)}.{number}'
+        identifiers += [dict(a='alpha', b='beta').get(label, label), str(number)]
     if parsed.dev is not None:
-        return f'{parsed.base_version}-dev.{parsed.dev}'
-    return parsed.base_version
+        identifiers += ['dev', str(parsed.dev)]
+    return parsed.base_version + ('-' + '.'.join(identifiers) if identifiers else '')
 
 
 def derive_manifest(

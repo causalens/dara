@@ -270,3 +270,20 @@ def test_configuration_rejects_malformed_nested_fields(tmp_path, contents):
         project.resolve_config(tmp_path)
     assert str(path) in caught.value.diagnostic.message
     assert caught.value.diagnostic.fix == f'edit {path}'
+
+
+@pytest.mark.parametrize(
+    ('python', 'npm'),
+    [
+        ('2.0.0', '2.0.0'),
+        ('2.0.0a1', '2.0.0-alpha.1'),
+        ('2.0.0b2', '2.0.0-beta.2'),
+        ('2.0.0rc1', '2.0.0-rc.1'),
+        ('2.0.0.dev3', '2.0.0-dev.3'),
+        ('2.0.0a1.dev3', '2.0.0-alpha.1.dev.3'),
+    ],
+)
+def test_python_versions_map_to_distinct_npm_versions(monkeypatch, python, npm):
+    """Dev builds of a pre-release keep their dev number instead of colliding with the pre-release."""
+    monkeypatch.setattr(project, 'version', lambda distribution: python)
+    assert project.npm_version('dara.core') == npm
