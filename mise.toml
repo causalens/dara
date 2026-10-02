@@ -87,9 +87,10 @@ run = "./tooling/scripts/publish-python.sh"
 [tasks.publish-npm]
 run = "rm -f .npmrc && pnpm --recursive --sort --workspace-concurrency 1 publish --no-git-checks"
 
+# npm first, so published wheels never require @darajs packages that are missing from npm.
 [tasks.publish]
-description = "Publish Python wheels and npm packages"
-depends = ["publish-python", "publish-npm"]
+description = "Publish npm packages, then Python wheels"
+run = ["mise run publish-npm", "mise run publish-python"]
 
 [tasks.publish-docs]
 run = "./tooling/scripts/publish-docs.sh"

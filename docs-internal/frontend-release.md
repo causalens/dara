@@ -16,7 +16,7 @@ The matrix covers:
 
 `mise run package` builds the `dara-core` and `dara-components` wheels with `uv build` into the repository-root `dist/`, and `mise run publish-python` publishes from there. Each npm package uses its own `dist/`; keeping wheels out of package directories prevents a Python wheel from entering an npm tarball.
 
-`mise run publish-npm` uses native pnpm publishing so the tarballs receive the same `publishConfig.exports` overrides as the release fixture's `pnpm pack` artifacts. It publishes sequentially in dependency order and skips versions already in the registry, allowing a failed release to resume. Run `mise run publish-npm -- --dry-run` to rehearse packing without uploading packages.
+`mise run publish-npm` uses native pnpm publishing so the tarballs receive the same `publishConfig.exports` overrides as the release fixture's `pnpm pack` artifacts. It publishes sequentially in dependency order and skips versions already in the registry, allowing a failed release to resume. Releases publish npm before PyPI, so a wheel never reaches PyPI before the `@darajs` packages it requires. Run `mise run publish-npm -- --dry-run` to rehearse packing without uploading packages.
 
 When bumping release versions, run `mise run lock-frontends` after both Python and npm metadata have changed. This reconciles the demo and Cypress app catalogs before the release commit. CI checks and production builds consume those committed files without repairing them.
 
