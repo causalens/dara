@@ -296,11 +296,10 @@ def run_plugin(
         input=json_text(manifest.model_dump(by_alias=True)) if manifest is not None else None,
         text=True,
         env=runner_environment(),
-        capture_output=True,
+        # stdout carries the plugin's JSON result; its progress and logs stream through stderr.
+        stdout=subprocess.PIPE,
         check=False,
     )
-    if result.stderr:
-        click.echo(result.stderr.rstrip(), err=True)
     if result.returncode:
         try:
             diagnostics = json.loads(result.stdout)
@@ -502,10 +501,9 @@ def prepare_project(
                 if policy.stdout.strip() == 'undefined':
                     # Leave scripts unapproved and surface pnpm's diagnostic; respect an explicit policy.
                     environment['PNPM_CONFIG_STRICT_DEP_BUILDS'] = 'false'
-                result = run(command, cwd=workspace, env=environment, text=True, capture_output=True, check=False)
-                for output in (result.stdout, result.stderr):
-                    if output:
-                        click.echo(output.rstrip(), err=True)
+                # Stream pnpm's progress as it installs. Both streams go to stderr, so commands whose
+                # stdout is a JSON result, such as dara build, stay machine-readable.
+                result = run(command, cwd=workspace, env=environment, text=True, stdout=2, check=False)
                 if result.returncode:
                     raise ProjectError(
                         'dependency.install',
