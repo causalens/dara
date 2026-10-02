@@ -39,7 +39,8 @@ const viteDefaultDeny = [
 const daraDeny = ["**/.dara*/**", "**/.dara-build.json", "**/index.dev.html", ".pypirc", ".netrc"];
 
 /**
- * HTML belongs to Vite; Python fills runtime JSON and URL placeholders when serving it.
+ * HTML belongs to Vite; Python fills runtime JSON and URL placeholders when serving it. The root
+ * shows a loading indicator until React renders the application into it.
  *
  * dara-core's static jquery.min.js stays a deferred classic script, so the `$` global that Bokeh
  * widgets expect exists before any module runs, until vendored libraries move to npm imports.
@@ -52,15 +53,21 @@ export function htmlTemplate(
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dara</title><base href="{{ base_url }}/"><link rel="icon" href="{{ static_url }}/favicon.ico">
-<style>html,body,#dara_root{margin:0;min-height:100%;width:100%}body{display:flex}#dara_root{flex:1}</style>
+<style>html,body,#dara_root{margin:0;min-height:100%;width:100%}body{display:flex;min-height:100vh}#dara_root{flex:1;display:flex}
+.dara-dots-center{flex:1;display:flex;align-items:center;justify-content:center}
+.dara-dots,.dara-dots::before,.dara-dots::after{width:10px;height:10px;border-radius:5px;background:#8D9199;animation:dara-dots 1s infinite alternate}
+.dara-dots{position:relative;animation-delay:.5s}.dara-dots::before,.dara-dots::after{content:"";position:absolute;top:0}
+.dara-dots::before{left:-15px;animation-delay:0s}.dara-dots::after{left:15px;animation-delay:1s}
+@keyframes dara-dots{0%{background:#8D9199}50%,100%{background:#C3C6CF}}
+@media (prefers-reduced-motion:reduce){.dara-dots,.dara-dots::before,.dara-dots::after{animation:none}}</style>
 <script id="__DARA_DATA__" type="application/json">{{ dara_data | safe }}</script>
 <script id="__DARA_URLS__" type="application/json">{{ runtime_urls | safe }}</script>
-<script>window.dara=JSON.parse(document.getElementById('__DARA_URLS__').textContent);window.__toDaraUrl=(filename)=>window.dara.static_url+filename;</script>
+<script>window.dara=JSON.parse(document.getElementById('__DARA_URLS__').textContent);</script>
 ${styles.map((file) => `<link rel="stylesheet" href="{{ static_url }}/${file}">`).join("\n")}
 <script defer src="{{ static_url }}/dara.core/jquery.min.js"></script>
 ${development ? `<script type="module">import RefreshRuntime from '{{ static_url }}/@react-refresh';RefreshRuntime.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;</script>` : ""}
 ${scripts.map((file) => `<script type="module" src="{{ static_url }}/${file}"></script>`).join("\n")}
-</head><body><div id="dara_root"></div></body></html>`;
+</head><body><div id="dara_root"><div class="dara-dots-center"><div class="dara-dots"></div></div></div></body></html>`;
 }
 
 /** Vite integration and input declarations shared by all Dara applications. */
