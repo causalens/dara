@@ -159,9 +159,10 @@ class ArtifactFiles(StaticFiles):
 
     async def get_response(self, path: str, scope):
         """Refuse private output even when accessed through a normalized alias."""
-        normalized = Path(path).as_posix()
+        # Compare case-insensitively: on macOS and Windows INDEX.HTML opens index.html.
+        normalized = Path(path).as_posix().casefold()
         if normalized in ('index.html', '.dara-build.json') or any(
-            part.startswith('.dara') for part in Path(path).parts
+            part.casefold().startswith('.dara') for part in Path(path).parts
         ):
             raise HTTPException(status_code=404)
         return await super().get_response(path, scope)

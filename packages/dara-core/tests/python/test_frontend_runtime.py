@@ -90,3 +90,20 @@ def test_marker_cannot_read_outside_its_source_root(built_project):
     file.write_text(json.dumps(marker))
     with pytest.raises(ProjectError, match='escapes its root'):
         validate_build(root, manifest)
+
+
+@pytest.mark.parametrize('name', ['index.html', 'INDEX.HTML', 'Index.Html', '.dara-build.json', '.DARA-BUILD.JSON'])
+def test_artifact_files_keep_private_output_private_in_any_case(tmp_path, name):
+    """Case-insensitive filesystems open INDEX.HTML as index.html, so the private names match in any case."""
+    from starlette.applications import Starlette
+    from starlette.routing import Mount
+    from starlette.testclient import TestClient
+
+    from dara.core.js_tooling.runtime import ArtifactFiles
+
+    (tmp_path / 'index.html').write_text('{{ dara_data }}')
+    (tmp_path / '.dara-build.json').write_text('{}')
+    (tmp_path / 'app.js').write_text('export {};')
+    client = TestClient(Starlette(routes=[Mount('/static', ArtifactFiles(directory=tmp_path))]))
+    assert client.get(f'/static/{name}').status_code == 404
+    assert client.get('/static/app.js').status_code == 200
