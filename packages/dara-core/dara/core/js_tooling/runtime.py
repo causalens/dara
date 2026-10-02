@@ -175,6 +175,16 @@ def frontend_status(root: Path) -> dict:
         state = read_json(root / 'node_modules/.dara/dev-server.json')
         if state.get('token') != owner['token']:
             return {'state': 'waiting'}
+        diagnostic = state.get('diagnostic')
+        readable = isinstance(diagnostic, dict) and all(
+            isinstance(diagnostic.get(key, ''), str) for key in ('code', 'message', 'fix')
+        )
+        if diagnostic is not None and not readable:
+            # Renderers rely on string fields; a malformed runner status must not become a 500.
+            return {
+                'state': 'blocked',
+                'diagnostic': {'message': 'The frontend runner reported an unreadable diagnostic', 'fix': 'dara dev'},
+            }
         if state.get('state') == 'ready':
             origin = urlparse(state['origin'])
             if origin.scheme != 'http' or origin.hostname != '127.0.0.1' or not origin.port:

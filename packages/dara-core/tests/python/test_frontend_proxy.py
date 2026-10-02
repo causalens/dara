@@ -717,3 +717,16 @@ async def test_unavailable_upstream_connection_returns_bounded_failures(tmp_path
                     pytest.fail('Unavailable frontend must refuse the upgrade')
             assert error.value.response.status_code == 403
     assert not [record for record in caplog.records if record.levelname == 'ERROR']
+
+
+@pytest.mark.parametrize('diagnostic', ['broken', ['x'], {'message': 3}, {'fix': None}])
+def test_malformed_runner_diagnostics_are_reported_as_blocked(tmp_path, diagnostic):
+    """A runner status with an unreadable diagnostic renders as a blocked frontend, not a server error."""
+    private = tmp_path / 'node_modules/.dara'
+    private.mkdir(parents=True)
+    (private / 'supervisor.json').write_text(json.dumps({'pid': os.getpid(), 'token': 't'}))
+    (private / 'dev-server.json').write_text(json.dumps({'state': 'blocked', 'token': 't', 'diagnostic': diagnostic}))
+    state = runtime.frontend_status(tmp_path)
+    assert state['state'] == 'blocked'
+    assert isinstance(state['diagnostic']['message'], str)
+    assert isinstance(state['diagnostic']['fix'], str)
