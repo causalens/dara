@@ -259,7 +259,8 @@ def check(config: str | None, as_json: bool):
     loaded = attempt(load)
     if loaded is not None:
         root, manifest = loaded
-        consistent = attempt(lambda: dependencies(root, manifest))
+        # pnpm verifies the lockfile, so a missing pnpm is reported once, by the toolchain check.
+        consistent = attempt(lambda: dependencies(root, manifest)) if tools['pnpm'] else None
         # The plugin runs through pnpm against installed dependencies, so it needs both.
         if consistent and all(tools.values()):
             result = attempt(lambda: run_plugin(root, 'check', manifest))
