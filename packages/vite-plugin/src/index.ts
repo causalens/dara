@@ -181,7 +181,7 @@ export default function dara(rawOptions: DaraOptions = {}): PluginOption[] {
           throw new ProjectError(
             "frontend.waiting",
             "The frontend project is not ready",
-            "dara check",
+            "wait for dara dev to finish preparing the frontend",
           );
         }
         return generateEntry(api.project.manifest, api.project.setupSources);

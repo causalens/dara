@@ -3,8 +3,10 @@
 import json
 import os
 import sys
+from collections.abc import Callable
 from contextlib import redirect_stdout
 from pathlib import Path
+from typing import TypeVar
 
 import uvicorn
 
@@ -13,6 +15,8 @@ from dara.core.internal.port_utils import find_available_port
 from dara.core.internal.settings import generate_env_file
 from dara.core.js_tooling.models import ProjectError
 from dara.core.js_tooling.project import (
+    ENGINES,
+    check_binary,
     check_toolchain,
     dependency_plan,
     derive_manifest,
@@ -25,6 +29,8 @@ from dara.core.js_tooling.project import (
 )
 from dara.core.js_tooling.runtime import validate_build
 from dara.core.js_tooling.supervisor import supervise
+
+T = TypeVar('T')
 
 
 class DaraGroup(click.Group):
@@ -207,41 +213,63 @@ def build(config: str | None, output: str | None, no_deps_build: bool):
 
 
 @cli.command()
-@click.option('--config')
-@click.option('--json', 'as_json', is_flag=True)
+@click.option('--config', help='Override [tool.dara].config with module:object')
+@click.option('--json', 'as_json', is_flag=True, help='Print the diagnostics as a JSON list')
 def check(config: str | None, as_json: bool):
-    """Report project diagnostics without repairing files or installing dependencies."""
-    diagnostics = []
-    try:
-        tools = check_toolchain()
-        with redirect_stdout(sys.stderr):
-            root, manifest = _manifest(config)
+    """
+    Report every project diagnostic without repairing files or installing dependencies.
+
+    Independent checks all run; a check is skipped only when one it depends on failed. Each
+    diagnostic has a stable code from the diagnostics reference and an empty fix when it passed.
+    """
+    diagnostics: list[dict] = []
+
+    def attempt(step: Callable[[], T]) -> T | None:
+        try:
+            return step()
+        except ProjectError as error:
+            diagnostics.append(error.diagnostic.model_dump())
+            return None
+
+    def load():
+        try:
+            with redirect_stdout(sys.stderr):
+                return _manifest(config)
+        except ProjectError:
+            raise
+        except Exception as error:
+            raise ProjectError(
+                'project.import', str(error), 'fix the application configuration, then run dara check'
+            ) from error
+
+    def dependencies(root: Path, manifest) -> bool:
         if dependency_plan(root, manifest) or not lockfile_agrees(root):
             raise ProjectError(
-                'dependency.drift', 'Project declarations and lockfile disagree; run dara lock and commit the result'
+                'dependency.drift', 'Project declarations and lockfile disagree', 'run dara lock and commit the result'
             )
-        result = run_plugin(root, 'check', manifest)
-        runtime = json.loads(result.stdout)['runtime']
-        diagnostics.append(
-            {
-                'code': 'toolchain.ready',
-                'message': f'PATH node {tools["node"]}, pnpm {tools["pnpm"]}; plugin runtime {runtime}',
-                'fix': '',
-            }
-        )
+        return True
+
+    tools = {binary: attempt(lambda binary=binary: check_binary(binary)) for binary in ENGINES}
+    loaded = attempt(load)
+    if loaded is not None:
+        root, manifest = loaded
+        consistent = attempt(lambda: dependencies(root, manifest))
+        # The plugin runs through pnpm against installed dependencies, so it needs both.
+        if consistent and all(tools.values()):
+            result = attempt(lambda: run_plugin(root, 'check', manifest))
+            if result is not None:
+                runtime = json.loads(result.stdout)['runtime']
+                diagnostics.append(
+                    {
+                        'code': 'toolchain.ready',
+                        'message': f'PATH node {tools["node"]}, pnpm {tools["pnpm"]}; plugin runtime {runtime}',
+                        'fix': '',
+                    }
+                )
         if (Path(manifest.out_dir) / '.dara-build.json').exists():
-            validate_build(root, manifest)
+            attempt(lambda: validate_build(root, manifest))
+    if not any(d['fix'] for d in diagnostics):
         diagnostics.append({'code': 'project.ready', 'message': 'Frontend project is consistent', 'fix': ''})
-    except ProjectError as error:
-        diagnostics.append(error.diagnostic.model_dump())
-    except Exception as error:
-        diagnostics.append(
-            {
-                'code': 'project.import',
-                'message': str(error),
-                'fix': 'fix the application configuration, then run dara check',
-            }
-        )
     if as_json:
         click.echo(json.dumps(diagnostics))
     else:

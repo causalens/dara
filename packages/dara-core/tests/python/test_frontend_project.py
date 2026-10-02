@@ -148,8 +148,10 @@ def test_frozen_preparation_never_creates_project_files(tmp_path, manifest, monk
     monkeypatch.setattr(project, 'check_toolchain', lambda **kwargs: {})
     run = Mock()
     monkeypatch.setattr(project.subprocess, 'run', run)
-    with pytest.raises(ProjectError, match='run dara lock'):
+    with pytest.raises(ProjectError) as raised:
         project.prepare_project(tmp_path, manifest, frozen=True)
+    assert raised.value.diagnostic.code == 'dependency.drift'
+    assert raised.value.diagnostic.fix == 'run dara lock and commit the result'
     assert not (tmp_path / 'package.json').exists()
     assert not (tmp_path / 'pnpm-workspace.yaml').exists()
     run.assert_not_called()

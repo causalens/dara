@@ -31,7 +31,7 @@ try {
     throw new ProjectError(
       "command.unknown",
       `Expected one plugin operation: ${command.error.message}`,
-      "dara check",
+      "run dara lock to realign @darajs/vite-plugin with Dara",
     );
   }
   const [operation] = command.data;

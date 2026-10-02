@@ -45,11 +45,14 @@ export const shared = [
 export const virtualEntry = "virtual:dara-entry";
 export const resolvedEntry = "\0virtual:dara-entry";
 
-/** Diagnostic codes are stable across all four runners and the Python CLI. */
+/**
+ * Diagnostic codes are stable across all four runners and the Python CLI. Every failure names the
+ * action that repairs it; see the diagnostics reference for the codes.
+ */
 export class ProjectError extends Error {
   readonly diagnostic: Diagnostic;
 
-  constructor(code: string, message: string, fix = "dara lock") {
+  constructor(code: string, message: string, fix: string) {
     super(message);
     this.diagnostic = { code, message, fix };
   }
@@ -73,7 +76,11 @@ export function errorMessage(error: unknown): string {
 export function diagnostic(error: unknown): Diagnostic {
   return error instanceof ProjectError
     ? error.diagnostic
-    : { code: "frontend.runner", message: errorMessage(error), fix: "dara check" };
+    : {
+        code: "frontend.runner",
+        message: errorMessage(error),
+        fix: "fix the error above; if it persists, run dara lock to realign @darajs/vite-plugin with Dara",
+      };
 }
 
 const source = z
@@ -153,6 +160,7 @@ export function parseManifest(raw: unknown): Manifest {
     throw new ProjectError(
       "manifest.version",
       `Python Dara ${result.data.daraVersion} does not match plugin ${version}`,
+      "dara lock",
     );
   }
   for (const key of ["components", "actions", "auth"] as const) {

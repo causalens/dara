@@ -110,7 +110,11 @@ def npm_version(python_package: str) -> str:
     distribution = python_package.replace('.', '-') if python_package.startswith('dara.') else python_package
     parsed = Version(version(distribution))
     if parsed.post is not None or parsed.local is not None:
-        raise ProjectError('dependency.version', f'{distribution} has no npm version mapping for {parsed}')
+        raise ProjectError(
+            'dependency.version',
+            f'{distribution} has no npm version mapping for {parsed}',
+            'install a release, pre-release or dev version; post and local versions are not published to npm',
+        )
     if parsed.pre:
         label, number = parsed.pre
         return f'{parsed.base_version}-{dict(a="alpha", b="beta").get(label, label)}.{number}'
@@ -135,7 +139,11 @@ def derive_manifest(
         if npm and npm != own_name:
             previous = packages.setdefault(npm, definition.py_module)
             if previous != definition.py_module:
-                raise ProjectError('dependency.mapping', f'{npm} maps to both {previous} and {definition.py_module}')
+                raise ProjectError(
+                    'dependency.mapping',
+                    f'{npm} maps to both {previous} and {definition.py_module}',
+                    'declare each npm package from a single Python package',
+                )
     for component in auth.values():
         npm = source_package(component['js_source'])
         if npm and npm != own_name:
@@ -214,24 +222,27 @@ def write_manifest(root: Path, manifest: FrontendManifest, operation: str) -> Pa
     return path
 
 
+def check_binary(binary: str, *, processes: ProcessOwner | None = None) -> str:
+    """Return the version of one prerequisite on PATH, or fail with its supported range."""
+    required = ENGINES[binary]
+    run = processes.run if processes else subprocess.run
+    try:
+        result = run([binary, '--version'], capture_output=True, text=True, check=True)
+        actual = result.stdout.strip().removeprefix('v')
+        if not NpmSpec(required).match(SemVersion(actual)):
+            raise ValueError(f'found {actual}')
+    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+        raise ProjectError(
+            'toolchain.' + binary,
+            f'{binary} {required} is required on PATH ({exc})',
+            f'install {binary} {required}',
+        ) from exc
+    return actual
+
+
 def check_toolchain(*, processes: ProcessOwner | None = None) -> dict[str, str]:
     """Check prerequisites on PATH; Dara never installs a runtime or package manager."""
-    found = {}
-    run = processes.run if processes else subprocess.run
-    for binary, required in ENGINES.items():
-        try:
-            result = run([binary, '--version'], capture_output=True, text=True, check=True)
-            actual = result.stdout.strip().removeprefix('v')
-            if not NpmSpec(required).match(SemVersion(actual)):
-                raise ValueError(f'found {actual}')
-            found[binary] = actual
-        except (OSError, ValueError, subprocess.CalledProcessError) as exc:
-            raise ProjectError(
-                'toolchain.' + binary,
-                f'{binary} {required} is required on PATH ({exc})',
-                f'install {binary} {required}',
-            ) from exc
-    return found
+    return {binary: check_binary(binary, processes=processes) for binary in ENGINES}
 
 
 def runner_environment() -> dict[str, str]:
@@ -297,7 +308,9 @@ def run_plugin(
             raise ProjectError(failure['code'], failure['message'], failure['fix'])
         except (ValueError, KeyError, StopIteration, TypeError):
             raise ProjectError(
-                'frontend.runner', f'{operation} failed: {result.stdout.strip()}', 'dara check'
+                'frontend.runner',
+                f'{operation} failed: {result.stdout.strip()}',
+                'fix the error above; if it persists, run dara lock to realign @darajs/vite-plugin with Dara',
             ) from None
     return result
 
@@ -338,14 +351,17 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
         if required.name in dependencies[other_section]:
             raise ProjectError(
                 'dependency.reference',
-                f'{required.name} belongs in {required.section} as catalog:dara; move the existing {other_section} entry',
+                f'{required.name} belongs in {required.section} as catalog:dara',
+                f'move the {other_section} entry for {required.name} in package.json',
             )
         if existing is None:
             entries[required.name] = 'catalog:dara'
             package[required.section] = entries
         elif existing != 'catalog:dara' and not existing.startswith(('workspace:', 'file:', 'link:')):
             raise ProjectError(
-                'dependency.reference', f'{required.name} must reference catalog:dara, found {existing!r}'
+                'dependency.reference',
+                f'{required.name} must reference catalog:dara, found {existing!r}',
+                f'set {required.name} to catalog:dara in package.json',
             )
     engines = package_fields.engines
     for binary, required in ENGINES.items():
@@ -378,7 +394,9 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
                     package['engines'] = engines
             except ValueError as exc:
                 raise ProjectError(
-                    'toolchain.engines', f'engines.{binary}={existing!r} conflicts with {required}'
+                    'toolchain.engines',
+                    f'engines.{binary}={existing!r} conflicts with {required}',
+                    f'edit engines.{binary} in package.json to allow {required}',
                 ) from exc
     planned = {}
     if not package_path.exists() or package != original_package:
@@ -448,7 +466,7 @@ def prepare_project(
         agrees = not planned and lockfile_agrees(root)
         if frozen and not agrees:
             raise ProjectError(
-                'dependency.drift', 'Project declarations and lockfile disagree; run dara lock and commit the result'
+                'dependency.drift', 'Project declarations and lockfile disagree', 'run dara lock and commit the result'
             )
         for path, content in planned.items():
             atomic_write(path, content)
@@ -491,7 +509,8 @@ def prepare_project(
                 if result.returncode:
                     raise ProjectError(
                         'dependency.install',
-                        'pnpm installation failed; check the registry route, .npmrc environment placeholders and the pnpm diagnostic above',
+                        'pnpm installation failed',
+                        'fix the pnpm diagnostic above, such as the registry route or .npmrc environment placeholders, then rerun',
                     )
                 if not agrees:
                     changed.append(str((workspace / 'pnpm-lock.yaml').relative_to(workspace)))

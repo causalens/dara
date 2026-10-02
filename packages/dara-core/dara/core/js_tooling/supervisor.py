@@ -190,7 +190,11 @@ def supervise(
                 if not retry(error):
                     blocked(error)
             except (ValueError, OSError) as error:
-                wrapped = ProjectError('frontend.prepare', str(error), 'dara check')
+                wrapped = ProjectError(
+                    'frontend.prepare',
+                    str(error),
+                    'fix the reported file or permission error; dara dev retries when project files change',
+                )
                 if not retry(wrapped):
                     blocked(wrapped)
 

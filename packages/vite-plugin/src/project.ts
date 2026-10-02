@@ -103,7 +103,7 @@ export function checkTypescript(root: string) {
     throw new ProjectError("typescript.config", errorMessage(error), "edit tsconfig.json");
   }
   if (!config || path.resolve(config.path) !== path.join(root, "tsconfig.json")) {
-    throw new ProjectError("typescript.config", "The app needs a root tsconfig.json");
+    throw new ProjectError("typescript.config", "The app needs a root tsconfig.json", "dara lock");
   }
   const options = typescriptOptionsSchema.safeParse(config.config.compilerOptions ?? {});
   if (!options.success) {
@@ -134,7 +134,7 @@ function checkDependencies(
 ) {
   const file = path.join(workspace, "pnpm-workspace.yaml");
   if (!fs.existsSync(file)) {
-    throw new ProjectError("dependency.catalog", "Missing pnpm-workspace.yaml");
+    throw new ProjectError("dependency.catalog", "Missing pnpm-workspace.yaml", "dara lock");
   }
   const catalog = z
     .object({
@@ -147,6 +147,7 @@ function checkDependencies(
       throw new ProjectError(
         "dependency.catalog",
         `catalogs.dara.${required.name} must be ${required.specifier}`,
+        "dara lock",
       );
     }
     const reference = packageJson[required.section]?.[required.name];
@@ -160,11 +161,16 @@ function checkDependencies(
       throw new ProjectError(
         "dependency.reference",
         `${required.name} needs a ${required.section} reference to catalog:dara`,
+        "dara lock",
       );
     }
     const installed = path.join(root, "node_modules", required.name, "package.json");
     if (!fs.existsSync(installed)) {
-      throw new ProjectError("dependency.missing", `${required.name} is not installed`);
+      throw new ProjectError(
+        "dependency.missing",
+        `${required.name} is not installed`,
+        "dara lock",
+      );
     }
     const actual = readPackageJson(installed);
     if (
@@ -175,6 +181,7 @@ function checkDependencies(
       throw new ProjectError(
         "dependency.version",
         `${required.name}: installed ${actual.name}@${actual.version}, expected ${required.specifier}`,
+        "dara lock",
       );
     }
     if (reference !== "catalog:dara") {
@@ -185,6 +192,7 @@ function checkDependencies(
         throw new ProjectError(
           "dependency.target",
           `${required.name}: ${reference} must resolve inside ${workspace}`,
+          "edit the dependency reference to point inside the workspace",
         );
       }
     }
@@ -203,7 +211,7 @@ async function resolveProjectConfig(
 ): Promise<ProjectConfig> {
   const file = path.join(root, "vite.config.ts");
   if (!fs.existsSync(file)) {
-    throw new ProjectError("vite.config", "Missing vite.config.ts");
+    throw new ProjectError("vite.config", "Missing vite.config.ts", "dara lock");
   }
   const env = { command, mode: command === "serve" ? "development" : "production" };
   process.env["NODE_ENV"] = env.mode;
@@ -288,6 +296,7 @@ export async function loadProject(
       throw new ProjectError(
         "project.missing",
         `Missing ${name}; run dara lock and commit the result`,
+        "dara lock, then commit the created file",
       );
     }
   }

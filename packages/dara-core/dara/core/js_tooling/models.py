@@ -23,9 +23,13 @@ class Diagnostic(Contract):
 
 
 class ProjectError(Exception):
-    """Carry a diagnostic across the command boundary without losing its code."""
+    """
+    Carry a diagnostic across the command boundary without losing its code.
 
-    def __init__(self, code: str, message: str, fix: str = 'dara lock'):
+    Every failure names the action that repairs it; see the diagnostics reference for the codes.
+    """
+
+    def __init__(self, code: str, message: str, fix: str):
         self.diagnostic = Diagnostic(code=code, message=message, fix=fix)
         super().__init__(message)
 
