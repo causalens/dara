@@ -27,6 +27,7 @@ from importlib.util import find_spec
 from inspect import iscoroutine
 from multiprocessing.process import BaseProcess
 from pathlib import Path
+from typing import Any
 
 from anyio import create_task_group
 from fastapi import FastAPI, HTTPException, Request
@@ -85,6 +86,15 @@ from dara.core.telemetry import (
     observe_internal_operation,
     shutdown_telemetry,
 )
+
+# HTML parsers recognize closing script tags even inside JSON strings. Escaping HTML delimiters
+# (and the JavaScript line separators) after serialization keeps JSON inside its script element.
+_SCRIPT_SAFE = str.maketrans({'<': r'\u003c', '>': r'\u003e', '&': r'\u0026', '\u2028': r'\u2028', '\u2029': r'\u2029'})
+
+
+def _script_json(value: Any) -> str:
+    """Serialize JSON for embedding in a <script type="application/json"> element."""
+    return json.dumps(value).translate(_SCRIPT_SAFE)
 
 
 def _callable_name(func: Callable) -> str:
@@ -529,20 +539,13 @@ def _start_application(config: Configuration):
             'build_mode': 'PRODUCTION',
             'build_dev': development,
         }
-        # HTML parsers recognize closing script tags even inside JSON strings. Escape
-        # HTML delimiters after serialization so bootstrap data cannot end its element.
-        json_template_data = json.dumps(jsonable_encoder(template_data)).translate(
-            str.maketrans({'<': r'\u003c', '>': r'\u003e', '&': r'\u0026', '\u2028': r'\u2028', '\u2029': r'\u2029'})
-        )
+        json_template_data = _script_json(jsonable_encoder(template_data))
 
         # For any unmatched route then serve the app to the user if we have any pages to serve
         # (Required for the chosen routing system in the UI)
 
         base_url = os.environ.get('DARA_BASE_URL', '').rstrip('/')
-        runtime_urls = json.dumps({'base_url': base_url, 'static_url': base_url + '/static/'})
-        runtime_urls = runtime_urls.translate(
-            str.maketrans({'<': r'\u003c', '>': r'\u003e', '&': r'\u0026', '\u2028': r'\u2028', '\u2029': r'\u2029'})
-        )
+        runtime_urls = _script_json({'base_url': base_url, 'static_url': base_url + '/static/'})
         context = {
             'dara_data': json_template_data,
             'runtime_urls': runtime_urls,
