@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { lookup } from "mrmime";
 import type { Connect } from "vite";
 import type { Project } from "./project.js";
 import type { Manifest } from "./contract.js";
@@ -7,7 +8,9 @@ import { ProjectError } from "./contract.js";
 import { inside, treeFiles } from "./files.js";
 
 /** Expand registered assets into one collision-checked output namespace. */
-export function collectAssets(manifest: Manifest): Map<string, string> {
+export function collectAssets(
+  manifest: Pick<Manifest, "static" | "appStatic"> & Partial<Pick<Manifest, "favicon">>,
+): Map<string, string> {
   const files = new Map<string, string>();
   const namespaces = new Set(manifest.static.map((item) => item.package));
   const add = (destination: string, source: string, application = false) => {
@@ -141,17 +144,7 @@ export function assetMiddleware(
       response.end();
       return;
     }
-    const extension = path.extname(file);
-    const types: Record<string, string> = {
-      ".js": "text/javascript",
-      ".css": "text/css",
-      ".json": "application/json",
-      ".svg": "image/svg+xml",
-      ".ico": "image/x-icon",
-      ".png": "image/png",
-      ".html": "text/html",
-    };
-    response.setHeader("Content-Type", types[extension] ?? "application/octet-stream");
+    response.setHeader("Content-Type", lookup(file) ?? "application/octet-stream");
     response.setHeader("Cache-Control", "no-cache");
     if (request.method === "HEAD") {
       response.end();
@@ -169,7 +162,15 @@ export function assetMiddleware(
 export function copyAssets(project: Pick<Project, "assets">, staging: string) {
   for (const [target, source] of project.assets) {
     const destination = path.resolve(staging, target);
-    if (!inside(staging, destination) || fs.existsSync(destination)) {
+    let ancestor = path.dirname(destination);
+    while (inside(staging, ancestor) && ancestor !== staging && !fs.existsSync(ancestor)) {
+      ancestor = path.dirname(ancestor);
+    }
+    if (
+      !inside(staging, destination) ||
+      fs.existsSync(destination) ||
+      !fs.statSync(ancestor).isDirectory()
+    ) {
       throw new ProjectError(
         "asset.collision",
         `${source} collides with generated output ${target}`,
@@ -179,4 +180,15 @@ export function copyAssets(project: Pick<Project, "assets">, staging: string) {
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(source, destination);
   }
+}
+
+/** Watch registered roots, including missing files, so static additions and deletions recover live. */
+export function assetRoots(manifest: Manifest) {
+  return [
+    ...new Set([
+      ...manifest.static.map((asset) => asset.source),
+      ...manifest.appStatic,
+      ...(manifest.favicon ? [manifest.favicon] : []),
+    ]),
+  ];
 }

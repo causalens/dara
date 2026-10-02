@@ -86,7 +86,7 @@ class FrontendManifest(Contract):
 
     def portable(self) -> dict:
         """Return runtime-compatible fields, excluding machine paths and diagnostic metadata."""
-        return self.model_dump(
+        contract = self.model_dump(
             by_alias=True,
             include={
                 'schema_version',
@@ -98,3 +98,5 @@ class FrontendManifest(Contract):
                 'auth',
             },
         )
+        contract['static'] = [{'package': asset.package, 'target': asset.target} for asset in self.static]
+        return contract
