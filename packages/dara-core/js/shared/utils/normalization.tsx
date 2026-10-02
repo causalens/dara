@@ -7,8 +7,8 @@ import {
     isDerivedVariable,
     isResolvedDerivedVariable,
     isResolvedSwitchVariable,
-} from '@/types';
-import { isLoopVariable } from '@/types/utils';
+} from '../../types';
+import { isLoopVariable } from '../../types/utils';
 
 /* eslint-disable no-underscore-dangle */
 type Mapping = Record<string, any>;

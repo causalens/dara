@@ -67,6 +67,8 @@ class Code(ContentComponent):
     :param language: The language to use for code highlighting
     """
 
+    js_source = '@darajs/components/code'
+
     code: str | ClientVariable
     theme: Themes | None = None
     language: str = 'python'

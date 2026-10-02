@@ -8,8 +8,6 @@ import {
     useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE,
 } from 'recoil';
 
-import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
-import useDeferLoadable from '@/shared/utils/use-defer-loadable';
 import {
     UserError,
     type Variable,
@@ -19,9 +17,10 @@ import {
     isStreamVariable,
     isSwitchVariable,
     isVariable,
-} from '@/types';
-
+} from '../../types';
+import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '../context';
 import { useEventBus } from '../event-bus/event-bus';
+import useDeferLoadable from '../utils/use-defer-loadable';
 import { findStreamVariables } from './find-stream-variables';
 // eslint-disable-next-line import/no-cycle
 import {
@@ -112,7 +111,9 @@ export function useVariable<T>(
     useStreamSubscription(streamUids, extras);
 
     if (isDerivedVariable(variable)) {
-        const [pollingInterval] = useVariable<number | null>(variable.polling_interval ?? null, { suspend: false });
+        const [pollingInterval] = useVariable<number | null>(variable.polling_interval ?? null, {
+            suspend: false,
+        });
         const selector = useDerivedVariable(
             variable,
             wsClient,

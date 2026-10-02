@@ -1,4 +1,4 @@
-import { type Component, ComponentType, type JsComponent } from '@/types';
+import { type Component, ComponentType, type JsComponent } from '../../types';
 
 /**
  * Check a component is a JS component and apply a type guard for the returned type

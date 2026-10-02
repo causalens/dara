@@ -65,7 +65,7 @@ function Grid(props: GridProps): JSX.Element {
                 ...style,
             }}
         >
-            <DisplayCtx.Provider value={{ component: 'grid', direction: 'vertical', hug: props.hug }}>
+            <DisplayCtx.Provider value={{ component: 'grid', direction: 'vertical', hug: props.hug ?? false }}>
                 {_children.map((child, idx) => (
                     <DynamicComponent component={child} key={`grid-${idx}-${child.uid}`} />
                 ))}

@@ -6,8 +6,8 @@ import { type DefaultTheme } from '@darajs/styled-components';
 import { type NotificationPayload, useNotifications } from '@darajs/ui-notifications';
 import { type SortingRule } from '@darajs/ui-utils';
 
-import { type RequestExtras } from '@/api/http';
-import { type WebSocketClientInterface } from '@/api/websocket';
+import { type RequestExtras } from '../api/http';
+import { type WebSocketClientInterface } from '../api/websocket';
 
 export interface NormalizedPayload<T> {
     data: T;
@@ -27,8 +27,7 @@ interface ConfigTheme {
  * Separate from the main component system, since we can't use component registry for this yet
  */
 export interface AuthComponent {
-    js_module: string;
-    js_name: string;
+    js_source: string;
     py_module: string;
 }
 
@@ -327,8 +326,7 @@ export enum ComponentType {
 }
 
 export interface JsComponent {
-    js_component?: string;
-    js_module: string;
+    js_source: string;
     name: string;
     py_module: string;
     type: ComponentType.JS;
@@ -434,7 +432,6 @@ export type PyComponentInstance = ComponentInstance<
     BaseComponentProps & {
         func_name: string;
         dynamic_kwargs: Record<string, AnyVariable<any>>;
-        js_module: string | null;
         polling_interval: Variable<number | null> | number | null;
     }
 >;
@@ -535,7 +532,7 @@ export interface ActionDef {
     /**
      * Name of the JS module containing the action implementation
      */
-    js_module: string;
+    js_source: string;
     /**
      * Name of the Python module containing the action implementation
      */

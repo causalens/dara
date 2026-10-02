@@ -2,14 +2,14 @@ import * as React from 'react';
 import { NavLink, type NavLinkProps } from 'react-router';
 import styled from 'styled-components';
 
-import { usePreloadRoute } from '@/router/fetching';
-import { useResolvedTo } from '@/router/resolve-to';
-import { DisplayCtx } from '@/shared/context';
-import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
-import { useVariable } from '@/shared/interactivity';
-import useComponentStyles from '@/shared/utils/use-component-styles';
-import { getVariableHookSignature } from '@/shared/utils/variable-hook-signature';
-import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable } from '@/types';
+import { usePreloadRoute } from '../router/fetching';
+import { useResolvedTo } from '../router/resolve-to';
+import { DisplayCtx } from '../shared/context';
+import DynamicComponent from '../shared/dynamic-component/dynamic-component';
+import { useVariable } from '../shared/interactivity';
+import useComponentStyles from '../shared/utils/use-component-styles';
+import { getVariableHookSignature } from '../shared/utils/variable-hook-signature';
+import { type ComponentInstance, type RouterPath, type StyledComponentProps, type Variable } from '../types';
 
 type MaybeVariable<T> = T | Variable<T>;
 

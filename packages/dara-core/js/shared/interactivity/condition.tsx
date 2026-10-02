@@ -1,4 +1,4 @@
-import { ConditionOperator } from '@/types';
+import { ConditionOperator } from '../../types';
 
 /**
  * This function takes the operator and both values and performs the appropriate comparison between the two and returns

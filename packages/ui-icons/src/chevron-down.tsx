@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { forwardRef, type ForwardRefExoticComponent, type RefAttributes } from 'react';
 
 import { type IconProps, StyledFAIcon } from './icon-utils';
 
@@ -23,8 +24,11 @@ import { type IconProps, StyledFAIcon } from './icon-utils';
  *
  * @param {IconProps} props - the component props
  */
-const ChevronDown = (props: IconProps): JSX.Element => {
-    return <StyledFAIcon icon={faChevronDown} {...props} />;
-};
+const ChevronDown: ForwardRefExoticComponent<IconProps & RefAttributes<SVGSVGElement>> = forwardRef<
+    SVGSVGElement,
+    IconProps
+>((props, ref) => {
+    return <StyledFAIcon icon={faChevronDown} {...props} ref={ref} />;
+});
 
 export default ChevronDown;

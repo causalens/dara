@@ -40,6 +40,8 @@ class Markdown(BaseDashboardComponent):
     if the markdown is user-provided
     """
 
+    js_source = '@darajs/components/markdown'
+
     markdown: ClientVariable | str
     html_raw: bool = False
 

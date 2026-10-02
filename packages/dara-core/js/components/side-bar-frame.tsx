@@ -3,12 +3,11 @@ import { transparentize } from 'polished';
 import styled, { useTheme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import DaraDark from '@/assets/dara-dark.svg';
-import DaraLight from '@/assets/dara-light.svg';
-import { DirectionCtx, DynamicComponent, Wrapper, getIcon, useConfig } from '@/shared';
-import { type ComponentInstance } from '@/types';
-import { prependBaseUrl } from '@/utils';
-
+import DaraDark from '../assets/dara-dark.svg';
+import DaraLight from '../assets/dara-light.svg';
+import { DirectionCtx, DynamicComponent, Wrapper, getIcon, useConfig } from '../shared';
+import { type ComponentInstance } from '../types';
+import { prependBaseUrl } from '../utils';
 import PoweredByCausalens from './powered-by-causalens';
 
 interface SideBarProps {

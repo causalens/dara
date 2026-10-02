@@ -63,6 +63,8 @@ class Label(ContentComponent):
     :param label_width: A optional string containing the width the label should take
     """
 
+    js_source = '@darajs/components/label'
+
     value: str | ComponentInstance
     direction: Direction = Direction.VERTICAL
     label_width: str | None = None

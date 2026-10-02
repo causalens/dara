@@ -1,7 +1,7 @@
 import clone from 'lodash/clone';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type { NestedKey } from '@/types/core';
+import type { NestedKey } from '../../types/core';
 
 /**
  * Resolve the value of the variable using it's optional nested

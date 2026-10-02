@@ -19,7 +19,9 @@ from pydantic import ConfigDict
 
 from dara.core.definitions import ComponentInstance, JsComponentDef
 
-ProgressTrackerDef = JsComponentDef(name='ProgressTracker', js_module='@darajs/core', py_module='dara.core')
+ProgressTrackerDef = JsComponentDef(
+    name='ProgressTracker', js_source='@darajs/core/components/progress-tracker', py_module='dara.core'
+)
 
 
 class ProgressTracker(ComponentInstance):
@@ -50,5 +52,7 @@ class ProgressTracker(ComponentInstance):
     ```
 
     """
+
+    js_source = '@darajs/core/components/progress-tracker'
 
     model_config = ConfigDict(extra='forbid')

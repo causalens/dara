@@ -1,0 +1,4 @@
+{
+  "extends": "@darajs/vite-plugin/tsconfig.json",
+  "include": ["js"]
+}

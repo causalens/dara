@@ -61,7 +61,7 @@ class UploadDropzone(StyledComponentInstance):
     :param enable_paste: determines if the component should listen for and handle paste events (e.g., CTRL+V or right-click and paste). When set to True, the component allows text to be pasted directly, creating a file from the pasted content. This feature is disabled by default to accommodate scenarios where pasting text is not intended or could interfere with the component's primary functionality.
     """
 
-    js_module = '@darajs/components'
+    js_source = '@darajs/components/upload-dropzone'
 
     accept: str | None = None
     target: ServerVariable | None = None

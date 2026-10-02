@@ -19,10 +19,13 @@ from pydantic import ConfigDict
 
 from dara.core.definitions import ComponentInstance, JsComponentDef
 
-SideBarFrameDef = JsComponentDef(name='SideBarFrame', js_module='@darajs/core', py_module='dara.core')
+SideBarFrameDef = JsComponentDef(
+    name='SideBarFrame', js_source='@darajs/core/components/side-bar-frame', py_module='dara.core'
+)
 
 
 class SideBarFrame(ComponentInstance):
+    js_source = '@darajs/core/components/side-bar-frame'
     content: ComponentInstance
     hide_logo: bool | None = False
     logo_width: str | None = '80%'

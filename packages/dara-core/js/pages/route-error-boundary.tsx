@@ -4,9 +4,8 @@ import { isRouteErrorResponse, useRouteError } from 'react-router';
 import styled, { ThemeProvider, theme } from '@darajs/styled-components';
 import { Button } from '@darajs/ui-components';
 
-import { useConfig } from '@/shared';
-import { type Config, LoaderError } from '@/types';
-
+import { useConfig } from '../shared';
+import { type Config, LoaderError } from '../types';
 import ErrorStatusCodePage, { errorMessages } from './error-status-code-page';
 
 const CenteredDivWithGap = styled.div`

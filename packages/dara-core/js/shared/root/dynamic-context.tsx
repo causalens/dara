@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import * as React from 'react';
 
-import DynamicComponent from '@/shared/dynamic-component/dynamic-component';
-import { type ComponentInstance } from '@/types';
+import { type ComponentInstance } from '../../types';
+import DynamicComponent from '../dynamic-component/dynamic-component';
 
 /**
  * Merge a list of context component definitions into a single component definition

@@ -54,9 +54,6 @@ class BaseDashboardComponent(StyledComponentInstance):
 
     model_config = ConfigDict(extra='forbid', use_enum_values=True)
 
-    # Define JS module on the base component so we don't have to repeat that on each component
-    js_module = '@darajs/components'
-
     def __init__(self, *args: ComponentInstance | None, **kwargs):
         if len(args) > 0 and len(kwargs.get('children') or []) == 0:
             kwargs['children'] = list(arg for arg in args if arg is not None)

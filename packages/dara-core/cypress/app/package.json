@@ -1,0 +1,25 @@
+{
+  "name": "@darajs/cypress-app",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@darajs/core": "workspace:*",
+    "@darajs/components": "workspace:*",
+    "@darajs/vite-plugin": "workspace:*",
+    "@tanstack/react-query": "catalog:dara",
+    "@types/react": "catalog:dara",
+    "@types/react-dom": "catalog:dara",
+    "react": "catalog:dara",
+    "react-dom": "catalog:dara",
+    "react-router": "catalog:dara",
+    "recoil": "catalog:dara",
+    "recoil-sync": "catalog:dara",
+    "styled-components": "catalog:dara",
+    "typescript": "catalog:dara",
+    "vite": "catalog:dara"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=12 <13"
+  }
+}

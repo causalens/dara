@@ -3,8 +3,7 @@ from dara.core.interactivity.client_variable import ClientVariable
 
 DynamicComponentDef = JsComponentDef(
     name='DynamicComponent',
-    js_module='@darajs/core',
-    js_component='PublicDynamicComponent',
+    js_source='@darajs/core/components/public-dynamic-component',
     py_module='dara.core',
 )
 
@@ -18,5 +17,7 @@ class DynamicComponent(ComponentInstance):
     :param component: A Dara component instance or a dictionary representing a Dara component,
     or a variable that will be resolved to a component instance.
     """
+
+    js_source = '@darajs/core/components/public-dynamic-component'
 
     component: ComponentInstance | dict | ClientVariable

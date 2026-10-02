@@ -2,6 +2,16 @@
 title: Changelog
 ---
 
+## NEXT
+
+- `dara dev` binds to `127.0.0.1` by default because its frontend proxy serves project files; pass `--host` to expose it. Development requests keep their `Host`, so names other than localhost or an IP need `server.allowedHosts` in `vite.config.ts`.
+- Breaking: the ASGI app refuses to start unless launched by `dara dev` or `dara start`, so servers that bypass the CLI no longer fall back to development posture. To serve a build with another ASGI server, set `DARA_COMMAND=start`.
+- Breaking: replaced the legacy frontend pipeline with an app-root Vite pipeline. `dara dev` prepares and supervises the frontend behind the Python server, `dara build` produces a frozen production build and `dara start` serves it without a JavaScript toolchain. Node and pnpm are prerequisites for development and builds.
+- Breaking: components and actions declare their implementation with `js_source`, an ES module specifier, replacing `js_module`, `js_component` and `local=True` registration.
+- Breaking: removed auth component `js_name`; authentication screens are identified by their `js_source`.
+- Removed the obsolete `DownloadContentImpl` component; the deprecated `DownloadContent` wrapper continues to use `ctx.download_file()`.
+- Added `ConfigurationBuilder.add_components(module)` to register every public component class in a module.
+
 ## 1.29.11
 
 - Fixed LRU list corruption and size accounting, skipped measuring entries discarded by pinned capacity, and prevented stale TTL expiry records from removing replacement values.

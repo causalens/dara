@@ -1,14 +1,13 @@
 import { useContext } from 'react';
 import { useRecoilCallback } from 'recoil';
 
-import { WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
 import {
     type AnyVariable,
     type ResolvedDerivedVariable,
     type ResolvedServerVariable,
     type ResolvedSwitchVariable,
-} from '@/types';
-
+} from '../../types';
+import { WebSocketCtx, useRequestExtras, useTaskContext } from '../context';
 import { resolveVariable } from './resolve-variable';
 import { isRegistered } from './store';
 
