@@ -26,6 +26,15 @@ export function compilerArguments(project: CompilerProject, mode = "check") {
   }
   // The loader requires an explicit effective types list including vite/client.
   // Appending our entry therefore preserves every ambient type the app selected.
+  // --types is comma-separated and resolves relative entries against typeRoots, so the entry
+  // must be absolute; a comma in the app's location would split it.
+  if (filename.includes(",")) {
+    throw new ProjectError(
+      "typescript.config",
+      `The app path ${root} contains a comma, which TypeScript's --types option cannot express`,
+      "move the app to a directory whose path has no commas",
+    );
+  }
   const types = [...(typescript.config.compilerOptions?.types ?? []), filename];
   return [
     "--project",

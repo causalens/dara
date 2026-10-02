@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { test, type TestContext } from "node:test";
 import { getTsconfig, type TsConfigJson } from "get-tsconfig";
 import { compilerArguments, compilerExecutable, type CompilerProject } from "../dist/compiler.js";
+import { ProjectError } from "../dist/contract.js";
 
 function fixture(t: TestContext) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "dara-native-types-")));
@@ -100,6 +101,15 @@ await test("custom typeRoots and existing ambient types coexist with registratio
   assert.notEqual(result.status, 0);
   assert.match(result.stdout, /registered.ts.*TS2322/);
   assert.doesNotMatch(result.stdout, /ambientCount|TS2688/);
+});
+
+await test("an app path containing a comma is reported instead of splitting --types", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dara,comma-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  assert.throws(
+    () => compilerArguments({ root, sourceFiles: new Set(), typescript: { config: {} } }),
+    (error) => error instanceof ProjectError && error.diagnostic.code === "typescript.config",
+  );
 });
 
 await test("registration refresh removes old roots and keeps development separate from build", (t) => {
