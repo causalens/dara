@@ -6,7 +6,7 @@ Apply the component and setup rules from the custom JavaScript reference before 
 
 Every Python component/action declaration points to a public npm subpath with a default-export implementation. Preserve serialized Python identities. The Python distribution's installed version determines the npm requirement, so publish compatible Python and npm versions together.
 
-A module registered through `config.add_module_dependency('my_python_package', '@example/widgets')` must export `./setup`. Place package initialization there, separate from component barrels.
+Dara imports a package's `./setup` export whenever any of its components, actions or auth screens is used, so global styles and initialization that a barrel used to import belong there, separate from component barrels. A module registered through `config.add_module_dependency('my_python_package', '@example/widgets')` must export `./setup`.
 
 Python wheels contain Python and genuine static assets. Remove UMD build/copy steps and generated `_assets/auto_js/` payloads. Retain the `dara_assets` entry point for real assets using `AssetManifest(base_path=..., static_assets=[StaticAsset(source='common', target='.')])`. Paths are relative to `base_path`; verify existing `/static/<python-module>/` URLs.
 
