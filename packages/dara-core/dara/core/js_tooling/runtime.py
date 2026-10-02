@@ -50,11 +50,22 @@ class ArtifactFiles(StaticFiles):
         return full_path, stat
 
 
-def frontend_status(root: Path) -> dict:
-    """Accept readiness only from the active supervisor's current runner token."""
+def _live_owner(root: Path) -> dict | None:
+    """Return the `dara dev` supervisor's ownership record while its process is still running."""
     try:
         owner = read_json(root / 'node_modules/.dara/supervisor.json')
         os.kill(owner['pid'], 0)
+    except (OSError, KeyError, TypeError, ValueError, ProjectError):
+        return None
+    return owner
+
+
+def frontend_status(root: Path) -> dict:
+    """Accept readiness only from the active supervisor's current runner token."""
+    owner = _live_owner(root)
+    if owner is None:
+        return {'state': 'waiting'}
+    try:
         state = read_json(root / 'node_modules/.dara/dev-server.json')
         if state.get('token') != owner['token']:
             return {'state': 'waiting'}
@@ -459,12 +470,7 @@ def _frontend_supervised(root: Path) -> bool:
     `dara dev --backend-only` never claims one, so nothing is preparing the frontend
     and the page should say so rather than implying work is under way.
     """
-    try:
-        owner = read_json(root / 'node_modules/.dara/supervisor.json')
-        os.kill(owner['pid'], 0)
-    except (OSError, KeyError, TypeError, ValueError, ProjectError):
-        return False
-    return True
+    return _live_owner(root) is not None
 
 
 def render_frontend(request: Request, root: Path, output: Path, context: dict, development: bool):
