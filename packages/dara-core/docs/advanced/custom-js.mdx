@@ -119,7 +119,11 @@ To do server work first, override `execute` in Python and call `await super().ex
 
 A package does the same thing through a `./setup` npm export, which Dara imports whenever any of the package's components or actions is used. Register `config.add_module_dependency('my_python_package', '@example/widgets')` only to load a package whose implementations the app doesn't use directly; it must export `./setup`. Either way, setup runs once, as a normal module import.
 
-Your Vite configuration can add plugins and aliases as usual. Dara owns the generated entry module, the HTML, where output is published and its own server endpoints.
+Your Vite configuration can add plugins and aliases as usual. Dara owns the generated entry module, the HTML, where output is published and its own server endpoints:
+
+- `vite.config.ts` cannot set the options Dara owns: `root`, `base`, `publicDir`, `appType`, the build entry and `build.manifest`, `resolve.preserveSymlinks`, and the server's port, host, `ws`, `proxy` and `fs.strict`. Setting one reports a diagnostic naming it, instead of being silently ignored.
+- Composable options are merged with Dara's: `server.fs.allow` (Dara adds the workspace), `server.fs.deny` (Vite's defaults and Dara's private files are always kept), `server.watch`, `resolve.dedupe` and `optimizeDeps`. Of `server.hmr`, only `overlay` can be set.
+- Other plugins may contribute owned options; Dara's values win. A plugin that changes one after Dara configured it is reported as `vite.override`.
 
 Dara decides whether a build is still fresh by hashing everything the build reads. It cannot see files a plugin opens by itself, so declare those:
 

@@ -96,22 +96,24 @@ The fix in a diagnostic is specific to its occurrence; the fixes below are the u
 
 ### Vite and TypeScript
 
-| Code                  | Meaning                                                                         | Usual fix                                                |
-| --------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `vite.config`         | `vite.config.ts` is missing or cannot be loaded.                                | Run `dara lock`, or fix the reported error.              |
-| `vite.plugin`         | `vite.config.ts` does not include exactly one `dara()` plugin.                  | Edit `vite.config.ts`.                                   |
-| `vite.react`          | A second React plugin is configured; `dara()` already includes one.             | Remove the extra React plugin.                           |
-| `vite.options`        | The options passed to `dara()` are invalid.                                     | Edit the `dara()` options.                               |
-| `vite.root`           | Vite's `root` is not the app root.                                              | Edit `vite.config.ts`.                                   |
-| `vite.base`           | `vite.config.ts` sets `base`; Dara owns base URLs.                              | Remove `base` and pass `--base-url` to the Dara command. |
-| `vite.server`         | `vite.config.ts` sets server options that Dara owns, such as the port or proxy. | Remove them from `vite.config.ts`.                       |
-| `vite.public`         | `vite.config.ts` sets `publicDir`.                                              | Use `static/` or `add_static_folder` instead.            |
-| `vite.entry`          | `vite.config.ts` sets a build entry or library mode.                            | Use `vite.lib.config.ts` for a separate library build.   |
-| `vite.output`         | `build.outDir` disagrees with Dara's output directory.                          | Edit `vite.config.ts`.                                   |
-| `vite.environment`    | Vite did not create its client environment.                                     | Edit `vite.config.ts`.                                   |
-| `typescript.config`   | `tsconfig.json` is missing or invalid.                                          | Run `dara lock`, or edit `tsconfig.json`.                |
-| `typescript.runner`   | The TypeScript compiler could not run.                                          | Run `dara lock`.                                         |
-| `typescript.shutdown` | The TypeScript compiler did not stop.                                           | Stop the compiler process before restarting development. |
+| Code                  | Meaning                                                                                               | Usual fix                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `vite.config`         | `vite.config.ts` is missing or cannot be loaded.                                                      | Run `dara lock`, or fix the reported error.                             |
+| `vite.plugin`         | `vite.config.ts` does not include exactly one `dara()` plugin.                                        | Edit `vite.config.ts`.                                                  |
+| `vite.react`          | A second React plugin is configured; `dara()` already includes one.                                   | Remove the extra React plugin.                                          |
+| `vite.options`        | The options passed to `dara()` are invalid.                                                           | Edit the `dara()` options.                                              |
+| `vite.root`           | Vite's `root` is not the app root.                                                                    | Edit `vite.config.ts`.                                                  |
+| `vite.base`           | `vite.config.ts` sets `base`; Dara owns base URLs.                                                    | Remove `base` and pass `--base-url` to the Dara command.                |
+| `vite.server`         | `vite.config.ts` sets a server option Dara owns, such as the port, `server.ws` or `server.fs.strict`. | Remove it; only `server.hmr.overlay` and composable options can be set. |
+| `vite.public`         | `vite.config.ts` sets `publicDir`.                                                                    | Use `static/` or `add_static_folder` instead.                           |
+| `vite.entry`          | `vite.config.ts` sets a build entry, library mode or `appType`.                                       | Use `vite.lib.config.ts` for a separate library build.                  |
+| `vite.output`         | `build.outDir` disagrees with Dara's output, or `build.manifest` is enabled.                          | Remove the option; pass `--output` to `dara build`.                     |
+| `vite.resolve`        | `vite.config.ts` sets `resolve.preserveSymlinks`.                                                     | Remove it; Dara loads linked packages by their real path.               |
+| `vite.override`       | A plugin changed a development option after Dara configured it.                                       | Remove the plugin, or configure it to leave the option to Dara.         |
+| `vite.environment`    | Vite did not create its client environment.                                                           | Edit `vite.config.ts`.                                                  |
+| `typescript.config`   | `tsconfig.json` is missing or invalid.                                                                | Run `dara lock`, or edit `tsconfig.json`.                               |
+| `typescript.runner`   | The TypeScript compiler could not run.                                                                | Run `dara lock`.                                                        |
+| `typescript.shutdown` | The TypeScript compiler did not stop.                                                                 | Stop the compiler process before restarting development.                |
 
 ### Builds
 
