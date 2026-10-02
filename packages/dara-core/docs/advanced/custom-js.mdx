@@ -117,7 +117,7 @@ To do server work first, override `execute` in Python and call `await super().ex
 
 `js/index.tsx` is your application's setup module. Import global CSS and do app initialization there. It is not a registry of component exports — you never list your components in it.
 
-A library registered with `config.add_module_dependency('my_python_package', '@example/widgets')` does the same thing through a `./setup` npm export. Either way, setup runs once, as a normal module import.
+A package does the same thing through a `./setup` npm export, which Dara imports whenever any of the package's components or actions is used. Register `config.add_module_dependency('my_python_package', '@example/widgets')` only to load a package whose implementations the app doesn't use directly; it must export `./setup`. Either way, setup runs once, as a normal module import.
 
 Your Vite configuration can add plugins and aliases as usual. Dara owns the generated entry module, the HTML, where output is published and its own server endpoints.
 
