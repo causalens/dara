@@ -287,3 +287,23 @@ def test_python_versions_map_to_distinct_npm_versions(monkeypatch, python, npm):
     """Dev builds of a pre-release keep their dev number instead of colliding with the pre-release."""
     monkeypatch.setattr(project, 'version', lambda distribution: python)
     assert project.npm_version('dara.core') == npm
+
+
+@pytest.mark.parametrize(
+    ('existing', 'merged'),
+    [
+        ('^20 || >=22', '>=22 >=22.12.0'),
+        ('>=22.14', '>=22.14'),
+        ('>=18', '>=18 >=22.12.0'),
+        ('^22 || ^24', '^22 >=22.12.0 || ^24'),
+        ('*', '>=22.12.0'),
+    ],
+)
+def test_engines_keep_app_restrictions_without_dead_branches(existing, merged):
+    assert project.engines_range(existing, '>=22.12.0') == merged
+
+
+def test_engines_inside_the_pnpm_range_are_kept_and_disjoint_ranges_fail():
+    assert project.engines_range('^12', '>=12 <13') == '^12'
+    with pytest.raises(ValueError):
+        project.engines_range('^20 || ^21', '>=22.12.0')

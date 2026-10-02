@@ -322,6 +322,50 @@ def _yaml_text(value: dict) -> str:
     return stream.getvalue()
 
 
+def _boundaries(*specs: NpmSpec) -> set[SemVersion]:
+    """
+    Versions that witness how semver ranges relate.
+
+    Every nonempty difference or intersection of stable semver ranges is an interval that contains
+    one of its comparator targets or the next patch, minor or major after one.
+    """
+    found = {SemVersion('0.0.0')}
+
+    def visit(clause) -> None:
+        target = getattr(clause, 'target', None)
+        if target is not None:
+            found.update((target, target.next_patch(), target.next_minor(), target.next_major()))
+        for child in getattr(clause, 'clauses', ()):
+            visit(child)
+
+    for spec in specs:
+        visit(spec.clause)
+    return found
+
+
+def engines_range(existing: str, required: str) -> str:
+    """
+    Narrow an app's engines range to the versions Dara supports, keeping its own restrictions.
+
+    OR branches that allow no supported version are dropped, branches already inside the supported
+    range are kept as written, and the rest are intersected with it. Raises ValueError when no
+    branch allows a supported version.
+    """
+    supported = NpmSpec(required)
+    kept = []
+    for branch in (part.strip() for part in existing.split('||')):
+        allowed = [v for v in _boundaries(NpmSpec(branch or '*'), supported) if NpmSpec(branch or '*').match(v)]
+        if not any(supported.match(v) for v in allowed):
+            continue
+        if all(supported.match(v) for v in allowed):
+            kept.append(branch)
+        else:
+            kept.append(required if branch in ('', '*', 'x') else f'{branch} {required}')
+    if not kept:
+        raise ValueError(f'no version in {existing!r} satisfies {required}')
+    return ' || '.join(kept)
+
+
 def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
     """Plan deterministic edits to Dara-owned entries; detect conflicts before any writes."""
     if (root / 'dara.config.json').exists():
@@ -372,26 +416,9 @@ def dependency_plan(root: Path, manifest: FrontendManifest) -> dict[Path, str]:
             package['engines'] = engines
         elif existing != required:
             try:
-                spec = NpmSpec(existing)
-                # Keep compatible user restrictions by intersecting each OR branch.
-                # Every nonempty stable semver interval contains a comparator boundary
-                # or the next patch after one; inspect the parsed ranges instead of sampling majors.
-                candidates = {SemVersion('0.0.0')}
-
-                def boundaries(clause, candidates=candidates):
-                    target = getattr(clause, 'target', None)
-                    if target is not None:
-                        candidates.update((target, target.next_patch(), target.next_minor(), target.next_major()))
-                    for child in getattr(clause, 'clauses', ()):
-                        boundaries(child)
-
-                boundaries(spec.clause)
-                boundaries(NpmSpec(required).clause)
-                if not any(spec.match(v) and NpmSpec(required).match(v) for v in candidates):
-                    raise ValueError('no supported version')
-                intersection = ' || '.join(f'{branch.strip()} {required}' for branch in existing.split('||'))
-                if not all(required in branch for branch in existing.split('||')):
-                    engines[binary] = intersection
+                merged = engines_range(existing, required)
+                if merged != existing:
+                    engines[binary] = merged
                     package['engines'] = engines
             except ValueError as exc:
                 raise ProjectError(
