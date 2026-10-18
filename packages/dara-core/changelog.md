@@ -5,8 +5,6 @@ title: Changelog
 ## NEXT
 
 - Added project `.env` and environment overrides for `dara start` app and metrics ports, host, and metrics opt-out to support parallel worktrees.
-- Validate app and metrics port overrides before startup and report Vite development server failures through the CLI exit status.
-- Documented configuring matching backend and Vite development ports for parallel worktrees.
 
 ## 1.29.11
 
