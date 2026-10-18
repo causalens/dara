@@ -149,14 +149,14 @@ and to serve the UI from a development server so you can benefit from Hot Module
 <TabItem value="uv">
 
 ```sh
-uv run dara --enable-hmr
+uv run dara start --enable-hmr
 ```
 
 </TabItem>
 <TabItem value="pip">
 
 ```sh
-dara --enable-hmr
+dara start --enable-hmr
 ```
 
 </TabItem>
@@ -188,6 +188,10 @@ dara dev
 </Tabs>
 
 This should start up quickly and be ready to serve your modules and you should be able to see the application in the browser.
+
+For parallel worktrees, set a different `VITE_SERVER_PORT` in each project's `.env`, or use matching
+`dara start --enable-hmr --dev-port 3100` and `dara dev --port 3100` options. See
+[Running multiple worktrees](../getting-started/local-setup#running-multiple-worktrees) for app and metrics port configuration.
 
 :::tip
 If you are not going to edit the JS and don't want the HMR functionality then you can simply run `dara start --production` rather than

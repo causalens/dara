@@ -288,6 +288,38 @@ dara start --reload-dir decision_app/pages --reload-dir decision_app/utils
 
 This command will start a local development server and will start your application at `http://localhost:8000`.
 
+### Running multiple worktrees
+
+Run Dara from each application's project directory. Give each worktree separate app, Prometheus metrics, and Vite ports
+in its local `.env` file:
+
+```dotenv
+DARA_PORT=8100
+DARA_METRICS_PORT=10100
+VITE_SERVER_PORT=3100
+```
+
+Then run `uv run dara start --reload` as usual. For custom JavaScript, run `uv run dara start --reload --enable-hmr`
+and `uv run dara dev` in separate terminals in that same project directory. Both commands read `VITE_SERVER_PORT`
+from the project's `.env`. For another worktree, use different values, such as `8200`, `10200`, and `3200`.
+
+You can also supply the ports explicitly:
+
+```sh
+uv run dara start --reload --enable-hmr --port 8100 --metrics-port 10100 --dev-port 3100
+# In another terminal in the same project directory:
+uv run dara dev --port 3100
+```
+
+The `--dev-port` value on `start` must match `--port` on `dev`. Vite fails if its port is already occupied;
+it does not silently switch to another port.
+
+`DARA_HOST` configures the backend bind address (default `0.0.0.0`). If you do not need Prometheus metrics locally,
+set `DARA_DISABLE_METRICS=true` in `.env` or pass `--disable-metrics` to `dara start`.
+Command-line options take precedence over environment variables, which take precedence over `.env` values.
+Without configured ports, Dara picks an available app port in `8000`–`8099` and metrics port in `10000`–`10099`;
+Vite defaults to `3000`.
+
 If you have used the `create-dara-app` CLI, your app will look like the following:
 
 ![Gallery of Components App](../assets/getting_started/components_gallery.png)
