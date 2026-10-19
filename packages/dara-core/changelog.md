@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Added project `.env` and environment overrides for `dara start` app and metrics ports, host, and metrics opt-out to support parallel worktrees.
+- Added project `.env` and environment overrides for app and metrics ports, host, and metrics opt-out for parallel worktrees, plus proxy-aware custom-JS HMR with configurable public origin, bind host, and allowed browser origins.
 
 ## 1.29.11
 

@@ -26,7 +26,11 @@ export default defineConfig(({ command }) => {
     const devServerProtocol = process.env.VITE_SERVER_PROTOCOL ?? 'http';
     const devServerHost = process.env.VITE_SERVER_HOST ?? 'localhost';
     const devServerPort = Number.parseInt(process.env.VITE_SERVER_PORT ?? '3000', 10);
-    const devServerOrigin = `${devServerProtocol}://${devServerHost}:${devServerPort}`;
+    const publicUrl = new URL(
+        process.env.VITE_SERVER_ORIGIN ?? `${devServerProtocol}://${devServerHost}:${devServerPort}`
+    );
+    const devServerOrigin = publicUrl.origin;
+    const allowedOrigins = JSON.parse(process.env.VITE_SERVER_ALLOWED_ORIGINS ?? '[]') as string[];
 
     return {
         // Dev assets must stay under /static/ even though production asset URLs are resolved at runtime.
@@ -58,7 +62,17 @@ export default defineConfig(({ command }) => {
             // Root of assets served in DEV mode
             origin: devServerOrigin,
             port: devServerPort,
+            host: process.env.VITE_SERVER_BIND_HOST ?? 'localhost',
             strictPort: true,
+            allowedHosts: process.env.VITE_SERVER_ORIGIN ? [publicUrl.hostname] : [],
+            cors: allowedOrigins.length > 0 ? { origin: allowedOrigins } : undefined,
+            hmr: process.env.VITE_SERVER_ORIGIN
+                ? {
+                      host: publicUrl.hostname,
+                      protocol: publicUrl.protocol === 'https:' ? 'wss' : 'ws',
+                      clientPort: Number(publicUrl.port || (publicUrl.protocol === 'https:' ? 443 : 80)),
+                  }
+                : undefined,
             fs: {
                 strict: false,
             },

@@ -1,15 +1,26 @@
 """Development server configuration and identity handshake."""
 
+import json
 import os
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEV_SERVER_INFO_PATH = '/__dara__/dev-server-info'
+
+
+def _parse_origin(url: HttpUrl) -> HttpUrl:
+    """Accept HTTP origins without credentials, paths, queries, or fragments."""
+    if url.username or url.password or url.path not in (None, '/') or url.query is not None or url.fragment is not None:
+        raise ValueError('Expected an HTTP(S) origin without credentials, a path, query, or fragment')
+    return url
+
+
+HttpOrigin = Annotated[HttpUrl, AfterValidator(_parse_origin)]
 
 
 class DevServerSettings(BaseSettings):
@@ -18,21 +29,41 @@ class DevServerSettings(BaseSettings):
     protocol: Literal['http', 'https'] = 'http'
     host: str = 'localhost'
     port: int = Field(default=3000, ge=1, le=65535)
+    bind_host: str = 'localhost'
+    public_origin: HttpOrigin | None = Field(default=None, validation_alias='VITE_SERVER_ORIGIN')
+    allowed_origins: list[HttpOrigin] = Field(default_factory=list)
 
-    model_config = SettingsConfigDict(env_file='.env', env_prefix='VITE_SERVER_', extra='ignore')
+    model_config = SettingsConfigDict(env_file='.env', env_prefix='VITE_SERVER_', extra='ignore', populate_by_name=True)
 
     @property
     def origin(self) -> str:
         """Return the browser-visible Vite server origin."""
+        if self.public_origin is not None:
+            return str(self.public_origin).rstrip('/')
         return f'{self.protocol}://{self.host}:{self.port}'
+
+    @property
+    def local_origin(self) -> str:
+        """Return the direct HTTP endpoint for the backend identity check, bypassing TLS proxies."""
+        if self.public_origin is None:
+            return self.origin
+        host = {'0.0.0.0': '127.0.0.1', '::': '::1'}.get(self.bind_host, self.bind_host)  # nosec B104
+        if ':' in host and not host.startswith('['):
+            host = f'[{host}]'
+        return f'http://{host}:{self.port}'
 
     def as_environment(self) -> dict[str, str]:
         """Return settings in the format consumed by Vite and fastapi-vite."""
-        return {
+        environment = {
             'VITE_SERVER_HOST': self.host,
             'VITE_SERVER_PORT': str(self.port),
             'VITE_SERVER_PROTOCOL': self.protocol,
+            'VITE_SERVER_BIND_HOST': self.bind_host,
+            'VITE_SERVER_ALLOWED_ORIGINS': json.dumps([str(origin).rstrip('/') for origin in self.allowed_origins]),
         }
+        if self.public_origin is not None:
+            environment['VITE_SERVER_ORIGIN'] = self.origin
+        return environment
 
 
 class DevServerInfo(BaseModel):
@@ -121,11 +152,11 @@ Then run it from:
 DevServerMismatch = UnidentifiedDevServerMismatch | WrongDevServerMismatch
 
 
-async def check_dev_server(expected: DevServerInfo) -> DevServerMismatch | None:
+async def check_dev_server(expected: DevServerInfo, *, origin: str | None = None) -> DevServerMismatch | None:
     """Check the configured Vite server and return a mismatch when it is not suitable for this application."""
     try:
         async with httpx.AsyncClient(timeout=1) as client:
-            response = await client.get(f'{expected.origin}{DEV_SERVER_INFO_PATH}')
+            response = await client.get(f'{origin or expected.origin}{DEV_SERVER_INFO_PATH}')
             response.raise_for_status()
             payload = DevServerInfoResponse.model_validate_json(response.content)
             actual = DevServerInfo.decode(payload.info)

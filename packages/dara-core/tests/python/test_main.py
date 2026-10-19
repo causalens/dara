@@ -303,7 +303,7 @@ async def test_dev_server_handshake_renders_one_mismatch_page(
     monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
     monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
 
-    async def report_mismatch(expected):
+    async def report_mismatch(expected, **_kwargs):
         return UnidentifiedDevServerMismatch(expected=expected)
 
     with (
@@ -343,6 +343,40 @@ async def test_dev_server_handshake_is_skipped_in_autojs(
     assert response.status_code == 200
     assert 'Development server mismatch' not in response.text
     check.assert_not_awaited()
+
+
+async def test_proxy_hmr_uses_public_asset_urls_and_local_handshake(
+    monkeypatch: pytest.MonkeyPatch, config: Configuration
+):
+    """Every development script uses the HTTPS proxy while the identity probe stays on local HTTP."""
+    import fastapi_vite_dara.config
+    from fastapi_vite_dara.loader import ViteLoader
+
+    monkeypatch.setenv('DARA_HMR_MODE', 'TRUE')
+    monkeypatch.setenv('VITE_SERVER_ORIGIN', 'https://vite.feature.example.test:7777')
+    monkeypatch.setenv('VITE_SERVER_PORT', '3100')
+    monkeypatch.setenv('VITE_SERVER_BIND_HOST', '127.0.0.1')
+    monkeypatch.delenv('DARA_PRODUCTION_MODE', raising=False)
+    monkeypatch.delenv('DARA_DOCKER_MODE', raising=False)
+    monkeypatch.setattr(fastapi_vite_dara.config.settings, 'hot_reload', True)
+    monkeypatch.setattr(fastapi_vite_dara.config.settings, 'is_react', True)
+    monkeypatch.setattr(fastapi_vite_dara.config.settings, 'static_url', '/static/')
+    monkeypatch.setattr(ViteLoader, 'instance', None)
+
+    with (
+        patch('dara.core.main.rebuild_js'),
+        patch('dara.core.main.check_dev_server', new=AsyncMock(return_value=None)) as check,
+    ):
+        app = _start_application(config)
+        async with AsyncClient(app) as client:
+            response = await client.get('/')
+
+    assert response.status_code == 200
+    for asset in ('@vite/client', '@react-refresh', '_entry.tsx'):
+        assert f'https://vite.feature.example.test:7777/static/{asset}' in response.text
+    assert 'http://localhost:3100' not in response.text
+    assert check.call_args.kwargs['origin'] == 'http://127.0.0.1:3100'
+    assert check.call_args.args[0].origin == 'https://vite.feature.example.test:7777'
 
 
 async def test_dev_server_handshake_is_skipped_in_production(

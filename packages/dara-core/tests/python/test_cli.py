@@ -95,6 +95,9 @@ def isolate_server_configuration(monkeypatch, tmp_path):
         'VITE_SERVER_PORT',
         'VITE_SERVER_HOST',
         'VITE_SERVER_PROTOCOL',
+        'VITE_SERVER_ORIGIN',
+        'VITE_SERVER_BIND_HOST',
+        'VITE_SERVER_ALLOWED_ORIGINS',
     ):
         monkeypatch.delenv(variable, raising=False)
     # start writes these variables for the backend subprocess.
