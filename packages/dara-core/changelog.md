@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.29.12
 
 - Added project `.env` and environment overrides for app and metrics ports, host, and metrics opt-out for parallel worktrees, plus proxy-aware custom-JS HMR with configurable public origin, bind host, and allowed browser origins.
 
