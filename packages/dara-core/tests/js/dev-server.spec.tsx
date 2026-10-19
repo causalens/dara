@@ -36,6 +36,7 @@ describe('Dara Vite development server', () => {
         expect(config.server?.allowedHosts).toEqual([]);
         expect(config.server?.cors).toBeUndefined();
         expect(config.server?.hmr).toBeUndefined();
+        expect(config.server?.ws).toBeUndefined();
     });
 
     it('does not use the development server origin for production builds', () => {
@@ -64,6 +65,7 @@ describe('Dara Vite development server', () => {
         const config = getConfig();
 
         expect(config.base).toBe(`${origin}/static/`);
+        expect(config.server?.hmr).toBeUndefined();
         expect(config.server).toMatchObject({
             origin,
             host: '127.0.0.1',
@@ -71,7 +73,7 @@ describe('Dara Vite development server', () => {
             strictPort: true,
             allowedHosts: ['vite.feature.example.test'],
             cors: { origin: ['https://ui.feature.example.test'] },
-            hmr: { host: 'vite.feature.example.test', protocol, clientPort },
+            ws: { host: 'vite.feature.example.test', protocol, clientPort },
         });
     });
 

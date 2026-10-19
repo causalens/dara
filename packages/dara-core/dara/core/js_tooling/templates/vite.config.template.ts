@@ -66,7 +66,7 @@ export default defineConfig(({ command }) => {
             strictPort: true,
             allowedHosts: process.env.VITE_SERVER_ORIGIN ? [publicUrl.hostname] : [],
             cors: allowedOrigins.length > 0 ? { origin: allowedOrigins } : undefined,
-            hmr: process.env.VITE_SERVER_ORIGIN
+            ws: process.env.VITE_SERVER_ORIGIN
                 ? {
                       host: publicUrl.hostname,
                       protocol: publicUrl.protocol === 'https:' ? 'wss' : 'ws',
