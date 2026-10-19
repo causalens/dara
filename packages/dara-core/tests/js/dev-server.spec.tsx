@@ -32,6 +32,11 @@ describe('Dara Vite development server', () => {
         expect(config.server?.origin).toBe('http://localhost:3000');
         expect(config.server?.port).toBe(3000);
         expect(config.server?.strictPort).toBe(true);
+        expect(config.server?.host).toBe('localhost');
+        expect(config.server?.allowedHosts).toEqual([]);
+        expect(config.server?.cors).toBeUndefined();
+        expect(config.server?.hmr).toBeUndefined();
+        expect(config.server?.ws).toBeUndefined();
     });
 
     it('does not use the development server origin for production builds', () => {
@@ -46,6 +51,30 @@ describe('Dara Vite development server', () => {
         expect(config.base).toBe('http://localhost:3100/static/');
         expect(config.server?.origin).toBe('http://localhost:3100');
         expect(config.server?.port).toBe(3100);
+    });
+
+    it.each([
+        ['http://vite.feature.example.test:7777', 'ws', 7777],
+        ['https://vite.feature.example.test:7777', 'wss', 7777],
+        ['https://vite.feature.example.test', 'wss', 443],
+    ])('uses %s for browser assets and HMR while keeping the local port', (origin, protocol, clientPort) => {
+        vi.stubEnv('VITE_SERVER_ORIGIN', origin);
+        vi.stubEnv('VITE_SERVER_PORT', '3100');
+        vi.stubEnv('VITE_SERVER_BIND_HOST', '127.0.0.1');
+        vi.stubEnv('VITE_SERVER_ALLOWED_ORIGINS', '["https://ui.feature.example.test"]');
+        const config = getConfig();
+
+        expect(config.base).toBe(`${origin}/static/`);
+        expect(config.server?.hmr).toBeUndefined();
+        expect(config.server).toMatchObject({
+            origin,
+            host: '127.0.0.1',
+            port: 3100,
+            strictPort: true,
+            allowedHosts: ['vite.feature.example.test'],
+            cors: { origin: ['https://ui.feature.example.test'] },
+            ws: { host: 'vite.feature.example.test', protocol, clientPort },
+        });
     });
 
     it('serves the Dara project identity', async () => {

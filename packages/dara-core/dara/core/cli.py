@@ -21,6 +21,7 @@ import pathlib
 import subprocess
 
 import uvicorn
+from dotenv import dotenv_values
 
 import click
 from click.exceptions import UsageError
@@ -50,8 +51,22 @@ def _resolve_config_path(config: str | None) -> str:
 
 
 @click.group()
-def cli():
-    pass
+@click.pass_context
+def cli(ctx: click.Context):
+    """Load project server defaults before Click parses and validates command options."""
+    project_env = dotenv_values('.env')
+    start_defaults = {
+        option: project_env[variable]
+        for option, variable in {
+            'port': 'DARA_PORT',
+            'metrics_port': 'DARA_METRICS_PORT',
+            'disable_metrics': 'DARA_DISABLE_METRICS',
+            'host': 'DARA_HOST',
+        }.items()
+        if project_env.get(variable) is not None
+    }
+    defaults = ctx.default_map or {}
+    ctx.default_map = {**defaults, 'start': {**start_defaults, **defaults.get('start', {})}}
 
 
 @cli.command()
@@ -59,10 +74,22 @@ def cli():
 @click.option('--enable-hmr', is_flag=True, help='Whether to enable Hot Module Reloading for custom JS')
 @click.option('--production', is_flag=True, help='Whether to build the JS for production without custom JS')
 @click.option('--config', help='The path to the config for the application')
-@click.option('--port', help='The port to run on', type=int)
-@click.option('--metrics-port', help='The port for the metrics server to run on', type=int)
-@click.option('--disable-metrics', is_flag=True, help='Whether to disable the metrics server')
-@click.option('--host', default='0.0.0.0', help='The host to run on')  # nosec B104 # default for local dev
+@click.option('--port', envvar='DARA_PORT', show_envvar=True, help='The port to run on', type=click.IntRange(1, 65535))
+@click.option(
+    '--metrics-port',
+    envvar='DARA_METRICS_PORT',
+    show_envvar=True,
+    help='The port for the metrics server to run on',
+    type=click.IntRange(1, 65535),
+)
+@click.option(
+    '--disable-metrics',
+    envvar='DARA_DISABLE_METRICS',
+    show_envvar=True,
+    is_flag=True,
+    help='Whether to disable the metrics server',
+)
+@click.option('--host', envvar='DARA_HOST', show_envvar=True, default='0.0.0.0', help='The host to run on')  # nosec B104 # default for local dev
 @click.option('--rebuild', is_flag=True, help='Whether to force a rebuild of the app')
 @click.option('--require-sso', is_flag=True, help='Whether to enforce that an SSO auth config is used')
 @click.option('--docker', is_flag=True, help='Whether to run in Docker mode - assumes assets are prebuilt')
@@ -95,6 +122,7 @@ def start(
     dev_port: int | None,
     base_url: str | None,
 ):
+    """Start the Dara backend with optional reload and custom JavaScript HMR."""
     if dev_port is not None and not enable_hmr:
         raise UsageError('--dev-port requires --enable-hmr')
 
@@ -217,6 +245,7 @@ def setup_custom_js():
 @click.option('--config', help='The path to the config for the application')
 @click.option('--port', type=click.IntRange(1, 65535), help='The port used by the Vite development server')
 def dev(config: str | None, port: int | None):
+    """Run the Vite development server for the configured application."""
     # Run vite dev command, printing output live
     js_config = JsConfig.from_file()
     config_path = _resolve_config_path(config)
@@ -253,6 +282,9 @@ def dev(config: str | None, port: int | None):
                 decoded_line = line.decode('utf-8').strip()
                 if decoded_line != '':
                     print(decoded_line)
+
+        if vite_process.wait() != 0:
+            raise click.ClickException('Vite development server exited unsuccessfully; see output above.')
 
 
 @cli.command()

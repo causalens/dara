@@ -149,14 +149,14 @@ and to serve the UI from a development server so you can benefit from Hot Module
 <TabItem value="uv">
 
 ```sh
-uv run dara --enable-hmr
+uv run dara start --enable-hmr
 ```
 
 </TabItem>
 <TabItem value="pip">
 
 ```sh
-dara --enable-hmr
+dara start --enable-hmr
 ```
 
 </TabItem>
@@ -189,10 +189,46 @@ dara dev
 
 This should start up quickly and be ready to serve your modules and you should be able to see the application in the browser.
 
+For parallel worktrees, set a different `VITE_SERVER_PORT` in each project's `.env`, or use matching
+`dara start --enable-hmr --dev-port 3100` and `dara dev --port 3100` options. See
+[Running multiple worktrees](../getting-started/local-setup#running-multiple-worktrees) for app and metrics port configuration.
+
 :::tip
 If you are not going to edit the JS and don't want the HMR functionality then you can simply run `dara start --production` rather than
 the `--enable-hmr` flag. This will build an optimized JS bundle and serve it from the main application server.
 :::
+
+### HMR behind a reverse proxy
+
+When a proxy gives Vite a browser-facing address different from its local listener, configure these environment variables
+through your process manager or the project `.env`:
+
+```dotenv
+VITE_SERVER_PORT=3100
+VITE_SERVER_BIND_HOST=127.0.0.1
+VITE_SERVER_ORIGIN=https://vite.feature.myapp.localhost:7777
+VITE_SERVER_ALLOWED_ORIGINS=["https://ui.feature.myapp.localhost:7777"]
+```
+
+Set `VITE_SERVER_PORT`, `VITE_SERVER_BIND_HOST`, and `VITE_SERVER_ORIGIN` identically for `dara start --enable-hmr`
+and `dara dev`. `--dev-port` on `start` and `--port` on `dev` still override the local Vite port.
+
+- `VITE_SERVER_PORT` is the local listening port, not the proxy port.
+- `VITE_SERVER_BIND_HOST` is Vite's listening interface (default `localhost`). Use `0.0.0.0` only when the proxy needs
+  to reach Vite from another container or machine.
+- `VITE_SERVER_ORIGIN` is the public HTTP(S) origin, with no path. Dara uses it for the entry module, Vite client,
+  React refresh, and HMR WebSocket address. Its hostname is added to Vite's allowed hosts.
+- `VITE_SERVER_ALLOWED_ORIGINS` is a JSON array of exact browser origins allowed to load Vite modules, usually the
+  Dara application's public origin. When omitted, Vite's default local-origin CORS policy remains in effect.
+
+The proxy must forward HTTP requests and WebSocket upgrades to Vite, preserving `/static/` paths. HTTPS may terminate
+at the proxy: Vite continues to listen on HTTP, while browsers use HTTPS assets and WSS for HMR. The backend checks
+Vite's project identity through its direct listener, so it does not need to resolve or trust the proxy's public TLS endpoint.
+Without `VITE_SERVER_ORIGIN`, the existing `VITE_SERVER_PROTOCOL`, `VITE_SERVER_HOST`, and `VITE_SERVER_PORT` settings
+continue to determine browser URLs.
+
+After upgrading Dara, run `dara start --enable-hmr --rebuild` once to refresh the generated Vite configuration
+before starting the development servers.
 
 ### Handling Variables and Actions
 
