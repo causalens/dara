@@ -1128,6 +1128,78 @@ describe('useVariable', () => {
             expect(rendered.queryByText(/^error:/)).not.toBeInTheDocument();
         });
 
+        it('refetches a DerivedVariable for a reader that does not own it after its owner aborted the request', async () => {
+            vi.useFakeTimers();
+            let requestCount = 0;
+            let firstSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/unowned-reader-derived', async ({ request }) => {
+                    const currentRequest = ++requestCount;
+                    if (currentRequest === 1) {
+                        firstSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+                    return HttpResponse.json({ cache_key: String(currentRequest), value: `request-${currentRequest}` });
+                })
+            );
+
+            const derived: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'unowned-reader-derived',
+                variables: [],
+            };
+            // Reading a Variable with a DerivedVariable default does not claim the DerivedVariable's request
+            const withDerivedDefault: SingleVariable<any> = {
+                __typename: 'Variable',
+                default: derived,
+                nested: [],
+                uid: 'unowned-reader-variable',
+            };
+
+            function VariableConsumer(): JSX.Element {
+                const [value] = useVariable<string>(withDerivedDefault);
+                return <span>variable: {String(value)}</span>;
+            }
+
+            function Host(): JSX.Element {
+                const [showReader, setShowReader] = useState(false);
+                return (
+                    <>
+                        <button onClick={() => setShowReader(true)} type="button">
+                            show reader
+                        </button>
+                        <ToggledConsumer variable={derived} />
+                        {showReader && (
+                            <ErrorBoundary fallbackRender={({ error }) => <span>error: {String(error)}</span>}>
+                                <Suspense fallback={<span>reader loading</span>}>
+                                    <VariableConsumer />
+                                </Suspense>
+                            </ErrorBoundary>
+                        )}
+                    </>
+                );
+            }
+
+            const rendered = render(<Host />, { wrapper: Wrapper });
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(firstSignal).toBeDefined());
+
+            // The owner unmounts while the first request is in flight, then a reader without ownership mounts
+            fireEvent.click(rendered.getByText('toggle'));
+            act(() => vi.advanceTimersByTime(0));
+            expect(firstSignal?.aborted).toBe(true);
+
+            fireEvent.click(rendered.getByText('show reader'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+
+            await vi.waitFor(() => expect(rendered.getByText('variable: request-2')).toBeInTheDocument());
+            expect(rendered.queryByText(/^error:/)).not.toBeInTheDocument();
+        });
+
         it('keeps a dependency request owned while Suspense hides its consumer', async () => {
             vi.useFakeTimers();
             const dependency: Variable<number> = {

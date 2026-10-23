@@ -1,4 +1,4 @@
-import { type RecoilState, type RecoilValue, atom } from 'recoil';
+import { type RecoilState, type RecoilValue, atom, useRecoilCallback } from 'recoil';
 
 import { RequestExtrasSerializable } from '@/api/http';
 import { getUniqueIdentifier } from '@/shared/utils/hashing';
@@ -22,6 +22,8 @@ export type AtomFamily = (P: RequestExtrasSerializable) => RecoilState<any>;
 export const atomRegistry = new Map<string, RecoilState<any>>();
 /** Request identity -> polling-only trigger atom. */
 export const pollingTriggerRegistry = new Map<string, RecoilState<TriggerIndexValue>>();
+/** Request identity -> count of requests released by the poller. */
+export const releaseEpochRegistry = new Map<string, RecoilState<number>>();
 /**
  * Key -> atom family
  */
@@ -88,6 +90,36 @@ export function getOrRegisterPollingTrigger(requestKey: string): RecoilState<Tri
     return pollingTriggerRegistry.get(requestKey)!;
 }
 
+/**
+ * Get the counter a request selector reads so a released request is not reused.
+ *
+ * When the poller releases an in-flight request, incrementing this counter
+ * changes the selector's dependencies, so Recoil evaluates it again on the next
+ * read instead of serving the released result from its cache. Unlike the
+ * triggers, it does not force the server to bypass its own cache.
+ */
+export function getOrRegisterReleaseEpoch(requestKey: string): RecoilState<number> {
+    if (!releaseEpochRegistry.has(requestKey)) {
+        releaseEpochRegistry.set(requestKey, atom<number>({ default: 0, key: `_RELEASE_EPOCH_${requestKey}` }));
+    }
+    return releaseEpochRegistry.get(requestKey)!;
+}
+
+/**
+ * Get a stable callback that invalidates the cached result of one request identity.
+ *
+ * Pass it to `usePollKey` for the same key. It stays usable after the component
+ * unmounts, which is when the poller releases the request.
+ */
+export function useReleaseRequest(requestKey: string): () => void {
+    return useRecoilCallback(
+        ({ set }) =>
+            () =>
+                set(getOrRegisterReleaseEpoch(requestKey), (epoch) => epoch + 1),
+        [requestKey]
+    );
+}
+
 type RegistryKeyType = 'result-selector' | 'derived-selector' | 'selector-nested' | 'trigger' | 'filters';
 
 /**
@@ -122,6 +154,7 @@ export function clearRegistries_TEST(): void {
     for (const registry of [
         atomRegistry,
         pollingTriggerRegistry,
+        releaseEpochRegistry,
         atomFamilyRegistry,
         atomFamilyMembersRegistry,
         selectorRegistry,

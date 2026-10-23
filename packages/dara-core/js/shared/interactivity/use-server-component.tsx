@@ -42,8 +42,10 @@ import {
     atomRegistry,
     depsRegistry,
     getOrRegisterPollingTrigger,
+    getOrRegisterReleaseEpoch,
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
+    useReleaseRequest,
 } from './store';
 import { useStreamSubscription } from './use-stream-subscription';
 
@@ -207,6 +209,7 @@ function getOrRegisterServerComponent({
                         const triggerAtom = getOrRegisterComponentTrigger(uid, loop_instance_uid);
                         const selfTrigger = get(triggerAtom);
                         const pollingTrigger = get(getOrRegisterPollingTrigger(selectorKey));
+                        get(getOrRegisterReleaseEpoch(selectorKey));
 
                         // Build trigger map once for efficient lookups
                         const triggerList = buildTriggerList(kwargsList);
@@ -441,7 +444,8 @@ export default function useServerComponent(
     const taskContext = useTaskContext();
     const variablesContext = useContext(VariableCtx);
     const requestKey = getServerComponentRequestKey(uid, loop_instance_uid, extras);
-    usePollKey(variablesContext?.pollScope, requestKey);
+    const releaseRequest = useReleaseRequest(requestKey);
+    usePollKey(variablesContext?.pollScope, requestKey, releaseRequest);
 
     const bus = useEventBus();
 

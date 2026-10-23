@@ -391,98 +391,109 @@ describe('Poller', () => {
         expect(signal?.aborted).toBe(true);
     });
 
-    it('resumes a released initial run once its key is owned again', async () => {
+    it('calls the release handler when it aborts a running request', () => {
         const { poller } = createPoller();
         const owner = 'component';
-        const key = 'derived:released-first-load';
-        const signals: AbortSignal[] = [];
-        const second = defer<string>();
+        const key = 'derived:released';
+        const onRelease = vi.fn();
+        let signal: AbortSignal | undefined;
 
+        poller.claimKey(owner, 'hook', key, onRelease);
         poller.commitOwner(owner, new Map([['hook', key]]));
-        const run = poller.run({
-            cause: 'dependency',
-            key,
-            work: (signal) => {
-                signals.push(signal);
-                return signals.length === 1 ? waitOrAbort(new Promise<string>(() => {}), signal) : second.promise;
-            },
-            write: () => {},
-        });
-        const settled = vi.fn();
-        run.then(settled, settled);
-
+        void poller
+            .run({
+                cause: 'dependency',
+                key,
+                work: (runSignal) => {
+                    signal = runSignal;
+                    return waitOrAbort(new Promise<number>(() => {}), runSignal);
+                },
+                write: () => {},
+            })
+            .catch(() => {});
         poller.releaseOwner(owner);
+        expect(onRelease).not.toHaveBeenCalled();
+
         vi.advanceTimersByTime(0);
-        await vi.advanceTimersByTimeAsync(0);
-        expect(signals[0]?.aborted).toBe(true);
-        expect(settled).not.toHaveBeenCalled();
-
-        poller.commitOwner('remounted-component', new Map([['hook', key]]));
-        await vi.advanceTimersByTimeAsync(0);
-        expect(signals).toHaveLength(2);
-
-        second.resolve('fresh');
-        await expect(run).resolves.toBe('fresh');
+        expect(signal?.aborted).toBe(true);
+        expect(onRelease).toHaveBeenCalledTimes(1);
     });
 
-    it('resumes a released dependency run instead of returning the value for older inputs', async () => {
+    it('does not call the release handler through a StrictMode owner remount', () => {
         const { poller } = createPoller();
         const owner = 'component';
-        const key = 'derived:released-dependency';
-        let saved = 'for-old-inputs';
-        let calls = 0;
+        const key = 'derived:strict-release';
+        const onRelease = vi.fn();
 
+        poller.claimKey(owner, 'hook', key, onRelease);
         poller.commitOwner(owner, new Map([['hook', key]]));
-        const run = poller.run({
-            cause: 'dependency',
-            inputKey: 'new-inputs',
-            key,
-            read: () => ({ found: true, value: saved }),
-            work: (signal) => {
-                calls++;
-                return calls === 1
-                    ? waitOrAbort(new Promise<string>(() => {}), signal)
-                    : Promise.resolve('for-new-inputs');
-            },
-            write: (value) => {
-                saved = value;
-            },
-        });
-
+        void poller.run({ cause: 'dependency', key, work: () => new Promise(() => {}), write: () => {} });
         poller.releaseOwner(owner);
+        poller.commitOwner(owner, new Map([['hook', key]]));
         vi.advanceTimersByTime(0);
-        await vi.advanceTimersByTimeAsync(0);
-        poller.commitOwner('remounted-component', new Map([['hook', key]]));
 
-        await expect(run).resolves.toBe('for-new-inputs');
-        expect(saved).toBe('for-new-inputs');
+        expect(onRelease).not.toHaveBeenCalled();
     });
 
-    it('rejects a released run once a newer run owns its key', async () => {
+    it('does not call the release handler for a key with no running request', async () => {
         const { poller } = createPoller();
         const owner = 'component';
-        const key = 'derived:released-superseded';
-        const oldWork = vi.fn((signal: AbortSignal) => waitOrAbort(new Promise<string>(() => {}), signal));
+        const key = 'derived:idle-release';
+        const onRelease = vi.fn();
 
+        poller.claimKey(owner, 'hook', key, onRelease);
         poller.commitOwner(owner, new Map([['hook', key]]));
-        const oldRun = poller.run({ cause: 'dependency', inputKey: 'old', key, work: oldWork, write: () => {} });
+        await poller.run({ cause: 'dependency', key, work: () => Promise.resolve(1), write: () => {} });
         poller.releaseOwner(owner);
         vi.advanceTimersByTime(0);
-        await vi.advanceTimersByTimeAsync(0);
 
-        // A newer request for other inputs starts before the key is owned again
-        const newRun = poller.run({
+        expect(onRelease).not.toHaveBeenCalled();
+    });
+
+    it('lets the release handler start a new request for the key', () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const key = 'derived:release-restart';
+        const work = vi.fn((signal: AbortSignal) => waitOrAbort(new Promise<number>(() => {}), signal));
+        const options = { cause: 'dependency' as const, inputKey: 'same', key, work, write: () => {} };
+        let restarted: Promise<number> | undefined;
+
+        poller.claimKey(owner, 'hook', key, () => {
+            restarted = poller.run(options);
+        });
+        poller.commitOwner(owner, new Map([['hook', key]]));
+        poller.run(options).catch(() => {});
+        poller.releaseOwner(owner);
+        vi.advanceTimersByTime(0);
+
+        // The request started by the handler is live: a matching caller shares it
+        expect(poller.run(options)).toBe(restarted);
+        expect(work).toHaveBeenCalledTimes(2);
+        expect(work.mock.calls[1]![0].aborted).toBe(false);
+    });
+
+    it('settles a released run without waiting for newer runs', async () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const key = 'derived:released-settles';
+        const newer = defer<string>();
+
+        poller.commitOwner(owner, new Map([['hook', key]]));
+        const released = poller.run({
             cause: 'dependency',
-            inputKey: 'new',
+            inputKey: 'old',
             key,
-            work: () => Promise.resolve('new'),
+            read: () => ({ found: true, value: 'previous' }),
+            work: (signal) => waitOrAbort(new Promise<string>(() => {}), signal),
             write: () => {},
         });
-        poller.commitOwner('remounted-component', new Map([['hook', key]]));
+        poller.releaseOwner(owner);
+        vi.advanceTimersByTime(0);
 
-        await expect(newRun).resolves.toBe('new');
-        await expect(oldRun).rejects.toMatchObject({ name: 'AbortError' });
-        expect(oldWork).toHaveBeenCalledTimes(1);
+        // A newer request for the key is still in flight when the released run settles
+        void poller.run({ cause: 'dependency', inputKey: 'new', key, work: () => newer.promise, write: () => {} });
+        await expect(released).resolves.toBe('previous');
+        newer.resolve('new');
     });
 
     it('keeps a run in a recreated entry current when a released run from the old entry finishes', async () => {
