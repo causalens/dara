@@ -1269,6 +1269,68 @@ describe('useVariable', () => {
             expect(requested).toHaveLength(settledCount);
         });
 
+        it('sends one request per input when the input changes while a request is in flight', async () => {
+            vi.useFakeTimers();
+            const requested: number[] = [];
+            const held: Array<() => void> = [];
+            const answerAll = (): void => held.splice(0).forEach((answer) => answer());
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'one-request-dependency',
+            };
+            const derived: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                uid: 'one-request-derived',
+                variables: [dependency],
+            };
+            server.use(
+                http.post('/api/core/derived-variable/one-request-derived', async ({ request }) => {
+                    const body = await request.json();
+                    const input = Object.values((body as any).values.lookup)[0] as number;
+                    requested.push(input);
+                    // Hold each request until the test answers it, so input changes overlap requests
+                    await new Promise<void>((resolve) => {
+                        held.push(resolve);
+                        request.signal.addEventListener('abort', () => resolve(), { once: true });
+                    });
+                    return HttpResponse.json({ cache_key: `${input}-${requested.length}`, value: `dv-${input}` });
+                })
+            );
+
+            const rendered = renderHook(
+                () => {
+                    const [value] = useVariable<string>(derived);
+                    const [, setDependency] = useVariable<number>(dependency);
+                    return { setDependency, value };
+                },
+                { wrapper: Wrapper }
+            );
+            await act(async () => vi.advanceTimersByTimeAsync(50));
+            answerAll();
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe('dv-1'));
+
+            act(() => rendered.result.current.setDependency(2));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            act(() => rendered.result.current.setDependency(3));
+            for (let round = 0; round < 10; round++) {
+                await act(async () => vi.advanceTimersByTimeAsync(20));
+                answerAll();
+            }
+
+            await vi.waitFor(() => expect(rendered.result.current.value).toBe('dv-3'));
+
+            for (let round = 0; round < 5; round++) {
+                await act(async () => vi.advanceTimersByTimeAsync(20));
+                answerAll();
+            }
+            // The superseded request for 2 is aborted; the current input is requested once
+            expect(requested).toEqual([1, 2, 3]);
+        });
+
         it('refetches after a polling subscriber without an owner scope released a dependency request', async () => {
             vi.useFakeTimers();
             const dependency: Variable<number> = {

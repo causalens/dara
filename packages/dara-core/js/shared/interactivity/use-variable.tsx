@@ -3,9 +3,9 @@ import isEqual from 'lodash/isEqual';
 import { type Dispatch, type SetStateAction, useContext, useEffect, useMemo, useState } from 'react';
 import {
     useRecoilState,
+    useRecoilStateLoadable,
     useRecoilValueLoadable,
     useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE,
-    useSetRecoilState,
 } from 'recoil';
 
 import { VariableCtx, WebSocketCtx, useRequestExtras, useTaskContext } from '@/shared/context';
@@ -211,11 +211,7 @@ export function useVariable<T>(
         }, [value]);
         return [value, setValue];
     }
-    // Read like a DerivedVariable consumer does. With useRecoilStateLoadable, changing the
-    // DerivedVariable's inputs while its request was in flight left this Variable loading
-    // forever, requesting the current input again after every response.
-    const loadable = useRecoilValueLoadable_TRANSITION_SUPPORT_UNSTABLE(recoilState);
-    const setLoadable = useSetRecoilState(recoilState);
+    const [loadable, setLoadable] = useRecoilStateLoadable(recoilState);
     useEffect(() => {
         // when loadable resolves to a value/error
         if (loadable.state !== 'loading') {
