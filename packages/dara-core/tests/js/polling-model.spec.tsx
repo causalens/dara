@@ -12,10 +12,9 @@
  * - Liveness: once every request is answered, every mounted consumer shows the
  *   value for the current input.
  *
- * Generated sequences use the consumers that own their requests: a
- * DerivedVariable read by a component, and a py_component. A Variable whose
- * default is a DerivedVariable reads it without owning the request; it is
- * covered by fixed sequences only, because of the known failure pinned below.
+ * Consumers: a DerivedVariable read by a component that owns its request, a
+ * Variable whose default is that DerivedVariable (it reads the DerivedVariable
+ * without owning the request), and a py_component.
  */
 import { act, render } from '@testing-library/react';
 import fc from 'fast-check';
@@ -46,7 +45,7 @@ const commandArb: fc.Arbitrary<Command> = fc.oneof(
     {
         arbitrary: fc.record({
             kind: fc.constant('toggle' as const),
-            target: fc.constantFrom<Target>('owned', 'python'),
+            target: fc.constantFrom<Target>('owned', 'reader', 'python'),
         }),
         weight: 4,
     },
@@ -65,7 +64,7 @@ const commandArb: fc.Arbitrary<Command> = fc.oneof(
 );
 
 /**
- * Sequences that failed before request release invalidated cached results.
+ * Sequences that failed before the fixes they are named after.
  *
  * They run on every test run, ahead of the generated ones.
  */
@@ -99,6 +98,15 @@ const KNOWN_FAILURES: Array<[string, Command[]]> = [
             { kind: 'tick', ms: 20 },
             { kind: 'toggle', target: 'python' },
             { kind: 'toggle', target: 'python' },
+        ],
+    ],
+    [
+        'a Variable with a DerivedVariable default kept refetching and showed the value for an older input',
+        [
+            { kind: 'respond', which: 'oldest' },
+            { kind: 'toggle', target: 'reader' },
+            { kind: 'input', value: 2 },
+            { kind: 'input', value: 3 },
         ],
     ],
 ];
@@ -338,10 +346,7 @@ describe('request ownership model', () => {
     });
     afterAll(() => server.close());
 
-    // Pre-existing: a Variable whose default is a DerivedVariable stops following it after two
-    // input changes, and pins the DerivedVariable's other consumers to the stale value. Remove
-    // `.fails` once this is fixed, and add 'reader' to the generated toggle targets.
-    it.fails('keeps a Variable with a DerivedVariable default on the value for the current input', async () => {
+    it('keeps a Variable with a DerivedVariable default on the value for the current input', async () => {
         await runScenario(
             [
                 { kind: 'respond', which: 'oldest' },

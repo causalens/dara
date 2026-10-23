@@ -685,6 +685,20 @@ export function getOrRegisterDerivedVariableValue(
                             return derivedResult.entry.result;
                         }
 
+                        // The result selector caches its verdict, and a request that later saved a result for
+                        // these exact inputs does not invalidate it. Repeat its check against the saved entry so
+                        // re-evaluating this selector reuses that result instead of requesting the inputs again.
+                        if (derivedResult.type === 'current') {
+                            const saved = depsRegistry.get(derivedResult.depsKey);
+                            if (
+                                saved &&
+                                !isDeferred(saved.result) &&
+                                isEqual(saved.args, derivedResult.relevantValues)
+                            ) {
+                                return saved.result;
+                            }
+                        }
+
                         const { extras } = extrasSerializable;
                         const currentResult =
                             derivedResult.type === 'current' ? (derivedResult as CurrentResult) : undefined;

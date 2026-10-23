@@ -4,6 +4,7 @@ title: Changelog
 
 ## NEXT
 
+- Fixed DerivedVariables requesting the same inputs again when re-evaluated after their inputs changed during a request. This also left a Variable whose default is a DerivedVariable on an older value while it kept refetching.
 - Fixed py_components and DerivedVariables remounted while their request was in flight showing a generic error or a stale value for the previous inputs instead of fetching again.
 
 ## 1.29.12

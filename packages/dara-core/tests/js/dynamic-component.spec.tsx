@@ -409,6 +409,77 @@ describe('DynamicComponent', () => {
         expect(rendered.queryByText('Try again or contact the application owner.')).not.toBeInTheDocument();
     });
 
+    it('sends one request per input when the input changes while a request is in flight', async () => {
+        vi.useFakeTimers();
+        const dependency: Variable<number> = {
+            __typename: 'Variable',
+            default: 1,
+            nested: [],
+            uid: 'one-request-python-dependency',
+        };
+        const component = {
+            name: 'OneRequestComponent',
+            props: {
+                dynamic_kwargs: { value: dependency },
+                polling_interval: null,
+                js_module: 'test',
+                func_name: 'one_request',
+            },
+            uid: 'one-request-component',
+        } satisfies PyComponentInstance;
+        const requested: number[] = [];
+        const held: Array<() => void> = [];
+        const answerAll = (): void => held.splice(0).forEach((answer) => answer());
+        server.use(
+            http.post('/api/core/components/OneRequestComponent', async ({ request }) => {
+                const body = (await request.json()) as { values: { lookup: Record<string, number> } };
+                const input = Object.values(body.values.lookup)[0]!;
+                requested.push(input);
+                // Hold each request until the test answers it, so input changes overlap requests
+                await new Promise<void>((resolve) => {
+                    held.push(resolve);
+                    request.signal.addEventListener('abort', () => resolve(), { once: true });
+                });
+                return HttpResponse.json({
+                    data: { name: 'RawString', props: { content: `py-${input}` } },
+                    lookup: {},
+                });
+            })
+        );
+
+        function TestHost(): JSX.Element {
+            const [, setDependency] = useVariable(dependency);
+            return (
+                <>
+                    <button onClick={() => setDependency(2)} type="button">
+                        two
+                    </button>
+                    <button onClick={() => setDependency(3)} type="button">
+                        three
+                    </button>
+                    <DynamicComponent component={component} />
+                </>
+            );
+        }
+
+        const rendered = wrappedRender(<TestHost />);
+        await vi.waitFor(() => expect(held).toHaveLength(1));
+        answerAll();
+        await vi.waitFor(() => expect(rendered.getByText('py-1')).toBeInTheDocument());
+
+        fireEvent.click(rendered.getByText('two'));
+        await act(async () => vi.advanceTimersByTimeAsync(20));
+        fireEvent.click(rendered.getByText('three'));
+        for (let round = 0; round < 5; round++) {
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            answerAll();
+        }
+
+        await vi.waitFor(() => expect(rendered.getByText('py-3')).toBeInTheDocument());
+        // The superseded request for 2 is aborted; the current input is requested once
+        expect(requested).toEqual([1, 2, 3]);
+    });
+
     it('aborts a slow Python poll when an input changes and drops its stale result', async () => {
         vi.useFakeTimers();
         const dependency: Variable<number> = {
