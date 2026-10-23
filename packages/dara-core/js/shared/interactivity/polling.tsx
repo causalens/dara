@@ -6,6 +6,7 @@ const DEFAULT_JITTER_RATIO = 0.1;
 const MAX_BACKOFF_MS = 60_000;
 const POLL_FORCE_KEY_PREFIX = '__dara_poll__:';
 const retryAfterByError = new WeakMap<object, number>();
+const releasedReasons = new WeakSet<object>();
 
 type TimerHandle = ReturnType<typeof setTimeout>;
 type RunCause = 'dependency' | 'poll';
@@ -77,6 +78,8 @@ type RunOutcome =
       };
 
 interface RunHandle {
+    /** Poller-wide generation of this request. */
+    generation: number;
     /** AbortSignal owned by the poller for this request generation. */
     signal: AbortSignal;
     /** Complete this request and update polling cadence if it is still current. */
@@ -114,6 +117,24 @@ export function isAbortError(error: unknown): boolean {
     );
 }
 
+/**
+ * Create the abort reason for a request whose last owner released it.
+ *
+ * Kept distinct from other aborts because nothing has replaced the released
+ * request: its result is still wanted by the next owner of the same key.
+ */
+function createReleasedReason(): DOMException {
+    const reason = new DOMException('The request owner was released', 'AbortError');
+    releasedReasons.add(reason);
+    return reason;
+}
+
+/** Check whether a run was aborted because its last owner released it. */
+function isReleased(signal: AbortSignal): boolean {
+    const reason: unknown = signal.reason;
+    return signal.aborted && typeof reason === 'object' && reason !== null && releasedReasons.has(reason);
+}
+
 /** Read Retry-After saved at the HTTP response seam. */
 function getRetryAfterMs(error: unknown): number | undefined {
     return typeof error === 'object' && error !== null ? retryAfterByError.get(error) : undefined;
@@ -136,7 +157,10 @@ export class Poller {
     readonly #setTimeout: (callback: () => void, delay: number) => TimerHandle;
     readonly #visibilityTarget?: Pick<Document, 'addEventListener' | 'removeEventListener'>;
     readonly #owners = new Map<string, PollOwner>();
+    readonly #ownerWaiters = new Map<string, Set<() => void>>();
 
+    /** Poller-wide so a recreated entry never reuses the generation of an old handle. */
+    #generation = 0;
     #listeningForVisibility = false;
 
     constructor(options: PollerOptions = {}) {
@@ -173,6 +197,7 @@ export class Poller {
 
         const subscriberId = Symbol(key);
         entry.subscribers.set(subscriberId, { intervalMs, refresh });
+        this.#notifyOwned(key);
         this.#startVisibilityListener();
 
         if (entry.subscribers.size === 1 && entry.state.kind === 'idle' && entry.timer === undefined) {
@@ -215,7 +240,7 @@ export class Poller {
                 }
 
                 if (entry.state.kind === 'running') {
-                    entry.state.run.controller.abort();
+                    entry.state.run.controller.abort(createReleasedReason());
                     entry.state.run.detachExternalSignal?.();
                     entry.state.run.end();
                 }
@@ -237,7 +262,7 @@ export class Poller {
         }
         const oldKey = owner.claims.get(hookId);
         owner.claims.set(hookId, key);
-        this.#getOrCreateEntry(key).owners.add(ownerId);
+        this.#addOwner(key, ownerId);
         if (oldKey !== undefined && oldKey !== key && !this.#ownerHasKey(owner, oldKey)) {
             this.#dropOwnedKey(ownerId, oldKey);
         }
@@ -263,7 +288,7 @@ export class Poller {
         // leave a live request without an owner between layout effects.
         const nextRenderKeys = new Set<string>();
         for (const key of new Set(claims.values())) {
-            this.#getOrCreateEntry(key).owners.add(ownerId);
+            this.#addOwner(key, ownerId);
             if (!this.#hasHookForKey(owner, key) && !this.#hasClaimForKey(owner, key)) {
                 nextRenderKeys.add(key);
             }
@@ -300,7 +325,7 @@ export class Poller {
         owner.hooks.set(hookId, key);
         owner.claims.delete(hookId);
         owner.renderKeys.delete(key);
-        this.#getOrCreateEntry(key).owners.add(ownerId);
+        this.#addOwner(key, ownerId);
         if (oldKey !== undefined && oldKey !== key && !this.#ownerHasKey(owner, oldKey)) {
             this.#dropOwnedKey(ownerId, oldKey);
         }
@@ -341,7 +366,8 @@ export class Poller {
      * Matching callers share one promise. Dependency runs replace older work,
      * while a poll that arrives during a run leaves one follow-up refresh.
      */
-    run<T>({ cause, inputKey, key, read, signal, work, write }: PollRun<T>): Promise<T> {
+    run<T>(run: PollRun<T>): Promise<T> {
+        const { cause, inputKey, key, signal } = run;
         const entry = this.#entries.get(key);
         const running = entry?.state.kind === 'running' ? entry.state.run : undefined;
         if (running?.cause === cause && running.inputKey === inputKey && running.result) {
@@ -349,7 +375,7 @@ export class Poller {
         }
 
         const handle = this.#start(key, cause, signal, inputKey);
-        const result = this.#runWork({ cause, handle, read, work, write });
+        const result = this.#runWork(run, handle);
         const state = this.#entries.get(key)?.state;
         if (state?.kind === 'running' && handle.isCurrent()) {
             state.run.result = result;
@@ -369,6 +395,7 @@ export class Poller {
                 const abortedController = new AbortController();
                 abortedController.abort();
                 return {
+                    generation: entry.generation,
                     signal: abortedController.signal,
                     finish: () => {},
                     isCurrent: () => false,
@@ -381,7 +408,8 @@ export class Poller {
         }
 
         this.#clearTimer(entry);
-        const generation = ++entry.generation;
+        const generation = ++this.#generation;
+        entry.generation = generation;
         const controller = new AbortController();
         let end = (): void => {};
         const done = new Promise<void>((resolve) => {
@@ -414,6 +442,7 @@ export class Poller {
     #createRunHandle(key: string, activeRun: ActiveRun): RunHandle {
         let finished = false;
         return {
+            generation: activeRun.generation,
             signal: activeRun.controller.signal,
             finish: (outcome) => {
                 if (finished) {
@@ -430,19 +459,8 @@ export class Poller {
         };
     }
 
-    async #runWork<T>({
-        cause,
-        handle,
-        read,
-        work,
-        write,
-    }: {
-        cause: RunCause;
-        handle: RunHandle;
-        read?: () => SavedValue<T>;
-        work: (signal: AbortSignal) => Promise<T>;
-        write: (value: T) => void;
-    }): Promise<T> {
+    async #runWork<T>(run: PollRun<T>, handle: RunHandle): Promise<T> {
+        const { cause, read, work, write } = run;
         let outcome: RunOutcome = { status: 'success' };
         try {
             assertCurrentRun(handle);
@@ -451,6 +469,15 @@ export class Poller {
             write(value);
             return value;
         } catch (error) {
+            if (isReleased(handle.signal) && (cause === 'dependency' || !read?.().found)) {
+                // Settling here would let the caller cache an abort, or the value for older inputs, as
+                // the result for the current inputs. The next consumer of the key would read that cached
+                // result and never refetch, so keep the promise pending and run again once owned. If the
+                // key is never owned again, the promise stays pending with nothing left to read it.
+                handle.finish({ status: 'aborted' });
+                return await this.#resumeWhenOwned(run, handle.generation, error);
+            }
+
             outcome = isAbortError(error)
                 ? { status: 'aborted' }
                 : { status: 'error', retryAfterMs: getRetryAfterMs(error) };
@@ -517,6 +544,7 @@ export class Poller {
         }
         this.#owners.clear();
         this.#entries.clear();
+        this.#ownerWaiters.clear();
         this.#stopVisibilityListenerIfIdle();
     }
 
@@ -580,6 +608,58 @@ export class Poller {
             } else {
                 this.#schedulePoll(key, entry);
             }
+        }
+    }
+
+    /**
+     * Run a released request again once its key has an owner.
+     *
+     * If a newer request started for the key in the meantime, the released one
+     * is obsolete: it shares the newer promise when the inputs match, and
+     * otherwise rejects with its original abort for a caller nothing reads.
+     */
+    async #resumeWhenOwned<T>(run: PollRun<T>, releasedGeneration: number, error: unknown): Promise<T> {
+        await this.#waitForOwner(run.key);
+        const entry = this.#entries.get(run.key);
+        if (entry && entry.generation > releasedGeneration) {
+            const running = entry.state.kind === 'running' ? entry.state.run : undefined;
+            if (running?.cause === run.cause && running.inputKey === run.inputKey && running.result) {
+                return running.result as Promise<T>;
+            }
+            throw error;
+        }
+        return this.run(run);
+    }
+
+    /** Resolve once the key has an owner or a polling subscriber. */
+    #waitForOwner(key: string): Promise<void> {
+        const entry = this.#entries.get(key);
+        if (entry && (entry.owners.size > 0 || entry.subscribers.size > 0)) {
+            return Promise.resolve();
+        }
+        return new Promise((resolve) => {
+            let waiters = this.#ownerWaiters.get(key);
+            if (!waiters) {
+                waiters = new Set();
+                this.#ownerWaiters.set(key, waiters);
+            }
+            waiters.add(resolve);
+        });
+    }
+
+    #addOwner(key: string, ownerId: string): void {
+        this.#getOrCreateEntry(key).owners.add(ownerId);
+        this.#notifyOwned(key);
+    }
+
+    #notifyOwned(key: string): void {
+        const waiters = this.#ownerWaiters.get(key);
+        if (!waiters) {
+            return;
+        }
+        this.#ownerWaiters.delete(key);
+        for (const resolve of waiters) {
+            resolve();
         }
     }
 
@@ -647,7 +727,7 @@ export class Poller {
         }
         this.#clearTimer(entry);
         if (entry.state.kind === 'running') {
-            entry.state.run.controller.abort();
+            entry.state.run.controller.abort(createReleasedReason());
             entry.state.run.detachExternalSignal?.();
             entry.state.run.end();
         }

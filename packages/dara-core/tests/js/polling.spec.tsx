@@ -391,6 +391,127 @@ describe('Poller', () => {
         expect(signal?.aborted).toBe(true);
     });
 
+    it('resumes a released initial run once its key is owned again', async () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const key = 'derived:released-first-load';
+        const signals: AbortSignal[] = [];
+        const second = defer<string>();
+
+        poller.commitOwner(owner, new Map([['hook', key]]));
+        const run = poller.run({
+            cause: 'dependency',
+            key,
+            work: (signal) => {
+                signals.push(signal);
+                return signals.length === 1 ? waitOrAbort(new Promise<string>(() => {}), signal) : second.promise;
+            },
+            write: () => {},
+        });
+        const settled = vi.fn();
+        run.then(settled, settled);
+
+        poller.releaseOwner(owner);
+        vi.advanceTimersByTime(0);
+        await vi.advanceTimersByTimeAsync(0);
+        expect(signals[0]?.aborted).toBe(true);
+        expect(settled).not.toHaveBeenCalled();
+
+        poller.commitOwner('remounted-component', new Map([['hook', key]]));
+        await vi.advanceTimersByTimeAsync(0);
+        expect(signals).toHaveLength(2);
+
+        second.resolve('fresh');
+        await expect(run).resolves.toBe('fresh');
+    });
+
+    it('resumes a released dependency run instead of returning the value for older inputs', async () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const key = 'derived:released-dependency';
+        let saved = 'for-old-inputs';
+        let calls = 0;
+
+        poller.commitOwner(owner, new Map([['hook', key]]));
+        const run = poller.run({
+            cause: 'dependency',
+            inputKey: 'new-inputs',
+            key,
+            read: () => ({ found: true, value: saved }),
+            work: (signal) => {
+                calls++;
+                return calls === 1
+                    ? waitOrAbort(new Promise<string>(() => {}), signal)
+                    : Promise.resolve('for-new-inputs');
+            },
+            write: (value) => {
+                saved = value;
+            },
+        });
+
+        poller.releaseOwner(owner);
+        vi.advanceTimersByTime(0);
+        await vi.advanceTimersByTimeAsync(0);
+        poller.commitOwner('remounted-component', new Map([['hook', key]]));
+
+        await expect(run).resolves.toBe('for-new-inputs');
+        expect(saved).toBe('for-new-inputs');
+    });
+
+    it('rejects a released run once a newer run owns its key', async () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const key = 'derived:released-superseded';
+        const oldWork = vi.fn((signal: AbortSignal) => waitOrAbort(new Promise<string>(() => {}), signal));
+
+        poller.commitOwner(owner, new Map([['hook', key]]));
+        const oldRun = poller.run({ cause: 'dependency', inputKey: 'old', key, work: oldWork, write: () => {} });
+        poller.releaseOwner(owner);
+        vi.advanceTimersByTime(0);
+        await vi.advanceTimersByTimeAsync(0);
+
+        // A newer request for other inputs starts before the key is owned again
+        const newRun = poller.run({
+            cause: 'dependency',
+            inputKey: 'new',
+            key,
+            work: () => Promise.resolve('new'),
+            write: () => {},
+        });
+        poller.commitOwner('remounted-component', new Map([['hook', key]]));
+
+        await expect(newRun).resolves.toBe('new');
+        await expect(oldRun).rejects.toMatchObject({ name: 'AbortError' });
+        expect(oldWork).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps a run in a recreated entry current when a released run from the old entry finishes', async () => {
+        const { poller } = createPoller();
+        const owner = 'component';
+        const key = 'component:recreated';
+        const newWork = vi.fn(() => new Promise<number>(() => {}));
+
+        poller.commitOwner(owner, new Map([['hook', key]]));
+        void poller.run({
+            cause: 'poll',
+            key,
+            read: () => ({ found: true, value: 0 }),
+            work: (signal) => waitOrAbort(new Promise<number>(() => {}), signal),
+            write: () => {},
+        });
+        poller.releaseOwner(owner);
+        vi.advanceTimersByTime(0);
+
+        // The old run finishes only after a new entry for the key has started a run
+        poller.commitOwner('remounted-component', new Map([['hook', key]]));
+        const options = { cause: 'dependency' as const, inputKey: 'same', key, work: newWork, write: () => {} };
+        const first = poller.run(options);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(poller.run(options)).toBe(first);
+        expect(newWork).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps an initial run through a StrictMode owner remount', () => {
         const { poller } = createPoller();
         const owner = 'component';

@@ -273,6 +273,142 @@ describe('DynamicComponent', () => {
         expect(firstSignal?.aborted).toBe(true);
     });
 
+    it('renders a remounted Python component after its first request was aborted', async () => {
+        vi.useFakeTimers();
+        let requestCount = 0;
+        let firstSignal: AbortSignal | undefined;
+        let releaseFirst: (() => void) | undefined;
+        server.use(
+            http.post('/api/core/components/RemountedComponent', async ({ request }) => {
+                const currentRequest = ++requestCount;
+                if (currentRequest === 1) {
+                    firstSignal = request.signal;
+                    await new Promise<void>((resolve) => {
+                        releaseFirst = resolve;
+                        request.signal.addEventListener('abort', () => resolve(), { once: true });
+                    });
+                }
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: { content: `request-${currentRequest}` },
+                    },
+                    lookup: {},
+                });
+            })
+        );
+
+        const component = {
+            name: 'RemountedComponent',
+            props: {
+                dynamic_kwargs: {},
+                polling_interval: null,
+                js_module: 'test',
+                func_name: 'remounted',
+            },
+            uid: 'remounted-component',
+        } satisfies PyComponentInstance;
+
+        function TestHost(): JSX.Element {
+            const [show, setShow] = React.useState(true);
+            return (
+                <>
+                    <button onClick={() => setShow((s) => !s)} type="button">
+                        toggle
+                    </button>
+                    {show && <DynamicComponent component={component} />}
+                </>
+            );
+        }
+
+        const rendered = wrappedRender(<TestHost />);
+        await vi.waitFor(() => expect(firstSignal).toBeDefined());
+
+        // Unmount while the first request is in flight and let the poller release the owner
+        fireEvent.click(rendered.getByText('toggle'));
+        act(() => vi.advanceTimersByTime(0));
+        expect(firstSignal?.aborted).toBe(true);
+
+        // Mount a fresh instance of the same component
+        fireEvent.click(rendered.getByText('toggle'));
+        releaseFirst?.();
+
+        await vi.waitFor(() => expect(rendered.getByText(/request-\d/)).toBeInTheDocument());
+        expect(rendered.queryByText('Try again or contact the application owner.')).not.toBeInTheDocument();
+    });
+
+    it('refetches a remounted Python component after its dependency request was aborted', async () => {
+        vi.useFakeTimers();
+        const dependency: Variable<number> = {
+            __typename: 'Variable',
+            default: 1,
+            nested: [],
+            uid: 'remounted-python-dependency',
+        };
+        const component = {
+            name: 'RemountedDependencyComponent',
+            props: {
+                dynamic_kwargs: { value: dependency },
+                polling_interval: null,
+                js_module: 'test',
+                func_name: 'remounted_dependency',
+            },
+            uid: 'remounted-dependency-component',
+        } satisfies PyComponentInstance;
+        let requestCount = 0;
+        let dependencySignal: AbortSignal | undefined;
+        server.use(
+            http.post('/api/core/components/RemountedDependencyComponent', async ({ request }) => {
+                const currentRequest = ++requestCount;
+                if (currentRequest === 2) {
+                    dependencySignal = request.signal;
+                    await new Promise<void>((resolve) => {
+                        request.signal.addEventListener('abort', () => resolve(), { once: true });
+                    });
+                }
+                return HttpResponse.json({
+                    data: {
+                        name: 'RawString',
+                        props: { content: `request-${currentRequest}` },
+                    },
+                    lookup: {},
+                });
+            })
+        );
+
+        function TestHost(): JSX.Element {
+            const [shown, setShown] = React.useState(true);
+            const [, setDependency] = useVariable(dependency);
+            return (
+                <>
+                    <button onClick={() => setDependency(2)} type="button">
+                        update
+                    </button>
+                    <button onClick={() => setShown((current) => !current)} type="button">
+                        toggle
+                    </button>
+                    {shown && <DynamicComponent component={component} />}
+                </>
+            );
+        }
+
+        const rendered = wrappedRender(<TestHost />);
+        await vi.waitFor(() => expect(rendered.getByText('request-1')).toBeInTheDocument());
+
+        // Change the input, then unmount while that request is in flight
+        fireEvent.click(rendered.getByText('update'));
+        await vi.waitFor(() => expect(dependencySignal).toBeDefined());
+        fireEvent.click(rendered.getByText('toggle'));
+        act(() => vi.advanceTimersByTime(0));
+        expect(dependencySignal?.aborted).toBe(true);
+
+        fireEvent.click(rendered.getByText('toggle'));
+
+        // The component must be fetched for the current input, not the result for the previous one
+        await vi.waitFor(() => expect(rendered.getByText('request-3')).toBeInTheDocument());
+        expect(rendered.queryByText('Try again or contact the application owner.')).not.toBeInTheDocument();
+    });
+
     it('aborts a slow Python poll when an input changes and drops its stale result', async () => {
         vi.useFakeTimers();
         const dependency: Variable<number> = {
