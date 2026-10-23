@@ -1021,7 +1021,7 @@ export function useDerivedVariable(
         [triggerUpdates]
     );
 
-    usePolling(pollingKey, pollingInterval, trigger);
+    usePolling(pollingKey, pollingInterval, trigger, releaseRequest);
 
     return dvSelector;
 }

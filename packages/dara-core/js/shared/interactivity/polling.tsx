@@ -179,15 +179,25 @@ export class Poller {
      *
      * The returned cleanup releases the consumer. The final cleanup aborts the
      * owned request on the next macrotask so React StrictMode can immediately
-     * reacquire the same identity without cancelling useful work.
+     * reacquire the same identity without cancelling useful work. `onRelease`
+     * is the key's release handler, as for `usePollKey`: a subscriber can be the
+     * last holder of a request even when no owner scope claimed it.
      */
-    subscribe(key: string, intervalSeconds: number | undefined, refresh: () => void): () => void {
+    subscribe(
+        key: string,
+        intervalSeconds: number | undefined,
+        refresh: () => void,
+        onRelease?: () => void
+    ): () => void {
         const intervalMs = (intervalSeconds ?? 0) * 1000;
         if (!Number.isFinite(intervalMs) || !(intervalMs > 0)) {
             return () => {};
         }
 
         const entry = this.#getOrCreateEntry(key);
+        if (onRelease) {
+            entry.onRelease = onRelease;
+        }
         const oldIntervalMs = entry.subscribers.size > 0 ? this.#getIntervalMs(entry) : undefined;
         if (entry.disposeTimer !== undefined) {
             this.#clearTimeout(entry.disposeTimer);
@@ -812,13 +822,20 @@ const poller = new Poller();
  *
  * `refresh` only invalidates the corresponding selector. Request lifecycle,
  * backpressure, retries, and cancellation remain owned by the poller.
+ * `onRelease` is the same release handler the key's `usePollKey` receives; it
+ * should be stable, as it is an effect dependency.
  */
-export function usePolling(key: string, intervalSeconds: number | undefined, refresh: () => void): void {
+export function usePolling(
+    key: string,
+    intervalSeconds: number | undefined,
+    refresh: () => void,
+    onRelease?: () => void
+): void {
     const refreshRef = useLatestRef(refresh);
 
     useEffect(
-        () => poller.subscribe(key, intervalSeconds, () => refreshRef.current()),
-        [intervalSeconds, key, refreshRef]
+        () => poller.subscribe(key, intervalSeconds, () => refreshRef.current(), onRelease),
+        [intervalSeconds, key, onRelease, refreshRef]
     );
 }
 

@@ -1200,6 +1200,89 @@ describe('useVariable', () => {
             expect(rendered.queryByText(/^error:/)).not.toBeInTheDocument();
         });
 
+        it('refetches after a polling subscriber without an owner scope released a dependency request', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'scopeless-polling-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                polling_interval: 60,
+                uid: 'scopeless-polling-derived',
+                variables: [dependency],
+            };
+            let requestCount = 0;
+            let dependencySignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/scopeless-polling-derived', async ({ request }) => {
+                    const currentRequest = ++requestCount;
+                    const body = (await request.json()) as { values: { lookup: Record<string, number> } };
+                    const input = Object.values(body.values.lookup)[0];
+                    if (currentRequest === 2) {
+                        dependencySignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+                    return HttpResponse.json({ cache_key: String(currentRequest), value: `dv-${input}` });
+                })
+            );
+
+            let pollingEnabled = true;
+            function Consumer(): JSX.Element {
+                const [value] = useVariable<string>({
+                    ...variable,
+                    polling_interval: pollingEnabled ? 60 : undefined,
+                });
+                return <span>value: {String(value)}</span>;
+            }
+
+            function Host(): JSX.Element {
+                const [shown, setShown] = useState(true);
+                const [, setDependency] = useVariable<number>(dependency);
+                // No poll scope: only the polling subscription holds the request
+                return (
+                    <VariableCtx.Provider value={null}>
+                        <button onClick={() => setDependency(2)} type="button">
+                            update
+                        </button>
+                        <button onClick={() => setShown((current) => !current)} type="button">
+                            toggle
+                        </button>
+                        {shown && (
+                            <ErrorBoundary fallbackRender={({ error }) => <span>error: {String(error)}</span>}>
+                                <Suspense fallback={<span>loading</span>}>
+                                    <Consumer />
+                                </Suspense>
+                            </ErrorBoundary>
+                        )}
+                    </VariableCtx.Provider>
+                );
+            }
+
+            const rendered = render(<Host />, { wrapper: Wrapper });
+            await vi.waitFor(() => expect(rendered.getByText('value: dv-1')).toBeInTheDocument());
+
+            fireEvent.click(rendered.getByText('update'));
+            await act(async () => vi.advanceTimersByTimeAsync(100));
+            await vi.waitFor(() => expect(dependencySignal).toBeDefined());
+            fireEvent.click(rendered.getByText('toggle'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            expect(dependencySignal?.aborted).toBe(true);
+
+            // Remount without polling, so only the invalidation can bring the value up to date
+            pollingEnabled = false;
+            fireEvent.click(rendered.getByText('toggle'));
+            await act(async () => vi.advanceTimersByTimeAsync(200));
+
+            await vi.waitFor(() => expect(rendered.getByText('value: dv-2')).toBeInTheDocument());
+        });
+
         it('keeps a dependency request owned while Suspense hides its consumer', async () => {
             vi.useFakeTimers();
             const dependency: Variable<number> = {

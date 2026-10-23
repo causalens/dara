@@ -19,6 +19,7 @@ import { FallbackCtx, VariableCtx, useRequestExtras, useTaskContext } from '@/sh
 import { ErrorDisplay, isSelectorError } from '@/shared/error-handling';
 import { useRefreshSelector, useVariable } from '@/shared/interactivity';
 import { usePollScope, usePolling } from '@/shared/interactivity/polling';
+import { useReleaseRequest } from '@/shared/interactivity/store';
 import useServerComponent, {
     getServerComponentRequestKey,
     usePollServerComponent,
@@ -398,7 +399,8 @@ function PythonWrapper(props: PythonWrapperProps): React.ReactNode {
         [resolvedKwargPollingIntervals, componentPollingInterval]
     );
     const pollingKey = getServerComponentRequestKey(props.uid, props.component.loop_instance_uid, extras);
-    usePolling(pollingKey, pollingInterval, poll);
+    const releaseRequest = useReleaseRequest(pollingKey);
+    usePolling(pollingKey, pollingInterval, poll, releaseRequest);
 
     if (component === null) {
         return null;

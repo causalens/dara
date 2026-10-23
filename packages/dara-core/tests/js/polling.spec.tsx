@@ -419,6 +419,38 @@ describe('Poller', () => {
         expect(onRelease).toHaveBeenCalledTimes(1);
     });
 
+    it('calls the release handler when the final polling subscriber releases a running request', () => {
+        const { poller } = createPoller();
+        const key = 'derived:subscriber-release';
+        const onRelease = vi.fn();
+        let signal: AbortSignal | undefined;
+        const unsubscribe = poller.subscribe(
+            key,
+            1,
+            () => {
+                void poller
+                    .run({
+                        cause: 'poll',
+                        key,
+                        work: (runSignal) => {
+                            signal = runSignal;
+                            return waitOrAbort(new Promise<number>(() => {}), runSignal);
+                        },
+                        write: () => {},
+                    })
+                    .catch(() => {});
+            },
+            onRelease
+        );
+
+        vi.advanceTimersByTime(1000);
+        unsubscribe();
+        vi.advanceTimersByTime(0);
+
+        expect(signal?.aborted).toBe(true);
+        expect(onRelease).toHaveBeenCalledTimes(1);
+    });
+
     it('does not call the release handler through a StrictMode owner remount', () => {
         const { poller } = createPoller();
         const owner = 'component';
