@@ -1,13 +1,16 @@
 /* eslint-disable no-restricted-globals */
 import { type Matcher, type MatcherOptions, act, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useRecoilCallback } from 'recoil';
 
 import { setSessionIdentifier } from '@/auth/session-state';
+import { VariableCtx } from '@/shared/context';
 import { EventCapturer } from '@/shared/event-bus/event-bus';
 import { getSessionKey } from '@/shared/interactivity/persistence';
+import { usePollScope } from '@/shared/interactivity/polling';
 import { preloadActions } from '@/shared/interactivity/use-action';
 import type {
     Action,
@@ -983,6 +986,301 @@ describe('useVariable', () => {
             finishRequest();
 
             expect(aborted).toBe(true);
+        });
+
+        function DerivedConsumer({ variable }: { variable: DerivedVariable }): JSX.Element {
+            const [value] = useVariable<string>(variable);
+            return <span>value: {String(value)}</span>;
+        }
+
+        /** Give the consumer its own poll owner, as each DynamicComponent does in an app. */
+        function PollOwner({ children }: { children: JSX.Element }): JSX.Element {
+            const pollScope = usePollScope();
+            const variables = useRef<Set<string>>(new Set());
+            return <VariableCtx.Provider value={{ pollScope, variables }}>{children}</VariableCtx.Provider>;
+        }
+
+        /**
+         * Mount and unmount a DerivedVariable consumer on demand.
+         *
+         * The consumer has its own Suspense and error boundaries so a thrown request
+         * error renders as text instead of failing the test render.
+         */
+        function ToggledConsumer({ variable }: { variable: DerivedVariable }): JSX.Element {
+            const [shown, setShown] = useState(true);
+            return (
+                <>
+                    <button onClick={() => setShown((current) => !current)} type="button">
+                        toggle
+                    </button>
+                    {shown && (
+                        <ErrorBoundary fallbackRender={({ error }) => <span>error: {String(error)}</span>}>
+                            <PollOwner>
+                                <Suspense fallback={<span>loading</span>}>
+                                    <DerivedConsumer variable={variable} />
+                                </Suspense>
+                            </PollOwner>
+                        </ErrorBoundary>
+                    )}
+                </>
+            );
+        }
+
+        it('renders a remounted DerivedVariable after its first request was aborted', async () => {
+            vi.useFakeTimers();
+            let requestCount = 0;
+            let firstSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/remounted-derived', async ({ request }) => {
+                    const currentRequest = ++requestCount;
+                    if (currentRequest === 1) {
+                        firstSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+                    return HttpResponse.json({ cache_key: String(currentRequest), value: `request-${currentRequest}` });
+                })
+            );
+
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'remounted-derived',
+                variables: [],
+            };
+
+            const rendered = render(<ToggledConsumer variable={variable} />, { wrapper: Wrapper });
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(firstSignal).toBeDefined());
+
+            // Unmount while the first request is in flight and let the poller release its owner
+            fireEvent.click(rendered.getByText('toggle'));
+            act(() => vi.advanceTimersByTime(0));
+            expect(firstSignal?.aborted).toBe(true);
+
+            fireEvent.click(rendered.getByText('toggle'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+
+            await vi.waitFor(() => expect(rendered.getByText('value: request-2')).toBeInTheDocument());
+            expect(rendered.queryByText(/^error:/)).not.toBeInTheDocument();
+        });
+
+        it('refetches a remounted DerivedVariable after its dependency request was aborted', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'remounted-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                uid: 'remounted-dependency-derived',
+                variables: [dependency],
+            };
+            let requestCount = 0;
+            let dependencySignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/remounted-dependency-derived', async ({ request }) => {
+                    const currentRequest = ++requestCount;
+                    if (currentRequest === 2) {
+                        dependencySignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+                    return HttpResponse.json({ cache_key: String(currentRequest), value: `request-${currentRequest}` });
+                })
+            );
+
+            function Host(): JSX.Element {
+                const [, setDependency] = useVariable<number>(dependency);
+                return (
+                    <>
+                        <button onClick={() => setDependency(2)} type="button">
+                            update
+                        </button>
+                        <ToggledConsumer variable={variable} />
+                    </>
+                );
+            }
+
+            const rendered = render(<Host />, { wrapper: Wrapper });
+            await vi.waitFor(() => expect(rendered.getByText('value: request-1')).toBeInTheDocument());
+
+            // Change the input, then unmount while that request is in flight
+            fireEvent.click(rendered.getByText('update'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(dependencySignal).toBeDefined());
+            fireEvent.click(rendered.getByText('toggle'));
+            act(() => vi.advanceTimersByTime(0));
+            expect(dependencySignal?.aborted).toBe(true);
+
+            fireEvent.click(rendered.getByText('toggle'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+
+            // The value must be fetched for the current input, not the result for the previous one
+            await vi.waitFor(() => expect(rendered.getByText('value: request-3')).toBeInTheDocument());
+            expect(rendered.queryByText(/^error:/)).not.toBeInTheDocument();
+        });
+
+        it('refetches a DerivedVariable for a reader that does not own it after its owner aborted the request', async () => {
+            vi.useFakeTimers();
+            let requestCount = 0;
+            let firstSignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/unowned-reader-derived', async ({ request }) => {
+                    const currentRequest = ++requestCount;
+                    if (currentRequest === 1) {
+                        firstSignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+                    return HttpResponse.json({ cache_key: String(currentRequest), value: `request-${currentRequest}` });
+                })
+            );
+
+            const derived: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [],
+                nested: [],
+                uid: 'unowned-reader-derived',
+                variables: [],
+            };
+            // Reading a Variable with a DerivedVariable default does not claim the DerivedVariable's request
+            const withDerivedDefault: SingleVariable<any> = {
+                __typename: 'Variable',
+                default: derived,
+                nested: [],
+                uid: 'unowned-reader-variable',
+            };
+
+            function VariableConsumer(): JSX.Element {
+                const [value] = useVariable<string>(withDerivedDefault);
+                return <span>variable: {String(value)}</span>;
+            }
+
+            function Host(): JSX.Element {
+                const [showReader, setShowReader] = useState(false);
+                return (
+                    <>
+                        <button onClick={() => setShowReader(true)} type="button">
+                            show reader
+                        </button>
+                        <ToggledConsumer variable={derived} />
+                        {showReader && (
+                            <ErrorBoundary fallbackRender={({ error }) => <span>error: {String(error)}</span>}>
+                                <Suspense fallback={<span>reader loading</span>}>
+                                    <VariableConsumer />
+                                </Suspense>
+                            </ErrorBoundary>
+                        )}
+                    </>
+                );
+            }
+
+            const rendered = render(<Host />, { wrapper: Wrapper });
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            await vi.waitFor(() => expect(firstSignal).toBeDefined());
+
+            // The owner unmounts while the first request is in flight, then a reader without ownership mounts
+            fireEvent.click(rendered.getByText('toggle'));
+            act(() => vi.advanceTimersByTime(0));
+            expect(firstSignal?.aborted).toBe(true);
+
+            fireEvent.click(rendered.getByText('show reader'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+
+            await vi.waitFor(() => expect(rendered.getByText('variable: request-2')).toBeInTheDocument());
+            expect(rendered.queryByText(/^error:/)).not.toBeInTheDocument();
+        });
+
+        it('refetches after a polling subscriber without an owner scope released a dependency request', async () => {
+            vi.useFakeTimers();
+            const dependency: Variable<number> = {
+                __typename: 'Variable',
+                default: 1,
+                nested: [],
+                uid: 'scopeless-polling-dependency',
+            };
+            const variable: DerivedVariable = {
+                __typename: 'DerivedVariable',
+                deps: [dependency],
+                nested: [],
+                polling_interval: 60,
+                uid: 'scopeless-polling-derived',
+                variables: [dependency],
+            };
+            let requestCount = 0;
+            let dependencySignal: AbortSignal | undefined;
+            server.use(
+                http.post('/api/core/derived-variable/scopeless-polling-derived', async ({ request }) => {
+                    const currentRequest = ++requestCount;
+                    const body = (await request.json()) as { values: { lookup: Record<string, number> } };
+                    const input = Object.values(body.values.lookup)[0];
+                    if (currentRequest === 2) {
+                        dependencySignal = request.signal;
+                        await new Promise<void>((resolve) => {
+                            request.signal.addEventListener('abort', () => resolve(), { once: true });
+                        });
+                    }
+                    return HttpResponse.json({ cache_key: String(currentRequest), value: `dv-${input}` });
+                })
+            );
+
+            let pollingEnabled = true;
+            function Consumer(): JSX.Element {
+                const [value] = useVariable<string>({
+                    ...variable,
+                    polling_interval: pollingEnabled ? 60 : undefined,
+                });
+                return <span>value: {String(value)}</span>;
+            }
+
+            function Host(): JSX.Element {
+                const [shown, setShown] = useState(true);
+                const [, setDependency] = useVariable<number>(dependency);
+                // No poll scope: only the polling subscription holds the request
+                return (
+                    <VariableCtx.Provider value={null}>
+                        <button onClick={() => setDependency(2)} type="button">
+                            update
+                        </button>
+                        <button onClick={() => setShown((current) => !current)} type="button">
+                            toggle
+                        </button>
+                        {shown && (
+                            <ErrorBoundary fallbackRender={({ error }) => <span>error: {String(error)}</span>}>
+                                <Suspense fallback={<span>loading</span>}>
+                                    <Consumer />
+                                </Suspense>
+                            </ErrorBoundary>
+                        )}
+                    </VariableCtx.Provider>
+                );
+            }
+
+            const rendered = render(<Host />, { wrapper: Wrapper });
+            await vi.waitFor(() => expect(rendered.getByText('value: dv-1')).toBeInTheDocument());
+
+            fireEvent.click(rendered.getByText('update'));
+            await act(async () => vi.advanceTimersByTimeAsync(100));
+            await vi.waitFor(() => expect(dependencySignal).toBeDefined());
+            fireEvent.click(rendered.getByText('toggle'));
+            await act(async () => vi.advanceTimersByTimeAsync(20));
+            expect(dependencySignal?.aborted).toBe(true);
+
+            // Remount without polling, so only the invalidation can bring the value up to date
+            pollingEnabled = false;
+            fireEvent.click(rendered.getByText('toggle'));
+            await act(async () => vi.advanceTimersByTimeAsync(200));
+
+            await vi.waitFor(() => expect(rendered.getByText('value: dv-2')).toBeInTheDocument());
         });
 
         it('keeps a dependency request owned while Suspense hides its consumer', async () => {

@@ -63,9 +63,11 @@ import {
     type TriggerIndexValue,
     depsRegistry,
     getOrRegisterPollingTrigger,
+    getOrRegisterReleaseEpoch,
     getRegistryKey,
     selectorFamilyMembersRegistry,
     selectorFamilyRegistry,
+    useReleaseRequest,
 } from './store';
 import { type TriggerInfo, buildTriggerList, registerChildTriggers, resolveTriggerStatic } from './triggers';
 
@@ -661,6 +663,7 @@ export function getOrRegisterDerivedVariableValue(
                     (extrasSerializable: RequestExtrasSerializable) =>
                     async ({ get }) => {
                         const selectorKey = key + extrasSerializable.toJSON();
+                        get(getOrRegisterReleaseEpoch(selectorKey));
 
                         const throwError = (error: unknown): never => {
                             // On DV task error put selectorId and extras into the error so the boundary can reset the selector cache
@@ -1003,7 +1006,8 @@ export function useDerivedVariable(
     const dvSelector = getOrRegisterDerivedVariable(variable, WsClient, taskContext, extras);
 
     const pollingKey = getRegistryKey(variable, 'derived-selector') + new RequestExtrasSerializable(extras).toJSON();
-    usePollKey(pollScope, pollingKey);
+    const releaseRequest = useReleaseRequest(pollingKey);
+    usePollKey(pollScope, pollingKey, releaseRequest);
     const triggerIndex = useMemo(() => getOrRegisterPollingTrigger(pollingKey), [pollingKey]);
 
     // Creating a setter function for triggerIndex
@@ -1017,7 +1021,7 @@ export function useDerivedVariable(
         [triggerUpdates]
     );
 
-    usePolling(pollingKey, pollingInterval, trigger);
+    usePolling(pollingKey, pollingInterval, trigger, releaseRequest);
 
     return dvSelector;
 }

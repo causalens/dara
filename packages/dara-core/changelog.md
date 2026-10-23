@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed py_components and DerivedVariables remounted while their request was in flight showing a generic error or a stale value for the previous inputs instead of fetching again.
+
 ## 1.29.12
 
 - Added project `.env` and environment overrides for app and metrics ports, host, and metrics opt-out for parallel worktrees, plus proxy-aware custom-JS HMR with configurable public origin, bind host, and allowed browser origins.

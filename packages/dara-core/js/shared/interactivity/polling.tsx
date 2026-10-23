@@ -6,6 +6,7 @@ const DEFAULT_JITTER_RATIO = 0.1;
 const MAX_BACKOFF_MS = 60_000;
 const POLL_FORCE_KEY_PREFIX = '__dara_poll__:';
 const retryAfterByError = new WeakMap<object, number>();
+const releasedReasons = new WeakSet<object>();
 
 type TimerHandle = ReturnType<typeof setTimeout>;
 type RunCause = 'dependency' | 'poll';
@@ -33,6 +34,8 @@ interface Entry {
     failureCount: number;
     generation: number;
     nextRunAt?: number;
+    /** Invalidate the cached result of a request released while running. */
+    onRelease?: () => void;
     owners: Set<string>;
     runAgain: boolean;
     runOnShow: boolean;
@@ -114,6 +117,24 @@ export function isAbortError(error: unknown): boolean {
     );
 }
 
+/**
+ * Create the abort reason for a request whose last owner released it.
+ *
+ * Kept distinct from other aborts because nothing replaced a released request:
+ * its release handler already made the caller stop reading its result.
+ */
+function createReleasedReason(): DOMException {
+    const reason = new DOMException('The request owner was released', 'AbortError');
+    releasedReasons.add(reason);
+    return reason;
+}
+
+/** Check whether a run was aborted because its last owner released it. */
+function isReleased(signal: AbortSignal): boolean {
+    const reason: unknown = signal.reason;
+    return signal.aborted && typeof reason === 'object' && reason !== null && releasedReasons.has(reason);
+}
+
 /** Read Retry-After saved at the HTTP response seam. */
 function getRetryAfterMs(error: unknown): number | undefined {
     return typeof error === 'object' && error !== null ? retryAfterByError.get(error) : undefined;
@@ -137,6 +158,8 @@ export class Poller {
     readonly #visibilityTarget?: Pick<Document, 'addEventListener' | 'removeEventListener'>;
     readonly #owners = new Map<string, PollOwner>();
 
+    /** Poller-wide so a recreated entry never reuses the generation of an old handle. */
+    #generation = 0;
     #listeningForVisibility = false;
 
     constructor(options: PollerOptions = {}) {
@@ -156,15 +179,25 @@ export class Poller {
      *
      * The returned cleanup releases the consumer. The final cleanup aborts the
      * owned request on the next macrotask so React StrictMode can immediately
-     * reacquire the same identity without cancelling useful work.
+     * reacquire the same identity without cancelling useful work. `onRelease`
+     * is the key's release handler, as for `usePollKey`: a subscriber can be the
+     * last holder of a request even when no owner scope claimed it.
      */
-    subscribe(key: string, intervalSeconds: number | undefined, refresh: () => void): () => void {
+    subscribe(
+        key: string,
+        intervalSeconds: number | undefined,
+        refresh: () => void,
+        onRelease?: () => void
+    ): () => void {
         const intervalMs = (intervalSeconds ?? 0) * 1000;
         if (!Number.isFinite(intervalMs) || !(intervalMs > 0)) {
             return () => {};
         }
 
         const entry = this.#getOrCreateEntry(key);
+        if (onRelease) {
+            entry.onRelease = onRelease;
+        }
         const oldIntervalMs = entry.subscribers.size > 0 ? this.#getIntervalMs(entry) : undefined;
         if (entry.disposeTimer !== undefined) {
             this.#clearTimeout(entry.disposeTimer);
@@ -214,12 +247,8 @@ export class Poller {
                     return;
                 }
 
-                if (entry.state.kind === 'running') {
-                    entry.state.run.controller.abort();
-                    entry.state.run.detachExternalSignal?.();
-                    entry.state.run.end();
-                }
                 this.#entries.delete(key);
+                this.#releaseRun(entry);
                 this.#stopVisibilityListenerIfIdle();
             }, 0);
         };
@@ -230,14 +259,14 @@ export class Poller {
      *
      * A later owner commit prunes claims left by an abandoned render.
      */
-    claimKey(ownerId: string, hookId: string, key: string): void {
+    claimKey(ownerId: string, hookId: string, key: string, onRelease?: () => void): void {
         const owner = this.#getOrCreateOwner(ownerId);
         if (owner.hooks.get(hookId) === key) {
             return;
         }
         const oldKey = owner.claims.get(hookId);
         owner.claims.set(hookId, key);
-        this.#getOrCreateEntry(key).owners.add(ownerId);
+        this.#addOwner(key, ownerId, onRelease);
         if (oldKey !== undefined && oldKey !== key && !this.#ownerHasKey(owner, oldKey)) {
             this.#dropOwnedKey(ownerId, oldKey);
         }
@@ -284,7 +313,7 @@ export class Poller {
     }
 
     /** Keep one key after its hook commits. */
-    mountKey(ownerId: string, hookId: string, key: string): void {
+    mountKey(ownerId: string, hookId: string, key: string, onRelease?: () => void): void {
         const owner = this.#getOrCreateOwner(ownerId);
         if (owner.disposeTimer !== undefined) {
             this.#clearTimeout(owner.disposeTimer);
@@ -300,7 +329,7 @@ export class Poller {
         owner.hooks.set(hookId, key);
         owner.claims.delete(hookId);
         owner.renderKeys.delete(key);
-        this.#getOrCreateEntry(key).owners.add(ownerId);
+        this.#addOwner(key, ownerId, onRelease);
         if (oldKey !== undefined && oldKey !== key && !this.#ownerHasKey(owner, oldKey)) {
             this.#dropOwnedKey(ownerId, oldKey);
         }
@@ -381,7 +410,8 @@ export class Poller {
         }
 
         this.#clearTimer(entry);
-        const generation = ++entry.generation;
+        const generation = ++this.#generation;
+        entry.generation = generation;
         const controller = new AbortController();
         let end = (): void => {};
         const done = new Promise<void>((resolve) => {
@@ -457,6 +487,12 @@ export class Poller {
 
             const previous = read?.();
             if (isAbortError(error) && previous?.found) {
+                if (isReleased(handle.signal)) {
+                    // Nothing reads a released run's result any more. Settle now: a cache that also
+                    // stores late results, such as Recoil's most-recent cache, would otherwise let this
+                    // result evict the newer request's entry once that request published.
+                    return previous.value;
+                }
                 // A replaced selector still owns a Recoil promise. Wait until
                 // every newer run publishes before returning its value.
                 await handle.waitForNewer();
@@ -646,12 +682,36 @@ export class Poller {
             return;
         }
         this.#clearTimer(entry);
-        if (entry.state.kind === 'running') {
-            entry.state.run.controller.abort();
-            entry.state.run.detachExternalSignal?.();
-            entry.state.run.end();
-        }
         this.#entries.delete(key);
+        this.#releaseRun(entry);
+    }
+
+    /**
+     * Abort the running request of an entry nothing owns any more.
+     *
+     * The request's caller still settles the aborted run, and a cache such as
+     * Recoil's keeps that result for the request's inputs. The release handler
+     * runs right away, before the run settles, so the next reader of the same
+     * identity starts a new request instead of reading the aborted result.
+     * Call this after removing the entry, so a request the handler starts
+     * creates a new one.
+     */
+    #releaseRun(entry: Entry): void {
+        if (entry.state.kind !== 'running') {
+            return;
+        }
+        entry.state.run.controller.abort(createReleasedReason());
+        entry.state.run.detachExternalSignal?.();
+        entry.state.run.end();
+        entry.onRelease?.();
+    }
+
+    #addOwner(key: string, ownerId: string, onRelease: (() => void) | undefined): void {
+        const entry = this.#getOrCreateEntry(key);
+        entry.owners.add(ownerId);
+        if (onRelease) {
+            entry.onRelease = onRelease;
+        }
     }
 
     #dropOwner(ownerId: string, owner: PollOwner): void {
@@ -762,13 +822,20 @@ const poller = new Poller();
  *
  * `refresh` only invalidates the corresponding selector. Request lifecycle,
  * backpressure, retries, and cancellation remain owned by the poller.
+ * `onRelease` is the same release handler the key's `usePollKey` receives; it
+ * should be stable, as it is an effect dependency.
  */
-export function usePolling(key: string, intervalSeconds: number | undefined, refresh: () => void): void {
+export function usePolling(
+    key: string,
+    intervalSeconds: number | undefined,
+    refresh: () => void,
+    onRelease?: () => void
+): void {
     const refreshRef = useLatestRef(refresh);
 
     useEffect(
-        () => poller.subscribe(key, intervalSeconds, () => refreshRef.current()),
-        [intervalSeconds, key, refreshRef]
+        () => poller.subscribe(key, intervalSeconds, () => refreshRef.current(), onRelease),
+        [intervalSeconds, key, onRelease, refreshRef]
     );
 }
 
@@ -796,22 +863,26 @@ export function usePollScope(): PollScope {
  * runs no effect. The claim only marks ownership; it starts no work. The passive
  * effect keeps the claim after commit and stays mounted when Suspense hides an
  * existing tree.
+ *
+ * `onRelease` runs when the poller aborts the key's in-flight request because
+ * its last owner went away. It must invalidate the cached result of that
+ * request and should be stable, as it is an effect dependency.
  */
-export function usePollKey(scope: PollScope | undefined, key: string): void {
+export function usePollKey(scope: PollScope | undefined, key: string, onRelease?: () => void): void {
     const hookId = useId();
     scope?.claims.set(hookId, key);
     const ownerId = scope?.id;
     if (ownerId) {
-        poller.claimKey(ownerId, hookId, key);
+        poller.claimKey(ownerId, hookId, key, onRelease);
     }
 
     useEffect(() => {
         if (!ownerId) {
             return;
         }
-        poller.mountKey(ownerId, hookId, key);
+        poller.mountKey(ownerId, hookId, key, onRelease);
         return () => poller.unmountKey(ownerId, hookId, key);
-    }, [hookId, key, ownerId]);
+    }, [hookId, key, onRelease, ownerId]);
 }
 
 /** Run one request using the production poller. */
