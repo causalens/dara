@@ -4,10 +4,12 @@ title: Changelog
 
 ## NEXT
 
+- Fixed application construction before an event loop exists on Python 3.14 by configuring the component thread executor on the serving loop during startup.
+- Require Pydantic 2.12 or newer on Python 3.14, where earlier versions do not support deferred annotations.
 - Breaking: dropped support for Python 3.10 and now require Python `>=3.11,<3.15`. Python 3.10 reached end-of-life in October 2026. The upper bound now also covers Python 3.13 and 3.14.
 - Security: bumped `pillow` to `>=13.0.0`, resolving the remaining Pillow advisories that could not be patched while Python 3.10 was supported.
 - Fixed `DaraBaseModel` failing to construct on Python 3.14, where PEP 649 defers annotation evaluation and the `SerializeAsAny` metaclass was reading an annotations mapping that no longer exists at class creation time.
-- Fixed the pool tests asserting on the builtin `pickle` error message, which changed in Python 3.12.
+- Fixed the pool tests to assert Dara's `PicklingException` rather than interpreter-specific builtin `pickle` error messages.
 - Updated PyJWT, certifi, OpenTelemetry, Logfire, D3, Oxfmt, and other dependencies to resolve known security vulnerabilities.
 
 ## 1.29.13
