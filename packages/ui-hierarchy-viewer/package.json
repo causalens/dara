@@ -30,7 +30,7 @@
     "rimraf": "^3.0.2",
     "stylelint": "^17.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "@darajs/styled-components": "1.29.13",

@@ -2,6 +2,12 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Security: bumped `pyjwt` to `>=2.15.0`, `certifi` to `>=2026.10.19` and the `opentelemetry` instrumentation/exporter packages to `0.66b0` to resolve known vulnerabilities. `PyJWKClient` in `pyjwt` 2.15 now builds its own `urllib` opener, so the JWKS test fixtures in `tests/python/test_oidc_auth.py` mock `urllib.request.build_opener` instead of `urllib.request.urlopen`.
+- Security: bumped `logfire` to `>=5.2.0` as its previous `<5.0.0` pin capped the `opentelemetry` stack below the patched releases. `_SanitizingLoggingHandler._get_attributes` now returns the `(attributes, event_name)` tuple that `opentelemetry-instrumentation-logging` 0.66 expects, and drops the promoted event name so arbitrary `otel.event.name`/`event.name` extras cannot bypass log sanitization.
+- Internal: removed the unused `query-string` dependency, and updated `zod` to v4 (all call sites already used the `zod/v4` entrypoint).
+
 ## 1.29.13
 
 - Fixed DerivedVariables requesting the same inputs again when re-evaluated after their inputs changed during a request. This also left a Variable whose default is a DerivedVariable on an older value while it kept refetching.

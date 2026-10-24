@@ -518,13 +518,20 @@ def _sanitize_log_body(record: logging.LogRecord) -> str:
 class _SanitizingLoggingHandler(LoggingHandler):
     """Translate standard-library logs without exporting arbitrary extras or exception details."""
 
-    def _get_attributes(self, record: logging.LogRecord) -> Mapping[str, Any]:
-        attributes = super()._get_attributes(record)
-        return {
-            key: value
-            for key, value in attributes.items()
-            if key in _ALLOWED_LOG_EXTRA_ATTRIBUTES or key.startswith('code.')
-        }
+    def _get_attributes(self, record: logging.LogRecord) -> tuple[dict[str, Any], str | None]:
+        attributes, _ = super()._get_attributes(record)
+        # The parent promotes `otel.event.name`/`event.name` out of the extras into the OTel
+        # `event_name` field before this allowlist runs. Those keys are user-supplied extras like
+        # any other, so the promoted value is dropped rather than passed through; Dara's own event
+        # name reaches the log body via `_sanitize_log_body` instead.
+        return (
+            {
+                key: value
+                for key, value in attributes.items()
+                if key in _ALLOWED_LOG_EXTRA_ATTRIBUTES or key.startswith('code.')
+            },
+            None,
+        )
 
     def _translate(self, record: logging.LogRecord) -> OTelLogRecord:
         safe_record = logging.makeLogRecord(record.__dict__.copy())

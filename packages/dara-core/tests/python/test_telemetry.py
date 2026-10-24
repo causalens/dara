@@ -368,12 +368,18 @@ def test_otel_log_translation_drops_exception_details_and_arbitrary_extras():
     record.content = {'token': 'secret-token'}
     record.status_code = 500
     record.event_name = 'action.failed'
+    # The OTEL handler promotes these out of the extras before the allowlist runs, so they must not
+    # reach the translated log through the `event_name` field either.
+    record.__dict__['otel.event.name'] = 'smuggled-event'
+    record.__dict__['event.name'] = 'smuggled-legacy-event'
 
     translated = telemetry._SanitizingLoggingHandler(log_code_attributes=False)._translate(record)
 
     assert translated.body == 'action.failed'
+    assert translated.event_name is None
     assert dict(translated.attributes or {}) == {'event_name': 'action.failed', 'status_code': 500}
     assert 'secret' not in repr(translated)
+    assert 'smuggled' not in repr(translated)
     assert record.msg == {'title': 'Action failed', 'error': error}
     assert record.content == {'token': 'secret-token'}
 
