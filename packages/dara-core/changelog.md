@@ -4,10 +4,12 @@ title: Changelog
 
 ## NEXT
 
+- Fixed application construction before an event loop exists on Python 3.14 by configuring the component thread executor on the serving loop during startup.
+- Require Pydantic 2.12 or newer on Python 3.14, where earlier versions do not support deferred annotations.
 - Breaking: dropped support for Python 3.10 and now require Python `>=3.11,<3.15`. Python 3.10 reached end-of-life in October 2026. The upper bound now also covers Python 3.13 and 3.14.
 - Security: bumped `pillow` to `>=13.0.0`, resolving the remaining Pillow advisories that could not be patched while Python 3.10 was supported.
 - Fixed `DaraBaseModel` failing to construct on Python 3.14, where PEP 649 defers annotation evaluation and the `SerializeAsAny` metaclass was reading an annotations mapping that no longer exists at class creation time.
-- Fixed the pool tests asserting on the builtin `pickle` error message, which changed in Python 3.12.
+- Fixed the pool tests to assert Dara's `PicklingException` rather than interpreter-specific builtin `pickle` error messages.
 - Security: bumped `pyjwt` to `>=2.15.0`, `certifi` to `>=2026.10.19` and the `opentelemetry` instrumentation/exporter packages to `0.66b0` to resolve known vulnerabilities. `PyJWKClient` in `pyjwt` 2.15 now builds its own `urllib` opener, so the JWKS test fixtures in `tests/python/test_oidc_auth.py` mock `urllib.request.build_opener` instead of `urllib.request.urlopen`.
 - Security: bumped `logfire` to `>=5.2.0` as its previous `<5.0.0` pin capped the `opentelemetry` stack below the patched releases. `_SanitizingLoggingHandler._get_attributes` now returns the `(attributes, event_name)` tuple that `opentelemetry-instrumentation-logging` 0.66 expects, and drops the promoted event name so arbitrary `otel.event.name`/`event.name` extras cannot bypass log sanitization.
 - Internal: removed the unused `query-string` dependency, and updated `zod` to v4 (all call sites already used the `zod/v4` entrypoint).

@@ -1,5 +1,6 @@
 import asyncio
 import json
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -95,6 +96,27 @@ async def test_validates_configuration(config: Configuration):
 
     with pytest.raises(ValueError):
         _start_application(1)
+
+
+def test_application_constructs_without_event_loop(monkeypatch: pytest.MonkeyPatch):
+    """Build the app synchronously and configure its executor only on the serving loop."""
+    monkeypatch.setenv('DARA_NUM_COMPONENT_THREADS', '3')
+
+    def serve_application():
+        # A new thread has no current event loop on any supported Python version.
+        with patch('dara.core.main.ThreadPoolExecutor', wraps=ThreadPoolExecutor) as executor:
+            app = _start_application(create_app(ConfigurationBuilder()))
+            executor.assert_not_called()
+
+            async def serve():
+                async with AsyncClient(app):
+                    assert await asyncio.get_running_loop().run_in_executor(None, lambda: 42) == 42
+                    executor.assert_called_once_with(max_workers=3)
+
+            asyncio.run(serve())
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pool.submit(serve_application).result()
 
 
 async def test_metrics_server_uses_dara_registry(monkeypatch: pytest.MonkeyPatch):

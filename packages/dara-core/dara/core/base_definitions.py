@@ -87,17 +87,14 @@ def _get_raw_annotations(namespaces: dict[str, Any]) -> dict[str, Any]:
     """
     Return the annotations declared in a class namespace.
 
-    On Python 3.14+ PEP 649 defers annotation evaluation, so the namespace carries an `__annotate__`
-    function instead of a materialised `__annotations__` dict. The annotations have to be evaluated
-    before they can be rewritten, and writing them back as `__annotations__` stops Python from
-    generating a fresh `__annotate__` - which would otherwise make pydantic read the annotations
-    that were never rewritten.
+    On Python 3.14+ PEP 649 defers annotation evaluation. Materialise the annotations so they can
+    be rewritten, preserving unresolved names for Pydantic to resolve later. Pydantic's VALUE and
+    FORWARDREF lookups prefer the supplied `__annotations__` mapping over `__annotate__`, which
+    still exists on the resulting class.
     """
     annotations = namespaces.get('__annotations__')
     if annotations is None and annotationlib is not None:
-        # During class body execution the namespace carries the annotate function as
-        # `__annotate_func__`; it is only exposed as `__annotate__` once the class exists.
-        annotate = namespaces.get('__annotate_func__') or namespaces.get('__annotate__')
+        annotate = annotationlib.get_annotate_from_class_namespace(namespaces)
         if annotate is not None:
             annotations = annotationlib.call_annotate_function(annotate, format=annotationlib.Format.FORWARDREF)
     return dict(annotations or {})
