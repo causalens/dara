@@ -20,7 +20,7 @@ from dara.core.internal.pool.definitions import (
     is_result,
 )
 from dara.core.internal.pool.task_pool import shutdown
-from dara.core.internal.pool.utils import read_from_shared_memory, stop_process_async
+from dara.core.internal.pool.utils import PicklingException, read_from_shared_memory, stop_process_async
 from dara.core.internal.pool.worker import WorkerProcess
 
 from tests.python.utils import sleep_for, wait_assert, wait_for
@@ -485,10 +485,8 @@ async def test_pool_submit_non_picklable_input():
         async with TaskPool(task_group=tg, max_workers=2, worker_parameters=WORKER_PARAMS) as pool:
             task = pool.submit('test_uid', 'add', (1, lambda x: x))
 
-            with pytest.raises(Exception) as e:
+            with pytest.raises(PicklingException):
                 await task
-
-            assert e.match("Can't pickle local object")
 
 
 async def test_pool_submit_non_picklable_result():
@@ -496,10 +494,8 @@ async def test_pool_submit_non_picklable_result():
         async with TaskPool(task_group=tg, max_workers=2, worker_parameters=WORKER_PARAMS) as pool:
             task = pool.submit('test_uid', 'unpicklable_result_task', (1,))
 
-            with pytest.raises(Exception) as e:
+            with pytest.raises(PicklingException):
                 await task
-
-            assert e.match("Can't pickle local object")
 
 
 async def test_pool_join_not_running():
