@@ -20,6 +20,7 @@ from __future__ import annotations
 # This file should be used for an definitions that have no deps at all so that they can always be imported and shared
 # between other parts of the framework
 import abc
+import sys
 import uuid
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Generator, Mapping
@@ -31,10 +32,16 @@ from typing import (
     Annotated,
     Any,
     ClassVar,
+    ForwardRef,
     Literal,
     get_args,
     get_origin,
 )
+
+if sys.version_info >= (3, 14):  # PEP 649 defers annotation evaluation from 3.14 onwards
+    import annotationlib
+else:  # pragma: no cover - Python < 3.14
+    annotationlib = None
 
 import anyio
 from anyio.streams.memory import MemoryObjectSendStream
@@ -76,12 +83,32 @@ def annotation_has_base_model(typ: Any) -> bool:
         return False
 
 
+def _get_raw_annotations(namespaces: dict[str, Any]) -> dict[str, Any]:
+    """
+    Return the annotations declared in a class namespace.
+
+    On Python 3.14+ PEP 649 defers annotation evaluation, so the namespace carries an `__annotate__`
+    function instead of a materialised `__annotations__` dict. The annotations have to be evaluated
+    before they can be rewritten, and writing them back as `__annotations__` stops Python from
+    generating a fresh `__annotate__` - which would otherwise make pydantic read the annotations
+    that were never rewritten.
+    """
+    annotations = namespaces.get('__annotations__')
+    if annotations is None and annotationlib is not None:
+        # During class body execution the namespace carries the annotate function as
+        # `__annotate_func__`; it is only exposed as `__annotate__` once the class exists.
+        annotate = namespaces.get('__annotate_func__') or namespaces.get('__annotate__')
+        if annotate is not None:
+            annotations = annotationlib.call_annotate_function(annotate, format=annotationlib.Format.FORWARDREF)
+    return dict(annotations or {})
+
+
 # This reverts v1->v2 change to make any BaseModel field duck-type serializable.
 # It works by adding SerializeAsAny to all fields of the model.
 # See https://github.com/pydantic/pydantic/issues/6381
 class SerializeAsAnyMeta(ModelMetaclass):
     def __new__(cls, name: str, bases: tuple[type], namespaces: dict[str, Any], **kwargs):
-        annotations: dict = namespaces.get('__annotations__', {}).copy()
+        annotations: dict = _get_raw_annotations(namespaces)
 
         for base in bases:
             for base_ in base.__mro__:
@@ -92,8 +119,9 @@ class SerializeAsAnyMeta(ModelMetaclass):
             if not field.startswith('__'):
                 # Wrapping `ClassVar`s in `SerializeAsAny` breaks pydantic behaviour of making `ClassVar` fields
                 # accessible via the class itself
-                # NOTE: the annotation can be a string due to future annotations
-                if isinstance(annotation, str) or annotation is ClassVar:
+                # NOTE: the annotation can be a string due to future annotations, or a ForwardRef when PEP 649
+                # materialises it on Python 3.14+
+                if isinstance(annotation, (str, ForwardRef)) or annotation is ClassVar:
                     continue
                 if annotation_has_base_model(annotation):
                     annotations[field] = SerializeAsAny[annotation]  # type: ignore

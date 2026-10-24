@@ -2,7 +2,7 @@
 name = "dara"
 # Bookkeeping only: this is a virtual workspace root that is never built or published.
 version = "1.29.13"
-requires-python = ">=3.10.0,<3.13.0"
+requires-python = ">=3.11.0,<3.15.0"
 dependencies = []
 
 [tool.uv]

@@ -4,6 +4,8 @@ title: Changelog
 
 ## NEXT
 
+- Breaking: dropped support for Python 3.10 and now require Python `>=3.11,<3.15`, matching `dara-core`.
+- Security: added a `pillow>=13.0.0` lower bound, resolving the remaining Pillow advisories.
 - Security: bumped the `certifi` lower bound to `>=2026.10.19` to resolve known vulnerabilities.
 
 ## 1.29.8
