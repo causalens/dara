@@ -22,7 +22,7 @@
     "@darajs/oxfmt-config": "1.29.13",
     "@darajs/oxlint-config": "1.29.13",
     "@darajs/stylelint-config": "1.29.13",
-    "@storybook/react-vite": "^10.5.3",
+    "@storybook/react-vite": "^10.6.2",
     "@types/lodash": "^4.14.155",
     "@types/node": "^24.0.0",
     "@types/react": "^18.0",
@@ -32,11 +32,11 @@
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
     "rimraf": "^3.0.2",
-    "storybook": "^10.5.3",
+    "storybook": "^10.6.2",
     "stylelint": "^17.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vite": "8.1.5",
-    "vitest": "^4.1.10"
+    "vite": "8.1.6",
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "@darajs/styled-components": "1.29.13",

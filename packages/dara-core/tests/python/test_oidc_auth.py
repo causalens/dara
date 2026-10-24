@@ -167,17 +167,21 @@ MOCK_DARA_TOKEN = jwt.encode(
 @contextlib.contextmanager
 def mocked_urllib(data):
     """
-    Mock the `urllib.request.urlopen` method.
+    Mock the JWKS fetch performed by `PyJWKClient`.
 
-    PyJWKClient uses `urllib` under the hood so we need to mock that for JWKS endpoints
+    `PyJWKClient` builds its own `urllib` opener so it can install a no-redirect handler, so we need to
+    mock `urllib.request.build_opener` rather than `urllib.request.urlopen`.
     """
-    with mock.patch('urllib.request.urlopen') as urlopen_mock:
-        response = mock.Mock()
-        response.__enter__ = mock.Mock(return_value=response)
-        response.__exit__ = mock.Mock()
-        response.read.side_effect = [json.dumps(data)]
-        urlopen_mock.return_value = response
-        yield urlopen_mock
+    response = mock.Mock()
+    response.__enter__ = mock.Mock(return_value=response)
+    response.__exit__ = mock.Mock()
+    response.read.side_effect = [json.dumps(data)]
+
+    opener = mock.Mock()
+    opener.open.return_value = response
+
+    with mock.patch('urllib.request.build_opener', return_value=opener) as build_opener_mock:
+        yield build_opener_mock
 
 
 MOCK_DISCOVERY = OIDCDiscoveryMetadata(

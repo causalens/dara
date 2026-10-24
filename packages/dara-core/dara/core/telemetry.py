@@ -518,13 +518,16 @@ def _sanitize_log_body(record: logging.LogRecord) -> str:
 class _SanitizingLoggingHandler(LoggingHandler):
     """Translate standard-library logs without exporting arbitrary extras or exception details."""
 
-    def _get_attributes(self, record: logging.LogRecord) -> Mapping[str, Any]:
-        attributes = super()._get_attributes(record)
-        return {
-            key: value
-            for key, value in attributes.items()
-            if key in _ALLOWED_LOG_EXTRA_ATTRIBUTES or key.startswith('code.')
-        }
+    def _get_attributes(self, record: logging.LogRecord) -> tuple[dict[str, Any], str | None]:
+        attributes, event_name = super()._get_attributes(record)
+        return (
+            {
+                key: value
+                for key, value in attributes.items()
+                if key in _ALLOWED_LOG_EXTRA_ATTRIBUTES or key.startswith('code.')
+            },
+            event_name,
+        )
 
     def _translate(self, record: logging.LogRecord) -> OTelLogRecord:
         safe_record = logging.makeLogRecord(record.__dict__.copy())

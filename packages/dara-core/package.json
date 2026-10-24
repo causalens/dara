@@ -68,8 +68,8 @@
     "stylelint": "^17.14.1",
     "tsc-alias": "^1.8.5",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vite": "8.1.5",
-    "vitest": "^4.1.10",
+    "vite": "8.1.6",
+    "vitest": "^4.1.12",
     "vitest-websocket-mock": "^0.7.0",
     "whatwg-fetch": "^3.6.20"
   },
@@ -93,7 +93,6 @@
     "nprogress": "^0.2.0",
     "p-queue": "^9.1.0",
     "polished": "^4.1.1",
-    "query-string": "^7.1.1",
     "react": "^18.2.0",
     "react-collapse": "^5.1.1",
     "react-dom": "^18.2.0",
@@ -106,7 +105,7 @@
     "rxjs": "^7.0.0",
     "styled-components": "^5.3.10",
     "use-async-resource": "^2.2.2",
-    "zod": "^3.25"
+    "zod": "^4.6.6"
   },
   "files": [
     "dist"
