@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Security: upgraded D3 to 7.9, required `d3-color>=3.1.0` in the build, and removed unused `d3-scale`. D3 is now a build dependency, as it is already bundled into the published graph editor, so consumers no longer install a separate vulnerable dependency tree.
+
 ## 1.29.3
 
 - Internal: Upgraded build tooling to Vite 8 for faster builds.
