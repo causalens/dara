@@ -2,6 +2,11 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Breaking: dropped support for Python 3.10 and now require Python `>=3.11,<3.15`, matching `dara-core`.
+- Security: added a `pillow>=13.0.0` lower bound, resolving the remaining Pillow advisories.
+
 ## 1.29.8
 
 - Fixed `CodeEditor` crashing when its value contains CRLF line endings.

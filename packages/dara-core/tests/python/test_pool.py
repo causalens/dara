@@ -488,7 +488,9 @@ async def test_pool_submit_non_picklable_input():
             with pytest.raises(Exception) as e:
                 await task
 
-            assert e.match("Can't pickle local object")
+            # CPython 3.12 changed the builtin pickle message from "Can't pickle local object"
+            # to "Can't get local object", so accept either across the supported range
+            assert e.match("Can't (pickle|get) local object")
 
 
 async def test_pool_submit_non_picklable_result():
@@ -499,7 +501,9 @@ async def test_pool_submit_non_picklable_result():
             with pytest.raises(Exception) as e:
                 await task
 
-            assert e.match("Can't pickle local object")
+            # CPython 3.12 changed the builtin pickle message from "Can't pickle local object"
+            # to "Can't get local object", so accept either across the supported range
+            assert e.match("Can't (pickle|get) local object")
 
 
 async def test_pool_join_not_running():

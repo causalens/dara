@@ -4,6 +4,10 @@ title: Changelog
 
 ## NEXT
 
+- Breaking: dropped support for Python 3.10 and now require Python `>=3.11,<3.15`. Python 3.10 reached end-of-life in October 2026. The upper bound now also covers Python 3.13 and 3.14.
+- Security: bumped `pillow` to `>=13.0.0`, resolving the remaining Pillow advisories that could not be patched while Python 3.10 was supported.
+- Fixed `DaraBaseModel` failing to construct on Python 3.14, where PEP 649 defers annotation evaluation and the `SerializeAsAny` metaclass was reading an annotations mapping that no longer exists at class creation time.
+- Fixed the pool tests asserting on the builtin `pickle` error message, which changed in Python 3.12.
 - Updated PyJWT, certifi, OpenTelemetry, Logfire, D3, Oxfmt, and other dependencies to resolve known security vulnerabilities.
 
 ## 1.29.13

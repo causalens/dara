@@ -3,8 +3,13 @@ min_version = "2026.9.0"
 monorepo_root = true
 
 [tools]
-python = "3.10"
+python = "3.11"
 uv = "0.11"
+
+[env]
+# Pin uv to the mise-provided interpreter so local venvs match CI instead of
+# picking whichever managed Python happens to be newest.
+UV_PYTHON = "3.11"
 
 [settings]
 lockfile = true
