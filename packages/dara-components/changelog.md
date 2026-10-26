@@ -2,10 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
-- Security: bumped the `certifi` lower bound to `>=2026.10.19` to resolve known vulnerabilities.
-
 ## 1.29.8
 
 - Fixed `CodeEditor` crashing when its value contains CRLF line endings.

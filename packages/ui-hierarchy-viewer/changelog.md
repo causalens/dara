@@ -2,10 +2,6 @@
 title: Changelog
 ---
 
-## NEXT
-
-- Security: upgraded D3 to 7.9 and required `d3-color>=3.1.0` in the build. The published treemap module now bundles its D3 implementation so consumers cannot resolve vulnerable transitive color libraries.
-
 ## 1.26.12
 
 - Internal: Removed unused build and test tooling dependencies.
