@@ -148,10 +148,6 @@ def _start_application(config: Configuration):
     if is_hmr_enabled() or is_backend_reload_enabled():
         config.live_reload = True
 
-    # Configure the default executor for threads run via the async loop
-    loop = asyncio.get_event_loop()
-    loop.set_default_executor(ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', '8'))))
-
     is_production = is_docker_mode()
 
     # Setup registries:
@@ -168,6 +164,13 @@ def _start_application(config: Configuration):
 
     @asynccontextmanager
     async def application_lifespan(app: FastAPI):
+        # Configure the loop serving this application. App construction may happen before a loop
+        # exists, and Python 3.14 no longer creates one implicitly via get_event_loop().
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(
+            ThreadPoolExecutor(max_workers=int(os.environ.get('DARA_NUM_COMPONENT_THREADS', '8')))
+        )
+
         # Create a task group for the application so we can kick off tasks in the background
         async with create_task_group() as task_group:
             # STARTUP

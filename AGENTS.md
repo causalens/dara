@@ -1,6 +1,6 @@
 ## Repo Basics
 
-- This is a Python 3.10 monorepo (supported range 3.10–3.12) managed by uv workspaces + mise. JavaScript packages are managed by pnpm + lerna.
+- This is a Python 3.11 monorepo (supported range 3.11–3.14) managed by uv workspaces + mise. JavaScript packages are managed by pnpm + lerna.
 - Python dependencies live in each package's `pyproject.toml` under the uv workspace rooted at the repo-level `pyproject.toml`. Do not edit `uv.lock` by hand - run `uv lock`.
 - After changing dependencies or checking out the repo, run `mise run uv-sync` which installs everything into the root `.venv` from `uv.lock`.
 

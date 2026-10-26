@@ -21,7 +21,7 @@ uv init --bare
 ```
 
 :::note
-Dara libraries support Python versions `>=3.10.0, <3.13.0`. Make sure the `requires-python` field in your `pyproject.toml` reflects that - uv will automatically download and use a matching Python interpreter.
+Dara libraries support Python versions `>=3.11.0, <3.15.0`. Make sure the `requires-python` field in your `pyproject.toml` reflects that - uv will automatically download and use a matching Python interpreter.
 :::
 
 Update the generated `pyproject.toml` to the following contents:
@@ -32,7 +32,7 @@ name = "my-first-app"
 version = "0.1.0"
 description = ""
 readme = "README.md"
-requires-python = ">=3.10.0, <3.13.0"
+requires-python = ">=3.11.0, <3.15.0"
 dependencies = []
 
 [build-system]
