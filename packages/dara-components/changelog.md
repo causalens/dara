@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.30.0
 
 - Breaking: dropped support for Python 3.10 and now require Python `>=3.11,<3.15`, matching `dara-core`.
 - Security: added a `pillow>=13.0.0` lower bound, resolving the remaining Pillow advisories.

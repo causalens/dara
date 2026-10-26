@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.30.0
 
 - Fixed application construction before an event loop exists on Python 3.14 by configuring the component thread executor on the serving loop during startup.
 - Require Pydantic 2.12 or newer on Python 3.14, where earlier versions do not support deferred annotations.

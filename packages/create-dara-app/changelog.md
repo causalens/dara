@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.30.0
 
 - Breaking: dropped support for Python 3.10 and now generate projects requiring Python `>=3.11,<3.15` with a `mise.toml` pinned to Python 3.11.
 
