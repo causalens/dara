@@ -4,7 +4,7 @@ title: Changelog
 
 ## NEXT
 
-- Updated PyJWT, certifi, OpenTelemetry, Logfire, D3, and other dependencies to resolve known security vulnerabilities.
+- Updated PyJWT, certifi, OpenTelemetry, Logfire, D3, Oxfmt, and other dependencies to resolve known security vulnerabilities.
 
 ## 1.29.13
 
