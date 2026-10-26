@@ -66,7 +66,8 @@ run = "test -f ./bin/bearer || curl -sfL https://raw.githubusercontent.com/Beare
 
 [tasks.bearer]
 description = "JS security scan"
-run = "mise run '//packages/...:bearer'"
+# Bearer scans share a rule cache that can be incomplete during concurrent initialization.
+run = "mise run --jobs 1 '//packages/...:bearer'"
 
 [tasks.test-js]
 description = "Run JS tests across all packages"

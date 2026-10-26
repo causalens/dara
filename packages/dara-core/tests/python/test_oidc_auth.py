@@ -2,6 +2,7 @@ import contextlib
 import json
 import logging
 import os
+from base64 import urlsafe_b64encode
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 from urllib.parse import parse_qs, urlparse
@@ -167,17 +168,21 @@ MOCK_DARA_TOKEN = jwt.encode(
 @contextlib.contextmanager
 def mocked_urllib(data):
     """
-    Mock the `urllib.request.urlopen` method.
+    Mock the JWKS fetch performed by `PyJWKClient`.
 
-    PyJWKClient uses `urllib` under the hood so we need to mock that for JWKS endpoints
+    `PyJWKClient` builds its own `urllib` opener so it can install a no-redirect handler, so we need to
+    mock `urllib.request.build_opener` rather than `urllib.request.urlopen`.
     """
-    with mock.patch('urllib.request.urlopen') as urlopen_mock:
-        response = mock.Mock()
-        response.__enter__ = mock.Mock(return_value=response)
-        response.__exit__ = mock.Mock()
-        response.read.side_effect = [json.dumps(data)]
-        urlopen_mock.return_value = response
-        yield urlopen_mock
+    response = mock.Mock()
+    response.__enter__ = mock.Mock(return_value=response)
+    response.__exit__ = mock.Mock()
+    response.read.side_effect = [json.dumps(data)]
+
+    opener = mock.Mock()
+    opener.open.return_value = response
+
+    with mock.patch('urllib.request.build_opener', return_value=opener) as build_opener_mock:
+        yield build_opener_mock
 
 
 MOCK_DISCOVERY = OIDCDiscoveryMetadata(
@@ -620,6 +625,21 @@ def make_raw_mock_id_token(jwk_data: dict, overrides: dict | None = None, algori
 async def test_decode_id_token_accepts_es256_discovery_algorithm():
     with mock_registered_jwks_client(['ES256']), mocked_urllib(MOCK_ES256_JWKS_DATA):
         decoded = decode_id_token(make_raw_mock_id_token(MOCK_ES256_JWK))
+
+    assert decoded.sub == MOCK_ID_TOKEN['sub']
+
+
+async def test_decode_id_token_accepts_padded_base64url_segments():
+    """Keep accepting padded tokens from providers such as AWS ALB after the PyJWT security upgrade."""
+    header = urlsafe_b64encode(json.dumps({'alg': 'RS256', 'kid': MOCK_JWK['kid']}).encode())
+    payload = urlsafe_b64encode(json.dumps(MOCK_ID_TOKEN).encode())
+    signing_input = header + b'.' + payload
+    signature = jwt.get_algorithm_by_name('RS256').sign(signing_input, PyJWK(MOCK_JWK).key)
+    token = b'.'.join((header, payload, urlsafe_b64encode(signature))).decode()
+    assert '=' in token
+
+    with mock_registered_jwks_client(['RS256']), mocked_urllib(MOCK_JWKS_DATA):
+        decoded = decode_id_token(token)
 
     assert decoded.sub == MOCK_ID_TOKEN['sub']
 

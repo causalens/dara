@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Updated PyJWT, certifi, OpenTelemetry, Logfire, D3, Oxfmt, and other dependencies to resolve known security vulnerabilities.
+
 ## 1.29.13
 
 - Fixed DerivedVariables requesting the same inputs again when re-evaluated after their inputs changed during a request. This also left a Variable whose default is a DerivedVariable on an older value while it kept refetching.

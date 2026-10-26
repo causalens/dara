@@ -25,13 +25,13 @@
     "@types/styled-components": "^5.1.26",
     "@typescript/native": "npm:typescript@^7.0.0",
     "jsdom": "^27.4.0",
-    "oxfmt": "^0.60.0",
+    "oxfmt": "^0.74.0",
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
     "rimraf": "^3.0.2",
     "stylelint": "^17.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "@darajs/styled-components": "1.29.13",

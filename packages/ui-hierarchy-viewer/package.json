@@ -6,8 +6,8 @@
   "module": "dist/index.js",
   "jsnext:main": "dist/index.js",
   "scripts": {
-    "build": "rimraf dist && tsc",
-    "prepare-dev": "tsc",
+    "build": "rimraf dist && tsc && vite build",
+    "prepare-dev": "tsc && vite build",
     "lint": "oxlint --type-aware --type-check src && stylelint './src/**/*.tsx'",
     "format": "oxfmt src --write",
     "format:check": "oxfmt src --check",
@@ -20,22 +20,25 @@
     "@darajs/oxfmt-config": "1.29.13",
     "@darajs/oxlint-config": "1.29.13",
     "@darajs/stylelint-config": "1.29.13",
-    "@types/d3": "^6.2.0",
+    "@types/d3": "^7.4.3",
     "@types/react": "^18.0",
     "@types/styled-components": "^5.1.26",
     "@typescript/native": "npm:typescript@^7.0.0",
-    "oxfmt": "^0.60.0",
+    "d3": "^7.9.0",
+    "d3-color": "^3.1.0",
+    "d3-interpolate": "^3.0.1",
+    "oxfmt": "^0.74.0",
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
     "rimraf": "^3.0.2",
     "stylelint": "^17.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^4.1.10"
+    "vite": "8.1.6",
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "@darajs/styled-components": "1.29.13",
     "@darajs/ui-utils": "1.29.13",
-    "d3": "6.2.0",
     "react": "^18.0"
   },
   "files": [
