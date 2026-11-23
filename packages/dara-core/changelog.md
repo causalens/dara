@@ -5,6 +5,7 @@ title: Changelog
 ## NEXT
 
 - Fixed file downloads being blocked as pop-ups after slow actions and failing when the app is served under a base path.
+- Restored the `DownloadContentImpl` frontend handler and removed the deprecation of the `DownloadContent` resolver API.
 
 ## 1.30.0
 

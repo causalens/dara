@@ -90,9 +90,7 @@ async def test_download():
 @patch('dara.core.interactivity.actions.uuid.uuid4', return_value='uid')
 async def test_download_content_extras(_uid):
     """
-    Test that extras are passed through to the resolver
-
-    TODO: Deprecated API, remove in 2.0
+    Test that extras are passed through to the resolver.
     """
     builder = ConfigurationBuilder()
 
@@ -135,7 +133,7 @@ async def test_download_content_extras(_uid):
         assert len(action_results) == 1
         [download_action] = action_results
         code = download_action['code']
-        assert download_action == {'__typename': 'ActionImpl', 'name': 'DownloadFile', 'code': code}
+        assert download_action == {'__typename': 'ActionImpl', 'name': 'DownloadContent', 'code': code}
 
         # Assert the entry is in store by the returned key
         entry = await utils_registry.get('Store').get(DownloadRegistryEntry, key=code)

@@ -584,28 +584,9 @@ class Notify(ActionImpl):
 
 
 class DownloadContentImpl(ActionImpl):
-    """
-    Download action, downloads a given file
+    """Start an in-page download for a file registered with Dara.
 
-    ```python
-
-    from dara.core import ConfigurationBuilder, DownloadContentImpl
-    from dara.components.components import Button, Stack
-
-
-    config = ConfigurationBuilder()
-
-    def test_page():
-        return Stack(
-            Button(
-                'Download File', onclick=DownloadContentImpl(path='/path/to/file', cleanup_file=False)
-            ),
-        )
-
-
-    config.router.add_page(path='download-content', content=test_page)
-
-    ```
+    :param code: One-time code for the file. Use ``ctx.download_file`` to register a path and execute this action.
     """
 
     code: str
@@ -616,26 +597,13 @@ class DownloadContentImpl(ActionImpl):
 DownloadContentDef = ActionDef(name='DownloadContent', js_module='@darajs/core', py_module='dara.core')
 
 
-class DownloadFileImpl(ActionImpl):
-    """Start a browser download using a one-time file code."""
-
-    py_name = 'DownloadFile'
-    code: str
-
-
-DownloadFileDef = ActionDef(name='DownloadFile', js_module='@darajs/core', py_module='dara.core')
-
-
-@deprecated('Use @action instead')
 def DownloadContent(
     resolver: Callable[[ComponentActionContext], str],
     extras: list[AnyVariable] | None = None,
     cleanup_file: bool = False,
 ):
     """
-    @deprecated This action is deprecated, use `ctx.download_file` in an `@action` instead.
-
-    Download action, downloads a given file
+    Download the file at the path returned by a resolver.
 
     ```python
 
@@ -699,7 +667,6 @@ def DownloadContent(
 
 
 DownloadContent.Ctx = ComponentActionContext  # type: ignore
-"""@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 DownloadVariableDef = ActionDef(name='DownloadVariable', js_module='@darajs/core', py_module='dara.core')
 
@@ -1262,7 +1229,7 @@ class ActionCtx:
         :param cleanup: whether to delete the file after download
         """
         code = await generate_download_code(path, cleanup)
-        return await DownloadFileImpl(code=code).execute(self)
+        return await DownloadContentImpl(code=code).execute(self)
 
     async def download_variable(
         self, variable: AnyVariable, file_name: str | None = None, type: Literal['csv', 'xlsx', 'json'] = 'csv'

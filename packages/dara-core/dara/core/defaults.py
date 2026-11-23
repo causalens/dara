@@ -24,7 +24,6 @@ from dara.core.interactivity.actions import (
     CopyToClipboard,
     CopyToClipboardDef,
     DownloadContentDef,
-    DownloadFileDef,
     DownloadVariable,
     DownloadVariableDef,
     NavigateToDef,
@@ -110,7 +109,6 @@ CORE_ACTIONS: dict[str, ActionDef] = {
     DownloadVariable.__name__: DownloadVariableDef,
     CopyToClipboard.__name__: CopyToClipboardDef,
     'DownloadContent': DownloadContentDef,
-    'DownloadFile': DownloadFileDef,
     Notify.__name__: NotifyDef,
 }
 
