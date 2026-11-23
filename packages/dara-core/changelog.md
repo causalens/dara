@@ -2,6 +2,10 @@
 title: Changelog
 ---
 
+## NEXT
+
+- Fixed file downloads being blocked as pop-ups after slow actions and failing when the app is served under a base path.
+
 ## 1.30.0
 
 - Fixed application construction before an event loop exists on Python 3.14 by configuring the component thread executor on the serving loop during startup.
