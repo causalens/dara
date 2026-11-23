@@ -597,12 +597,15 @@ class DownloadContentImpl(ActionImpl):
 DownloadContentDef = ActionDef(name='DownloadContent', js_module='@darajs/core', py_module='dara.core')
 
 
+@deprecated('Use @action instead')
 def DownloadContent(
     resolver: Callable[[ComponentActionContext], str],
     extras: list[AnyVariable] | None = None,
     cleanup_file: bool = False,
 ):
     """
+    @deprecated This action is deprecated, use `ctx.download_file` in an `@action` instead.
+
     Download the file at the path returned by a resolver.
 
     ```python
@@ -667,6 +670,7 @@ def DownloadContent(
 
 
 DownloadContent.Ctx = ComponentActionContext  # type: ignore
+"""@deprecated retained for backwards compatibility, to be removed in 2.0"""
 
 DownloadVariableDef = ActionDef(name='DownloadVariable', js_module='@darajs/core', py_module='dara.core')
 

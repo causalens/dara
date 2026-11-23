@@ -734,7 +734,7 @@ The following action implementation objects are available:
 
 :::info
 
-Some of these actions use the `Impl` suffix to distinguish an action implementation from a function such as `DownloadContent` that constructs an action.
+Few of the actions above are called with the `-Impl` suffix. This is because the original names are reserved for the deprecated action API. Once the deprecated API is removed, the suffixes will be removed - as an example `UpdateVariableImpl` will become `UpdateVariable`.
 
 See the [Deprecated action API](#deprecated-action-api) section for more details.
 
@@ -822,53 +822,9 @@ async def my_action(ctx: action.Ctx, object_id: str):
 Button('Navigate to External', onclick=my_action(object_id_var))
 ```
 
-## `DownloadContent`
-
-The `DownloadContent` action accepts a resolver function that is called when the action is triggered. The resolver function takes one argument: a context of type `DownloadContent.Ctx`. The resolver function should return a string with a path to the file to download.
-
-```python
-import pandas as pd
-from dara.core import ConfigurationBuilder
-from dara.core.interactivity.actions import DownloadContent
-from dara.components import Button, Stack
-from dara.core.definitions import ComponentInstance
-from dara.core.interactivity import ServerVariable
-
-# generate data, alternatively you could load it from a file
-df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
-my_var = ServerVariable(df)
-
-config = ConfigurationBuilder()
-
-def return_csv(ctx: DownloadContent.Ctx) -> str:
-    # The file can be created and saved dynamically here, it should then return a string with a path to it
-    # To get the component value, e.g. a select component would return the selected value
-    component_value = ctx.inputs.value
-
-    # Getting the value of data passed as extras to the action
-    data = ctx.extras[0]
-
-    # save the data to csv
-    data.to_csv('<PATH_TO_CSV.csv>')
-    return '<PATH_TO_CSV.csv>'
-
-
-def test_page() -> ComponentInstance:
-    return Stack(
-        Button(
-            'Download File', onclick=DownloadContent(resolver=return_csv, extras=[my_var], cleanup_file=False)
-        ),
-    )
-
-
-config.router.add_page(path='download-content', content=test_page)
-```
-
-Use [`ctx.download_file`](#download_file) to download a file from an existing `@action`. Dara registers the file path and dispatches `DownloadContentImpl` with the one-time download code.
-
 ## Deprecated action API
 
-In previous versions of Dara, actions such as `UpdateVariable`, `NavigateTo` and `SideEffect` accepted a `resolver` parameter. This would allow you to pass a function that would be executed on the server when the action is triggered. This API is now deprecated and will be removed in a future version of Dara. You should use the `@action` decorator instead for cases where custom logic is required, or use the [shortcut actions](#shortcut-actions) or [action implementation objects](#action-implementation-objects) for simple cases.
+In previous versions of Dara, actions such as `UpdateVariable`, `NavigateTo`, `DownloadContent` and `SideEffect` accepted a `resolver` parameter. This would allow you to pass a function that would be executed on the server when the action is triggered. This API is now deprecated and will be removed in a future version of Dara. You should use the `@action` decorator instead for cases where custom logic is required, or use the [shortcut actions](#shortcut-actions) or [action implementation objects](#action-implementation-objects) for simple cases.
 
 For backwards compatibility the deprecated API is still available, but it is recommended to migrate to the new API as soon as possible. For the transition period, the resolvers are transformed into `@action`-annotated functions under the hood.
 
@@ -952,6 +908,53 @@ config.router.add_page(path='another-page', content=another_page)
 To migrate to the new API, you can use the [`navigate` method](#navigate) of the injected context within an `@action`-decorated function.
 
 For simpler cases (e.g. static URLs) you can use the `dara.core.interactivity.actions.NavigateToImpl` action implementation object directly.
+
+### `DownloadContent`
+
+The `DownloadContent` action accepts a resolver function that is called when the action is triggered. The resolver function takes one argument: a context of type `DownloadContent.Ctx`. The resolver function should return a string with a path to the file to download.
+
+```python
+import os
+import pandas
+from dara.core import ConfigurationBuilder
+from dara.core.interactivity.actions import DownloadContent
+from dara.components import Button, Stack
+from dara.core.definitions import ComponentInstance
+from dara.core.interactivity import ServerVariable
+
+# generate data, alternatively you could load it from a file
+df = pandas.DataFrame(data={'x': [1, 2, 3], 'y':[4, 5, 6]})
+my_var = ServerVariable(df)
+
+config = ConfigurationBuilder()
+
+def return_csv(ctx: DownloadContent.Ctx) -> str:
+    # The file can be created and saved dynamically here, it should then return a string with a path to it
+    # To get the component value, e.g. a select component would return the selected value
+    component_value = ctx.inputs.value
+
+    # Getting the value of data passed as extras to the action
+    data = ctx.extras[0]
+
+    # save the data to csv
+    data.to_csv('<PATH_TO_CSV.csv>')
+    return '<PATH_TO_CSV.csv>'
+
+
+def test_page() -> ComponentInstance:
+    return Stack(
+        Button(
+            'Download File', onclick=DownloadContent(resolver=return_csv, extras=[my_var], cleanup_file=False)
+        ),
+    )
+
+
+config.router.add_page(path='download-content', content=test_page)
+```
+
+To migrate to the new API, you can use the [`download_file` method](#download_file) of the injected context within an `@action`-decorated function.
+
+Dara registers the file path and dispatches `DownloadContentImpl` with the one-time download code.
 
 ### `SideEffect`
 

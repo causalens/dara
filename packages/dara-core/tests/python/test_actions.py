@@ -124,7 +124,8 @@ def test_download_content():
     def test_func(reserved):
         return './test/path'
 
-    action = DownloadContent(test_func, extras=[var_a])
+    with pytest.warns(DeprecationWarning, match='Use @action instead'):
+        action = DownloadContent(test_func, extras=[var_a])
     assert action_registry.has(action.definition_uid)
 
 
