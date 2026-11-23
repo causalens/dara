@@ -5,7 +5,6 @@ title: Changelog
 ## NEXT
 
 - Fixed file downloads being blocked as pop-ups after slow actions and failing when the app is served under a base path.
-- Restored the `DownloadContentImpl` frontend handler used by `ctx.download_file()`.
 
 ## 1.30.0
 

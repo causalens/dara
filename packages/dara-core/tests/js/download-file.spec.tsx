@@ -1,6 +1,6 @@
-import { DownloadContent } from '@/actions';
+import { DownloadFile } from '@/actions';
 
-describe('DownloadContent action', () => {
+describe('DownloadFile action', () => {
     afterEach(() => {
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
@@ -29,9 +29,9 @@ describe('DownloadContent action', () => {
             expect(url.hash).toBe('');
         });
 
-        await DownloadContent({} as Parameters<typeof DownloadContent>[0], {
+        await DownloadFile({} as Parameters<typeof DownloadFile>[0], {
             __typename: 'ActionImpl',
-            name: 'DownloadContent',
+            name: 'DownloadFile',
             code,
         });
 

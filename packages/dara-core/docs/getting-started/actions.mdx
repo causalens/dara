@@ -954,7 +954,7 @@ config.router.add_page(path='download-content', content=test_page)
 
 To migrate to the new API, you can use the [`download_file` method](#download_file) of the injected context within an `@action`-decorated function.
 
-Dara registers the file path and dispatches `DownloadContentImpl` with the one-time download code.
+For simpler cases (e.g. static file paths) you can use the `dara.core.interactivity.actions.DownloadContentImpl` action implementation object directly.
 
 ### `SideEffect`
 
