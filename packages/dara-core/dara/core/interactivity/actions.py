@@ -1223,6 +1223,10 @@ class ActionCtx:
         """
         Download a given file.
 
+        If one action calls `download_file()` multiple times, Chrome may prompt the user to allow additional
+        downloads or block them, depending on the site's Automatic downloads setting. To deliver several files
+        together, package them in a ZIP archive and download it once.
+
         ```python
 
         from dara.core import action, ConfigurationBuilder, ServerVariable
