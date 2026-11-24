@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import anyio
 import pytest
@@ -132,9 +133,9 @@ async def test_download_content_extras(_uid):
         action_results = await get_action_results(websocket, exec_uid)
 
         assert len(action_results) == 1
-        # Returned action is NavigateTo the download url with the code embedded
-        url = action_results[0].get('url')
-        code = url.split('?code=')[1]
+        [download_action] = action_results
+        code = download_action['code']
+        assert download_action == {'__typename': 'ActionImpl', 'name': 'DownloadFile', 'code': code}
 
         # Assert the entry is in store by the returned key
         entry = await utils_registry.get('Store').get(DownloadRegistryEntry, key=code)
@@ -186,10 +187,10 @@ async def test_file_not_found(_uid):
         action_results = await get_action_results(websocket, exec_uid)
 
         assert len(action_results) == 1
-        assert isinstance(action_results[0]['url'], str)
+        query = urlencode({'code': action_results[0]['code']})
 
         with pytest.raises((BaseExceptionGroup, FileNotFoundError)) as err:
-            await client.get(action_results[0]['url'], headers=await _get_auth_headers())
+            await client.get(f'/api/core/download?{query}', headers=await _get_auth_headers())
 
         error_msg = str(err.value.exceptions[0]) if isinstance(err.value, BaseExceptionGroup) else str(err.value)
         assert "No such file or directory: './test.txt'" in error_msg
@@ -240,9 +241,9 @@ async def test_file_cleanup(_uid):
 
         action_results = await get_action_results(websocket, exec_uid)
         assert len(action_results) == 1
-        url = action_results[0]['url']
+        query = urlencode({'code': action_results[0]['code']})
 
-        response2 = await client.get(url, headers=await _get_auth_headers())
+        response2 = await client.get(f'/api/core/download?{query}', headers=await _get_auth_headers())
 
         # Checks if request successful
         assert response2.content == b'Some content for the file'
@@ -298,9 +299,9 @@ async def test_file_cleanup_false(_uid):
 
         action_results = await get_action_results(websocket, exec_uid)
         assert len(action_results) == 1
-        url = action_results[0]['url']
+        query = urlencode({'code': action_results[0]['code']})
 
-        response2 = await client.get(url, headers=await _get_auth_headers())
+        response2 = await client.get(f'/api/core/download?{query}', headers=await _get_auth_headers())
 
         # Checks if request successful
         assert response2.content == b'Some content for the file'

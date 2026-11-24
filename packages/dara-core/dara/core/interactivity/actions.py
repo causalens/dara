@@ -616,6 +616,16 @@ class DownloadContentImpl(ActionImpl):
 DownloadContentDef = ActionDef(name='DownloadContent', js_module='@darajs/core', py_module='dara.core')
 
 
+class DownloadFileImpl(ActionImpl):
+    """Start a browser download using a one-time file code."""
+
+    py_name = 'DownloadFile'
+    code: str
+
+
+DownloadFileDef = ActionDef(name='DownloadFile', js_module='@darajs/core', py_module='dara.core')
+
+
 @deprecated('Use @action instead')
 def DownloadContent(
     resolver: Callable[[ComponentActionContext], str],
@@ -1213,6 +1223,10 @@ class ActionCtx:
         """
         Download a given file.
 
+        If one action calls `download_file()` multiple times, Chrome may prompt the user to allow additional
+        downloads or block them, depending on the site's Automatic downloads setting. To deliver several files
+        together, package them in a ZIP archive and download it once.
+
         ```python
 
         from dara.core import action, ConfigurationBuilder, ServerVariable
@@ -1252,7 +1266,7 @@ class ActionCtx:
         :param cleanup: whether to delete the file after download
         """
         code = await generate_download_code(path, cleanup)
-        return await NavigateToImpl(url=f'/api/core/download?code={code}', new_tab=True).execute(self)
+        return await DownloadFileImpl(code=code).execute(self)
 
     async def download_variable(
         self, variable: AnyVariable, file_name: str | None = None, type: Literal['csv', 'xlsx', 'json'] = 'csv'

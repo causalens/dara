@@ -352,6 +352,8 @@ async def download_file(
 - `path` - the path to the file to download
 - `cleanup` - a boolean indicating whether to delete the file after it has been downloaded
 
+If one action calls `download_file()` multiple times, Chrome may prompt the user to allow additional downloads or block them, depending on the site's **Automatic downloads** setting. To deliver several files together, package them in a ZIP archive and download it once.
+
 See the following example:
 
 ```python
