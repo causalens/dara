@@ -2,7 +2,7 @@
 title: Changelog
 ---
 
-## NEXT
+## 1.30.1
 
 - Fixed file downloads being blocked as pop-ups after slow actions and failing when the app is served under a base path.
 
